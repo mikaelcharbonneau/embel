@@ -66,31 +66,13 @@ test("invalid saved data is rejected without replacing it", async ({ context, pa
   expect(await page.evaluate(key => localStorage.getItem(key), storageKey)).toBe("{not-valid-json");
 });
 
-test("keyboard navigation, mobile menu, and unavailable tools are usable", async ({ page, isMobile }) => {
+test("keyboard navigation and signed-out pages are usable", async ({ page }) => {
   await page.goto("/");
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: "Skip to content" })).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.locator("#main-content")).toBeFocused();
-  if (isMobile) {
-    const tools = page.getByRole("navigation", { name: "Main navigation", exact: true }).locator("summary");
-    await tools.click(); await expect(page.getByRole("navigation", { name: "Main navigation", exact: true }).getByRole("link", { name: "Ideas", exact: true })).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(page.getByRole("navigation", { name: "Main navigation", exact: true }).getByRole("link", { name: "Ideas", exact: true })).toBeHidden();
-    await expect(tools).toBeFocused();
-  }
   expect(await page.evaluate(() => Math.max(innerWidth, document.documentElement.scrollWidth))).toBeLessThanOrEqual(page.viewportSize()!.width);
-  await page.goto("/ideas");
-  await expect(page.getByRole("heading", { level: 1, name: "Room for your next idea.", exact: true })).toBeVisible();
-  await expect(page.locator("main .account-notice")).toContainText(/No verified account session|Account saving is unavailable/);
-  await expect(page.getByRole("region", { name: "Capture an idea" })).toHaveCount(0);
-  // Standalone tools are account workspaces (96ef9f1): signed out, each explains how to continue.
-  for (const [path, heading] of [["/handles", "Handles"], ["/domains", "Domains"], ["/trademarks", "Trademarks"]] as const) {
-    await page.goto(path);
-    await expect(page.getByRole("heading", { level: 1, name: heading, exact: true })).toBeVisible();
-    await expect(page.locator("main .account-notice")).toContainText("No verified account session");
-    await expect(page.locator("main").getByRole("link", { name: "Sign in", exact: true })).toHaveAttribute("href", "/sign-in");
-  }
   await page.goto("/assets");
   await expect(page.getByRole("heading", { level: 1, name: "Your visual library.", exact: true })).toBeVisible();
   await expect(page.locator("main .account-notice")).toContainText(/No verified account session|Account saving is unavailable/);

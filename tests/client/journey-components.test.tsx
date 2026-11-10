@@ -142,18 +142,11 @@ describe("conversation pieces", () => {
 
 describe("navigation", () => {
   const items = [{ href: "/", label: "Home" }, { href: "/brands", label: "Projects" }, { href: "/assets", label: "Library" }];
-  const tools = [{ href: "/names", label: "Names" }, { href: "/domains", label: "Domains" }];
-  it("marks the current page and closes the Tools menu after choosing or Escape", async () => {
-    await render(createElement(FloatingNav, { pathname: "/brands/123", items, tools }));
-    host.addEventListener("click", event => event.preventDefault());
+  it("marks the current page and offers no Tools menu", async () => {
+    await render(createElement(FloatingNav, { pathname: "/brands/123", items }));
     expect(host.querySelector("a[aria-current='page']")!.textContent).toBe("Projects");
-    const details = host.querySelector("details")!;
-    details.open = true;
-    host.querySelector<HTMLAnchorElement>("a[href='/names']")!.click();
-    expect(details.open).toBe(false);
-    details.open = true;
-    await key(details, { key: "Escape" });
-    expect(details.open).toBe(false);
+    expect(host.querySelector("details")).toBeNull();
+    expect(host.textContent).not.toContain("Tools");
   });
   it("shows the four steps, the current one and confirmed save state inside a project", async () => {
     await render(createElement(ProjectCapsule, { projectName: "Untitled brand", saveState: "saved", steps: journeySteps("voice", new Set(["strategy"]), { strategy: "/p/strategy" }) }));

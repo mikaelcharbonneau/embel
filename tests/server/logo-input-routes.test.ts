@@ -16,8 +16,6 @@ const routes = {
   requests: () => import("../../src/app/api/projects/[projectId]/logo/inputs/requests/route"),
   request: () => import("../../src/app/api/projects/[projectId]/logo/inputs/requests/[requestKey]/route"),
   references: () => import("../../src/app/api/projects/[projectId]/logo/references/route"),
-  fonts: () => import("../../src/app/api/projects/[projectId]/logo/fonts/route"),
-  catalog: () => import("../../src/app/api/projects/[projectId]/logo/fonts/catalog/route"),
 };
 const scope = { params: Promise.resolve({ projectId: id(2), requestKey: id(3) }) };
 beforeEach(() => { vi.resetAllMocks(); vi.stubEnv("APP_ORIGIN", "https://fluid.invalid"); f.auth.mockResolvedValue(auth); f.resolve.mockResolvedValue({ inputs: { uploadLogoReference: f.referenceUpload, uploadLogoFont: f.fontUpload, importCatalogLogoFont: f.fontImport } }); });
@@ -61,17 +59,12 @@ describe("owned logo input reads", () => {
     expect((await (await routes.request()).GET(new Request("https://fluid.invalid/api"), { params: Promise.resolve({ projectId: id(2), requestKey: "invalid" }) })).status).toBe(422);
     expect(f.request).toHaveBeenCalledTimes(1);
   });
-  it.each(["request", "fonts", "catalog"] as const)("%s refuses unsupported or repeated query parameters", async key => {
+  it.each(["request"] as const)("%s refuses unsupported or repeated query parameters", async key => {
     const route = await routes[key]();
     for (const query of ["ownerId=foreign", "limit=1", "cursor=first&cursor=second"]) expect((await route.GET(new Request("https://fluid.invalid/api?" + query), scope)).status).toBe(422);
     expect(f[key]).not.toHaveBeenCalled();
   });
-  it.each(["fonts", "catalog"] as const)("%s returns only its service result with private headers and cancellation", async key => {
-    f[key].mockResolvedValue([]); const request = new Request("https://fluid.invalid/api");
-    const response = await (await routes[key]()).GET(request, context);
-    expect(response.status).toBe(200); privateResponse(response); expect(await response.json()).toEqual([]);
-    expect(f[key]).toHaveBeenCalledWith(auth, id(2), request.signal);
-  });
+
   it("sanitizes storage failures without serializing private errors", async () => {
     f.requests.mockRejectedValue(new Error("secret database path"));
     const response = await (await routes.requests()).GET(new Request("https://fluid.invalid/api"), context);
@@ -81,13 +74,10 @@ describe("owned logo input reads", () => {
 
 const writes = {
   referenceUpload: () => import("../../src/app/api/projects/[projectId]/logo/references/uploads/route"),
-  fontUpload: () => import("../../src/app/api/projects/[projectId]/logo/fonts/uploads/route"),
-  fontImport: () => import("../../src/app/api/projects/[projectId]/logo/fonts/imports/route"),
 };
 const expected = { projectRevision: 1, referenceRevision: 0, preferencesRevision: 0, workspaceRevision: 1, stageRevisions: { brief_references: 1, concepts: 0, vector: 0, refinements: 0, directions: 0, deliverables: 0 } };
 const referenceInput = { requestKey: id(3), expected, aspects: ["shape"], rightsDeclaration: "I own and permit processing this reference." };
 const fontInput = { requestKey: id(3), expected, licenseSourceUrl: "https://fonts.invalid/license", licenseText: "Synthetic license text for this test.", rightsDeclaration: "I may upload this font for review." };
-const importInput = { requestKey: id(3), expected, catalogFontId: "geist-sans" };
 const refMax = 33_554_432, fontMax = 10_485_760, metadataMax = 294_912, multipartOverhead = 16_384;
 function multipart(input: unknown, type = "image/png", bytes: Uint8Array<ArrayBuffer> = new Uint8Array([1, 2, 3])) {
   const form = new FormData(); form.set("input", typeof input === "string" ? input : JSON.stringify(input)); form.set("file", new File([bytes], "untrusted-private-name", { type })); return form;
@@ -95,11 +85,8 @@ function multipart(input: unknown, type = "image/png", bytes: Uint8Array<ArrayBu
 function uploadRequest(form: FormData, origin = "https://fluid.invalid", headers: Record<string, string> = {}) {
   return new Request("https://fluid.invalid/api", { method: "POST", headers: { origin, ...headers }, body: form });
 }
-function jsonRequest(input: unknown, headers: Record<string, string> = {}) {
-  return new Request("https://fluid.invalid/api", { method: "POST", headers: { origin: "https://fluid.invalid", "content-type": "application/json", ...headers }, body: JSON.stringify(input) });
-}
 function validWrite(key: keyof typeof writes) {
-  return key === "fontImport" ? jsonRequest(importInput) : uploadRequest(multipart(key === "fontUpload" ? fontInput : referenceInput, key === "fontUpload" ? "font/ttf" : "image/png", new Uint8Array(12)));
+  void key; return uploadRequest(multipart(referenceInput, "image/png", new Uint8Array(12)));
 }
 describe("owned logo input writes", () => {
   it.each(Object.keys(writes) as (keyof typeof writes)[])("%s authenticates before reading the request body", async key => {
@@ -121,7 +108,7 @@ describe("owned logo input writes", () => {
     expect((await (await writes[key]()).POST(request, { params: Promise.resolve({ projectId: "foreign-project" }) })).status).toBe(422);
     expect(request.bodyUsed).toBe(false); expect(f[key]).not.toHaveBeenCalled();
   });
-  it.each(["referenceUpload", "fontUpload"] as const)("%s preserves exact metadata and bytes while forwarding cancellation", async key => {
+  it.each(["referenceUpload"] as const)("%s preserves exact metadata and bytes while forwarding cancellation", async key => {
     const input = key === "referenceUpload" ? referenceInput : fontInput, mimeType = key === "referenceUpload" ? "image/png" : "font/ttf";
     const bytes = new Uint8Array([0, 13, 10, 255, 17, 12, 9, 4, 1, 2, 3, 4]);
     const request = uploadRequest(multipart(input, mimeType, bytes));
@@ -136,11 +123,8 @@ describe("owned logo input writes", () => {
     f.referenceUpload.mockResolvedValue({ fixture: "reference" });
     expect((await (await writes.referenceUpload()).POST(uploadRequest(multipart(referenceInput, type)), context)).status).toBe(200);
   });
-  it.each(["font/ttf", "font/otf"])("font upload accepts supported MIME %s", async type => {
-    f.fontUpload.mockResolvedValue({ fixture: "font" });
-    expect((await (await writes.fontUpload()).POST(uploadRequest(multipart(fontInput, type, new Uint8Array(12))), context)).status).toBe(200);
-  });
-  it.each(["referenceUpload", "fontUpload"] as const)("%s rejects duplicate, additional, swapped and missing multipart fields", async key => {
+
+  it.each(["referenceUpload"] as const)("%s rejects duplicate, additional, swapped and missing multipart fields", async key => {
     const input = key === "referenceUpload" ? referenceInput : fontInput;
     for (const issue of ["duplicate-input", "duplicate-file", "extra", "input-file", "file-text", "missing-input", "missing-file"]) {
       const form = multipart(input, key === "referenceUpload" ? "image/png" : "font/ttf", new Uint8Array(12));
@@ -155,7 +139,7 @@ describe("owned logo input writes", () => {
     }
     expect(f[key]).not.toHaveBeenCalled();
   });
-  it.each(["referenceUpload", "fontUpload"] as const)("%s rejects metadata identity forgery, malformed JSON and blank permission", async key => {
+  it.each(["referenceUpload"] as const)("%s rejects metadata identity forgery, malformed JSON and blank permission", async key => {
     const input = key === "referenceUpload" ? referenceInput : fontInput;
     for (const invalid of [{ ...input, ownerId: id(99) }, { ...input, projectId: id(99) }, { ...input, requestKey: "forged" }, { ...input, rightsDeclaration: "   " }, "{malformed"]) {
       const request = uploadRequest(multipart(invalid, key === "referenceUpload" ? "image/png" : "font/ttf", new Uint8Array(12)));
@@ -163,18 +147,18 @@ describe("owned logo input writes", () => {
     }
     expect(f[key]).not.toHaveBeenCalled();
   });
-  it.each(["referenceUpload", "fontUpload"] as const)("%s refuses unsupported MIME and undersized files", async key => {
+  it.each(["referenceUpload"] as const)("%s refuses unsupported MIME and undersized files", async key => {
     const input = key === "referenceUpload" ? referenceInput : fontInput;
     for (const type of ["image/svg+xml", "text/html", "application/octet-stream", ""]) expect((await (await writes[key]()).POST(uploadRequest(multipart(input, type, new Uint8Array(12))), context)).status).toBe(422);
     expect((await (await writes[key]()).POST(uploadRequest(multipart(input, key === "referenceUpload" ? "image/png" : "font/ttf", new Uint8Array(key === "referenceUpload" ? 0 : 11))), context)).status).toBe(422);
     expect(f[key]).not.toHaveBeenCalled();
   });
-  it.each(["referenceUpload", "fontUpload"] as const)("%s enforces individual file limits inside otherwise bounded multipart", async key => {
+  it.each(["referenceUpload"] as const)("%s enforces individual file limits inside otherwise bounded multipart", async key => {
     const maximum = key === "referenceUpload" ? refMax : fontMax;
     const request = uploadRequest(multipart(key === "referenceUpload" ? referenceInput : fontInput, key === "referenceUpload" ? "image/png" : "font/ttf", new Uint8Array(maximum + 1)));
     expect((await (await writes[key]()).POST(request, context)).status).toBe(413); expect(f[key]).not.toHaveBeenCalled();
   });
-  it.each(["referenceUpload", "fontUpload"] as const)("%s caps declared and actual streamed body bytes, including false Content-Length", async key => {
+  it.each(["referenceUpload"] as const)("%s caps declared and actual streamed body bytes, including false Content-Length", async key => {
     const maximum = (key === "referenceUpload" ? refMax : fontMax) + metadataMax + multipartOverhead;
     const declared = validWrite(key); declared.headers.set("content-length", String(maximum + 1));
     expect((await (await writes[key]()).POST(declared, context)).status).toBe(413); expect(declared.bodyUsed).toBe(false);
@@ -183,20 +167,8 @@ describe("owned logo input writes", () => {
     const request = new Request("https://fluid.invalid/api", { method: "POST", headers: { origin: "https://fluid.invalid", "content-type": "multipart/form-data; boundary=bounded", "content-length": "1" }, body: stream, duplex: "half" } as RequestInit);
     expect((await (await writes[key]()).POST(request, context)).status).toBe(413); expect(cancelled).toBe(true); expect(f[key]).not.toHaveBeenCalled();
   });
-  it("bounds metadata UTF-8 bytes before parsing JSON", async () => {
-    const input = JSON.stringify(fontInput) + " ".repeat(metadataMax);
-    expect((await (await writes.fontUpload()).POST(uploadRequest(multipart(input, "font/ttf", new Uint8Array(12))), context)).status).toBe(413);
-    expect(f.fontUpload).not.toHaveBeenCalled();
-  });
-  it("enforces license byte limits and safe source URLs while permitting unknown-license declarations", async () => {
-    const post = (await writes.fontUpload()).POST;
-    for (const patch of [{ licenseText: "é".repeat(131073) }, { licenseText: "   " }, { licenseSourceUrl: "https://user:secret@fonts.invalid/license" }, { licenseSourceUrl: "https://fonts.invalid/license?token=secret" }, { licenseSourceUrl: "http://fonts.invalid/license" }]) {
-      expect((await post(uploadRequest(multipart({ ...fontInput, ...patch }, "font/ttf", new Uint8Array(12))), context)).status).toBe(422);
-    }
-    expect(f.fontUpload).not.toHaveBeenCalled();
-    f.fontUpload.mockResolvedValue({ fixture: "unreviewed" });
-    expect((await post(uploadRequest(multipart({ ...fontInput, licenseSourceUrl: null }, "font/ttf", new Uint8Array(12))), context)).status).toBe(200);
-  });
+
+
   it("rejects malformed multipart and unbounded multipart headers without exposing content", async () => {
     const post = (await writes.referenceUpload()).POST;
     for (const body of ["private malformed body", "--bounded\r\nContent-Disposition: form-data; name=\"input\"\r\nX-Private: " + "x".repeat(17000) + "\r\n\r\n{}\r\n--bounded--\r\n"]) {
@@ -206,23 +178,12 @@ describe("owned logo input writes", () => {
     expect(f.referenceUpload).not.toHaveBeenCalled();
   });
   it("honors an already-aborted upload without reading bytes or invoking persistence", async () => {
-    const request = new Request(validWrite("fontUpload"), { signal: AbortSignal.abort() });
-    const response = await (await writes.fontUpload()).POST(request, context);
-    expect(response.status).toBe(503); expect(request.bodyUsed).toBe(false); expect(f.fontUpload).not.toHaveBeenCalled();
+    const request = new Request(validWrite("referenceUpload"), { signal: AbortSignal.abort() });
+    const response = await (await writes.referenceUpload()).POST(request, context);
+    expect(response.status).toBe(503); expect(request.bodyUsed).toBe(false); expect(f.referenceUpload).not.toHaveBeenCalled();
   });
-  it("imports a catalog choice with exact heads and cancellation", async () => {
-    const request = jsonRequest(importInput); f.fontImport.mockResolvedValue({ fixture: "font" });
-    const response = await (await writes.fontImport()).POST(request, context);
-    expect(response.status).toBe(200); privateResponse(response); expect(await response.json()).toEqual({ fixture: "font" });
-    expect(f.fontImport).toHaveBeenCalledWith(auth, id(2), importInput, request.signal);
-  });
-  it("catalog import rejects malformed, excessive and forged metadata before persistence", async () => {
-    const post = (await writes.fontImport()).POST;
-    for (const value of [{ ...importInput, ownerId: id(99) }, { ...importInput, catalogFontId: "../foreign" }, { ...importInput, expected: {} }]) expect((await post(jsonRequest(value), context)).status).toBe(422);
-    expect((await post(jsonRequest(importInput, { "content-type": "text/plain" }), context)).status).toBe(422);
-    const oversized = jsonRequest({ ...importInput, unexpected: "x".repeat(metadataMax) });
-    expect((await post(oversized, context)).status).toBe(413); expect(f.fontImport).not.toHaveBeenCalled();
-  });
+
+
   it.each(Object.keys(writes) as (keyof typeof writes)[])("%s returns fail-closed availability and sanitizes unexpected failures", async key => {
     const post = (await writes[key]()).POST;
     f[key].mockRejectedValueOnce(new ApiError("integration_unavailable"));
@@ -233,16 +194,7 @@ describe("owned logo input writes", () => {
 });
 
 describe("bounded logo multipart edge cases", () => {
-  it("rejects invalid UTF-8 in metadata rather than silently replacing license bytes", async () => {
-    const prefix = `--test-boundary\r\nContent-Disposition: form-data; name="input"\r\n\r\n${JSON.stringify(fontInput).replace("Synthetic license", "INVALID Synthetic license")}`;
-    const encoded = Buffer.from(prefix), marker = encoded.indexOf("INVALID");
-    encoded[marker] = 0xff;
-    const body = Buffer.concat([encoded, Buffer.from('\r\n--test-boundary\r\nContent-Disposition: form-data; name="file"; filename="font.ttf"\r\nContent-Type: font/ttf\r\n\r\n'), Buffer.alloc(12), Buffer.from("\r\n--test-boundary--\r\n")]);
-    f.fontUpload.mockResolvedValue({ fixture: "should not register invalid metadata" });
-    const request = new Request("https://fluid.invalid/api", { method: "POST", headers: { origin: "https://fluid.invalid", "content-type": "multipart/form-data; boundary=test-boundary" }, body });
-    expect((await (await writes.fontUpload()).POST(request, context)).status).toBe(422);
-    expect(f.fontUpload).not.toHaveBeenCalled();
-  });
+
   it("aborts a stalled upload stream without entering persistence", async () => {
     const controller = new AbortController(); let cancelled = false;
     const stream = new ReadableStream({ pull() { controller.abort(); }, cancel() { cancelled = true; } });
@@ -250,11 +202,5 @@ describe("bounded logo multipart edge cases", () => {
     expect((await (await writes.referenceUpload()).POST(request, context)).status).toBe(503);
     expect(cancelled || !request.bodyUsed).toBe(true); expect(f.referenceUpload).not.toHaveBeenCalled();
   });
-  it("accepts exact license and metadata ceilings", async () => {
-    const input = { ...fontInput, licenseText: "L".repeat(262_144) }, json = JSON.stringify(input);
-    f.fontUpload.mockResolvedValue({ fixture: "maximum valid license" });
-    const request = uploadRequest(multipart(json + " ".repeat(metadataMax - Buffer.byteLength(json)), "font/ttf", new Uint8Array(12)));
-    expect((await (await writes.fontUpload()).POST(request, context)).status).toBe(200);
-    expect(f.fontUpload.mock.calls[0]![2]).toEqual(input);
-  });
+
 });

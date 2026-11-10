@@ -2,7 +2,6 @@
 
 import { createInspirationMemory } from "@/components/inspiration/inspiration-memory";
 import { createNamingBrainMemory } from "@/components/naming/naming-brain-memory";
-import { createAccountNamesMemory } from "@/components/naming/account-names-memory";
 import { createProjectScreeningMemory } from "@/components/naming/project-screening-memory";
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
@@ -15,10 +14,7 @@ import { createAccountDraftMemory } from "./account-draft-memory";
 import { createAccountProfileMemory } from "./account-profile-memory";
 import { createIdentityDraftMemory } from "@/components/identity/identity-draft-memory";
 import { createLogoDraftMemory, LogoDraftMemoryProvider } from "@/components/identity/logo-draft-memory";
-import { createIdeaDraftMemory } from "@/components/ideas/ideas-draft-memory";
-import { createStandaloneDraftMemory } from "@/components/tools/standalone-draft-memory";
 
-import { createLifecycleIntentMemory } from "@/features/brand-lifecycle/intent-memory";
 import { createLogoInputSession } from "@/features/logo-inputs/client/session";
 import { createHomeInputSession } from "@/features/home-inputs/home-input-session";
 import type { EnrollmentStatus } from "@/domain/account-enrollment";
@@ -38,13 +34,9 @@ type AccountSession = {
   profileDrafts: ReturnType<typeof createAccountProfileMemory>;
   inspirationDrafts: ReturnType<typeof createInspirationMemory>;
   screeningDrafts: ReturnType<typeof createProjectScreeningMemory>;
-  namesDrafts: ReturnType<typeof createAccountNamesMemory>;
   namingBrainDrafts: ReturnType<typeof createNamingBrainMemory>;
   identityDrafts: ReturnType<typeof createIdentityDraftMemory>;
   logoDrafts: ReturnType<typeof createLogoDraftMemory>;
-  ideaDrafts: ReturnType<typeof createIdeaDraftMemory>;
-  standaloneDrafts: ReturnType<typeof createStandaloneDraftMemory>;
-  lifecycleMemory: ReturnType<typeof createLifecycleIntentMemory>;
   homeInputSession: ReturnType<typeof createHomeInputSession>;
   logoInputSession: ReturnType<typeof createLogoInputSession>;
   signIn: (attempt: () => Promise<void | "confirmation_required">, mode?: "sign-in" | "sign-up") => Promise<SignInResult>;
@@ -102,13 +94,9 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
   const [profileDrafts] = useState(createAccountProfileMemory);
   const [inspirationDrafts] = useState(createInspirationMemory);
   const [screeningDrafts] = useState(createProjectScreeningMemory);
-  const [namesDrafts] = useState(createAccountNamesMemory);
   const [namingBrainDrafts] = useState(createNamingBrainMemory);
   const [identityDrafts] = useState(createIdentityDraftMemory);
   const [logoDrafts] = useState(createLogoDraftMemory);
-  const [ideaDrafts] = useState(createIdeaDraftMemory);
-  const [standaloneDrafts] = useState(createStandaloneDraftMemory);
-  const [lifecycleMemory] = useState(createLifecycleIntentMemory);
   const [homeInputSession] = useState(createHomeInputSession);
   const [logoInputSession] = useState(createLogoInputSession);
   const [signingOut, setSigningOut] = useState(false);
@@ -128,20 +116,17 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
     // owner restores the buffer; binding a confirmed different owner clears it.
     inspirationDrafts.bind(next.status === "ready" ? next : null);
     screeningDrafts.bind(next.status === "ready" ? next : null);
-    namesDrafts.bind(next.status === "ready" ? next : null);
     namingBrainDrafts.bind(next.status === "ready" ? next : null);
     profileDrafts.bind(next.status === "ready" ? next : null);
-    lifecycleMemory.bind(next.status === "ready" ? next : null);
     homeInputSession.bind(next.status === "ready" ? next : null);
     logoInputSession.bind(next.status === "ready" ? next : null);
-    standaloneDrafts.bind(next.status === "ready" ? next : null);
     logoDrafts.bind(next.status === "ready" ? { ownerId: next.userId, generation: next.generation } : null);
     if (next.status === "ready") {
-      if (previousOwner.current && previousOwner.current !== next.userId) { drafts.clear(); identityDrafts.clear(); ideaDrafts.clear(); }
+      if (previousOwner.current && previousOwner.current !== next.userId) { drafts.clear(); identityDrafts.clear(); }
       previousOwner.current = next.userId;
     }
     setSession(next);
-  }, [drafts, profileDrafts, inspirationDrafts, screeningDrafts, namesDrafts, namingBrainDrafts, identityDrafts, logoDrafts, ideaDrafts, standaloneDrafts, lifecycleMemory, homeInputSession, logoInputSession]);
+  }, [drafts, profileDrafts, inspirationDrafts, screeningDrafts, namingBrainDrafts, identityDrafts, logoDrafts, homeInputSession, logoInputSession]);
   const isCurrent = useCallback((account: VerifiedAccount) => current.current.status === "ready" && current.current.userId === account.userId && current.current.generation === account.generation, []);
   const refresh = useCallback(() => {
     if (signOutRequest.current || signInPending.current) return;
@@ -202,7 +187,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
     return () => enrollment.dispose();
   }, [session, enrollmentEnabled, isCurrent, expire]);
 
-  useEffect(() => { namesDrafts.setUnauthorized(account => expire({ ...account, status: "ready" })); namingBrainDrafts.setUnauthorized(account => expire({ ...account, status: "ready" })); }, [namesDrafts, namingBrainDrafts, expire]);
+  useEffect(() => { namingBrainDrafts.setUnauthorized(account => expire({ ...account, status: "ready" })); }, [namingBrainDrafts, expire]);
 
   const signIn = useCallback(async (attempt: () => Promise<void | "confirmation_required">, mode: "sign-in" | "sign-up" = "sign-in"): Promise<SignInResult> => {
     if (signInPending.current || signOutRequest.current) return { ok: false, reason: "pending" };
@@ -248,7 +233,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
 
   const signOut = useCallback(async (discardUnsaved = false): Promise<SignOutResult> => {
     if (signOutRequest.current || signInPending.current) return { ok: false, reason: "pending" };
-    if ((drafts.hasUnsaved() || profileDrafts.hasUnsaved() || inspirationDrafts.hasUnsaved() || screeningDrafts.hasUnsaved() || namesDrafts.hasUnsaved() || namingBrainDrafts.hasUnsaved() || identityDrafts.hasUnsaved() || logoDrafts.hasUnsaved() || ideaDrafts.hasUnsaved() || standaloneDrafts.hasUnsaved() || lifecycleMemory.hasUnsaved() || homeInputSession.hasUnsaved() || logoInputSession.hasUnsaved()) && !discardUnsaved) return { ok: false, reason: "confirmation_required" };
+    if ((drafts.hasUnsaved() || profileDrafts.hasUnsaved() || inspirationDrafts.hasUnsaved() || screeningDrafts.hasUnsaved() || namingBrainDrafts.hasUnsaved() || identityDrafts.hasUnsaved() || logoDrafts.hasUnsaved() || homeInputSession.hasUnsaved() || logoInputSession.hasUnsaved()) && !discardUnsaved) return { ok: false, reason: "confirmation_required" };
     request.current?.abort();
     const controller = new AbortController();
     signOutRequest.current = controller;
@@ -267,13 +252,9 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
       profileDrafts.clear();
       inspirationDrafts.clear();
       screeningDrafts.clear();
-      namesDrafts.clear();
       namingBrainDrafts.clear();
       identityDrafts.clear();
       logoDrafts.clear();
-      ideaDrafts.clear();
-      standaloneDrafts.clear();
-      lifecycleMemory.clear();
       homeInputSession.clear();
       logoInputSession.clear();
       previousOwner.current = null;
@@ -291,7 +272,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
       window.clearTimeout(timeout);
       if (signOutRequest.current === controller) { signOutRequest.current = null; setSigningOut(false); }
     }
-  }, [drafts, profileDrafts, inspirationDrafts, screeningDrafts, namesDrafts, namingBrainDrafts, identityDrafts, logoDrafts, ideaDrafts, standaloneDrafts, lifecycleMemory, homeInputSession, logoInputSession, publish]);
+  }, [drafts, profileDrafts, inspirationDrafts, screeningDrafts, namingBrainDrafts, identityDrafts, logoDrafts, homeInputSession, logoInputSession, publish]);
 
   useEffect(() => {
     // Start asynchronously so all private consumers share this one verification.
@@ -310,7 +291,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
     const onFocus = () => { if (document.visibilityState === "visible") automaticRefresh(true); };
     const startup = window.setTimeout(() => automaticRefresh(), 0);
     const onVisible = () => { if (document.visibilityState === "visible") automaticRefresh(true); else onInactive(); };
-    const retainEdits = (event: BeforeUnloadEvent) => { if (drafts.hasUnsaved() || profileDrafts.hasUnsaved() || inspirationDrafts.hasUnsaved() || screeningDrafts.hasUnsaved() || namesDrafts.hasUnsaved() || namingBrainDrafts.hasUnsaved() || identityDrafts.hasUnsaved() || logoDrafts.hasUnsaved() || ideaDrafts.hasUnsaved() || standaloneDrafts.hasUnsaved() || lifecycleMemory.hasUnsaved() || homeInputSession.hasUnsaved() || logoInputSession.hasUnsaved()) event.preventDefault(); };
+    const retainEdits = (event: BeforeUnloadEvent) => { if (drafts.hasUnsaved() || profileDrafts.hasUnsaved() || inspirationDrafts.hasUnsaved() || screeningDrafts.hasUnsaved() || namingBrainDrafts.hasUnsaved() || identityDrafts.hasUnsaved() || logoDrafts.hasUnsaved() || homeInputSession.hasUnsaved() || logoInputSession.hasUnsaved()) event.preventDefault(); };
     window.addEventListener("focus", onFocus);
     window.addEventListener("blur", onInactive);
     window.addEventListener("beforeunload", retainEdits);
@@ -321,15 +302,14 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
       window.removeEventListener("blur", onInactive);
       window.removeEventListener("beforeunload", retainEdits);
       document.removeEventListener("visibilitychange", onVisible);
-      namesDrafts.bind(null);
       namingBrainDrafts.bind(null);
       request.current?.abort();
       signOutRequest.current?.abort();
       signOutRequest.current = null;
     };
-  }, [refresh, revalidate, drafts, profileDrafts, inspirationDrafts, screeningDrafts, namesDrafts, namingBrainDrafts, identityDrafts, logoDrafts, ideaDrafts, standaloneDrafts, lifecycleMemory, homeInputSession, logoInputSession]);
+  }, [refresh, revalidate, drafts, profileDrafts, inspirationDrafts, screeningDrafts, namingBrainDrafts, identityDrafts, logoDrafts, homeInputSession, logoInputSession]);
 
-  return <SessionContext.Provider value={{ session, enrollment: enrollmentEnabled && enrollmentResult && session.status === "ready" && enrollmentResult.account.userId === session.userId && enrollmentResult.account.generation === session.generation ? enrollmentResult.status : undefined, refresh, expire, isCurrent, drafts, profileDrafts, inspirationDrafts, screeningDrafts, namesDrafts, namingBrainDrafts, identityDrafts, logoDrafts, ideaDrafts, standaloneDrafts, lifecycleMemory, homeInputSession, logoInputSession, signIn, signingIn, signingUp, awaitingConfirmation, dismissConfirmation, signInSlow, signOut, signingOut, signOutError }}><LogoDraftMemoryProvider memory={logoDrafts}>{children}</LogoDraftMemoryProvider></SessionContext.Provider>;
+  return <SessionContext.Provider value={{ session, enrollment: enrollmentEnabled && enrollmentResult && session.status === "ready" && enrollmentResult.account.userId === session.userId && enrollmentResult.account.generation === session.generation ? enrollmentResult.status : undefined, refresh, expire, isCurrent, drafts, profileDrafts, inspirationDrafts, screeningDrafts, namingBrainDrafts, identityDrafts, logoDrafts, homeInputSession, logoInputSession, signIn, signingIn, signingUp, awaitingConfirmation, dismissConfirmation, signInSlow, signOut, signingOut, signOutError }}><LogoDraftMemoryProvider memory={logoDrafts}>{children}</LogoDraftMemoryProvider></SessionContext.Provider>;
 }
 
 export function useAccountSession() {

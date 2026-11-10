@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](architecture-review.md).
+
 # Naming generation rebuild — plan for review
 
 November 8, 2026. Status: approved; steps 1–5 implemented (step 6, production, waits on the database decision). Replaces the

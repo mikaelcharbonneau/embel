@@ -8,6 +8,7 @@ vi.mock("next/headers", () => ({ cookies: next.cookies }));
 import { createAuthTransitionClient } from "../../src/server/auth/client";
 import { GET as callback } from "../../src/app/auth/callback/route";
 import { POST as signIn } from "../../src/app/api/auth/sign-in/route";
+import { POST as requestReset } from "../../src/app/api/auth/password-reset/route";
 
 // Real pinned @supabase/ssr + auth-js, with a synthetic cookie jar and transport.
 // No requests reach Supabase, no accounts are created, and no email is sent.
@@ -54,7 +55,7 @@ beforeEach(() => {
       return Response.json({ access_token: `synthetic-password-access-${passwordGrants}`, refresh_token: `synthetic-password-refresh-${passwordGrants}`,
         token_type: "bearer", expires_in: 3600, user: { ...user, email_confirmed_at: confirmed ? user.email_confirmed_at : undefined } });
     }
-    if (url.pathname === "/auth/v1/signup" || url.pathname === "/auth/v1/resend") {
+    if (url.pathname === "/auth/v1/signup" || url.pathname === "/auth/v1/resend" || url.pathname === "/auth/v1/recover") {
       const redirect = new URL(url.searchParams.get("redirect_to")!);
       expect(redirect.origin).toBe(origin);
       expect(redirect.pathname).toBe("/auth/callback");
@@ -64,7 +65,7 @@ beforeEach(() => {
       expect(body.code_challenge).toMatch(/^[A-Za-z0-9_-]{43}$/);
       if (url.pathname.endsWith("resend")) expect(body.type).toBe("signup");
       flows.push({ id, challenge: body.code_challenge, path: url.pathname });
-      return Response.json(url.pathname.endsWith("resend") ? {} : { ...user, email_confirmed_at: undefined });
+      return Response.json(url.pathname.endsWith("signup") ? { ...user, email_confirmed_at: undefined } : {});
     }
     if (url.pathname === "/auth/v1/token" && url.searchParams.get("grant_type") === "pkce") {
       exchanges++;
@@ -155,6 +156,15 @@ describe("pinned SSR PKCE compatibility", () => {
     transition.commitCookies();
     expect(flows[1]!.path).toBe("/auth/v1/resend");
     expect((await finish(1)).headers.get("location")).toBe(`${origin}/sign-in?confirmation=complete#`);
+    expect(jar.has(storageKey)).toBe(true);
+  });
+  it("marks a password reset flow so the callback opens the new-password page", async () => {
+    const response = await requestReset(new Request(`${origin}/api/auth/password-reset`, { method: "POST",
+      headers: { origin, "content-type": "application/json" }, body: JSON.stringify({ email: user.email }) }));
+    expect(await response.json()).toEqual({ requested: true });
+    expect(flows[0]!.path).toBe("/auth/v1/recover");
+    expect(jar.has(`${storageKey}-flow-${flows[0]!.id}-code-verifier`)).toBe(true);
+    expect((await finish(0)).headers.get("location")).toBe(`${origin}/reset-password#`);
     expect(jar.has(storageKey)).toBe(true);
   });
   it("rejects a callback from another browser without sending a mismatched verifier or mutating cookies", async () => {

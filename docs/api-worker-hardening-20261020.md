@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](architecture-review.md).
+
 # API worker hardening candidate, 2026-10-20
 
 This is source and hermetic-test evidence, not a production repair or activation.

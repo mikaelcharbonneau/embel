@@ -27,7 +27,8 @@ describe("isolated development polling route", () => {
     expect(await getStrategyAvailability(auth, project)).toMatchObject({ status: "unavailable" });
     expect(rpc).toHaveBeenCalledWith("get_local_strategy_availability", { p_project_id: project });
     await expect(retryStrategyJobDelivery(auth, project, job)).rejects.toMatchObject({ code: "conflict" });
-    expect(rpc).toHaveBeenCalledTimes(1);
+    // The only other read is the generation engine's switch, which stays off here.
+    expect(rpc.mock.calls.map(([name]) => name)).toEqual(["get_generation_catalog", "get_local_strategy_availability"]);
   });
 
   it("does not change default or hosted routing", async () => {

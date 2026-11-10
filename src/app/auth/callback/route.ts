@@ -5,11 +5,11 @@ import { errorResponse } from "@/server/http/errors";
 
 export const dynamic = "force-dynamic";
 
-function confirmationRedirect(origin: string, status: "complete" | "failed") {
+function confirmationRedirect(origin: string, status: "complete" | "failed" | "recovery") {
   // Never reflect code, provider errors, next, Host or forwarding headers.
   // An explicit empty fragment prevents browsers inheriting provider fragments.
   return new Response(null, { status: 303, headers: {
-    Location: `${origin}/sign-in?confirmation=${status}#`,
+    Location: status === "recovery" ? `${origin}/reset-password#` : `${origin}/sign-in?confirmation=${status}#`,
     "Cache-Control": "private, no-store", Vary: "Cookie", "Referrer-Policy": "no-referrer",
     "X-Content-Type-Options": "nosniff",
   } });
@@ -31,6 +31,9 @@ export async function GET(request: Request) {
     const { data, error } = await client.auth.exchangeCodeForSession(code, flowId ? { flowId } : undefined);
     if (error || !isConfirmedAuthResult(data)) return confirmationRedirect(origin, "failed");
     commitCookies();
-    return confirmationRedirect(origin, "complete");
+    // Only a verifier this browser stored for a password reset reports "recovery". The pinned SDK returns
+    // redirectType at runtime but omits it from its declared type; tests/server/auth-transition.test.ts covers it.
+    const recovery = (data as { redirectType?: unknown }).redirectType === "recovery";
+    return confirmationRedirect(origin, recovery ? "recovery" : "complete");
   } catch { return confirmationRedirect(origin, "failed"); }
 }

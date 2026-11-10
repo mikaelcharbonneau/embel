@@ -6,7 +6,6 @@ import { createLookupAdmission, runStandaloneLookup } from "@/server/standalone-
 import { VERCEL_DOMAIN_PROVIDER } from "@/server/standalone-providers/vercel-live";
 import { standaloneLookupResultSchema } from "@/domain/standalone-live-checks";
 import { acceptedDomainCheckProvider, DNS_DOMAIN_PROVIDER, REGISTRY_DOMAIN_PROVIDER } from "@/features/domain-workspace/model";
-import { domainInputEntries } from "@/features/domain-workspace/domain-search-controls";
 import { clock, json, noNetwork, NOW, signal } from "./fixtures";
 
 beforeEach(noNetwork);
@@ -71,6 +70,3 @@ describe("taken domains on extensions without a registry lookup", () => {
   });
 });
 
-it("shows each searched name once, keeping the first spelling", () => {
-  expect(domainInputEntries("launchpad\nLaunchpad, launchpad\n flynge ,launchpad")).toEqual(["launchpad", "flynge"]);
-});

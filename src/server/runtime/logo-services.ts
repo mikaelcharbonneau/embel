@@ -1,6 +1,4 @@
 import "server-only";
-import { createLogoVectorProposalMutationProducer } from "@/features/logo-vector/server/proposal-mutations";
-import { readLogoVectorProposalApplication } from "@/server/data/logo-vector-proposal-application";
 import type { IdentityConnectionFactory } from "@/server/data/identity-transaction";
 import { createIdentityAssetStore, createPostgresIdentityAssetBackend, type IdentityAssetStorage, type IdentityAssetStoreDependencies } from "@/server/data/identity-asset-store";
 import { createLogoTransactionService } from "@/server/data/logo-transaction";
@@ -14,10 +12,6 @@ import { verifyLogoVectorRevision } from "@/features/logo-vector/server/revision
 import { prepareDirectionEvidence } from "@/features/identity-directions/server/evidence-producer";
 import { createLogoDeliverablesService } from "@/features/identity-deliverables/server/persistence";
 import { createLogoDeliverableProducers } from "@/features/identity-deliverables/server/manual";
-import { createFontResolver } from "@/features/identity-directions/server/fonts";
-import { createLogoVectorProposalQuoteService } from "@/features/logo-vector/server/proposal-quotes";
-import type { LogoTextEditDependencies } from "@/features/logo-vector/server/text-edits";
-import { logoBriefRevisionSchema } from "@/domain/logo-workspace";
 
 export type LogoServiceDependencies = {
   connections: IdentityConnectionFactory;
@@ -45,29 +39,16 @@ export function createLogoServices(dependencies: LogoServiceDependencies | null)
   const readWorkspace = createLogoWorkspaceService({ assetStore: assets, verifyVectorRevision: verifyLogoVectorRevision });
   const inputs = createLogoInputService(dependencies ? { assets, connections: dependencies.connections } : null);
   const deliverables = createLogoDeliverablesService({ assets });
-  const textEdits: LogoTextEditDependencies | undefined = dependencies ? {
-      readBriefRevision: async (auth, projectId, revisionId, signal) => logoBriefRevisionSchema.parse(
-        await readWorkspace.getLogoStageRevision(auth, projectId, "brief_references", revisionId, signal),
-      ),
-      readConceptBatch: readWorkspace.readLogoConceptBatch,
-      readRasterRefinement: readWorkspace.readLogoRasterRefinement,
-      listFonts: inputs.listLogoFonts,
-      resolveFont: createFontResolver({ loadRecord: readWorkspace.readLogoFontRecord, store: assets }),
-  } : undefined;
+  // Restoring a saved vector or refinement stage verifies the vector it selects.
   const vectorProducers = createLogoVectorMutationProducers({
     assetStore: assets,
     readVectorDetail: readWorkspace.readLogoVectorDetail,
     getWorkspace: readWorkspace.getLogoWorkspace,
     readCurrentVectorRevisionId: readWorkspace.readLogoCurrentVectorRevisionId,
     readStageRevision: readWorkspace.getLogoStageRevision,
-    ...(textEdits ? { textEdits } : {}),
   });
   const transactions = createLogoTransactionService(dependencies?.connections ?? null, {
     ...vectorProducers,
-    ...(textEdits ? { applyLogoVectorProposal: createLogoVectorProposalMutationProducer({ assetStore: assets, textEdits,
-      readApplication: readLogoVectorProposalApplication, getWorkspace: readWorkspace.getLogoWorkspace,
-      readCurrentVectorRevisionId: readWorkspace.readLogoCurrentVectorRevisionId, readVectorDetail: readWorkspace.readLogoVectorDetail,
-    }) } : {}),
     selectIdentityDirectionComponents: (auth, projectId, command, signal) => {
       if (command.method !== "selectIdentityDirectionComponents") throw new ApiError("invalid_input");
       return prepareDirectionEvidence(auth, projectId, command, signal);
@@ -79,17 +60,5 @@ export function createLogoServices(dependencies: LogoServiceDependencies | null)
     ...createLogoDeliverableProducers({ assets, service: deliverables }),
   });
   const workspace = createLogoWorkspaceService({ assetStore: assets, transactions, verifyVectorRevision: verifyLogoVectorRevision });
-  const proposalQuotes = createLogoVectorProposalQuoteService(dependencies ? {
-    connections: dependencies.connections,
-    assets,
-    getWorkspace: readWorkspace.getLogoWorkspace,
-    readCurrentVectorRevisionId: readWorkspace.readLogoCurrentVectorRevisionId,
-    readVectorDetail: readWorkspace.readLogoVectorDetail,
-    readBriefRevision: async (auth, projectId, revisionId, signal) => logoBriefRevisionSchema.parse(
-      await readWorkspace.getLogoStageRevision(auth, projectId, "brief_references", revisionId, signal),
-    ),
-    listFonts: inputs.listLogoFonts,
-    resolveFont: createFontResolver({ loadRecord: readWorkspace.readLogoFontRecord, store: assets }),
-  } : null);
-  return { configured: dependencies !== null, assets, workspace, transactions, deliverables, inputs, proposalQuotes };
+  return { configured: dependencies !== null, assets, workspace, transactions, deliverables, inputs };
 }

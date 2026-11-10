@@ -15,7 +15,6 @@ import { AccountGuidedInterview } from "./account-guided-interview";
 import { getNamingReadiness } from "@/domain/project-naming";
 import { getProjectHandoff } from "@/domain/project-handoff";
 import { AccountProjectContinuity } from "./account-project-continuity";
-import { IdeaSourceBanner } from "@/components/ideas/idea-source-banner";
 
 import { accountDraftChanged as changed, reconcileAccountWorkspace, reconcilePendingDraftSave, type AccountWorkspace, type GuidedInterviewInput } from "./account-draft-memory";
 const emptyWorkspace = () => null;
@@ -203,7 +202,7 @@ export function AccountProjectEditor({ projectId, navigation }: { projectId: str
     {identityBlocked ? <button className="button secondary small" type="button" disabled>Saved references and systems</button> : <Link className="text-link" href={`/brands/account/${projectId}/identity`}>Saved references and systems</Link>}
     {identityHint && <p className="field-hint">{identityHint}</p>}
   </div>;
-  const projectContext = <><div className="idea-source-wrap"><IdeaSourceBanner key={`${projectId}:${account.userId}:${account.generation}`} account={account} projectId={projectId} /></div><AccountProjectContinuity key={`continuity:${projectId}:${account.userId}:${account.generation}`} account={account} project={active.saved} dirty={changed(active)} conflicted={active.conflict} busy={Boolean(busy)} /></>;
+  const projectContext = <AccountProjectContinuity key={`continuity:${projectId}:${account.userId}:${account.generation}`} account={account} project={active.saved} dirty={changed(active)} conflicted={active.conflict} busy={Boolean(busy)} />;
   const handoff = getProjectHandoff(active.saved);
   const inlineNaming = active.saved.scope === "complete_brand" && ["slogan", "complete"].includes(active.saved.context.intake.guidedInterview?.stage ?? "");
   // While the optional slogan question is open, the conversation owns the next step.

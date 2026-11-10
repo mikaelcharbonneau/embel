@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](architecture-review.md).
+
 # Local regression correction — October 15, 2026
 
 This increment repairs the reviewed account-switch and draft-loss defects and

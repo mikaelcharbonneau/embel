@@ -10,8 +10,6 @@ const logoHttpFixture = async (...args: Parameters<typeof import("../../fixtures
 const runtime = () => import("@/server/runtime/logo-request-services");
 const uploadRoute = () => import("@/app/api/projects/[projectId]/logo/references/uploads/route");
 const vectorRoute = () => import("@/app/api/projects/[projectId]/logo/vector/revisions/[vectorRevisionId]/route");
-const editRoute = () => import("@/app/api/projects/[projectId]/logo/edits/route");
-const acceptRoute = () => import("@/app/api/projects/[projectId]/logo/vector/accept/route");
 const approvalRoute = () => import("@/app/api/projects/[projectId]/logo/directions/approval/route");
 const restoreRoute = () => import("@/app/api/projects/[projectId]/logo/restore/route");
 const context = (fixture: LogoHttpFixture) => ({ params: Promise.resolve({ projectId: fixture.projectId, vectorRevisionId: fixture.revision.id }) });
@@ -32,9 +30,9 @@ beforeEach(() => { Reflect.deleteProperty(globalThis, Symbol.for("fluid.logo.req
 afterEach(() => vi.unstubAllEnvs());
 
 describe("actual HTTP logo consumers with a trusted synthetic bootstrap", () => {
-  it("keeps upload, verified vector reads and manual edits unavailable without installation", async () => {
+  it("keeps upload and verified vector reads unavailable without installation", async () => {
     const fixture = await logoHttpFixture(); f.createClient.mockResolvedValue(fixture.client);
-    for (const response of [await (await uploadRoute()).POST(upload(fixture), context(fixture)), await (await vectorRoute()).GET(new Request("https://fluid.invalid/api"), context(fixture)), await (await editRoute()).POST(json(fixture.edit), context(fixture))]) {
+    for (const response of [await (await uploadRoute()).POST(upload(fixture), context(fixture)), await (await vectorRoute()).GET(new Request("https://fluid.invalid/api"), context(fixture))]) {
       expect(response.status).toBe(503); privateResponse(response);
     }
     expect(fixture.connect).not.toHaveBeenCalled(); expect(fixture.transport).not.toHaveBeenCalled();
@@ -57,29 +55,18 @@ describe("actual HTTP logo consumers with a trusted synthetic bootstrap", () => 
     expect(fixture.storageCalls.map(call => call.path)).toEqual([pathFor(fixture.revision.documentAsset), pathFor(fixture.revision.svgAsset), pathFor(fixture.raster.reference)]);
     expect(fixture.rpcCalls.every(call => call.signal === request.signal)).toBe(true); expect(fixture.connect).not.toHaveBeenCalled();
   });
-  it.each(["edit", "accept"] as const)("runs trusted %s validation and immutable receipt application through the actual route", async kind => {
-    const fixture = await logoHttpFixture(); await configure(fixture); const request = json(kind === "edit" ? fixture.edit : fixture.accept);
-    const route = kind === "edit" ? await editRoute() : await acceptRoute(); const response = await route.POST(request, context(fixture));
-    expect(response.status).toBe(200); privateResponse(response); const result = await response.json();
-    expect(result).toMatchObject({ ownerId: fixture.ownerId, projectId: fixture.projectId, requestKey: (kind === "edit" ? fixture.edit : fixture.accept).requestKey, revision: { stage: kind === "edit" ? "refinements" : "vector" }, workspace: { capabilities: fixture.workspace.capabilities, approvedLogo: null } });
-    expect(fixture.sqlCalls.some(call => call.sql.includes("apply_logo_trusted_command"))).toBe(true);
-    expect(fixture.sqlCalls.map(call => call.sql)).toContain("COMMIT"); expect(fixture.rpcCalls.every(call => call.signal === request.signal)).toBe(true);
-    if (kind === "edit") expect(fixture.storageCalls.filter(call => call.method === "POST")).toHaveLength(2);
-  });
-  it.each(["mutation", "upload"] as const)("retains uncertain %s request identity and recovers by exact replay without duplicated byte work", async kind => {
+
+  it("retains uncertain upload request identity and recovers by exact replay without duplicated byte work", async () => {
     const fixture = await logoHttpFixture(); await configure(fixture);
-    fixture.controls.loseCommit = kind === "mutation"; fixture.controls.loseInputCommit = kind === "upload";
-    const route = kind === "mutation" ? await editRoute() : await uploadRoute(), request = () => kind === "mutation" ? json(fixture.edit) : upload(fixture);
-    const first = await route.POST(request(), context(fixture)); expect(first.status).toBe(503); privateResponse(first);
-    const before = fixture.storageCalls.length, second = await route.POST(request(), context(fixture));
+    fixture.controls.loseInputCommit = true;
+    const route = await uploadRoute();
+    const first = await route.POST(upload(fixture), context(fixture)); expect(first.status).toBe(503); privateResponse(first);
+    const before = fixture.storageCalls.length, second = await route.POST(upload(fixture), context(fixture));
     expect(second.status).toBe(200); expect(fixture.storageCalls).toHaveLength(before);
-    if (kind === "mutation") {
-      expect((await second.json()).requestKey).toBe(fixture.edit.requestKey);
-      const rejected = await route.POST(json({ ...fixture.edit, edit: { ...fixture.edit.edit, fill: "#654321" } }), context(fixture)); expect(rejected.status).toBe(409);
-      expect(fixture.sqlCalls.filter(call => call.sql.includes("apply_logo_trusted_command"))).toHaveLength(1);
-    } else expect(fixture.requests.get(fixture.upload.requestKey)).toMatchObject({ status: "succeeded", request: { input: fixture.upload } });
+    expect(fixture.requests.get(fixture.upload.requestKey)).toMatchObject({ status: "succeeded", request: { input: fixture.upload } });
   });
-  it.each(["owner", "project"] as const)("keeps concurrent %s scopes, bytes, dependencies and mutation receipts independent", async variation => {
+
+  it.each(["owner", "project"] as const)("keeps concurrent %s scopes, bytes and dependencies independent", async variation => {
     const a = await logoHttpFixture(), b = await logoHttpFixture(variation === "owner" ? undefined : a.ownerId, undefined, "#123456");
     let release!: () => void; const both = new Promise<void>(resolve => { release = resolve; }); let count = 0;
     await configure(a, async (auth, projectId) => {
@@ -94,9 +81,6 @@ describe("actual HTTP logo consumers with a trusted synthetic bootstrap", () => 
       expect(result.asset).toMatchObject({ ownerId: fixture.ownerId, projectId: fixture.projectId, contentHash: fixture.raster.reference.contentHash });
       expect(fixture.objects.get(pathFor(result.asset))?.bytes).toEqual(fixture.raster.bytes); expect(other.objects.has(pathFor(result.asset))).toBe(false);
     }
-    f.createClient.mockResolvedValueOnce(a.client).mockResolvedValueOnce(b.client);
-    const edits = await editRoute(), edited = await Promise.all([edits.POST(json(a.edit), context(a)), edits.POST(json(b.edit), context(b))]);
-    for (const [index, response] of edited.entries()) { expect(response.status).toBe(200); const fixture = [a, b][index]!; expect(await response.json()).toMatchObject({ ownerId: fixture.ownerId, projectId: fixture.projectId, requestKey: fixture.edit.requestKey }); }
     expect(a.storageCalls.every(call => call.path.startsWith(`${a.ownerId}/${a.projectId}/`))).toBe(true); expect(b.storageCalls.every(call => call.path.startsWith(`${b.ownerId}/${b.projectId}/`))).toBe(true);
   });
   it("rejects foreign projects and dependency scope mismatches before private I/O", async () => {
@@ -121,20 +105,22 @@ describe("actual HTTP logo consumers with a trusted synthetic bootstrap", () => 
     expect(other.transport).not.toHaveBeenCalled();
   });
   it("keeps auth, origin, body and public error behavior before privileged resolution", async () => {
-    const fixture = await logoHttpFixture(), resolver = await configure(fixture), route = await editRoute();
+    const fixture = await logoHttpFixture(), resolver = await configure(fixture), route = await restoreRoute();
+    const body = { requestKey: crypto.randomUUID(), expected: fixture.workspace.heads, stage: "vector", revisionId: fixture.stage.id, acceptEarlierBasis: true };
     fixture.getUser.mockResolvedValueOnce({ data: { user: null }, error: null } as never);
-    const unauthenticated = json(fixture.edit); expect((await route.POST(unauthenticated, context(fixture))).status).toBe(401); expect(unauthenticated.bodyUsed).toBe(false);
-    const badOrigin = json(fixture.edit); badOrigin.headers.set("origin", "https://foreign.invalid"); expect((await route.POST(badOrigin, context(fixture))).status).toBe(403);
-    expect((await route.POST(json({ ...fixture.edit, ownerId: fixture.ownerId }), context(fixture))).status).toBe(422);
-    const oversized = json(fixture.edit); oversized.headers.set("content-length", "999999"); expect((await route.POST(oversized, context(fixture))).status).toBe(413);
+    const unauthenticated = json(body); expect((await route.POST(unauthenticated, context(fixture))).status).toBe(401); expect(unauthenticated.bodyUsed).toBe(false);
+    const badOrigin = json(body); badOrigin.headers.set("origin", "https://foreign.invalid"); expect((await route.POST(badOrigin, context(fixture))).status).toBe(403);
+    expect((await route.POST(json({ ...body, ownerId: fixture.ownerId }), context(fixture))).status).toBe(422);
+    const oversized = json(body); oversized.headers.set("content-length", "999999"); expect((await route.POST(oversized, context(fixture))).status).toBe(413);
     expect(resolver).not.toHaveBeenCalled(); expect(fixture.connect).not.toHaveBeenCalled();
   });
-  it.each(["ownership", "vector", "asset", "current", "stage", "directions"] as const)("cancels a held %s account transport through the HTTP request signal", async boundary => {
+
+  it.each(["stage", "directions"] as const)("cancels a held %s account transport through the HTTP request signal", async boundary => {
     const fixture = await logoHttpFixture(), controller = new AbortController(); await configure(fixture);
     let started!: (signal?: AbortSignal) => void; const held = new Promise<AbortSignal | undefined>(resolve => { started = resolve; }); fixture.controls.heldRpc = started;
-    fixture.controls.holdRpc = (name, args) => boundary === "ownership" ? name === "get_logo_workspace" : boundary === "asset" ? name === "read_logo_asset" : boundary === "current" ? name === "read_logo_current_vector" : boundary === "directions" ? name === "list_logo_workspace_records" && args.p_kind === "directions_overview" : name === "read_logo_workspace_record" && args.p_kind === boundary;
-    const request = json(boundary === "directions" ? { requestKey: crypto.randomUUID(), expected: fixture.workspace.heads, directionSelectionId: crypto.randomUUID(), consistencyHash: "a".repeat(64) } : boundary === "stage" ? { requestKey: crypto.randomUUID(), expected: fixture.workspace.heads, stage: "vector", revisionId: fixture.stage.id, acceptEarlierBasis: true } : boundary === "current" ? fixture.accept : fixture.edit, controller.signal);
-    const route = boundary === "directions" ? await approvalRoute() : boundary === "stage" ? await restoreRoute() : boundary === "current" ? await acceptRoute() : await editRoute();
+    fixture.controls.holdRpc = (name, args) => boundary === "directions" ? name === "list_logo_workspace_records" && args.p_kind === "directions_overview" : name === "read_logo_workspace_record" && args.p_kind === boundary;
+    const request = json(boundary === "directions" ? { requestKey: crypto.randomUUID(), expected: fixture.workspace.heads, directionSelectionId: crypto.randomUUID(), consistencyHash: "a".repeat(64) } : boundary === "stage" ? { requestKey: crypto.randomUUID(), expected: fixture.workspace.heads, stage: "vector", revisionId: fixture.stage.id, acceptEarlierBasis: true } : fixture.edit, controller.signal);
+    const route = boundary === "directions" ? await approvalRoute() : await restoreRoute();
     const result = route.POST(request, context(fixture));
     const transportSignal = await held; controller.abort(); expect(transportSignal).toBe(request.signal); expect((await result).status).toBe(503);
     expect(fixture.storageCalls.filter(call => call.method === "POST")).toHaveLength(0); expect(fixture.sqlCalls.some(call => call.sql.includes("apply_logo_trusted_command"))).toBe(false);

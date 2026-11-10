@@ -29,6 +29,12 @@ const reviewedLogoAndHomeFunctions = [
   "public.request_logo_export(uuid, jsonb)",
   "public.get_logo_export(uuid, uuid)",
   "public.get_logo_deliverables(uuid, jsonb)",
+  // 20261110090000: generation engine. Owner-derived admission with credits and limits,
+  // cancellation of the caller's own run, and read-only credit and catalog summaries.
+  "public.start_generation(uuid, text, text, jsonb)",
+  "public.cancel_generation(uuid)",
+  "public.get_credit_summary()",
+  "public.get_generation_catalog()",
   // local20261007014000: server/data/home-lifecycle.ts preserves manual source
   // provenance through owner-derived association/promotion and receipt recovery.
   "public.attach_idea_to_project(jsonb)",
@@ -276,7 +282,7 @@ describe("independent database boundary attacks", () => {
         // Typed NULL arguments probe the reviewed exact overload, even if a
         // future overload has the same name and a different argument type.
         const invocation = signature.replace(/\((.*)\)$/, (_, types: string) =>
-          `(${types.split(", ").map(type => `null::${type}`).join(", ")})`);
+          `(${types ? types.split(", ").map(type => `null::${type}`).join(", ") : ""})`);
         await expect(db.query(`select ${invocation}`), signature).rejects.toMatchObject({ code: "42501", message: "unauthenticated" });
       }
       // All authenticated-only RPCs introduced by the manual Ideas, standalone

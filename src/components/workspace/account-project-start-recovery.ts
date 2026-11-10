@@ -6,6 +6,30 @@ import { DRAFT_STORAGE_KEY, getLocalDraft, localDraftStorageState, readDurableLo
 // replay contract and must remain fenced rather than being issued a new key.
 const startReceiptSchema = z.strictObject({ ownerId: z.uuid(), draftId: z.uuid(), projectId: z.uuid().nullable(), request: z.strictObject({ key: z.uuid(), input: createProjectInputSchema }).optional(), attachedRequestKey: z.uuid().optional() }).refine(receipt => !(receipt.request && receipt.attachedRequestKey));
 export type StartReceipt = z.infer<typeof startReceiptSchema>;
+// Records written by an older app version can stop matching today's request format, e.g. a
+// project type that was retired. Each record is checked on its own. One that still names its
+// owner and source keeps fencing that source, but without its outdated request, so it can never
+// be replayed. One that can't be tied to a source fences nothing and is ignored, so a single
+// old record no longer blocks every new project. Storage that isn't a list at all stays an error.
+const fenceOnlySchema = z.object({ ownerId: z.uuid(), draftId: z.uuid(), projectId: z.uuid().nullable() });
+const MAX_STORED_RECEIPTS = 1_000;
+function readStoredReceipt(value: unknown): StartReceipt | null {
+  const current = startReceiptSchema.safeParse(value);
+  if (current.success) return current.data;
+  const fence = fenceOnlySchema.safeParse(value);
+  return fence.success ? { ownerId: fence.data.ownerId, draftId: fence.data.draftId, projectId: fence.data.projectId } : null;
+}
+/** The usable records in a stored list; null when the value isn't a readable list. Records of
+ * another owner are skipped when `ownerId` is given. */
+function readStoredReceipts(raw: string, ownerId: string | null): StartReceipt[] | null {
+  let parsed: unknown;
+  try { parsed = JSON.parse(raw); } catch { return null; }
+  if (!Array.isArray(parsed) || parsed.length > MAX_STORED_RECEIPTS) return null;
+  return parsed.flatMap(value => {
+    const receipt = readStoredReceipt(value);
+    return receipt && (ownerId === null || receipt.ownerId === ownerId) ? [receipt] : [];
+  });
+}
 const legacyReceiptKey = "fluid.strategy-starts.v1";
 const receiptKey = (ownerId: string) => `fluid.strategy-starts.v2:${ownerId}`;
 const durableReceiptKey = (ownerId: string) => `fluid.project-starts.v3:${ownerId}`;
@@ -50,22 +74,22 @@ function retireConfirmedReceipts(ownerId: string, activeDraftId: string) {
   if (changed) persistReceipts(ownerId);
 }
 export function readReceipt(ownerId: string, draftId: string) {
-  let raw: string | null = null, legacy = false;
+  let raw: string | null = null;
   try {
     raw = window.sessionStorage.getItem(receiptKey(ownerId));
-    if (raw === null) { raw = window.sessionStorage.getItem(legacyReceiptKey); legacy = true; }
+    if (raw === null) raw = window.sessionStorage.getItem(legacyReceiptKey);
   } catch { /* Existing in-memory guards remain authoritative in this tab. */ }
   if (raw !== null) {
-    const stored = z.array(startReceiptSchema).max(legacy ? 200 : 250).safeParse((() => { try { return JSON.parse(raw); } catch { return null; } })());
-    if (!stored.success || (!legacy && stored.data.some(receipt => receipt.ownerId !== ownerId))) throw new StartReceiptRecoveryError("Saved recovery records could not be verified. No new account project or AI request was sent. Check account brands before continuing.");
-    for (const receipt of stored.data) if (receipt.ownerId === ownerId && !receipts.has(receiptId(ownerId, receipt.draftId))) receipts.set(receiptId(ownerId, receipt.draftId), receipt);
+    const stored = readStoredReceipts(raw, ownerId);
+    if (!stored) throw new StartReceiptRecoveryError("Saved recovery records could not be verified. No new account project or AI request was sent. Check account brands before continuing.");
+    for (const receipt of stored) if (!receipts.has(receiptId(ownerId, receipt.draftId))) receipts.set(receiptId(ownerId, receipt.draftId), receipt);
   }
   let durable: string | null = null;
   try { durable = window.localStorage.getItem(durableReceiptKey(ownerId)); } catch { /* Retain this tab's verified records. */ }
   if (durable !== null) {
-    const stored = z.array(startReceiptSchema).max(250).safeParse((() => { try { return JSON.parse(durable); } catch { return null; } })());
-    if (!stored.success || stored.data.some(receipt => receipt.ownerId !== ownerId)) throw new StartReceiptRecoveryError("Saved recovery records could not be verified. Check your projects before continuing.");
-    for (const receipt of stored.data) {
+    const stored = readStoredReceipts(durable, ownerId);
+    if (!stored) throw new StartReceiptRecoveryError("Saved recovery records could not be verified. Check your projects before continuing.");
+    for (const receipt of stored) {
       const prior = receipts.get(receiptId(ownerId, receipt.draftId));
       if (!prior || (!prior.projectId && receipt.projectId)) receipts.set(receiptId(ownerId, receipt.draftId), receipt);
     }
@@ -74,11 +98,14 @@ export function readReceipt(ownerId: string, draftId: string) {
     let raw: string | null = null;
     try { raw = window.localStorage.getItem(key); } catch { /* New admission must establish a durable source guard below. */ }
     if (raw === null) continue;
-    const stored = startReceiptSchema.safeParse((() => { try { return JSON.parse(raw); } catch { return null; } })());
-    if (!stored.success || stored.data.ownerId !== ownerId || stored.data.draftId !== draftId) throw new StartReceiptRecoveryError("This project's recovery record could not be verified. No new project was created.");
+    // This key names its owner and source, so even an unreadable record keeps fencing them.
+    const parsed = readStoredReceipt((() => { try { return JSON.parse(raw); } catch { return null; } })());
+    if (parsed && (parsed.ownerId !== ownerId || parsed.draftId !== draftId)) throw new StartReceiptRecoveryError("This project's recovery record could not be verified. No new project was created.");
+    const stored = parsed ?? { ownerId, draftId, projectId: null };
     const prior = receipts.get(receiptId(ownerId, draftId));
-    if ((prior?.request && stored.data.attachedRequestKey) || (prior?.attachedRequestKey && stored.data.request)) throw new StartReceiptRecoveryError("This project has conflicting save records. Check your saved projects before continuing.");
-    if (!prior?.projectId || stored.data.projectId) receipts.set(receiptId(ownerId, draftId), stored.data);
+    if ((prior?.request && stored.attachedRequestKey) || (prior?.attachedRequestKey && stored.request)) throw new StartReceiptRecoveryError("This project has conflicting save records. Check your saved projects before continuing.");
+    // The source's own record is authoritative, unless it was unreadable and another one exists.
+    if (parsed ? !prior?.projectId || stored.projectId : !prior) receipts.set(receiptId(ownerId, draftId), stored);
   }
   // A newly admitted tab-only source can be flushed by a later draft-store
   // write. Its immutable endpoint marker travels with it even if quota prevented
@@ -101,9 +128,9 @@ export function readDraftFence(draftId: string) {
     if (!key || (key !== legacyReceiptKey && !key.startsWith("fluid.strategy-starts.v2:"))) continue;
     const raw = window.sessionStorage.getItem(key);
     if (!raw?.includes(draftId)) continue;
-    const stored = z.array(startReceiptSchema).max(250).safeParse((() => { try { return JSON.parse(raw); } catch { return null; } })());
-    if (!stored.success) throw new StartReceiptRecoveryError("Saved recovery records could not be verified. Check account brands before continuing.");
-    if (stored.data.some(receipt => receipt.draftId === draftId)) return true;
+    const stored = readStoredReceipts(raw, null);
+    if (!stored) throw new StartReceiptRecoveryError("Saved recovery records could not be verified. Check account brands before continuing.");
+    if (stored.some(receipt => receipt.draftId === draftId)) return true;
   }
   for (let index = 0; index < window.localStorage.length; index++) {
     const key = window.localStorage.key(index);
@@ -111,9 +138,9 @@ export function readDraftFence(draftId: string) {
     if (!key?.startsWith("fluid.project-starts.v3:")) continue;
     const raw = window.localStorage.getItem(key);
     if (!raw?.includes(draftId)) continue;
-    const stored = z.array(startReceiptSchema).max(250).safeParse((() => { try { return JSON.parse(raw); } catch { return null; } })());
-    if (!stored.success) throw new StartReceiptRecoveryError("Saved recovery records could not be verified. Check your projects before continuing.");
-    if (stored.data.some(receipt => receipt.draftId === draftId)) return true;
+    const stored = readStoredReceipts(raw, null);
+    if (!stored) throw new StartReceiptRecoveryError("Saved recovery records could not be verified. Check your projects before continuing.");
+    if (stored.some(receipt => receipt.draftId === draftId)) return true;
   }
   return false;
 }

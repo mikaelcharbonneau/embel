@@ -13,7 +13,6 @@ const overview = { availability: { status: "unavailable", reason: "worker_unavai
 vi.mock("@/components/workspace/account-session", () => ({ AccountStatus: () => null, useAccountSession: () => ({ session: mock.account, drafts: mock.memory, isCurrent: mock.current, expire: mock.expire, refresh: mock.refresh }) }));
 vi.mock("@/components/workspace/use-strategy-jobs", () => ({ useStrategyJobs: () => ({ overview, pending: false, readError: null, actionError: null, refresh: mock.refresh, enqueue: mock.enqueue }) }));
 vi.mock("@/components/workspace/account-project-continuity", () => ({ AccountProjectContinuity: () => null }));
-vi.mock("@/components/ideas/idea-source-banner", () => ({ IdeaSourceBanner: () => null }));
 
 const projectId = "bbbbbbbb-1111-4111-8111-111111111111", when = "2026-10-17T00:00:00Z";
 let root: Root, host: HTMLDivElement, project: AccountProject, fetcher: ReturnType<typeof vi.fn>;

@@ -42,7 +42,6 @@ async function until(assertion: () => void) {
 const accountLabel = () => host.querySelector<HTMLSpanElement>(".workspace-account-label")!;
 const mainNav = () => host.querySelector<HTMLElement>('nav[aria-label="Main navigation"]')!;
 const navLinks = () => [...mainNav().querySelectorAll<HTMLAnchorElement>(":scope > ul > li > a")];
-const toolsSummary = () => mainNav().querySelector<HTMLElement>("details > summary")!;
 
 beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
@@ -69,12 +68,12 @@ afterEach(async () => {
 describe("persistent workspace shell", () => {
   it("keeps the floating navigation, logo and focus across route changes", async () => {
     await render(); await until(() => expect(accountLabel().textContent).toBe("Private fixture name"));
-    const links = navLinks(), tools = toolsSummary();
+    const links = navLinks();
     const logo = mainNav().querySelector("img"), generation = account.session.generation;
     expect(links.map(link => link.textContent)).toEqual(["Home", "Projects", "Library"]);
-    expect([...mainNav().querySelectorAll("details a")].map(link => link.getAttribute("href"))).toEqual(["/ideas", "/names", "/handles", "/domains", "/trademarks"]);
+    expect(mainNav().querySelector("details")).toBeNull();
     links[1]!.focus();
-    const routes = ["/brands", "/assets", "/ideas", "/names", "/handles", "/domains", "/trademarks", "/settings", "/sign-in", "/sign-up", "/"];
+    const routes = ["/brands", "/assets", "/settings", "/sign-in", "/sign-up", "/"];
     for (const pathname of routes) {
       route.pathname = pathname; await render();
       navLinks().forEach((link, index) => {
@@ -82,8 +81,6 @@ describe("persistent workspace shell", () => {
         const href = link.getAttribute("href")!;
         expect(link.getAttribute("aria-current")).toBe((href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`)) ? "page" : null);
       });
-      expect(toolsSummary()).toBe(tools);
-      expect(tools.getAttribute("aria-current")).toBe(["/ideas", "/names", "/handles", "/domains", "/trademarks"].includes(pathname) ? "page" : null);
       expect(mainNav().querySelector("img")).toBe(logo);
       expect(document.activeElement).toBe(links[1]);
       expect(account.session.generation).toBe(generation);
@@ -239,19 +236,11 @@ describe("persistent workspace shell", () => {
   });
 });
 
-it("reaches every destination from the pill without a separate mobile menu, and closes Tools on Escape", async () => {
+it("reaches every destination from the pill without a separate mobile menu or Tools menu", async () => {
   await render(); await until(() => expect(accountLabel().textContent).toBe("Private fixture name"));
   expect(host.querySelector(".workspace-account-avatar")?.textContent).toBe("PN");
-  // Each tool keeps its name as the link name and describes itself in one line.
-  const toolLinks = [...mainNav().querySelectorAll<HTMLAnchorElement>("details a")];
-  expect(toolLinks.map(link => [link.getAttribute("aria-label"), document.getElementById(link.getAttribute("aria-describedby")!)?.textContent])).toEqual([
-    ["Ideas", "Save ideas for later"], ["Names", "Build and compare name ideas"], ["Handles", "Draft social handles"],
-    ["Domains", "Search domain names"], ["Trademarks", "Prepare a trademark search"],
-  ]);
-  expect(toolLinks.every(link => link.querySelector(".tools-menu-icon svg"))).toBe(true);
-  const details = toolsSummary().parentElement as HTMLDetailsElement;
-  details.open = true; toolsSummary().focus();
-  await act(async () => details.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })));
-  expect(details.open).toBe(false); expect(document.activeElement).toBe(toolsSummary());
+  expect(navLinks().map(link => link.getAttribute("href"))).toEqual(["/", "/brands", "/assets"]);
+  expect(mainNav().querySelector("details")).toBeNull();
   expect(fetcher.mock.calls.filter(([path]) => path === "/api/session")).toHaveLength(1);
 });
+

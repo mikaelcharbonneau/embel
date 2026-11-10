@@ -96,7 +96,7 @@ describe("project workspace retains account and saved-state safety without proje
     const editor = <input aria-label="Retained editor" defaultValue="Unsaved local input" />;
     await render(editor);
     const content = host.querySelector(".project-workspace-content"), input = host.querySelector("input")!;
-    for (const suffix of ["", "/naming", "/inspiration", "/logo", "/brand-board", "/logo/vector", "/logo/editor", "/logo/directions", "/identity", "/logo/deliverables"]) {
+    for (const suffix of ["", "/naming", "/inspiration", "/logo", "/brand-board", "/logo/directions", "/identity", "/logo/deliverables"]) {
       input.focus(); pathname = `/brands/account/${projectId}${suffix}`; await render(editor);
       expect(host.querySelector(".project-workspace-content")).toBe(content); expectNoProjectBars();
       expect(host.querySelector("input")).toBe(input); expect(document.activeElement).toBe(input);

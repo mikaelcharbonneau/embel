@@ -14,6 +14,8 @@
 .auth-password-toggle { position: absolute; bottom: 0; right: 0; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--secondary); }
 .auth-password-toggle:hover:not(:disabled) { color: var(--text); }
 .auth-password-toggle:focus-visible { outline-offset: -6px; }
+/* .text-link centers its text in a 44px target; lift it so the words share the label's line. */
+.auth-forgot-link { position: absolute; top: -12px; right: 0; z-index: 1; font-size: var(--font-ui); font-weight: 500; }
 .auth-submit { width: 100%; justify-content: space-between; margin-top: 24px; }
 .auth-continue { margin-top: 24px; }
 .auth-progress { width: 13px; height: 13px; border: 1.5px solid #ffffff70; border-top-color: var(--paper); border-radius: 50%; animation: auth-spin 800ms linear infinite; }

@@ -1,9 +1,0 @@
-import { describe, expect, it } from "vitest";
-const id = (n: number) => `50000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-const ownerId=id(1), projectId=id(2), at="2026-10-06T12:00:00Z", hash="a".repeat(64);
-import { standalonePromotionInputSchema, standalonePromotionSourceSchema, standalonePromotionReceiptSchema } from "../../src/domain/standalone-promotion";
-describe("manual standalone promotion",()=>{
- it("accepts a frozen manual selection but never browser source authority",()=>{const c={requestKey:id(3),workspaceId:id(4),expectedWorkspaceRevision:1,selection:{tool:"domains",domain:"example.com"},contextSource:null,title:"Example"};expect(standalonePromotionInputSchema.safeParse(c).success).toBe(true);for(const extra of [{ownerId},{payloadHash:hash},{providerResult:{status:"observed"}}])expect(standalonePromotionInputSchema.safeParse({...c,...extra}).success).toBe(false);expect(standalonePromotionInputSchema.safeParse({...c,selection:{tool:"domains",domain:"EXAMPLE.COM"}}).success).toBe(false);});
- it("keeps exact workspace revision and optional import context on server source",()=>{const s={id:id(3),ownerId,workspaceId:id(4),workspaceRevision:1,selection:{tool:"handles",bundleId:"manual-bundle"},payloadHash:hash,contextSource:null,createdAt:at};expect(standalonePromotionSourceSchema.safeParse(s).success).toBe(true);expect(standalonePromotionSourceSchema.safeParse({...s,workspaceRevision:0}).success).toBe(false);});
- it("binds source and resulting project to the receipt owner",()=>{const source={id:id(3),ownerId:id(99),workspaceId:id(4),workspaceRevision:1,selection:{tool:"trademarks"},payloadHash:hash,contextSource:null,createdAt:at};const project={id:projectId,owner_id:ownerId,title:"Example",scope:"complete_brand",current_revision:1,created_at:at,context:{}};expect(standalonePromotionReceiptSchema.safeParse({ownerId,requestKey:id(5),project,source}).success).toBe(false);});
-});

@@ -1,6 +1,0 @@
-import {beforeEach,expect,it,vi} from 'vitest';vi.mock('server-only',()=>({}));
-const f=vi.hoisted(()=>({auth:vi.fn(),list:vi.fn()}));vi.mock('@/server/auth/context',()=>({getAuthenticatedContext:f.auth}));vi.mock('@/features/logo-vector/server/history',()=>({listLogoVectorHistory:f.list}));
-import {GET} from '@/app/api/projects/[projectId]/logo/vector/history/route';
-const owner='d0000000-0000-4000-8000-000000000001',project='d0000000-0000-4000-8000-000000000002';const context={params:Promise.resolve({projectId:project})};beforeEach(()=>{vi.resetAllMocks();f.auth.mockResolvedValue({userId:owner,client:{}});f.list.mockResolvedValue({items:[]});});
-it('passes a strict bounded cursor query with verified account and abort signal',async()=>{const r=new Request('https://fluid.invalid/api?limit=2&cursor=YWJj');const response=await GET(r,context);expect(response.status).toBe(200);expect(response.headers.get('cache-control')).toBe('private, no-store');expect(f.list.mock.calls[0]!.slice(1)).toEqual([project,{limit:2,cursor:'YWJj'},r.signal]);});
-it('rejects unknown repeated malformed and oversized history queries',async()=>{for(const q of ['ownerId='+owner,'limit=1&limit=2','limit=51','cursor=bad','cursor='+ 'a'.repeat(4100)])expect((await GET(new Request('https://fluid.invalid/api?'+q),context)).status).toBe(422);expect(f.list).not.toHaveBeenCalled();});

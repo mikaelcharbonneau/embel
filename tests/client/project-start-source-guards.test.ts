@@ -42,3 +42,37 @@ it.each(["project", "attached"] as const)("a later local flush keeps the endpoin
   const otherTab = await import("@/components/workspace/account-project-start-recovery");
   expect(otherTab.readReceipt(owner, id!)).toEqual({ ownerId: owner, draftId: id!, projectId: null, ...(kind === "attached" ? { attachedRequestKey: requestKey! } : {}) });
 });
+
+it("keeps fencing a source whose saved request uses a retired format, without blocking other sources", async () => {
+  const recovery = await import("@/components/workspace/account-project-start-recovery");
+  const oldId = crypto.randomUUID(), currentId = crypto.randomUUID(), freshId = crypto.randomUUID();
+  // Written before "Name only" projects were retired on November 9, 2026.
+  const retired = { ownerId: owner, draftId: oldId, projectId: null, request: { key: oldId, input: { ...input, scope: "naming_only" } } };
+  const current = { ownerId: owner, draftId: currentId, projectId: null, request: { key: currentId, input } };
+  const unreadable = { draftId: "not-a-source" };
+  const foreign = { ownerId: crypto.randomUUID(), draftId: crypto.randomUUID(), projectId: null };
+  window.localStorage.setItem(`fluid.project-starts.v3:${owner}`, JSON.stringify([retired, current, unreadable, foreign]));
+  window.sessionStorage.setItem(`fluid.strategy-starts.v2:${owner}`, JSON.stringify([retired]));
+  expect(recovery.readReceipt(owner, freshId)).toBeNull();
+  expect(recovery.readReceipt(owner, oldId)).toEqual({ ownerId: owner, draftId: oldId, projectId: null });
+  expect(recovery.readReceipt(owner, currentId)).toEqual(current);
+  expect(recovery.readDraftFence(oldId)).toBe(true);
+  expect(recovery.readDraftFence(freshId)).toBe(false);
+});
+
+it("treats an unreadable record under a source's own key as an unconfirmed save of that source", async () => {
+  const recovery = await import("@/components/workspace/account-project-start-recovery");
+  const id = crypto.randomUUID();
+  window.localStorage.setItem(`fluid.project-source.v1:${owner}:${id}`, JSON.stringify({ ownerId: owner, draftId: id, projectId: null, request: { key: id, input: { scope: "visual_identity_only" } }, extra: true }));
+  expect(recovery.readReceipt(owner, id)).toEqual({ ownerId: owner, draftId: id, projectId: null });
+  window.localStorage.setItem(`fluid.project-source.v1:${owner}:${id}`, "not json");
+  vi.resetModules();
+  const fresh = await import("@/components/workspace/account-project-start-recovery");
+  expect(fresh.readReceipt(owner, id)).toEqual({ ownerId: owner, draftId: id, projectId: null });
+});
+
+it("still refuses storage that isn't a list of records", async () => {
+  const recovery = await import("@/components/workspace/account-project-start-recovery");
+  window.localStorage.setItem(`fluid.project-starts.v3:${owner}`, "{\"not\":\"a list\"}");
+  expect(() => recovery.readReceipt(owner, crypto.randomUUID())).toThrow(recovery.StartReceiptRecoveryError);
+});
