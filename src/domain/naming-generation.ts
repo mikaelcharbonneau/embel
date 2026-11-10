@@ -22,7 +22,11 @@ const hash = z.string().regex(/^[a-f0-9]{64}$/u);
 const code = z.string().regex(/^[a-z][a-z0-9_]{0,79}$/u);
 const count = (max: number) => z.number().int().min(0).max(max);
 const revision = z.number().int().positive();
-const requestKey = z.string().min(16).max(128).regex(/^[A-Za-z0-9._:-]+$/u);
+const requestKey = z
+  .string()
+  .min(16)
+  .max(128)
+  .regex(/^[A-Za-z0-9._:-]+$/u);
 
 export const namingResponseIdSchema = z.string().regex(/^resp_[A-Za-z0-9_-]{1,194}$/u);
 export const namingRequestIdSchema = z.string().regex(/^[A-Za-z0-9_-]{1,200}$/u);
@@ -32,8 +36,10 @@ export type NamingRunKind = z.infer<typeof namingRunKindSchema>;
 
 /** The slot's approved policy for `naming.generate`. */
 export const namingGenerationPolicySchema = z.strictObject({
-  version: z.literal(2), operation: z.literal("naming.generate"),
-  model: z.string().trim().min(1).max(150), reasoningEffort: z.enum(["low", "medium"]),
+  version: z.literal(2),
+  operation: z.literal("naming.generate"),
+  model: z.string().trim().min(1).max(150),
+  reasoningEffort: z.enum(["low", "medium"]),
 });
 export type NamingGenerationPolicy = z.infer<typeof namingGenerationPolicySchema>;
 
@@ -53,12 +59,20 @@ export type NamingBrief = z.infer<typeof namingBriefSchema>;
 
 /** `public.jobs.input` for a run. */
 export const namingRunInputSchema = z.strictObject({
-  version: z.literal(3), kind: namingRunKindSchema, runId: z.uuid(), target: z.literal(NAMING_RUN_TARGET),
-  policyIdentity: hash, brief: namingBriefSchema,
+  version: z.literal(3),
+  kind: namingRunKindSchema,
+  runId: z.uuid(),
+  target: z.literal(NAMING_RUN_TARGET),
+  policyIdentity: hash,
+  brief: namingBriefSchema,
 });
 export type NamingRunInput = z.infer<typeof namingRunInputSchema>;
 
-export const namingUsageSchema = z.strictObject({ inputTokens: count(Number.MAX_SAFE_INTEGER), outputTokens: count(Number.MAX_SAFE_INTEGER), totalTokens: count(Number.MAX_SAFE_INTEGER) });
+export const namingUsageSchema = z.strictObject({
+  inputTokens: count(Number.MAX_SAFE_INTEGER),
+  outputTokens: count(Number.MAX_SAFE_INTEGER),
+  totalTokens: count(Number.MAX_SAFE_INTEGER),
+});
 export type NamingUsage = z.infer<typeof namingUsageSchema>;
 
 /** Known failure reasons. SQL and the worker only write these. */
@@ -77,31 +91,63 @@ export type NamingRunErrorCode = z.infer<typeof namingRunErrorCodeSchema>;
 
 export const namingRoundStateSchema = z.enum(["sending", "sent", "saved", "failed", "interrupted"]);
 export const namingRoundSchema = z.strictObject({
-  roundId: z.uuid(), round: z.number().int().min(1).max(NAMING_MAX_ROUNDS), state: namingRoundStateSchema,
-  responseId: namingResponseIdSchema.nullable(), savedCount: count(NAMING_RUN_TARGET), errorCode: code.nullable(),
+  roundId: z.uuid(),
+  round: z.number().int().min(1).max(NAMING_MAX_ROUNDS),
+  state: namingRoundStateSchema,
+  responseId: namingResponseIdSchema.nullable(),
+  savedCount: count(NAMING_RUN_TARGET),
+  errorCode: code.nullable(),
 });
 export type NamingRound = z.infer<typeof namingRoundSchema>;
 
-export const namingRunStateSchema = z.enum(["queued", "running", "cancel_requested", "succeeded", "failed", "cancelled"]);
+export const namingRunStateSchema = z.enum([
+  "queued",
+  "running",
+  "cancel_requested",
+  "succeeded",
+  "failed",
+  "cancelled",
+]);
 export type NamingRunState = z.infer<typeof namingRunStateSchema>;
 export const namingRunSchema = z.strictObject({
-  runId: z.uuid(), jobId: z.uuid(), kind: namingRunKindSchema, state: namingRunStateSchema,
-  target: z.literal(NAMING_RUN_TARGET), savedCount: count(NAMING_RUN_TARGET), errorCode: code.nullable(),
-  usage: namingUsageSchema.nullable(), createdAt: timestamp, finishedAt: timestamp.nullable(),
+  runId: z.uuid(),
+  jobId: z.uuid(),
+  kind: namingRunKindSchema,
+  state: namingRunStateSchema,
+  target: z.literal(NAMING_RUN_TARGET),
+  savedCount: count(NAMING_RUN_TARGET),
+  errorCode: code.nullable(),
+  usage: namingUsageSchema.nullable(),
+  createdAt: timestamp,
+  finishedAt: timestamp.nullable(),
 });
 export type NamingRun = z.infer<typeof namingRunSchema>;
-export const namingRunActive = (run: Pick<NamingRun, "state"> | null | undefined) => !!run && ["queued", "running", "cancel_requested"].includes(run.state);
+export const namingRunActive = (run: Pick<NamingRun, "state"> | null | undefined) =>
+  !!run && ["queued", "running", "cancel_requested"].includes(run.state);
 
 /** One cleaned name sent by the worker to `round_saved`. */
 export const namingSavedCandidateSchema = z.strictObject({
-  value: nameValueSchema, rationale: z.string().min(1).max(600), primaryApproach: namingApproachSchema, identityKey: z.string().min(1).max(320),
+  value: nameValueSchema,
+  rationale: z.string().min(1).max(600),
+  primaryApproach: namingApproachSchema,
+  identityKey: z.string().min(1).max(320),
 });
 export type NamingSavedCandidate = z.infer<typeof namingSavedCandidateSchema>;
 
 /** What the worker's `claim` action returns with the execution envelope. */
 export const namingClaimSchema = z.strictObject({
-  job: z.strictObject({ id: z.uuid(), owner_id: z.uuid(), project_id: z.uuid(), lease_token: z.uuid(), operation: z.literal("naming.generate"), attempts: z.number().int().min(1), max_attempts: z.number().int().min(1) }),
-  run: namingRunSchema, input: namingRunInputSchema, rounds: z.array(namingRoundSchema).max(NAMING_MAX_ROUNDS),
+  job: z.strictObject({
+    id: z.uuid(),
+    owner_id: z.uuid(),
+    project_id: z.uuid(),
+    lease_token: z.uuid(),
+    operation: z.literal("naming.generate"),
+    attempts: z.number().int().min(1),
+    max_attempts: z.number().int().min(1),
+  }),
+  run: namingRunSchema,
+  input: namingRunInputSchema,
+  rounds: z.array(namingRoundSchema).max(NAMING_MAX_ROUNDS),
   identities: z.array(z.string().min(1).max(320)).max(5000),
 });
 export type NamingClaim = z.infer<typeof namingClaimSchema>;
@@ -113,25 +159,51 @@ export const namingAvailabilitySchema = z.discriminatedUnion("status", [
 ]);
 export const namingFeedCursorSchema = z.strictObject({ createdAt: timestamp, id: z.uuid() });
 export type NamingFeedCursor = z.infer<typeof namingFeedCursorSchema>;
-export const namingFeedEntrySchema = z.strictObject({ entry: projectNameEntrySchema, runId: z.uuid(), primaryApproach: namingApproachSchema.nullable() });
+export const namingFeedEntrySchema = z.strictObject({
+  entry: projectNameEntrySchema,
+  runId: z.uuid(),
+  primaryApproach: namingApproachSchema.nullable(),
+});
 export type NamingFeedEntry = z.infer<typeof namingFeedEntrySchema>;
 export const namingGenerationFeedSchema = z.strictObject({
-  version: z.literal(2), projectId: z.uuid(), availability: namingAvailabilitySchema, run: namingRunSchema.nullable(),
-  entries: z.array(namingFeedEntrySchema).max(100), nextCursor: namingFeedCursorSchema.nullable(),
+  version: z.literal(2),
+  projectId: z.uuid(),
+  availability: namingAvailabilitySchema,
+  run: namingRunSchema.nullable(),
+  entries: z.array(namingFeedEntrySchema).max(100),
+  nextCursor: namingFeedCursorSchema.nullable(),
   /** Present while Naming runs on the generation engine (docs/generation-engine.md, step 3). */
   engine: z.literal(true).optional(),
 });
 export type NamingGenerationFeed = z.infer<typeof namingGenerationFeedSchema>;
 
-export const startNamingRunRequestSchema = z.strictObject({
-  version: z.literal(2), kind: namingRunKindSchema, expectedProjectRevision: revision, expectedPreferencesVersion: revision,
-  seedIds: z.array(z.uuid()).max(5), instruction: z.string().trim().min(1).max(2000).nullable(), idempotencyKey: requestKey,
-}).refine(value => value.kind === "steer" ? value.seedIds.length > 0 || value.instruction !== null : value.seedIds.length === 0 && value.instruction === null,
-  "Only a steered run carries seed names or an instruction")
-  .refine(value => new Set(value.seedIds).size === value.seedIds.length, "Seed names must be distinct");
+export const startNamingRunRequestSchema = z
+  .strictObject({
+    version: z.literal(2),
+    kind: namingRunKindSchema,
+    expectedProjectRevision: revision,
+    expectedPreferencesVersion: revision,
+    seedIds: z.array(z.uuid()).max(5),
+    instruction: z.string().trim().min(1).max(2000).nullable(),
+    idempotencyKey: requestKey,
+  })
+  .refine(
+    (value) =>
+      value.kind === "steer"
+        ? value.seedIds.length > 0 || value.instruction !== null
+        : value.seedIds.length === 0 && value.instruction === null,
+    "Only a steered run carries seed names or an instruction",
+  )
+  .refine((value) => new Set(value.seedIds).size === value.seedIds.length, "Seed names must be distinct");
 export type StartNamingRunRequest = z.infer<typeof startNamingRunRequestSchema>;
 export const startNamingRunResultSchema = z.strictObject({ run: namingRunSchema, reused: z.boolean() });
-export const namingStartErrorCodeSchema = z.enum(["naming_active", "project_revision_changed", "preferences_changed", "preferences_incomplete", "naming_unavailable"]);
+export const namingStartErrorCodeSchema = z.enum([
+  "naming_active",
+  "project_revision_changed",
+  "preferences_changed",
+  "preferences_incomplete",
+  "naming_unavailable",
+]);
 export type NamingStartErrorCode = z.infer<typeof namingStartErrorCodeSchema>;
 
 const loneSurrogate = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
@@ -145,10 +217,13 @@ const loneSurrogate = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\
  * removed; the result is NFC-normalized with single spaces.
  */
 export function cleanGeneratedText(value: string): string {
-  return value.replace(loneSurrogate, "").normalize("NFC")
+  return value
+    .replace(loneSurrogate, "")
+    .normalize("NFC")
     .replace(/[\t\n\r\f\v\u2028\u2029]/gu, " ")
     .replace(/[\p{Cc}\p{Cf}]/gu, "")
-    .replace(/\s{2,}/gu, " ").trim();
+    .replace(/\s{2,}/gu, " ")
+    .trim();
 }
 
 /** Prepare one raw AI candidate for validation. Explanations are repaired, so a
@@ -158,9 +233,12 @@ export function cleanGeneratedText(value: string): string {
  * non-object values pass through unchanged. */
 export function cleanGeneratedCandidate(raw: unknown): unknown {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return raw;
-  const item = raw as Record<string, unknown>, repair = (field: unknown) => typeof field === "string" ? cleanGeneratedText(field) : field;
+  const item = raw as Record<string, unknown>,
+    repair = (field: unknown) => (typeof field === "string" ? cleanGeneratedText(field) : field);
   return {
-    ...item, value: typeof item.value === "string" ? item.value.normalize("NFC").trim() : item.value, rationale: repair(item.rationale),
+    ...item,
+    value: typeof item.value === "string" ? item.value.normalize("NFC").trim() : item.value,
+    rationale: repair(item.rationale),
     ...(Array.isArray(item.construction) ? { construction: item.construction.map(repair) } : {}),
   };
 }

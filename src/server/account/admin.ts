@@ -20,11 +20,12 @@ export function accountAdminClient(env: Record<string, string | undefined> = pro
   return createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: {
-      fetch: (input, init) => fetch(input, {
-        ...init,
-        redirect: "error",
-        signal: AbortSignal.any([...(init?.signal ? [init.signal] : []), AbortSignal.timeout(60_000)]),
-      }),
+      fetch: (input, init) =>
+        fetch(input, {
+          ...init,
+          redirect: "error",
+          signal: AbortSignal.any([...(init?.signal ? [init.signal] : []), AbortSignal.timeout(60_000)]),
+        }),
     },
   });
 }

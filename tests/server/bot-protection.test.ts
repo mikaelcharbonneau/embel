@@ -6,7 +6,9 @@ vi.mock("server-only", () => ({}));
 const checkBotId = vi.hoisted(() => vi.fn());
 vi.mock("botid/server", () => ({ checkBotId }));
 const startGeneration = vi.hoisted(() => vi.fn());
-vi.mock("../../src/server/auth/context", () => ({ getAuthenticatedContext: vi.fn(async () => ({ userId: "user-1" })) }));
+vi.mock("../../src/server/auth/context", () => ({
+  getAuthenticatedContext: vi.fn(async () => ({ userId: "user-1" })),
+}));
 vi.mock("../../src/server/engine/start", () => ({
   startGeneration,
   WorkflowStartError: class WorkflowStartError extends Error {},
@@ -16,14 +18,20 @@ vi.mock("../../src/server/engine/runs", () => ({
   publicRun: (run: unknown) => run,
   listGenerations: vi.fn(),
 }));
-vi.mock("../../src/server/http/request", () => ({ assertMutationOrigin: vi.fn(), readJson: vi.fn(async () => ({ kind: "engine.probe", idempotencyKey: "k" })) }));
+vi.mock("../../src/server/http/request", () => ({
+  assertMutationOrigin: vi.fn(),
+  readJson: vi.fn(async () => ({ kind: "engine.probe", idempotencyKey: "k" })),
+}));
 
 import { assertNotBot } from "../../src/server/http/bot-protection";
 import { POST } from "../../src/app/api/projects/[projectId]/generations/route";
 
 const human = { isHuman: true, isBot: false, isVerifiedBot: false, bypassed: false };
 const bot = { isHuman: false, isBot: true, isVerifiedBot: false, bypassed: false };
-const call = () => POST(new Request("https://embel.test/api/projects/p1/generations", { method: "POST" }), { params: Promise.resolve({ projectId: "p1" }) });
+const call = () =>
+  POST(new Request("https://embel.test/api/projects/p1/generations", { method: "POST" }), {
+    params: Promise.resolve({ projectId: "p1" }),
+  });
 
 describe("BotID guard on paid start routes", () => {
   let logged: ReturnType<typeof vi.spyOn>;
@@ -34,7 +42,11 @@ describe("BotID guard on paid start routes", () => {
     startGeneration.mockResolvedValue({ run: { id: "run-1" }, reused: false });
     logged = vi.spyOn(console, "error").mockImplementation(() => {});
   });
-  afterEach(() => { vi.unstubAllEnvs(); vi.useRealTimers(); logged.mockRestore(); });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.useRealTimers();
+    logged.mockRestore();
+  });
 
   it("answers 403 bot_detected and starts nothing when BotID says bot", async () => {
     checkBotId.mockResolvedValue(bot);

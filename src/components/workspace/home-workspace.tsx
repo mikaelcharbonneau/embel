@@ -4,5 +4,10 @@ import { NewProjectForm } from "./project-editor";
 import { HomeRecentBrands } from "./home-recent-brands";
 
 export function HomeWorkspace() {
-  return <div className="page home-page"><NewProjectForm home /><HomeRecentBrands /></div>;
+  return (
+    <div className="page home-page">
+      <NewProjectForm home />
+      <HomeRecentBrands />
+    </div>
+  );
 }

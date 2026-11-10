@@ -5,4 +5,6 @@ import { createContext, useContext } from "react";
  * its pages can tell where the project stands without reading it again. */
 export type ProjectProgress = { projectId: string; nextHref: string | null };
 export const ProjectProgressContext = createContext<ProjectProgress | null>(null);
-export function useProjectProgress() { return useContext(ProjectProgressContext); }
+export function useProjectProgress() {
+  return useContext(ProjectProgressContext);
+}

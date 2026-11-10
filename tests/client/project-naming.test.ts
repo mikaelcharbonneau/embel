@@ -3,7 +3,14 @@ import { z } from "zod";
 import { accountProjectSchema } from "@/domain/project-api";
 import { accountProjectDraft } from "@/components/workspace/project-draft-adapter";
 import { accountRequest, AccountRequestError } from "@/components/workspace/account-api";
-import { createNamingRequestScope, initialNamingView, namingDraftBlocked, namingErrorMessage, namingOwned, namingViewNeedsReset } from "@/components/naming/use-project-naming";
+import {
+  createNamingRequestScope,
+  initialNamingView,
+  namingDraftBlocked,
+  namingErrorMessage,
+  namingOwned,
+  namingViewNeedsReset,
+} from "@/components/naming/use-project-naming";
 import { reviewedStrategy } from "../fixtures/reviewed-strategy";
 
 const ownerId = "aaaaaaaa-1111-4111-8111-111111111111";
@@ -17,15 +24,31 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("private naming request fence", () => {
   const operations = [
-    ["overview", "GET"], ["candidate pagination", "GET"], ["batch history", "GET"], ["library", "GET"],
-    ["preferences", "PATCH"], ["view", "PATCH"], ["retention", "PATCH"], ["selection", "POST"],
-    ["generation", "POST"], ["transform", "POST"], ["import", "POST"], ["promotion", "POST"], ["expansion", "POST"], ["cancellation", "DELETE"],
+    ["overview", "GET"],
+    ["candidate pagination", "GET"],
+    ["batch history", "GET"],
+    ["library", "GET"],
+    ["preferences", "PATCH"],
+    ["view", "PATCH"],
+    ["retention", "PATCH"],
+    ["selection", "POST"],
+    ["generation", "POST"],
+    ["transform", "POST"],
+    ["import", "POST"],
+    ["promotion", "POST"],
+    ["expansion", "POST"],
+    ["cancellation", "DELETE"],
   ] as const;
   it.each(operations)("discards %s when the account changes during a pending %s", async (_label, method) => {
     let current = true;
     let finish!: (response: Response) => void;
-    const request = new Promise<Response>(resolve => { finish = resolve; });
-    vi.stubGlobal("fetch", vi.fn(() => request));
+    const request = new Promise<Response>((resolve) => {
+      finish = resolve;
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => request),
+    );
     const scope = createNamingRequestScope(account, () => current, vi.fn());
     const pending = scope.request("/api/private-fixture", responseSchema, isOwned, { method });
     current = false;
@@ -34,7 +57,10 @@ describe("private naming request fence", () => {
   });
   it("rejects another owner or project before publishing even a valid response", async () => {
     for (const patch of [{ ownerId: projectId }, { projectId: ownerId }]) {
-      vi.stubGlobal("fetch", vi.fn(async () => Response.json({ ...response, ...patch })));
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => Response.json({ ...response, ...patch })),
+      );
       const expire = vi.fn();
       const scope = createNamingRequestScope(account, () => true, expire);
       await expect(scope.request("/api/private-fixture", responseSchema, isOwned)).resolves.toBeNull();
@@ -44,7 +70,15 @@ describe("private naming request fence", () => {
   it("aborts and discards responses after navigation even when transport ignores abort", async () => {
     let finish!: (response: Response) => void;
     let signal: AbortSignal | undefined;
-    vi.stubGlobal("fetch", vi.fn((_path, options: RequestInit) => { signal = options.signal as AbortSignal; return new Promise<Response>(resolve => { finish = resolve; }); }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_path, options: RequestInit) => {
+        signal = options.signal as AbortSignal;
+        return new Promise<Response>((resolve) => {
+          finish = resolve;
+        });
+      }),
+    );
     const scope = createNamingRequestScope(account, () => true, vi.fn());
     const pending = scope.request("/api/private-fixture", responseSchema, isOwned);
     scope.dispose();
@@ -54,7 +88,10 @@ describe("private naming request fence", () => {
     await expect(scope.request("/api/private-fixture", responseSchema, isOwned)).resolves.toBeNull();
   });
   it("expires an active account on 401 and never carries that failure into another session", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 401 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 401 })),
+    );
     const expire = vi.fn();
     const scope = createNamingRequestScope(account, () => true, expire);
     await expect(scope.request("/api/private-fixture", responseSchema, isOwned)).resolves.toBeNull();
@@ -64,50 +101,108 @@ describe("private naming request fence", () => {
     const fetch = vi.fn(async () => Response.json(response));
     vi.stubGlobal("fetch", fetch);
     const scope = createNamingRequestScope(account, () => true, vi.fn());
-    await expect(scope.request("/api/private-fixture", responseSchema, isOwned, { method: "POST", body: { candidateId: projectId } })).resolves.toEqual(response);
-    expect(fetch).toHaveBeenCalledWith("/api/private-fixture", expect.objectContaining({ cache: "no-store", credentials: "same-origin", mode: "same-origin", body: JSON.stringify({ candidateId: projectId }) }));
+    await expect(
+      scope.request("/api/private-fixture", responseSchema, isOwned, {
+        method: "POST",
+        body: { candidateId: projectId },
+      }),
+    ).resolves.toEqual(response);
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/private-fixture",
+      expect.objectContaining({
+        cache: "no-store",
+        credentials: "same-origin",
+        mode: "same-origin",
+        body: JSON.stringify({ candidateId: projectId }),
+      }),
+    );
   });
 });
 
 describe("bounded public account error codes", () => {
-  it.each(["favorite", "saved"] as const)("does not confirm an uncertain %s change on 503 or transport failure", field => {
-    for (const error of [new AccountRequestError(503), new TypeError("Private network details")]) {
-      expect(namingErrorMessage(error, field)).toBe(field === "favorite"
-        ? "The favorite change could not be confirmed. Check the latest version before trying again."
-        : "The change to saved names could not be confirmed. Check the latest version before trying again.");
-    }
-    expect(namingErrorMessage(new AccountRequestError(409), field)).toContain("changed");
-  });
+  it.each(["favorite", "saved"] as const)(
+    "does not confirm an uncertain %s change on 503 or transport failure",
+    (field) => {
+      for (const error of [new AccountRequestError(503), new TypeError("Private network details")]) {
+        expect(namingErrorMessage(error, field)).toBe(
+          field === "favorite"
+            ? "The favorite change could not be confirmed. Check the latest version before trying again."
+            : "The change to saved names could not be confirmed. Check the latest version before trying again.",
+        );
+      }
+      expect(namingErrorMessage(new AccountRequestError(409), field)).toContain("changed");
+    },
+  );
   const options = () => ({ signal: new AbortController().signal });
   it("retains the explicit capacity code without exposing the server message", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ error: { code: "naming_history_capacity", message: "Untrusted response text" } }, { status: 409 })));
-    const error = await accountRequest("/api/private-fixture", responseSchema, options()).catch(cause => cause);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json(
+          { error: { code: "naming_history_capacity", message: "Untrusted response text" } },
+          { status: 409 },
+        ),
+      ),
+    );
+    const error = await accountRequest("/api/private-fixture", responseSchema, options()).catch((cause) => cause);
     expect(error).toBeInstanceOf(AccountRequestError);
     expect(error.code).toBe("naming_history_capacity");
-    expect(namingErrorMessage(error)).toBe("This project’s naming history has reached the generation limit. Your saved names are preserved.");
+    expect(namingErrorMessage(error)).toBe(
+      "This project’s naming history has reached the generation limit. Your saved names are preserved.",
+    );
     expect(error.message).not.toContain("Untrusted");
   });
   it("discards unknown, malformed and oversized error envelopes", async () => {
-    for (const body of [JSON.stringify({ error: { code: "unknown", message: "Private text" } }), "not json", JSON.stringify({ error: { code: "naming_history_capacity", message: "x".repeat(5000) } })]) {
-      vi.stubGlobal("fetch", vi.fn(async () => new Response(body, { status: 409, headers: { "Content-Type": "application/json" } })));
-      await expect(accountRequest("/api/private-fixture", responseSchema, options())).rejects.toMatchObject({ status: 409, code: undefined });
+    for (const body of [
+      JSON.stringify({ error: { code: "unknown", message: "Private text" } }),
+      "not json",
+      JSON.stringify({ error: { code: "naming_history_capacity", message: "x".repeat(5000) } }),
+    ]) {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response(body, { status: 409, headers: { "Content-Type": "application/json" } })),
+      );
+      await expect(accountRequest("/api/private-fixture", responseSchema, options())).rejects.toMatchObject({
+        status: 409,
+        code: undefined,
+      });
     }
   });
   it("invalidates authentication without waiting for an error body", async () => {
     const response = Response.json({ error: { code: "naming_history_capacity" } }, { status: 401 });
     const read = vi.spyOn(response.body!, "getReader");
-    vi.stubGlobal("fetch", vi.fn(async () => response));
-    await expect(accountRequest("/api/private-fixture", responseSchema, options())).rejects.toMatchObject({ status: 401, code: undefined });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => response),
+    );
+    await expect(accountRequest("/api/private-fixture", responseSchema, options())).rejects.toMatchObject({
+      status: 401,
+      code: undefined,
+    });
     expect(read).not.toHaveBeenCalled();
   });
 });
 
 describe("naming admission and view", () => {
-  const project = accountProjectSchema.parse({ id: projectId, owner_id: ownerId, title: "Synthetic naming-only brief", scope: "complete_brand", current_revision: 2, created_at: "2026-10-04T10:00:00Z", context: reviewedStrategy({ description: "Synthetic saved description", creativeLocale: "fr" }) });
+  const project = accountProjectSchema.parse({
+    id: projectId,
+    owner_id: ownerId,
+    title: "Synthetic naming-only brief",
+    scope: "complete_brand",
+    current_revision: 2,
+    created_at: "2026-10-04T10:00:00Z",
+    context: reviewedStrategy({ description: "Synthetic saved description", creativeLocale: "fr" }),
+  });
   const workspace = { ownerId, generation: 1, saved: project, draft: accountProjectDraft(project), conflict: false };
   it("blocks unsaved Strategy edits, conflicts and stale account memory", () => {
     expect(namingDraftBlocked(workspace, account, projectId)).toBe(false);
-    expect(namingDraftBlocked({ ...workspace, draft: { ...workspace.draft, description: "An unsaved edit" } }, account, projectId)).toBe(true);
+    expect(
+      namingDraftBlocked(
+        { ...workspace, draft: { ...workspace.draft, description: "An unsaved edit" } },
+        account,
+        projectId,
+      ),
+    ).toBe(true);
     expect(namingDraftBlocked({ ...workspace, conflict: true }, account, projectId)).toBe(true);
     expect(namingDraftBlocked(workspace, { ...account, generation: 2 }, projectId)).toBe(true);
     expect(namingDraftBlocked(workspace, { ...account, userId: projectId }, projectId)).toBe(true);
@@ -116,8 +211,17 @@ describe("naming admission and view", () => {
   });
   it("returns an older saved pane, filter, search or batch view to the single conversation list", () => {
     expect(namingViewNeedsReset(initialNamingView)).toBe(false);
-    expect(namingViewNeedsReset({ ...initialNamingView, conversationOpen: false, scrollCandidateId: projectId })).toBe(false);
-    for (const patch of [{ pane: "workshop" as const }, { pane: "screening" as const }, { filter: "saved" as const }, { query: "lu" }, { visibleBatchId: projectId }, { workshopCandidateId: projectId }])
+    expect(namingViewNeedsReset({ ...initialNamingView, conversationOpen: false, scrollCandidateId: projectId })).toBe(
+      false,
+    );
+    for (const patch of [
+      { pane: "workshop" as const },
+      { pane: "screening" as const },
+      { filter: "saved" as const },
+      { query: "lu" },
+      { visibleBatchId: projectId },
+      { workshopCandidateId: projectId },
+    ])
       expect(namingViewNeedsReset({ ...initialNamingView, ...patch })).toBe(true);
   });
 });

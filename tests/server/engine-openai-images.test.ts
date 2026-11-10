@@ -3,55 +3,129 @@ vi.mock("server-only", () => ({}));
 import { syntheticPng } from "../features/logo-vector/raster-fixtures";
 import { EngineProviderError } from "../../src/server/engine/openai";
 import { createHash } from "node:crypto";
-import { createEngineImages, EngineImageRejectedError, ENGINE_BOARD_IMAGE, ENGINE_LOGO_IMAGE, imageCostMicrousd } from "../../src/server/engine/openai-images";
+import {
+  createEngineImages,
+  EngineImageRejectedError,
+  ENGINE_BOARD_IMAGE,
+  ENGINE_LOGO_IMAGE,
+  imageCostMicrousd,
+} from "../../src/server/engine/openai-images";
 
 // Synthetic Images API replies only; no live inference.
-const usage = { input_tokens: 100, output_tokens: 6_000, total_tokens: 6_100, input_tokens_details: { text_tokens: 100, image_tokens: 0 } };
-const reply = (bytes: Uint8Array, status = 200, extra: Record<string, unknown> = {}) => new Response(JSON.stringify({ data: [{ b64_json: Buffer.from(bytes).toString("base64") }], usage, ...extra }),
-  { status, headers: { "content-type": "application/json", "x-request-id": "req_synthetic" } });
+const usage = {
+  input_tokens: 100,
+  output_tokens: 6_000,
+  total_tokens: 6_100,
+  input_tokens_details: { text_tokens: 100, image_tokens: 0 },
+};
+const reply = (bytes: Uint8Array, status = 200, extra: Record<string, unknown> = {}) =>
+  new Response(JSON.stringify({ data: [{ b64_json: Buffer.from(bytes).toString("base64") }], usage, ...extra }), {
+    status,
+    headers: { "content-type": "application/json", "x-request-id": "req_synthetic" },
+  });
 function client(answer: () => Response | Promise<Response>) {
   const calls: { url: string; init: RequestInit }[] = [];
-  const fetch = vi.fn(async (url: string | URL | Request, init?: RequestInit) => { calls.push({ url: String(url), init: init! }); return answer(); });
-  return { calls, images: createEngineImages({ apiKey: "sk-synthetic-engine-images-key", fetch: fetch as unknown as typeof globalThis.fetch }) };
+  const fetch = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+    calls.push({ url: String(url), init: init! });
+    return answer();
+  });
+  return {
+    calls,
+    images: createEngineImages({
+      apiKey: "sk-synthetic-engine-images-key",
+      fetch: fetch as unknown as typeof globalThis.fetch,
+    }),
+  };
 }
-const draw = (images: ReturnType<typeof client>["images"]) => images.draw({ prompt: "Create exactly one original logo concept.", images: [] }, "logo-run-image.0-1");
+const draw = (images: ReturnType<typeof client>["images"]) =>
+  images.draw({ prompt: "Create exactly one original logo concept.", images: [] }, "logo-run-image.0-1");
 
 describe("the engine's Logo image request", () => {
   it("draws gpt-image-2.6-sunburst at low quality and low complexity on a transparent PNG", async () => {
-    expect(ENGINE_LOGO_IMAGE).toEqual({ model: "gpt-image-2.6-sunburst", quality: "low", complexity: "low", background: "transparent" });
+    expect(ENGINE_LOGO_IMAGE).toEqual({
+      model: "gpt-image-2.6-sunburst",
+      quality: "low",
+      complexity: "low",
+      background: "transparent",
+    });
     const png = syntheticPng(1024, 1024, () => [0, 0, 0, 255]);
     const { calls, images } = client(() => reply(png));
     const result = await draw(images);
     expect(calls[0]!.url).toBe("https://api.openai.com/v1/images/generations");
-    expect(JSON.parse(String(calls[0]!.init.body))).toEqual({ model: "gpt-image-2.6-sunburst", prompt: "Create exactly one original logo concept.", n: 1, output_format: "png",
-      size: "1024x1024", quality: "low", complexity: "low", background: "transparent", moderation: "auto" });
+    expect(JSON.parse(String(calls[0]!.init.body))).toEqual({
+      model: "gpt-image-2.6-sunburst",
+      prompt: "Create exactly one original logo concept.",
+      n: 1,
+      output_format: "png",
+      size: "1024x1024",
+      quality: "low",
+      complexity: "low",
+      background: "transparent",
+      moderation: "auto",
+    });
     expect(calls[0]!.init.headers).toMatchObject({ "X-Client-Request-Id": "logo-run-image.0-1" });
-    expect(result).toMatchObject({ kind: "image", providerRequestId: "req_synthetic", costMicrousd: imageCostMicrousd(usage) });
+    expect(result).toMatchObject({
+      kind: "image",
+      providerRequestId: "req_synthetic",
+      costMicrousd: imageCostMicrousd(usage),
+    });
     expect(imageCostMicrousd(usage)).toBe(100 * 5 + 6_000 * 30);
     expect(imageCostMicrousd(null)).toBe(0);
   });
-  it.each([429, 500, 502, 503])("asks to retry a %i: nothing was drawn", async status => {
-    const error = await draw(client(() => new Response("{}", { status, headers: { "retry-after": "3" } })).images).catch(caught => caught);
+  it.each([429, 500, 502, 503])("asks to retry a %i: nothing was drawn", async (status) => {
+    const error = await draw(
+      client(() => new Response("{}", { status, headers: { "retry-after": "3" } })).images,
+    ).catch((caught) => caught);
     expect(error).toBeInstanceOf(EngineProviderError);
     expect(error).toMatchObject({ disposition: "retry", retryAfterMs: 3_000 });
   });
   it("asks to retry when no connection was ever made", async () => {
     const refused = Object.assign(new TypeError("fetch failed"), { cause: { code: "ECONNREFUSED" } });
-    await expect(draw(client(() => { throw refused; }).images)).rejects.toMatchObject({ disposition: "retry" });
+    await expect(
+      draw(
+        client(() => {
+          throw refused;
+        }).images,
+      ),
+    ).rejects.toMatchObject({ disposition: "retry" });
   });
-  it.each([408, 409, 504])("treats a %i as an unknown outcome, never to be sent again", async status => {
-    await expect(draw(client(() => new Response("{}", { status })).images)).rejects.toMatchObject({ disposition: "uncertain" });
+  it.each([408, 409, 504])("treats a %i as an unknown outcome, never to be sent again", async (status) => {
+    await expect(draw(client(() => new Response("{}", { status })).images)).rejects.toMatchObject({
+      disposition: "uncertain",
+    });
   });
   it("treats a dropped connection after sending as an unknown outcome", async () => {
-    await expect(draw(client(() => { throw new TypeError("terminated"); }).images)).rejects.toMatchObject({ disposition: "uncertain" });
+    await expect(
+      draw(
+        client(() => {
+          throw new TypeError("terminated");
+        }).images,
+      ),
+    ).rejects.toMatchObject({ disposition: "uncertain" });
   });
   it("reports a refusal with the usage it carried", async () => {
-    const error = await draw(client(() => new Response(JSON.stringify({ error: { code: "moderation_blocked" }, usage }), { status: 400, headers: { "x-request-id": "req_refused" } })).images).catch(caught => caught);
+    const error = await draw(
+      client(
+        () =>
+          new Response(JSON.stringify({ error: { code: "moderation_blocked" }, usage }), {
+            status: 400,
+            headers: { "x-request-id": "req_refused" },
+          }),
+      ).images,
+    ).catch((caught) => caught);
     expect(error).toBeInstanceOf(EngineImageRejectedError);
-    expect(error).toMatchObject({ disposition: "rejected", providerRequestId: "req_refused", costMicrousd: imageCostMicrousd(usage) });
+    expect(error).toMatchObject({
+      disposition: "rejected",
+      providerRequestId: "req_refused",
+      costMicrousd: imageCostMicrousd(usage),
+    });
   });
   it("keeps a paid reply without a readable image as unusable, not as a retry", async () => {
-    const result = await draw(client(() => new Response(JSON.stringify({ data: [], usage }), { headers: { "content-type": "application/json" } })).images);
+    const result = await draw(
+      client(
+        () => new Response(JSON.stringify({ data: [], usage }), { headers: { "content-type": "application/json" } }),
+      ).images,
+    );
     expect(result).toMatchObject({ kind: "unusable", code: "invalid_output", costMicrousd: imageCostMicrousd(usage) });
   });
 });
@@ -59,20 +133,56 @@ describe("the engine's Logo image request", () => {
 describe("the engine's Creative direction board request", () => {
   it("is the shared worker's board request: medium quality on an opaque PNG, the chosen logo attached first", async () => {
     expect(ENGINE_BOARD_IMAGE).toEqual({ model: "gpt-image-2.6-sunburst", quality: "medium", background: "opaque" });
-    const logo = syntheticPng(8, 8, () => [0, 0, 0, 255]), digest = createHash("sha256").update(logo).digest("hex");
-    const reference = { ownerId: "aaaaaaaa-1111-4111-8111-111111111111", projectId: "bbbbbbbb-2222-4222-8222-222222222222", assetId: "cccccccc-3333-4333-8333-333333333333", versionId: "dddddddd-4444-4444-8444-444444444444", contentHash: digest };
-    const image = { reference, mimeType: "image/png" as const, bytes: new Uint8Array(logo), verification: { status: "verified" as const, checkedAt: "2026-11-09T20:00:00.000Z", contentHash: digest, mimeType: "image/png" as const, byteLength: logo.byteLength } };
+    const logo = syntheticPng(8, 8, () => [0, 0, 0, 255]),
+      digest = createHash("sha256").update(logo).digest("hex");
+    const reference = {
+      ownerId: "aaaaaaaa-1111-4111-8111-111111111111",
+      projectId: "bbbbbbbb-2222-4222-8222-222222222222",
+      assetId: "cccccccc-3333-4333-8333-333333333333",
+      versionId: "dddddddd-4444-4444-8444-444444444444",
+      contentHash: digest,
+    };
+    const image = {
+      reference,
+      mimeType: "image/png" as const,
+      bytes: new Uint8Array(logo),
+      verification: {
+        status: "verified" as const,
+        checkedAt: "2026-11-09T20:00:00.000Z",
+        contentHash: digest,
+        mimeType: "image/png" as const,
+        byteLength: logo.byteLength,
+      },
+    };
     const { calls, images } = client(() => reply(syntheticPng(1024, 1024, () => [200, 40, 40, 255])));
-    await images.draw({ prompt: "Create one complete coordinated brand board, not a logo grid.", images: [image], profile: ENGINE_BOARD_IMAGE }, "identity-run-board-1-1");
+    await images.draw(
+      {
+        prompt: "Create one complete coordinated brand board, not a logo grid.",
+        images: [image],
+        profile: ENGINE_BOARD_IMAGE,
+      },
+      "identity-run-board-1-1",
+    );
     expect(calls[0]!.url).toBe("https://api.openai.com/v1/images/edits");
     const form = calls[0]!.init.body as FormData;
-    expect(Object.fromEntries(["model", "quality", "background", "size", "output_format"].map(key => [key, form.get(key)])))
-      .toEqual({ model: "gpt-image-2.6-sunburst", quality: "medium", background: "opaque", size: "1024x1024", output_format: "png" });
+    expect(
+      Object.fromEntries(
+        ["model", "quality", "background", "size", "output_format"].map((key) => [key, form.get(key)]),
+      ),
+    ).toEqual({
+      model: "gpt-image-2.6-sunburst",
+      quality: "medium",
+      background: "opaque",
+      size: "1024x1024",
+      output_format: "png",
+    });
     expect(form.getAll("image[]")).toHaveLength(1);
   });
   it("refuses any other profile before sending", async () => {
     const { calls, images } = client(() => reply(syntheticPng(1024, 1024, () => [0, 0, 0, 255])));
-    await expect(images.draw({ prompt: "x", images: [], profile: { ...ENGINE_BOARD_IMAGE } }, "identity-run-board-1-1")).rejects.toMatchObject({ disposition: "rejected" });
+    await expect(
+      images.draw({ prompt: "x", images: [], profile: { ...ENGINE_BOARD_IMAGE } }, "identity-run-board-1-1"),
+    ).rejects.toMatchObject({ disposition: "rejected" });
     expect(calls).toHaveLength(0);
   });
 });

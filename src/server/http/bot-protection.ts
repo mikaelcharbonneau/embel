@@ -21,11 +21,15 @@ export async function assertNotBot(): Promise<void> {
   try {
     verdict = await Promise.race([
       checkBotId(),
-      new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("botid_timeout")), BOT_CHECK_TIMEOUT_MS); }),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("botid_timeout")), BOT_CHECK_TIMEOUT_MS);
+      }),
     ]);
   } catch (error) {
     logServerError("botid_check_failed", error);
     return;
-  } finally { clearTimeout(timer); }
+  } finally {
+    clearTimeout(timer);
+  }
   if (verdict.isBot) throw new ApiError("bot_detected");
 }

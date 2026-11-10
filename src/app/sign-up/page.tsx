@@ -7,6 +7,11 @@ export const dynamic = "force-dynamic";
 
 export default function SignUpPage() {
   let configured = false;
-  try { getSupabaseConfiguration(); configured = true; } catch { /* Unavailable integrations never accept credentials. */ }
+  try {
+    getSupabaseConfiguration();
+    configured = true;
+  } catch {
+    /* Unavailable integrations never accept credentials. */
+  }
   return <SignInForm configured={configured} mode="sign-up" />;
 }

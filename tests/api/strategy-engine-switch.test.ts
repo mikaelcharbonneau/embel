@@ -9,8 +9,16 @@ import { GET as overview } from "../../src/app/api/projects/[projectId]/strategy
 import { GET as runtime } from "../../src/app/api/strategy/route";
 import { strategyOverviewResponseSchema } from "../../src/domain/strategy-jobs";
 
-const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", project = "11111111-1111-4111-8111-111111111111";
-const kinds = ["strategy.audience", "strategy.competitors", "strategy.personality", "strategy.positioning", "strategy.reformulate", "strategy.slogan"];
+const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  project = "11111111-1111-4111-8111-111111111111";
+const kinds = [
+  "strategy.audience",
+  "strategy.competitors",
+  "strategy.personality",
+  "strategy.positioning",
+  "strategy.reformulate",
+  "strategy.slogan",
+];
 const params = (id = project) => ({ params: Promise.resolve({ projectId: id }) });
 function query(row: unknown) {
   const builder: Record<string, unknown> = {};
@@ -19,10 +27,13 @@ function query(row: unknown) {
   return builder;
 }
 function catalog(enabled: boolean) {
-  doubles.rpc.mockImplementation(async (name: string) => name === "get_generation_catalog"
-    ? { data: { plans: [], kinds: kinds.map(kind => ({ kind, credits: 1, enabled })) }, error: null }
-    : name === "get_strategy_job_summaries" ? { data: [], error: null }
-    : { data: { status: "unavailable", operations: [], reason: "worker_unavailable" }, error: null });
+  doubles.rpc.mockImplementation(async (name: string) =>
+    name === "get_generation_catalog"
+      ? { data: { plans: [], kinds: kinds.map((kind) => ({ kind, credits: 1, enabled })) }, error: null }
+      : name === "get_strategy_job_summaries"
+        ? { data: [], error: null }
+        : { data: { status: "unavailable", operations: [], reason: "worker_unavailable" }, error: null },
+  );
 }
 
 beforeEach(() => {
@@ -34,16 +45,20 @@ beforeEach(() => {
 describe("the Strategy engine switch", () => {
   it("shows the step as unavailable while any Strategy kind is disabled, without the old worker's readiness", async () => {
     catalog(false);
-    const body = strategyOverviewResponseSchema.parse(await (await overview(new Request(`https://fluid.example/api/projects/${project}/strategy`), params())).json());
+    const body = strategyOverviewResponseSchema.parse(
+      await (await overview(new Request(`https://fluid.example/api/projects/${project}/strategy`), params())).json(),
+    );
     expect(body.availability).toEqual({ status: "unavailable", operations: [], reason: "generation_unavailable" });
     expect(doubles.rpc).not.toHaveBeenCalledWith(expect.stringMatching(/strategy_availability$/u), expect.anything());
   });
   it("offers every engine operation and marks the overview once all kinds are enabled", async () => {
     catalog(true);
-    const body = strategyOverviewResponseSchema.parse(await (await overview(new Request(`https://fluid.example/api/projects/${project}/strategy`), params())).json());
+    const body = strategyOverviewResponseSchema.parse(
+      await (await overview(new Request(`https://fluid.example/api/projects/${project}/strategy`), params())).json(),
+    );
     expect(body.engine).toBe(true);
     expect(body.availability.status).toBe("available");
-    expect(body.availability.operations.map(item => item.operation).sort()).toEqual(kinds);
+    expect(body.availability.operations.map((item) => item.operation).sort()).toEqual(kinds);
     expect(JSON.stringify(body)).not.toMatch(/maximumCostMicrousd|Microusd/u);
     expect(doubles.rpc).not.toHaveBeenCalledWith(expect.stringMatching(/strategy_availability$/u), expect.anything());
     const home = await (await runtime()).json();
@@ -52,6 +67,8 @@ describe("the Strategy engine switch", () => {
   it("still refuses another owner's project in engine mode", async () => {
     catalog(true);
     doubles.from.mockReturnValue(query(null));
-    expect((await overview(new Request(`https://fluid.example/api/projects/${project}/strategy`), params())).status).toBe(404);
+    expect(
+      (await overview(new Request(`https://fluid.example/api/projects/${project}/strategy`), params())).status,
+    ).toBe(404);
   });
 });

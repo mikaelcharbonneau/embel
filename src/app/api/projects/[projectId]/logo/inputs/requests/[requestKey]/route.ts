@@ -8,8 +8,13 @@ export async function GET(request: Request, context: { params: Promise<{ project
   try {
     const auth = await getAuthenticatedContext();
     const params = await context.params;
-    const projectId = logoInputId(params.projectId), requestKey = logoInputId(params.requestKey);
+    const projectId = logoInputId(params.projectId),
+      requestKey = logoInputId(params.requestKey);
     assertNoLogoInputQuery(request);
-    return privateJson(await productionLogoInputService.readLogoInputRequest(auth, projectId, requestKey, request.signal));
-  } catch (error) { return logoErrorResponse(error); }
+    return privateJson(
+      await productionLogoInputService.readLogoInputRequest(auth, projectId, requestKey, request.signal),
+    );
+  } catch (error) {
+    return logoErrorResponse(error);
+  }
 }

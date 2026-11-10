@@ -8,10 +8,18 @@ import type { LocalDraft } from "../../src/components/workspace/local-drafts";
 const key = "fluid.local-drafts.v1";
 
 test.beforeEach(async ({ page }) => {
-  await page.route("**/api/**", route => route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ error: "Synthetic anonymous fixture" }) }));
+  await page.route("**/api/**", (route) =>
+    route.fulfill({
+      status: 401,
+      contentType: "application/json",
+      body: JSON.stringify({ error: "Synthetic anonymous fixture" }),
+    }),
+  );
 });
 
-async function readDraft(page: Page): Promise<LocalDraft> { return page.evaluate(storageKey => JSON.parse(localStorage.getItem(storageKey)!).drafts[0], key); }
+async function readDraft(page: Page): Promise<LocalDraft> {
+  return page.evaluate((storageKey) => JSON.parse(localStorage.getItem(storageKey)!).drafts[0], key);
+}
 
 test("composer supports multiline text and IME composition without premature submission", async ({ page }) => {
   await page.goto("/brands/new");
@@ -24,13 +32,15 @@ test("composer supports multiline text and IME composition without premature sub
   await initial.dispatchEvent("keydown", { key: "Enter", code: "Enter", isComposing: true, bubbles: true });
   await expect(page).toHaveURL(/\/brands\/new$/);
   await expect(signIn).toHaveCount(0);
-  expect(await page.evaluate(storageKey => localStorage.getItem(storageKey), key)).toBeNull();
+  expect(await page.evaluate((storageKey) => localStorage.getItem(storageKey), key)).toBeNull();
   await initial.dispatchEvent("keydown", { key: "Enter", code: "Enter", keyCode: 229, bubbles: true });
   await expect(page).toHaveURL(/\/brands\/new$/);
   await expect(signIn).toHaveCount(0);
-  expect(await page.evaluate(storageKey => localStorage.getItem(storageKey), key)).toBeNull();
+  expect(await page.evaluate((storageKey) => localStorage.getItem(storageKey), key)).toBeNull();
   await initial.press("Enter");
   await expect(signIn).toBeVisible();
   await expect(signIn.getByText("Your prompt is kept while you sign in.", { exact: false })).toBeVisible();
-  expect((await readDraft(page)).conversation?.filter(event => event.kind === "user_message")).toMatchObject([{ text: "First line\nSecond line" }]);
+  expect((await readDraft(page)).conversation?.filter((event) => event.kind === "user_message")).toMatchObject([
+    { text: "First line\nSecond line" },
+  ]);
 });

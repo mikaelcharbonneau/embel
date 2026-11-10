@@ -18,20 +18,53 @@ export async function GET(_request: Request, context: RouteContext) {
     const auth = await getAuthenticatedContext();
     const { client, userId } = auth;
     const id = await getId(context);
-    const { data, error } = await client.from("jobs")
-      .select("id,project_id,operation,billing_mode,input_revision,state,progress,reserved_cost_microusd,actual_cost_microusd,error_code,created_at,finished_at")
-      .eq("id", id).eq("owner_id", userId).single();
+    const { data, error } = await client
+      .from("jobs")
+      .select(
+        "id,project_id,operation,billing_mode,input_revision,state,progress,reserved_cost_microusd,actual_cost_microusd,error_code,created_at,finished_at",
+      )
+      .eq("id", id)
+      .eq("owner_id", userId)
+      .single();
     throwDatabaseError(error);
     if (!data) throw new ApiError("not_found");
     if (data.operation === "naming.generate") {
       // Naming shows recorded token usage, never cost estimates.
       const [usage] = await getNamingUsage(auth, [id]);
-      const { id: jobId, project_id, operation, input_revision, state, progress, error_code, created_at, finished_at } = data;
-      return privateJson({ job: { id: jobId, project_id, operation, input_revision, state, progress, error_code, created_at, finished_at, usage: usage ? { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, totalTokens: usage.totalTokens } : null } });
+      const {
+        id: jobId,
+        project_id,
+        operation,
+        input_revision,
+        state,
+        progress,
+        error_code,
+        created_at,
+        finished_at,
+      } = data;
+      return privateJson({
+        job: {
+          id: jobId,
+          project_id,
+          operation,
+          input_revision,
+          state,
+          progress,
+          error_code,
+          created_at,
+          finished_at,
+          usage: usage
+            ? { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, totalTokens: usage.totalTokens }
+            : null,
+        },
+      });
     }
-    const safe = { ...data }; delete safe.billing_mode;
+    const safe = { ...data };
+    delete safe.billing_mode;
     return privateJson({ job: safe });
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }
 
 export async function DELETE(request: Request, context: RouteContext) {
@@ -46,10 +79,63 @@ export async function DELETE(request: Request, context: RouteContext) {
     if (!data) throw new ApiError("not_found");
     if (data.operation === "naming.generate") {
       const [usage] = await getNamingUsage(auth, [id]);
-      const { id: jobId, project_id, operation, input_revision, state, progress, error_code, created_at, finished_at } = data;
-      return privateJson({ job: { id: jobId, project_id, operation, input_revision, state, progress, error_code, created_at, finished_at, usage: usage ? { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, totalTokens: usage.totalTokens } : null } });
+      const {
+        id: jobId,
+        project_id,
+        operation,
+        input_revision,
+        state,
+        progress,
+        error_code,
+        created_at,
+        finished_at,
+      } = data;
+      return privateJson({
+        job: {
+          id: jobId,
+          project_id,
+          operation,
+          input_revision,
+          state,
+          progress,
+          error_code,
+          created_at,
+          finished_at,
+          usage: usage
+            ? { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, totalTokens: usage.totalTokens }
+            : null,
+        },
+      });
     }
-    const { id: jobId, project_id, operation, input_revision, state, progress, reserved_cost_microusd, actual_cost_microusd, error_code, created_at, finished_at } = data;
-    return privateJson({ job: { id: jobId, project_id, operation, input_revision, state, progress, reserved_cost_microusd, actual_cost_microusd, error_code, created_at, finished_at } });
-  } catch (error) { return errorResponse(error); }
+    const {
+      id: jobId,
+      project_id,
+      operation,
+      input_revision,
+      state,
+      progress,
+      reserved_cost_microusd,
+      actual_cost_microusd,
+      error_code,
+      created_at,
+      finished_at,
+    } = data;
+    return privateJson({
+      job: {
+        id: jobId,
+        project_id,
+        operation,
+        input_revision,
+        state,
+        progress,
+        reserved_cost_microusd,
+        actual_cost_microusd,
+        error_code,
+        created_at,
+        finished_at,
+      },
+    });
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

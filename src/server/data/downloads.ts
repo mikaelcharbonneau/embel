@@ -6,8 +6,14 @@ import { ApiError } from "../http/errors";
 
 const baseMime = (value: string) => value.split(";", 1)[0]!.trim().toLowerCase();
 const extensions = new Map([
-  ["image/svg+xml", "svg"], ["image/png", "png"], ["image/jpeg", "jpg"], ["image/webp", "webp"],
-  ["application/pdf", "pdf"], ["application/zip", "zip"], ["application/json", "json"], ["text/plain", "txt"],
+  ["image/svg+xml", "svg"],
+  ["image/png", "png"],
+  ["image/jpeg", "jpg"],
+  ["image/webp", "webp"],
+  ["application/pdf", "pdf"],
+  ["application/zip", "zip"],
+  ["application/json", "json"],
+  ["text/plain", "txt"],
 ]);
 
 /** Authenticated, short-lived link to a persisted private object; never implies export production. */
@@ -24,16 +30,25 @@ export async function getPrivateAssetDownload(auth: AuthenticatedContext, versio
 }
 
 /** Server-only common boundary for downloads and inline raster previews. */
-export async function readVerifiedPrivateAsset(auth: AuthenticatedContext, versionId: string, allowedMimeTypes?: readonly string[]) {
+export async function readVerifiedPrivateAsset(
+  auth: AuthenticatedContext,
+  versionId: string,
+  allowedMimeTypes?: readonly string[],
+) {
   if (!z.uuid().safeParse(versionId).success) throw new ApiError("not_found");
-  const { data, error } = await auth.client.from("asset_versions")
+  const { data, error } = await auth.client
+    .from("asset_versions")
     .select("id,owner_id,project_id,asset_id,storage_path,content_hash,mime_type")
-    .eq("id", versionId).eq("owner_id", auth.userId).maybeSingle();
+    .eq("id", versionId)
+    .eq("owner_id", auth.userId)
+    .maybeSingle();
   if (error) throw new ApiError("integration_unavailable");
   if (!data || !data.storage_path) throw new ApiError("not_found");
-  if (!z.uuid().safeParse(data.project_id).success || !z.uuid().safeParse(data.asset_id).success) throw new ApiError("not_found");
+  if (!z.uuid().safeParse(data.project_id).success || !z.uuid().safeParse(data.asset_id).success)
+    throw new ApiError("not_found");
   const expectedPath = `${auth.userId}/${data.project_id}/${data.asset_id}/${versionId}`;
-  if (data.owner_id !== auth.userId || data.id !== versionId || data.storage_path !== expectedPath) throw new ApiError("not_found");
+  if (data.owner_id !== auth.userId || data.id !== versionId || data.storage_path !== expectedPath)
+    throw new ApiError("not_found");
   if (!/^[0-9a-f]{64}$/.test(data.content_hash) || typeof data.mime_type !== "string") throw new ApiError("not_found");
   const mimeType = baseMime(data.mime_type);
   if (allowedMimeTypes && !allowedMimeTypes.includes(mimeType)) throw new ApiError("not_found");
@@ -46,8 +61,16 @@ export async function readVerifiedPrivateAsset(auth: AuthenticatedContext, versi
 }
 
 export async function verifyAssetBlob(blob: Blob, expectedHash: string, expectedMime: string): Promise<void> {
-  if (blob.size === 0 || blob.size > 52_428_800 || !/^[0-9a-f]{64}$/.test(expectedHash) ||
-      !baseMime(expectedMime) || baseMime(blob.type) !== baseMime(expectedMime)) throw new ApiError("not_found");
-  const actual = createHash("sha256").update(new Uint8Array(await blob.arrayBuffer())).digest();
+  if (
+    blob.size === 0 ||
+    blob.size > 52_428_800 ||
+    !/^[0-9a-f]{64}$/.test(expectedHash) ||
+    !baseMime(expectedMime) ||
+    baseMime(blob.type) !== baseMime(expectedMime)
+  )
+    throw new ApiError("not_found");
+  const actual = createHash("sha256")
+    .update(new Uint8Array(await blob.arrayBuffer()))
+    .digest();
   if (!timingSafeEqual(actual, Buffer.from(expectedHash, "hex"))) throw new ApiError("not_found");
 }

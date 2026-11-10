@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 const mock = vi.hoisted(() => ({ context: vi.fn(), remove: vi.fn() }));
-vi.mock("@/server/account/deletion", async importOriginal => {
+vi.mock("@/server/account/deletion", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/server/account/deletion")>();
   return { ...actual, getDeletionContext: mock.context, deleteSignedInAccount: mock.remove };
 });
@@ -11,11 +11,23 @@ import { ApiError } from "@/server/http/errors";
 const A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const context = { client: {}, user: { id: A, email: "owner@example.invalid" }, claims: {} };
-const request = (body: unknown = { confirmEmail: "owner@example.invalid" }, headers: Record<string, string> = {}, query = "") =>
-  new Request(`http://localhost:3105/api/account/deletion${query}`, { method: "POST",
-    headers: { origin: "http://localhost:3105", "content-type": "application/json", "X-Embel-Account": A, ...headers }, body: JSON.stringify(body) });
+const request = (
+  body: unknown = { confirmEmail: "owner@example.invalid" },
+  headers: Record<string, string> = {},
+  query = "",
+) =>
+  new Request(`http://localhost:3105/api/account/deletion${query}`, {
+    method: "POST",
+    headers: { origin: "http://localhost:3105", "content-type": "application/json", "X-Embel-Account": A, ...headers },
+    body: JSON.stringify(body),
+  });
 
-beforeEach(() => { vi.resetAllMocks(); vi.stubEnv("APP_ORIGIN", "http://localhost:3105"); mock.context.mockResolvedValue(context); mock.remove.mockResolvedValue(undefined); });
+beforeEach(() => {
+  vi.resetAllMocks();
+  vi.stubEnv("APP_ORIGIN", "http://localhost:3105");
+  mock.context.mockResolvedValue(context);
+  mock.remove.mockResolvedValue(undefined);
+});
 afterEach(() => vi.unstubAllEnvs());
 
 describe("account deletion route", () => {
@@ -37,13 +49,19 @@ describe("account deletion route", () => {
   it("refuses cross-site and missing origins before reading the session", async () => {
     expect((await POST(request(undefined, { origin: "https://foreign.invalid" }))).status).toBe(403);
     expect((await POST(request(undefined, { "sec-fetch-site": "cross-site" }))).status).toBe(403);
-    const absent = request(); absent.headers.delete("origin");
+    const absent = request();
+    absent.headers.delete("origin");
     expect((await POST(absent)).status).toBe(403);
     expect(mock.context).not.toHaveBeenCalled();
   });
 
   it("passes on confirmation, freshness and partial-failure answers without details", async () => {
-    for (const [code, status] of [["confirmation_mismatch", 422], ["reauthentication_required", 403], ["deletion_incomplete", 503], ["unauthenticated", 401]] as const) {
+    for (const [code, status] of [
+      ["confirmation_mismatch", 422],
+      ["reauthentication_required", 403],
+      ["deletion_incomplete", 503],
+      ["unauthenticated", 401],
+    ] as const) {
       mock.remove.mockRejectedValueOnce(new ApiError(code));
       const response = await POST(request());
       expect(response.status).toBe(status);

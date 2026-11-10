@@ -28,7 +28,11 @@ function shortName(value: string | undefined) {
 /** New specifications put display copy at the start of the composition. The
  * sentence-ending period may sit inside or outside the quoted title. */
 function readDirectionCopy(text: string) {
-  const prefix = text.trimStart().match(/^the direction is called\s+(?:“([^”\n]{1,65})”|"([^"\n]{1,65})"|‘([^\n]{1,65}?)’|'([^\n]{1,65}?)'|«([^»\n]{1,65})»)(?=[.!?。！？\s]|$)/iu);
+  const prefix = text
+    .trimStart()
+    .match(
+      /^the direction is called\s+(?:“([^”\n]{1,65})”|"([^"\n]{1,65})"|‘([^\n]{1,65}?)’|'([^\n]{1,65}?)'|«([^»\n]{1,65})»)(?=[.!?。！？\s]|$)/iu,
+    );
   if (!prefix) return null;
   const quoted = prefix.slice(1).find(Boolean)?.trim() ?? "";
   let tail = text.trimStart().slice(prefix[0].length).trimStart();
@@ -47,11 +51,24 @@ function conceptTitle(system: IdentitySystemVersion, primaryName?: string) {
   // A specification often contrasts this board with an earlier one. Only use
   // its positive descriptions when choosing a name for the current direction.
   const cues = [composition.direction, graphicDirection.direction, imagery.direction]
-    .flatMap(text => text.split(/[.!?;]+/u).map(sentence =>
-      sentence.split(/\b(?:avoid|not|rather than|instead of|unlike|without|replaces?|previous|earlier|prior)\b/iu)[0]))
+    .flatMap((text) =>
+      text
+        .split(/[.!?;]+/u)
+        .map(
+          (sentence) =>
+            sentence.split(
+              /\b(?:avoid|not|rather than|instead of|unlike|without|replaces?|previous|earlier|prior)\b/iu,
+            )[0],
+        ),
+    )
     .join(" ");
-  const named = cues.match(/\b(?:direction|concept|board|identity)\s+(?:(?:is|was)\s+)?(?:called|titled|named)\s+(?:“([^”\n]{1,64})”|"([^"\n]{1,64})"|‘([^’\n]{1,64})’)/iu);
-  const explicitTitle = named?.slice(1).find(value => value?.trim())?.trim();
+  const named = cues.match(
+    /\b(?:direction|concept|board|identity)\s+(?:(?:is|was)\s+)?(?:called|titled|named)\s+(?:“([^”\n]{1,64})”|"([^"\n]{1,64})"|‘([^’\n]{1,64})’)/iu,
+  );
+  const explicitTitle = named
+    ?.slice(1)
+    .find((value) => value?.trim())
+    ?.trim();
   if (explicitTitle) return explicitTitle;
   const everyday = /\beveryday\b/iu.test(cues);
   if (/\bfield[-\s]guide\b/iu.test(cues)) return everyday ? "Everyday Field Guide" : "Field Guide";
@@ -68,24 +85,37 @@ function conceptTitle(system: IdentitySystemVersion, primaryName?: string) {
   if (!design) return primaryName ? `${primaryName} Study` : "Visual Study";
   const subject = design.graphic === "none" ? layouts[design.layout][0] : graphics[design.graphic][0];
   return primaryName && !/^(?:primary|accent|background|text)(?: color)?$/iu.test(primaryName)
-    ? `${primaryName} ${subject}` : `${layouts[design.layout][0]} ${graphics[design.graphic][0]}`;
+    ? `${primaryName} ${subject}`
+    : `${layouts[design.layout][0]} ${graphics[design.graphic][0]}`;
 }
 
 function describe(system: IdentitySystemVersion): VisualDirectionDescription {
   const { colors, typography, composition } = system.components;
   const design = system.applicationDesign;
   const roles = ["primary", "accent", "background", "text"] as const;
-  const roleColors = design ? roles.map(role => colors.swatches.find(color => color.key === design.paletteRoles[role])) : [];
+  const roleColors = design
+    ? roles.map((role) => colors.swatches.find((color) => color.key === design.paletteRoles[role]))
+    : [];
   const [primary] = roleColors;
-  const swatches = [...new Set([...roleColors, ...colors.swatches])].flatMap(color => color ? [{ name: color.name, hex: color.hex }] : []);
-  const headingStyle = (design ? typography.styles.find(style => style.key === design.headingStyleKey)
-    : typography.styles.find(style => /\b(?:headings?|headlines?|titles?)\b/iu.test(style.role))) ?? null;
+  const swatches = [...new Set([...roleColors, ...colors.swatches])].flatMap((color) =>
+    color ? [{ name: color.name, hex: color.hex }] : [],
+  );
+  const headingStyle =
+    (design
+      ? typography.styles.find((style) => style.key === design.headingStyleKey)
+      : typography.styles.find((style) => /\b(?:headings?|headlines?|titles?)\b/iu.test(style.role))) ?? null;
   const sampleStyle = headingStyle ?? typography.styles[0] ?? null;
   const copy = readDirectionCopy(composition.direction);
   const title = copy?.title ?? conceptTitle(system, shortName((primary ?? colors.swatches[0])?.name));
   const fallback = copy ? system.components.graphics.direction : composition.direction;
   const sentence = fallback.split(/(?<=[.!?])\s+/u)[0] ?? "";
-  let summary = sentence.length > 180 ? `${sentence.slice(0, 179).replace(/\s+\S*$/u, "").trimEnd()}…` : sentence;
+  let summary =
+    sentence.length > 180
+      ? `${sentence
+          .slice(0, 179)
+          .replace(/\s+\S*$/u, "")
+          .trimEnd()}…`
+      : sentence;
   if (design) {
     const layout = layouts[design.layout][1];
     const graphic = graphics[design.graphic][1];
@@ -99,8 +129,11 @@ function describe(system: IdentitySystemVersion): VisualDirectionDescription {
 /** Describe the displayed batch in its own order, including older saved boards. */
 export function describeVisualDirections(systems: readonly IdentitySystemVersion[]): VisualDirectionDescription[] {
   const boards = systems.map(describe);
-  let titles = boards.map(board => board.title);
-  for (const details of [boards.map(board => shortName(board.swatches[0]?.name)), boards.map(board => shortName(board.sampleStyle?.family))]) {
+  let titles = boards.map((board) => board.title);
+  for (const details of [
+    boards.map((board) => shortName(board.swatches[0]?.name)),
+    boards.map((board) => shortName(board.sampleStyle?.family)),
+  ]) {
     titles = titles.map((title, index) => {
       const detail = details[index];
       const distinguishes = titles.some((other, peer) => other === title && details[peer] !== detail);

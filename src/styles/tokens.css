@@ -1,28 +1,28 @@
 :root {
-  --canvas: #F7F7F5;
-  --paper: #FFFFFF;
-  --surface: #F1F0EE;
+  --canvas: #f7f7f5;
+  --paper: #ffffff;
+  --surface: #f1f0ee;
   --text: #191919;
   --text-strong-hover: #333333;
   --secondary: #696965;
-  --placeholder: #82817B;
-  --border: #E4E3DF;
-  --border-strong: #C9C8C2;
+  --placeholder: #82817b;
+  --border: #e4e3df;
+  --border-strong: #c9c8c2;
   /* Neutral emphasis: Embel no longer uses a magenta accent (2026-11-06). */
   --accent: #191919;
-  --accent-soft: #F1F0EE;
+  --accent-soft: #f1f0ee;
   --accent-ink: #191919;
-  --on-accent: #FFFFFF;
-  --selection: #E4E3DF;
+  --on-accent: #ffffff;
+  --selection: #e4e3df;
   /* Status colours: use these instead of new hex values. */
-  --positive: #3D6448;
-  --positive-soft: #EEF3EF;
-  --danger: #A42A2A;
-  --danger-soft: #FAEEEE;
-  --danger-border: #E5C4C4;
-  --warning: #6B4617;
-  --warning-soft: #FFF8E9;
-  --warning-border: #E3CE9C;
+  --positive: #3d6448;
+  --positive-soft: #eef3ef;
+  --danger: #a42a2a;
+  --danger-soft: #faeeee;
+  --danger-border: #e5c4c4;
+  --warning: #6b4617;
+  --warning-soft: #fff8e9;
+  --warning-border: #e3ce9c;
   /* Type scale. Controls use --font-ui; reading text uses --font-body. */
   --text-xs: 12px;
   --text-sm: 13px;
@@ -44,5 +44,5 @@
   --page-max: 1056px;
   --conversation-max: 792px;
   --page-gutter: 32px;
-  --dot-grid: radial-gradient(#DAD9D4 1px, transparent 1px);
+  --dot-grid: radial-gradient(#dad9d4 1px, transparent 1px);
 }

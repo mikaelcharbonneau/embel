@@ -10,5 +10,7 @@ export async function GET(_request: Request, context: RouteContext) {
   try {
     const auth = await getAuthenticatedContext();
     return privateJson(await getStrategyOverview(auth, (await context.params).projectId));
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

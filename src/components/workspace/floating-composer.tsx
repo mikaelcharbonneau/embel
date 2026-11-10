@@ -21,36 +21,68 @@ const FADE = 32;
 
 function Symbol({ name }: { name: "open" | "close" }) {
   const paths = { open: "m4 10 4-4 4 4", close: "m4 6 4 4 4-4" };
-  return <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d={paths[name]} /></svg>;
+  return (
+    <svg
+      aria-hidden="true"
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d={paths[name]} />
+    </svg>
+  );
 }
 
 /** The message box at the bottom of a conversation, like Home's. Content
  * scrolling underneath fades out behind it, and the conversation reserves its
  * height so the last message can scroll fully above it. */
-export function FloatingComposer({ children, label = "Message composer", history, expanded, defaultExpanded = false,
-  onExpandedChange, expandLabel = "Expand conversation", collapseLabel = "Collapse conversation" }: Props) {
+export function FloatingComposer({
+  children,
+  label = "Message composer",
+  history,
+  expanded,
+  defaultExpanded = false,
+  onExpandedChange,
+  expandLabel = "Expand conversation",
+  collapseLabel = "Collapse conversation",
+}: Props) {
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
   const hasHistory = history !== undefined && history !== null && history !== false;
   const open = hasHistory && (expanded ?? internalExpanded);
   const expansionLabel = open ? collapseLabel : expandLabel;
   const compactHeight = useRef(0);
-  const host = useRef<HTMLDivElement>(null), panel = useRef<HTMLElement>(null), body = useRef<HTMLDivElement>(null);
-  const historyControl = useRef<HTMLButtonElement>(null), historyRegion = useRef<HTMLDivElement>(null);
-  const id = useId(), historyId = id + "-history", bodyId = id + "-body";
+  const host = useRef<HTMLDivElement>(null),
+    panel = useRef<HTMLElement>(null),
+    body = useRef<HTMLDivElement>(null);
+  const historyControl = useRef<HTMLButtonElement>(null),
+    historyRegion = useRef<HTMLDivElement>(null);
+  const id = useId(),
+    historyId = id + "-history",
+    bodyId = id + "-body";
 
   const place = useCallback(() => {
-    const h = host.current, p = panel.current;
+    const h = host.current,
+      p = panel.current;
     if (!h || !p) return;
     const rect = h.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     const view = window.visualViewport;
-    const vx = view?.offsetLeft ?? 0, vy = view?.offsetTop ?? 0;
+    const vx = view?.offsetLeft ?? 0,
+      vy = view?.offsetTop ?? 0;
     const pad = getComputedStyle(h);
     const left = Math.max(0, vx - rect.left) + parseFloat(pad.paddingLeft);
     const top = Math.max(0, vy - rect.top) + parseFloat(pad.paddingTop);
-    const right = Math.min(rect.width, vx + (view?.width ?? window.innerWidth) - rect.left) - parseFloat(pad.paddingRight);
-    const bottom = Math.min(rect.height, vy + (view?.height ?? window.innerHeight) - rect.top) - parseFloat(pad.paddingBottom);
-    const width = Math.max(0, right - left), height = Math.max(0, bottom - top);
+    const right =
+      Math.min(rect.width, vx + (view?.width ?? window.innerWidth) - rect.left) - parseFloat(pad.paddingRight);
+    const bottom =
+      Math.min(rect.height, vy + (view?.height ?? window.innerHeight) - rect.top) - parseFloat(pad.paddingBottom);
+    const width = Math.max(0, right - left),
+      height = Math.max(0, bottom - top);
     h.style.setProperty("--fc-width", width + "px");
     h.style.setProperty("--fc-height", height + "px");
     p.style.visibility = width > 0 && height > 0 ? "" : "hidden";
@@ -65,17 +97,24 @@ export function FloatingComposer({ children, label = "Message composer", history
     const clearance = Math.ceil(Math.min(height, compactHeight.current || 58) + parseFloat(pad.paddingBottom));
     h.style.setProperty("--fc-backing-height", clearance + FADE + "px");
     const workspace = h.offsetParent;
-    if (workspace instanceof HTMLElement) workspace.style.setProperty("--floating-composer-clearance", clearance + "px");
+    if (workspace instanceof HTMLElement)
+      workspace.style.setProperty("--floating-composer-clearance", clearance + "px");
   }, []);
 
   useLayoutEffect(() => {
-    const h = host.current, p = panel.current;
+    const h = host.current,
+      p = panel.current;
     if (!h || !p) return;
     const workspace = h.offsetParent;
-    const before = workspace instanceof HTMLElement ? workspace.style.getPropertyValue("--floating-composer-clearance") : "";
+    const before =
+      workspace instanceof HTMLElement ? workspace.style.getPropertyValue("--floating-composer-clearance") : "";
     let frame = 0;
     function schedule() {
-      if (!frame) frame = window.requestAnimationFrame(() => { frame = 0; place(); });
+      if (!frame)
+        frame = window.requestAnimationFrame(() => {
+          frame = 0;
+          place();
+        });
     }
     place();
     const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(schedule);
@@ -107,21 +146,42 @@ export function FloatingComposer({ children, label = "Message composer", history
 
   useLayoutEffect(() => {
     place();
-    if (!open && historyRegion.current?.contains(document.activeElement)) historyControl.current?.focus({ preventScroll: true });
+    if (!open && historyRegion.current?.contains(document.activeElement))
+      historyControl.current?.focus({ preventScroll: true });
   }, [open, place]);
 
   function toggleHistory() {
     if (expanded === undefined) setInternalExpanded(!open);
     onExpandedChange?.(!open);
   }
-  return <div ref={host} className={styles.host} data-floating-composer-host="">
-    <section ref={panel} className={styles.panel} aria-label={label} data-floating-composer="" data-expanded={open}>
-      {hasHistory && <div className={styles.toolbar}>
-        <button type="button" ref={historyControl} className={styles.tool} aria-label={expansionLabel}
-          title={expansionLabel} aria-controls={historyId} aria-expanded={open} onClick={toggleHistory}><Symbol name={open ? "close" : "open"} /></button>
-      </div>}
-      {hasHistory && <div ref={historyRegion} id={historyId} className={styles.history} hidden={!open}>{history}</div>}
-      <div ref={body} id={bodyId} className={styles.body}>{children}</div>
-    </section>
-  </div>;
+  return (
+    <div ref={host} className={styles.host} data-floating-composer-host="">
+      <section ref={panel} className={styles.panel} aria-label={label} data-floating-composer="" data-expanded={open}>
+        {hasHistory && (
+          <div className={styles.toolbar}>
+            <button
+              type="button"
+              ref={historyControl}
+              className={styles.tool}
+              aria-label={expansionLabel}
+              title={expansionLabel}
+              aria-controls={historyId}
+              aria-expanded={open}
+              onClick={toggleHistory}
+            >
+              <Symbol name={open ? "close" : "open"} />
+            </button>
+          </div>
+        )}
+        {hasHistory && (
+          <div ref={historyRegion} id={historyId} className={styles.history} hidden={!open}>
+            {history}
+          </div>
+        )}
+        <div ref={body} id={bodyId} className={styles.body}>
+          {children}
+        </div>
+      </section>
+    </div>
+  );
 }

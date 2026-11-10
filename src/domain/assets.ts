@@ -2,7 +2,10 @@ import { z } from "zod";
 
 export const assetFormatSchema = z.enum(["svg", "png", "webp", "jpeg", "pdf", "zip", "json"]);
 export const assetVersionSchema = z.strictObject({
-  id: z.uuid(), assetId: z.uuid(), ownerId: z.uuid(), projectId: z.uuid(),
+  id: z.uuid(),
+  assetId: z.uuid(),
+  ownerId: z.uuid(),
+  projectId: z.uuid(),
   inputRevision: z.number().int().positive(),
   inputHash: z.string().regex(/^[a-f0-9]{64}$/),
   contentHash: z.string().regex(/^[a-f0-9]{64}$/),
@@ -19,9 +22,13 @@ export const assetVersionSchema = z.strictObject({
 type SelectionFlags = { id: string; ownerId: string; liked: boolean; saved: boolean; used: boolean };
 type VersionReference = { id: string; assetId: string; ownerId: string; inputRevision: number };
 
-export function listSelectedAssets<T extends SelectionFlags>(assets: readonly T[], actorId: string, tab: "my_selection" | "all_generations"): T[] {
+export function listSelectedAssets<T extends SelectionFlags>(
+  assets: readonly T[],
+  actorId: string,
+  tab: "my_selection" | "all_generations",
+): T[] {
   const seen = new Set<string>();
-  return assets.filter(asset => {
+  return assets.filter((asset) => {
     if (asset.ownerId !== actorId || seen.has(asset.id)) return false;
     seen.add(asset.id);
     return tab === "all_generations" || asset.liked || asset.saved || asset.used;
@@ -29,18 +36,32 @@ export function listSelectedAssets<T extends SelectionFlags>(assets: readonly T[
 }
 
 export function staleAssets<T extends { inputRevision: number }>(versions: readonly T[], currentRevision: number): T[] {
-  return versions.filter(version => version.inputRevision !== currentRevision);
+  return versions.filter((version) => version.inputRevision !== currentRevision);
 }
 
 /** An append-only selection event; it never mutates an existing file or version. */
 export function restoreAssetSelection(input: {
-  actorId: string; asset: { id: string; ownerId: string; currentVersionId: string };
-  versions: readonly VersionReference[]; versionId: string; expectedVersionId: string;
-  selectionId: string; now: string;
+  actorId: string;
+  asset: { id: string; ownerId: string; currentVersionId: string };
+  versions: readonly VersionReference[];
+  versionId: string;
+  expectedVersionId: string;
+  selectionId: string;
+  now: string;
 }) {
   if (input.asset.ownerId !== input.actorId) throw new Error("Asset not found");
   if (input.asset.currentVersionId !== input.expectedVersionId) throw new Error("Selection conflict");
-  const version = input.versions.find(item => item.id === input.versionId && item.assetId === input.asset.id && item.ownerId === input.actorId);
+  const version = input.versions.find(
+    (item) => item.id === input.versionId && item.assetId === input.asset.id && item.ownerId === input.actorId,
+  );
   if (!version) throw new Error("Version not found");
-  return { id: input.selectionId, assetId: input.asset.id, ownerId: input.actorId, versionId: version.id, previousVersionId: input.asset.currentVersionId, action: "restore" as const, createdAt: input.now };
+  return {
+    id: input.selectionId,
+    assetId: input.asset.id,
+    ownerId: input.actorId,
+    versionId: version.id,
+    previousVersionId: input.asset.currentVersionId,
+    action: "restore" as const,
+    createdAt: input.now,
+  };
 }

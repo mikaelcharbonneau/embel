@@ -6,30 +6,78 @@ import { accountErrorMessage, accountRequest } from "@/components/workspace/acco
 afterEach(() => vi.unstubAllGlobals());
 describe("private account request boundary", () => {
   it("rejects a schema-valid multibyte brief before any network request", async () => {
-    const fetch = vi.fn(); vi.stubGlobal("fetch", fetch);
-    const input = createProjectInputSchema.parse({ title: "Local size fixture", scope: "complete_brand", context: { description: "食".repeat(12000) } });
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const input = createProjectInputSchema.parse({
+      title: "Local size fixture",
+      scope: "complete_brand",
+      context: { description: "食".repeat(12000) },
+    });
     expect(new TextEncoder().encode(JSON.stringify(input)).byteLength).toBeGreaterThan(PROJECT_MUTATION_MAX_BYTES);
-    await expect(accountRequest("/api/projects", accountSessionSchema, { method: "POST", body: input, signal: new AbortController().signal })).rejects.toMatchObject({ status: 413 });
+    await expect(
+      accountRequest("/api/projects", accountSessionSchema, {
+        method: "POST",
+        body: input,
+        signal: new AbortController().signal,
+      }),
+    ).rejects.toMatchObject({ status: 413 });
     expect(fetch).not.toHaveBeenCalled();
   });
   it("uses same-origin credentials and bypasses the browser cache", async () => {
-    const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ user: { id: "aaaaaaaa-1111-4111-8111-111111111111" } }), { status: 200 }));
+    const fetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ user: { id: "aaaaaaaa-1111-4111-8111-111111111111" } }), { status: 200 }),
+      );
     vi.stubGlobal("fetch", fetch);
     await accountRequest("/api/session", accountSessionSchema, { signal: new AbortController().signal });
-    expect(fetch).toHaveBeenCalledWith("/api/session", expect.objectContaining({ credentials: "same-origin", mode: "same-origin", cache: "no-store" }));
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/session",
+      expect.objectContaining({ credentials: "same-origin", mode: "same-origin", cache: "no-store" }),
+    );
   });
   it("does not pass malformed successful responses or server error details into the UI", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response('{"user":{"id":"malformed"}}', { status: 200 })));
-    await expect(accountRequest("/api/session", accountSessionSchema, { signal: new AbortController().signal })).rejects.toMatchObject({ status: 502 });
+    await expect(
+      accountRequest("/api/session", accountSessionSchema, { signal: new AbortController().signal }),
+    ).rejects.toMatchObject({ status: 502 });
     expect(accountErrorMessage(new Error("private server detail"))).not.toContain("private server detail");
   });
   it("retains the public busy code without exposing server messages", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ error: { code: "project_busy", message: "Private server detail" } }, { status: 409 })));
-    await expect(accountRequest("/api/projects/fixture/deletion", accountSessionSchema, { signal: new AbortController().signal })).rejects.toMatchObject({ status: 409, code: "project_busy", message: "The account request could not be completed." });
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          Response.json({ error: { code: "project_busy", message: "Private server detail" } }, { status: 409 }),
+        ),
+    );
+    await expect(
+      accountRequest("/api/projects/fixture/deletion", accountSessionSchema, { signal: new AbortController().signal }),
+    ).rejects.toMatchObject({
+      status: 409,
+      code: "project_busy",
+      message: "The account request could not be completed.",
+    });
   });
-  it.each(["unknown code", "oversized error", "wrong status"])("does not preserve an unsafe error code: %s", async mode => {
-    const error = { error: { code: mode === "unknown code" ? "private_detail" : "project_busy", message: mode === "oversized error" ? "x".repeat(5000) : "Private server detail" } };
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(error, { status: mode === "wrong status" ? 503 : 409 })));
-    await expect(accountRequest("/api/projects/fixture/deletion", accountSessionSchema, { signal: new AbortController().signal })).rejects.toMatchObject({ code: undefined });
-  });
+  it.each(["unknown code", "oversized error", "wrong status"])(
+    "does not preserve an unsafe error code: %s",
+    async (mode) => {
+      const error = {
+        error: {
+          code: mode === "unknown code" ? "private_detail" : "project_busy",
+          message: mode === "oversized error" ? "x".repeat(5000) : "Private server detail",
+        },
+      };
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(Response.json(error, { status: mode === "wrong status" ? 503 : 409 })),
+      );
+      await expect(
+        accountRequest("/api/projects/fixture/deletion", accountSessionSchema, {
+          signal: new AbortController().signal,
+        }),
+      ).rejects.toMatchObject({ code: undefined });
+    },
+  );
 });

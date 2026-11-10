@@ -2,56 +2,152 @@
 import { act, useLayoutEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { assetLibraryPageSchema, assetRevisionFreshness, type AssetLibraryItem, type AssetLibraryPage, type AssetLibraryQuery } from "@/domain/asset-library";
+import {
+  assetLibraryPageSchema,
+  assetRevisionFreshness,
+  type AssetLibraryItem,
+  type AssetLibraryPage,
+  type AssetLibraryQuery,
+} from "@/domain/asset-library";
 import { ASSET_REQUEST_TIMEOUT_MS, AssetWriteOutcomeUnknownError } from "@/components/assets/account-assets-client";
 import { useAssetLibrary } from "@/components/assets/use-asset-library";
-import { appendAssetLibraryPage, AssetLibraryWindowChangedError, readAssetLibraryWindow } from "@/components/assets/asset-library-window";
+import {
+  appendAssetLibraryPage,
+  AssetLibraryWindowChangedError,
+  readAssetLibraryWindow,
+} from "@/components/assets/asset-library-window";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 
 const session = vi.hoisted(() => ({ current: null as VerifiedAccount | null, expire: vi.fn() }));
 vi.mock("@/components/workspace/account-session", () => ({
   useAccountSession: () => ({
-    isCurrent: (account: VerifiedAccount) => session.current?.userId === account.userId && session.current.generation === account.generation,
+    isCurrent: (account: VerifiedAccount) =>
+      session.current?.userId === account.userId && session.current.generation === account.generation,
     expire: session.expire,
   }),
 }));
 const id = (n: number) => `30000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-const owner = id(1), projectId = id(2), otherProject = id(3);
+const owner = id(1),
+  projectId = id(2),
+  otherProject = id(3);
 const account: VerifiedAccount = { status: "ready", userId: owner, generation: 1 };
 const baseQuery: AssetLibraryQuery = { tab: "my_selection", limit: 40 };
 function item(n: number, overrides: Partial<AssetLibraryItem["asset"]> = {}): AssetLibraryItem {
   const createdAt = new Date(Date.UTC(2026, 9, 1, 0, n)).toISOString();
-  const asset = { id: id(1000 + n), ownerId: owner, projectId, kind: `Asset ${n}`, purpose: "brand_asset" as const, createdAt,
-    versionCount: 1, retentionRevision: 0, liked: false, saved: true, usage: { active: false, legacy: false }, selectionRevision: 0, currentSelection: null, ...overrides };
-  const version = { ownerId: asset.ownerId, projectId: asset.projectId, assetId: asset.id, versionId: id(2000 + n),
-    contentHash: "a".repeat(64), inputHash: "b".repeat(64), inputRevision: 1, versionNumber: 1, createdAt,
-    mimeType: "image/png", format: "png" as const, provenance: { status: "legacy_unverified" as const },
-    vectorStatus: "unverified" as const, licenseStatus: "unverified" as const, fileState: "unverified" as const,
-    fileVerification: null, freshness: assetRevisionFreshness(1, 1) };
-  return { asset, project: { id: asset.projectId, owner_id: asset.ownerId, title: asset.projectId === projectId ? "First project" : "Other project",
-    scope: "complete_brand", current_revision: 1, created_at: createdAt },
-  selectedVersion: null, displayedVersion: version, matchingVersions: { ownerId: asset.ownerId, projectId: asset.projectId, assetId: asset.id, format: null, items: [version], totalCount: 1, nextCursor: null } };
+  const asset = {
+    id: id(1000 + n),
+    ownerId: owner,
+    projectId,
+    kind: `Asset ${n}`,
+    purpose: "brand_asset" as const,
+    createdAt,
+    versionCount: 1,
+    retentionRevision: 0,
+    liked: false,
+    saved: true,
+    usage: { active: false, legacy: false },
+    selectionRevision: 0,
+    currentSelection: null,
+    ...overrides,
+  };
+  const version = {
+    ownerId: asset.ownerId,
+    projectId: asset.projectId,
+    assetId: asset.id,
+    versionId: id(2000 + n),
+    contentHash: "a".repeat(64),
+    inputHash: "b".repeat(64),
+    inputRevision: 1,
+    versionNumber: 1,
+    createdAt,
+    mimeType: "image/png",
+    format: "png" as const,
+    provenance: { status: "legacy_unverified" as const },
+    vectorStatus: "unverified" as const,
+    licenseStatus: "unverified" as const,
+    fileState: "unverified" as const,
+    fileVerification: null,
+    freshness: assetRevisionFreshness(1, 1),
+  };
+  return {
+    asset,
+    project: {
+      id: asset.projectId,
+      owner_id: asset.ownerId,
+      title: asset.projectId === projectId ? "First project" : "Other project",
+      scope: "complete_brand",
+      current_revision: 1,
+      created_at: createdAt,
+    },
+    selectedVersion: null,
+    displayedVersion: version,
+    matchingVersions: {
+      ownerId: asset.ownerId,
+      projectId: asset.projectId,
+      assetId: asset.id,
+      format: null,
+      items: [version],
+      totalCount: 1,
+      nextCursor: null,
+    },
+  };
 }
-const cursorFor = (row: AssetLibraryItem, query: AssetLibraryQuery) => ({ createdAt: row.asset.createdAt, assetId: row.asset.id, tab: query.tab, projectId: query.projectId ?? null, format: query.format ?? null });
+const cursorFor = (row: AssetLibraryItem, query: AssetLibraryQuery) => ({
+  createdAt: row.asset.createdAt,
+  assetId: row.asset.id,
+  tab: query.tab,
+  projectId: query.projectId ?? null,
+  format: query.format ?? null,
+});
 function pageFor(rows: AssetLibraryItem[], query: AssetLibraryQuery): AssetLibraryPage {
-  const matching = rows.filter(row => (query.tab !== "my_selection" || row.asset.saved || row.asset.liked || row.asset.usage.active || row.asset.usage.legacy)
-    && (!query.projectId || query.projectId === row.asset.projectId)
-    && (!query.format || query.format === row.displayedVersion?.format)
-    && (!query.cursor || row.asset.createdAt < query.cursor.createdAt || (row.asset.createdAt === query.cursor.createdAt && row.asset.id < query.cursor.assetId)))
+  const matching = rows
+    .filter(
+      (row) =>
+        (query.tab !== "my_selection" ||
+          row.asset.saved ||
+          row.asset.liked ||
+          row.asset.usage.active ||
+          row.asset.usage.legacy) &&
+        (!query.projectId || query.projectId === row.asset.projectId) &&
+        (!query.format || query.format === row.displayedVersion?.format) &&
+        (!query.cursor ||
+          row.asset.createdAt < query.cursor.createdAt ||
+          (row.asset.createdAt === query.cursor.createdAt && row.asset.id < query.cursor.assetId)),
+    )
     .sort((a, b) => b.asset.createdAt.localeCompare(a.asset.createdAt) || b.asset.id.localeCompare(a.asset.id));
-  const items = matching.slice(0, query.limit).map(row => ({ ...row, matchingVersions: { ...row.matchingVersions, format: query.format ?? null } }));
-  return assetLibraryPageSchema.parse({ ownerId: items[0]?.asset.ownerId ?? session.current?.userId ?? owner, query, items,
-    nextCursor: matching.length > query.limit ? cursorFor(items.at(-1)!, query) : null });
+  const items = matching
+    .slice(0, query.limit)
+    .map((row) => ({ ...row, matchingVersions: { ...row.matchingVersions, format: query.format ?? null } }));
+  return assetLibraryPageSchema.parse({
+    ownerId: items[0]?.asset.ownerId ?? session.current?.userId ?? owner,
+    query,
+    items,
+    nextCursor: matching.length > query.limit ? cursorFor(items.at(-1)!, query) : null,
+  });
 }
 type PendingRead = { query: AssetLibraryQuery; signal: AbortSignal; resolve: (response: Response) => void };
-type PendingWrite = { assetId: string; input: { liked: boolean; saved: boolean; expectedRetentionRevision: number }; resolve: (response: Response) => void };
+type PendingWrite = {
+  assetId: string;
+  input: { liked: boolean; saved: boolean; expectedRetentionRevision: number };
+  resolve: (response: Response) => void;
+};
 let root: Root, host: HTMLDivElement, library: ReturnType<typeof useAssetLibrary>;
 let rows: AssetLibraryItem[], pendingReads: PendingRead[], pendingWrites: PendingWrite[], reads: AssetLibraryQuery[];
 let holdReads: boolean, holdWrites: boolean, writeStatus: number, nextReadStatus: number;
 function Probe({ account }: { account: VerifiedAccount }) {
   const value = useAssetLibrary(account);
-  useLayoutEffect(() => { library = value; });
-  return <div>{value.page?.items.map(row => <article key={row.asset.id} data-id={row.asset.id}>{row.asset.kind}</article>)}</div>;
+  useLayoutEffect(() => {
+    library = value;
+  });
+  return (
+    <div>
+      {value.page?.items.map((row) => (
+        <article key={row.asset.id} data-id={row.asset.id}>
+          {row.asset.kind}
+        </article>
+      ))}
+    </div>
+  );
 }
 async function render(next = account) {
   session.current = next;
@@ -65,9 +161,17 @@ async function resolveRead(index: number, response?: Response) {
 }
 function applyWrite(pending: Omit<PendingWrite, "resolve">): Response {
   if (writeStatus !== 200) return new Response(null, { status: writeStatus });
-  const row = rows.find(row => row.asset.id === pending.assetId)!;
-  const updated = { ...row, asset: { ...row.asset, liked: pending.input.liked, saved: pending.input.saved, retentionRevision: pending.input.expectedRetentionRevision + 1 } };
-  rows = rows.map(row => row.asset.id === pending.assetId ? updated : row);
+  const row = rows.find((row) => row.asset.id === pending.assetId)!;
+  const updated = {
+    ...row,
+    asset: {
+      ...row.asset,
+      liked: pending.input.liked,
+      saved: pending.input.saved,
+      retentionRevision: pending.input.expectedRetentionRevision + 1,
+    },
+  };
+  rows = rows.map((row) => (row.asset.id === pending.assetId ? updated : row));
   return Response.json({ asset: updated.asset, project: updated.project });
 }
 async function loadTwoPages() {
@@ -78,58 +182,106 @@ async function loadTwoPages() {
 }
 beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
-  session.current = account; session.expire.mockReset();
+  session.current = account;
+  session.expire.mockReset();
   rows = Array.from({ length: 125 }, (_, n) => item(n + 1));
-  pendingReads = []; pendingWrites = []; reads = []; holdReads = false; holdWrites = false; writeStatus = 200; nextReadStatus = 200;
-  host = document.createElement("div"); document.body.append(host); root = createRoot(host);
-  vi.stubGlobal("fetch", vi.fn((path: string, options: RequestInit) => {
-    if (path === "/api/projects") return Promise.resolve(Response.json({ projects: [] }));
-    if (path.includes("/retention")) {
-      const pending = { assetId: path.split("/")[4]!, input: JSON.parse(options.body as string) as PendingWrite["input"] };
-      if (holdWrites) return new Promise<Response>(resolve => pendingWrites.push({ ...pending, resolve }));
-      return Promise.resolve(applyWrite(pending));
-    }
-    if (path.startsWith("/api/assets/library/")) {
-      const row = rows.find(row => row.asset.id === path.split("/")[4]!.split("?")[0])!;
-      return Promise.resolve(Response.json({ asset: row.asset, project: row.project, selectedVersion: row.selectedVersion, versions: row.matchingVersions }));
-    }
-    const url = new URL(path, "https://fixture.invalid");
-    expect(url.pathname).toBe("/api/assets");
-    const query = { ...Object.fromEntries(url.searchParams), limit: Number(url.searchParams.get("limit")), ...(url.searchParams.has("cursor") ? { cursor: JSON.parse(url.searchParams.get("cursor")!) } : {}) } as AssetLibraryQuery;
-    reads.push(query);
-    if (holdReads) return new Promise<Response>(resolve => pendingReads.push({ query, signal: options.signal!, resolve }));
-    if (nextReadStatus !== 200) { const status = nextReadStatus; nextReadStatus = 200; return Promise.resolve(new Response(null, { status })); }
-    return Promise.resolve(Response.json(pageFor(rows, query)));
-  }));
+  pendingReads = [];
+  pendingWrites = [];
+  reads = [];
+  holdReads = false;
+  holdWrites = false;
+  writeStatus = 200;
+  nextReadStatus = 200;
+  host = document.createElement("div");
+  document.body.append(host);
+  root = createRoot(host);
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((path: string, options: RequestInit) => {
+      if (path === "/api/projects") return Promise.resolve(Response.json({ projects: [] }));
+      if (path.includes("/retention")) {
+        const pending = {
+          assetId: path.split("/")[4]!,
+          input: JSON.parse(options.body as string) as PendingWrite["input"],
+        };
+        if (holdWrites) return new Promise<Response>((resolve) => pendingWrites.push({ ...pending, resolve }));
+        return Promise.resolve(applyWrite(pending));
+      }
+      if (path.startsWith("/api/assets/library/")) {
+        const row = rows.find((row) => row.asset.id === path.split("/")[4]!.split("?")[0])!;
+        return Promise.resolve(
+          Response.json({
+            asset: row.asset,
+            project: row.project,
+            selectedVersion: row.selectedVersion,
+            versions: row.matchingVersions,
+          }),
+        );
+      }
+      const url = new URL(path, "https://fixture.invalid");
+      expect(url.pathname).toBe("/api/assets");
+      const query = {
+        ...Object.fromEntries(url.searchParams),
+        limit: Number(url.searchParams.get("limit")),
+        ...(url.searchParams.has("cursor") ? { cursor: JSON.parse(url.searchParams.get("cursor")!) } : {}),
+      } as AssetLibraryQuery;
+      reads.push(query);
+      if (holdReads)
+        return new Promise<Response>((resolve) => pendingReads.push({ query, signal: options.signal!, resolve }));
+      if (nextReadStatus !== 200) {
+        const status = nextReadStatus;
+        nextReadStatus = 200;
+        return Promise.resolve(new Response(null, { status }));
+      }
+      return Promise.resolve(Response.json(pageFor(rows, query)));
+    }),
+  );
 });
-afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.useRealTimers(); vi.unstubAllGlobals(); });
+afterEach(async () => {
+  await act(async () => root.unmount());
+  host.remove();
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
 
 describe("loaded asset window reconciliation", () => {
-  it.each(["liked", "saved"] as const)("retains two loaded pages and card nodes after an acknowledged %s change", async field => {
-    await loadTwoPages();
-    const original = library.page!, row = original.items[70]!, card = host.querySelector(`[data-id="${row.asset.id}"]`);
-    if (field === "saved") {
-      // Keep it in My selection when the save flag is removed.
-      rows = rows.map(value => value.asset.id === row.asset.id ? { ...value, asset: { ...value.asset, liked: true } } : value);
-      await act(async () => library.refresh());
-    }
-    const currentRow = library.page!.items[70]!;
-    await act(async () => library.retain(currentRow, field));
-    expect(library.page?.items.map(row => row.asset.id)).toEqual(original.items.map(row => row.asset.id));
-    expect(library.page?.items[70]?.asset[field]).toBe(!currentRow.asset[field]);
-    expect(library.page?.nextCursor).toEqual(original.nextCursor);
-    expect(host.querySelector(`[data-id="${row.asset.id}"]`)).toBe(card);
-    expect(library.status).toBe("ready");
-    await act(async () => library.loadMore());
-    expect(library.page?.items).toHaveLength(120);
-    expect(new Set(library.page?.items.map(row => row.asset.id)).size).toBe(120);
-  });
+  it.each(["liked", "saved"] as const)(
+    "retains two loaded pages and card nodes after an acknowledged %s change",
+    async (field) => {
+      await loadTwoPages();
+      const original = library.page!,
+        row = original.items[70]!,
+        card = host.querySelector(`[data-id="${row.asset.id}"]`);
+      if (field === "saved") {
+        // Keep it in My selection when the save flag is removed.
+        rows = rows.map((value) =>
+          value.asset.id === row.asset.id ? { ...value, asset: { ...value.asset, liked: true } } : value,
+        );
+        await act(async () => library.refresh());
+      }
+      const currentRow = library.page!.items[70]!;
+      await act(async () => library.retain(currentRow, field));
+      expect(library.page?.items.map((row) => row.asset.id)).toEqual(original.items.map((row) => row.asset.id));
+      expect(library.page?.items[70]?.asset[field]).toBe(!currentRow.asset[field]);
+      expect(library.page?.nextCursor).toEqual(original.nextCursor);
+      expect(host.querySelector(`[data-id="${row.asset.id}"]`)).toBe(card);
+      expect(library.status).toBe("ready");
+      await act(async () => library.loadMore());
+      expect(library.page?.items).toHaveLength(120);
+      expect(new Set(library.page?.items.map((row) => row.asset.id)).size).toBe(120);
+    },
+  );
 
   it("holds all verified cards until the whole refresh succeeds, then reconciles deletions and metadata", async () => {
     await loadTwoPages();
-    const original = library.page!, removed = original.items[55]!, boundary = original.items.at(-1)!;
-    rows = rows.filter(row => row.asset.id !== removed.asset.id && row.asset.id !== boundary.asset.id)
-      .map(row => row.asset.id === original.items[60]!.asset.id ? { ...row, asset: { ...row.asset, kind: "Changed kind" } } : row);
+    const original = library.page!,
+      removed = original.items[55]!,
+      boundary = original.items.at(-1)!;
+    rows = rows
+      .filter((row) => row.asset.id !== removed.asset.id && row.asset.id !== boundary.asset.id)
+      .map((row) =>
+        row.asset.id === original.items[60]!.asset.id ? { ...row, asset: { ...row.asset, kind: "Changed kind" } } : row,
+      );
     holdReads = true;
     await act(async () => library.refresh());
     expect(library.page).toBe(original);
@@ -138,8 +290,12 @@ describe("loaded asset window reconciliation", () => {
     expect(library.status).toBe("loading");
     await resolveRead(1);
     expect(library.page?.items).toHaveLength(80);
-    expect(library.page?.items.some(row => row.asset.id === removed.asset.id || row.asset.id === boundary.asset.id)).toBe(false);
-    expect(library.page?.items.find(row => row.asset.id === original.items[60]!.asset.id)?.asset.kind).toBe("Changed kind");
+    expect(
+      library.page?.items.some((row) => row.asset.id === removed.asset.id || row.asset.id === boundary.asset.id),
+    ).toBe(false);
+    expect(library.page?.items.find((row) => row.asset.id === original.items[60]!.asset.id)?.asset.kind).toBe(
+      "Changed kind",
+    );
     expect(library.page?.nextCursor?.assetId).toBe(library.page?.items.at(-1)?.asset.id);
   });
 
@@ -149,7 +305,9 @@ describe("loaded asset window reconciliation", () => {
     rows.push(...Array.from({ length: 7 }, (_, n) => item(126 + n)));
     await act(async () => library.refresh());
     expect(library.page?.items).toHaveLength(120);
-    expect(original.items.every(previous => library.page!.items.some(row => row.asset.id === previous.asset.id))).toBe(true);
+    expect(
+      original.items.every((previous) => library.page!.items.some((row) => row.asset.id === previous.asset.id)),
+    ).toBe(true);
     expect(reads.slice(2)).toHaveLength(3);
     expect(library.page?.nextCursor?.assetId).toBe(library.page?.items.at(-1)?.asset.id);
   });
@@ -159,11 +317,16 @@ describe("loaded asset window reconciliation", () => {
     const boundary = library.page!.items.at(-1)!;
     holdWrites = true;
     let write!: Promise<void>;
-    await act(async () => { write = library.retain(boundary, "saved"); });
+    await act(async () => {
+      write = library.retain(boundary, "saved");
+    });
     expect(library.page?.items.at(-1)?.asset.id).toBe(boundary.asset.id);
-    await act(async () => { pendingWrites[0]!.resolve(applyWrite(pendingWrites[0]!)); await write; });
+    await act(async () => {
+      pendingWrites[0]!.resolve(applyWrite(pendingWrites[0]!));
+      await write;
+    });
     expect(library.page?.items).toHaveLength(80);
-    expect(library.page?.items.some(row => row.asset.id === boundary.asset.id)).toBe(false);
+    expect(library.page?.items.some((row) => row.asset.id === boundary.asset.id)).toBe(false);
     expect(library.page!.items.at(-1)!.asset.createdAt < boundary.asset.createdAt).toBe(true);
   });
 
@@ -217,7 +380,8 @@ describe("loaded asset window reconciliation", () => {
     await act(async () => library.retain(row, "liked"));
     expect(library.page?.items).toHaveLength(80);
     expect(library.page?.items[60]?.asset).toMatchObject({ liked: true, retentionRevision: 1 });
-    await resolveRead(0); await resolveRead(1, new Response(null, { status: 503 }));
+    await resolveRead(0);
+    await resolveRead(1, new Response(null, { status: 503 }));
     expect(library.page?.items).toHaveLength(80);
     expect(library.page?.items[60]?.asset).toMatchObject({ liked: true, retentionRevision: 1 });
     expect(library.status).toBe("error");
@@ -227,7 +391,10 @@ describe("loaded asset window reconciliation", () => {
 describe("private query and request fencing", () => {
   it("keeps loaded cards and pagination when the current normalized filters are selected again", async () => {
     await loadTwoPages();
-    const previous = library.page!, query = library.query, card = host.querySelector("article"), count = reads.length;
+    const previous = library.page!,
+      query = library.query,
+      card = host.querySelector("article"),
+      count = reads.length;
     await act(async () => library.changeQuery({ tab: "my_selection", projectId: undefined, format: undefined }));
     expect(library.page).toBe(previous);
     expect(library.query).toBe(query);
@@ -248,7 +415,8 @@ describe("private query and request fencing", () => {
     expect(pending.signal.aborted).toBe(false);
     expect(pendingReads).toHaveLength(1);
     expect(library.page).toBe(previous);
-    await resolveRead(0); await resolveRead(1);
+    await resolveRead(0);
+    await resolveRead(1);
     expect(library.status).toBe("ready");
     expect(library.page?.items).toHaveLength(80);
   });
@@ -257,10 +425,12 @@ describe("private query and request fencing", () => {
     { tab: "all_generations" as const },
     { tab: "my_selection" as const, projectId },
     { tab: "my_selection" as const, format: "png" as const },
-  ])("preserves the current non-default filter %j without another read", async query => {
+  ])("preserves the current non-default filter %j without another read", async (query) => {
     await loadTwoPages();
     await act(async () => library.changeQuery(query));
-    const previous = library.page, card = host.querySelector("article"), count = reads.length;
+    const previous = library.page,
+      card = host.querySelector("article"),
+      count = reads.length;
     await act(async () => library.changeQuery({ ...query }));
     expect(library.page).toBe(previous);
     expect(host.querySelector("article")).toBe(card);
@@ -285,7 +455,7 @@ describe("private query and request fencing", () => {
     { tab: "all_generations" as const },
     { tab: "my_selection" as const, projectId: otherProject },
     { tab: "my_selection" as const, format: "png" as const },
-  ])("discards a delayed old window after switching filters to %j", async query => {
+  ])("discards a delayed old window after switching filters to %j", async (query) => {
     await loadTwoPages();
     holdReads = true;
     await act(async () => library.refresh());
@@ -302,7 +472,7 @@ describe("private query and request fencing", () => {
     expect(library.page?.items.length).toBeLessThanOrEqual(40);
   });
 
-  it.each([account.userId, id(99)])("discards late prior-generation responses after remount for %s", async userId => {
+  it.each([account.userId, id(99)])("discards late prior-generation responses after remount for %s", async (userId) => {
     await loadTwoPages();
     holdReads = true;
     await act(async () => library.refresh());
@@ -325,12 +495,17 @@ describe("private query and request fencing", () => {
     await loadTwoPages();
     holdWrites = true;
     let write!: Promise<void>;
-    await act(async () => { write = library.retain(library.page!.items[60]!, "liked"); });
+    await act(async () => {
+      write = library.retain(library.page!.items[60]!, "liked");
+    });
     const reply = applyWrite(pendingWrites[0]!);
     rows = [item(1, { ownerId: id(99) })];
     await render({ status: "ready", userId: id(99), generation: 2 });
     const current = library.page;
-    await act(async () => { pendingWrites[0]!.resolve(reply); await write; });
+    await act(async () => {
+      pendingWrites[0]!.resolve(reply);
+      await write;
+    });
     expect(library.page).toBe(current);
     expect(library.page?.ownerId).toBe(id(99));
     expect(library.page?.items).toHaveLength(1);
@@ -339,8 +514,10 @@ describe("private query and request fencing", () => {
 
   it("does not accept a stale card action between a query reset and its replacement read", async () => {
     await loadTwoPages();
-    const oldRetain = library.retain, row = library.page!.items[60]!;
-    holdReads = true; holdWrites = true;
+    const oldRetain = library.retain,
+      row = library.page!.items[60]!;
+    holdReads = true;
+    holdWrites = true;
     await act(async () => {
       library.changeQuery({ tab: "my_selection", projectId: otherProject });
       await oldRetain(row, "saved");
@@ -353,21 +530,30 @@ describe("private query and request fencing", () => {
     await loadTwoPages();
     holdReads = true;
     let more!: Promise<void>;
-    await act(async () => { more = library.loadMore(); });
+    await act(async () => {
+      more = library.loadMore();
+    });
     await act(async () => library.refresh());
     expect(pendingReads[0]!.signal.aborted).toBe(true);
-    await resolveRead(1); await resolveRead(2);
+    await resolveRead(1);
+    await resolveRead(2);
     expect(library.page?.items).toHaveLength(80);
     holdWrites = true;
     let write!: Promise<void>;
-    await act(async () => { write = library.retain(library.page!.items[60]!, "liked"); });
-    await resolveRead(0); await more;
+    await act(async () => {
+      write = library.retain(library.page!.items[60]!, "liked");
+    });
+    await resolveRead(0);
+    await more;
     expect(library.busy).toBe(true);
     expect(library.page?.items).toHaveLength(80);
     await act(async () => library.retain(library.page!.items[61]!, "saved"));
     expect(pendingWrites).toHaveLength(1);
     holdReads = false;
-    await act(async () => { pendingWrites[0]!.resolve(applyWrite(pendingWrites[0]!)); await write; });
+    await act(async () => {
+      pendingWrites[0]!.resolve(applyWrite(pendingWrites[0]!));
+      await write;
+    });
     expect(library.busy).toBe(false);
   });
 
@@ -376,7 +562,8 @@ describe("private query and request fencing", () => {
     holdReads = true;
     await act(async () => library.refresh());
     await act(async () => library.refresh());
-    await resolveRead(1); await resolveRead(2);
+    await resolveRead(1);
+    await resolveRead(2);
     const current = library.page;
     await resolveRead(0);
     expect(library.page).toBe(current);
@@ -394,7 +581,10 @@ describe("private query and request fencing", () => {
     });
     expect(pendingWrites).toHaveLength(1);
     expect(reads).toHaveLength(2);
-    await act(async () => { pendingWrites[0]!.resolve(applyWrite(pendingWrites[0]!)); await first; });
+    await act(async () => {
+      pendingWrites[0]!.resolve(applyWrite(pendingWrites[0]!));
+      await first;
+    });
     holdWrites = false;
     await act(async () => library.retain(library.page!.items[50]!, "saved"));
     expect(library.page?.items[50]?.asset).toMatchObject({ liked: true, saved: false, retentionRevision: 2 });
@@ -404,7 +594,8 @@ describe("private query and request fencing", () => {
 
 describe("window traversal contracts", () => {
   it("deduplicates overlapping pages without replacing the last server cursor", () => {
-    const first = pageFor(rows, baseQuery), second = pageFor(rows, { ...baseQuery, cursor: first.nextCursor! });
+    const first = pageFor(rows, baseQuery),
+      second = pageFor(rows, { ...baseQuery, cursor: first.nextCursor! });
     const repeated = { ...second, items: [first.items[5]!, ...second.items] };
     const combined = appendAssetLibraryPage(first, repeated);
     expect(combined.items).toHaveLength(80);
@@ -414,8 +605,12 @@ describe("window traversal contracts", () => {
   it("rejects owner/filter contamination and non-advancing cursors", () => {
     const first = pageFor(rows, baseQuery);
     expect(() => appendAssetLibraryPage(first, { ...first, ownerId: id(99) })).toThrow();
-    expect(() => appendAssetLibraryPage(first, { ...first, query: { ...baseQuery, projectId: otherProject } })).toThrow();
-    expect(() => appendAssetLibraryPage(first, { ...first, query: { ...baseQuery, cursor: first.nextCursor! } })).toThrow();
+    expect(() =>
+      appendAssetLibraryPage(first, { ...first, query: { ...baseQuery, projectId: otherProject } }),
+    ).toThrow();
+    expect(() =>
+      appendAssetLibraryPage(first, { ...first, query: { ...baseQuery, cursor: first.nextCursor! } }),
+    ).toThrow();
   });
 
   it("compares cursor positions at full timestamp precision, including timezone offsets", async () => {
@@ -423,51 +618,96 @@ describe("window traversal contracts", () => {
     const newer = item(2, { createdAt: "2026-10-01T01:00:00.000002+01:00" });
     const query = { ...baseQuery, limit: 1 };
     const previous = { ownerId: owner, query, items: [old], nextCursor: null };
-    const list = vi.fn().mockResolvedValueOnce({ ownerId: owner, query, items: [newer], nextCursor: cursorFor(newer, query) })
-      .mockResolvedValueOnce({ ownerId: owner, query: { ...query, cursor: cursorFor(newer, query) }, items: [old], nextCursor: null });
-    const reply = await readAssetLibraryWindow({ current: () => true, list }, query, previous, new AbortController().signal);
+    const list = vi
+      .fn()
+      .mockResolvedValueOnce({ ownerId: owner, query, items: [newer], nextCursor: cursorFor(newer, query) })
+      .mockResolvedValueOnce({
+        ownerId: owner,
+        query: { ...query, cursor: cursorFor(newer, query) },
+        items: [old],
+        nextCursor: null,
+      });
+    const reply = await readAssetLibraryWindow(
+      { current: () => true, list },
+      query,
+      previous,
+      new AbortController().signal,
+    );
     expect(list).toHaveBeenCalledTimes(2);
     expect(reply?.items).toEqual([newer, old]);
   });
 
   it("bounds head churn and does not publish a truncated replacement", async () => {
-    const query = { ...baseQuery, limit: 1 }, previous = pageFor(rows.slice(0, 1), query);
+    const query = { ...baseQuery, limit: 1 },
+      previous = pageFor(rows.slice(0, 1), query);
     const list = vi.fn(async (request: Partial<AssetLibraryQuery>) => pageFor(rows, request as AssetLibraryQuery));
-    await expect(readAssetLibraryWindow({ current: () => true, list }, query, previous, new AbortController().signal)).rejects.toBeInstanceOf(AssetLibraryWindowChangedError);
+    await expect(
+      readAssetLibraryWindow({ current: () => true, list }, query, previous, new AbortController().signal),
+    ).rejects.toBeInstanceOf(AssetLibraryWindowChangedError);
     expect(list).toHaveBeenCalledTimes(11);
     expect(previous.items).toHaveLength(1);
   });
 });
 
-
 describe("library deadline recovery", () => {
   it("exposes another uncertain write arriving during recovery without trapping the loaded view", async () => {
     await loadTwoPages();
-    const previous = library.page!, first = previous.items[0]!, second = previous.items[1]!;
+    const previous = library.page!,
+      first = previous.items[0]!,
+      second = previous.items[1]!;
     writeStatus = 503;
     await act(async () => library.retain(first, "liked"));
     expect(library.needsCheck).toBe(true);
     const fixtureFetch = globalThis.fetch;
     let finishHead!: (response: Response) => void, rejectSelection!: (error: Error) => void;
     const fetcher = vi.fn((path: string, options: RequestInit) => {
-      if (path.endsWith("/selection")) return new Promise<Response>((_, reject) => { rejectSelection = reject; });
-      if (path.startsWith(`/api/assets/library/${first.asset.id}?`)) return new Promise<Response>(resolve => { finishHead = resolve; });
+      if (path.endsWith("/selection"))
+        return new Promise<Response>((_, reject) => {
+          rejectSelection = reject;
+        });
+      if (path.startsWith(`/api/assets/library/${first.asset.id}?`))
+        return new Promise<Response>((resolve) => {
+          finishHead = resolve;
+        });
       return fixtureFetch(path, options);
     });
     vi.stubGlobal("fetch", fetcher);
     // A detail dialog can start this request, then close before it settles.
-    const selection = library.client.select(second.asset, { versionId: second.displayedVersion!.versionId, expectedProjectRevision: 1, expectedSelectionRevision: 0, acceptStaleBasis: false }).catch(error => error);
+    const selection = library.client
+      .select(second.asset, {
+        versionId: second.displayedVersion!.versionId,
+        expectedProjectRevision: 1,
+        expectedSelectionRevision: 0,
+        acceptStaleBasis: false,
+      })
+      .catch((error) => error);
     await act(async () => library.refresh());
     expect(library.status).toBe("loading");
     rejectSelection(new TypeError("Synthetic lost response during reconciliation"));
     expect(await selection).toBeInstanceOf(AssetWriteOutcomeUnknownError);
-    await act(async () => finishHead(Response.json({ asset: first.asset, project: first.project, selectedVersion: first.selectedVersion, versions: first.matchingVersions })));
+    await act(async () =>
+      finishHead(
+        Response.json({
+          asset: first.asset,
+          project: first.project,
+          selectedVersion: first.selectedVersion,
+          versions: first.matchingVersions,
+        }),
+      ),
+    );
     expect(library.status).toBe("error");
     expect(library.error).toContain("may have been saved");
     expect(library.error).toContain("Previously loaded assets are still shown");
     expect(library.page).toBe(previous);
     expect(library.needsCheck).toBe(true);
-    await expect(library.client.select(second.asset, { versionId: second.displayedVersion!.versionId, expectedProjectRevision: 1, expectedSelectionRevision: 0, acceptStaleBasis: false })).rejects.toBeInstanceOf(AssetWriteOutcomeUnknownError);
+    await expect(
+      library.client.select(second.asset, {
+        versionId: second.displayedVersion!.versionId,
+        expectedProjectRevision: 1,
+        expectedSelectionRevision: 0,
+        acceptStaleBasis: false,
+      }),
+    ).rejects.toBeInstanceOf(AssetWriteOutcomeUnknownError);
     expect(fetcher.mock.calls.filter(([path]) => path.endsWith("/selection"))).toHaveLength(1);
     await act(async () => library.refresh());
     expect(library.status).toBe("ready");
@@ -483,16 +723,32 @@ describe("library deadline recovery", () => {
     await act(async () => library.retain(first, "liked"));
     const fixtureFetch = globalThis.fetch;
     let finishHead!: (response: Response) => void;
-    vi.stubGlobal("fetch", vi.fn((path: string, options: RequestInit) => path.startsWith(`/api/assets/library/${first.asset.id}?`)
-      ? new Promise<Response>(resolve => { finishHead = resolve; })
-      : fixtureFetch(path, options)));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((path: string, options: RequestInit) =>
+        path.startsWith(`/api/assets/library/${first.asset.id}?`)
+          ? new Promise<Response>((resolve) => {
+              finishHead = resolve;
+            })
+          : fixtureFetch(path, options),
+      ),
+    );
     await act(async () => library.refresh());
     expect(library.status).toBe("loading");
     const disposedClient = library.client;
     await render({ ...account, generation: account.generation + 1 });
     expect(disposedClient.current()).toBe(false);
     expect(library.status).toBe("ready");
-    await act(async () => finishHead(Response.json({ asset: first.asset, project: first.project, selectedVersion: first.selectedVersion, versions: first.matchingVersions })));
+    await act(async () =>
+      finishHead(
+        Response.json({
+          asset: first.asset,
+          project: first.project,
+          selectedVersion: first.selectedVersion,
+          versions: first.matchingVersions,
+        }),
+      ),
+    );
     expect(library.status).toBe("ready");
     expect(library.error).toBeNull();
     expect(library.needsCheck).toBe(false);
@@ -500,33 +756,58 @@ describe("library deadline recovery", () => {
   });
 
   it("retains the complete loaded window and releases busy after a stalled page", async () => {
-    await loadTwoPages(); vi.useFakeTimers(); holdReads = true;
+    await loadTwoPages();
+    vi.useFakeTimers();
+    holdReads = true;
     const previous = library.page;
     let pending!: Promise<void>;
-    await act(async () => { pending = library.loadMore(); });
+    await act(async () => {
+      pending = library.loadMore();
+    });
     expect(library.busy).toBe(true);
-    await act(async () => { await vi.advanceTimersByTimeAsync(ASSET_REQUEST_TIMEOUT_MS); await pending; });
-    expect(library.busy).toBe(false); expect(library.page).toBe(previous); expect(library.error).toContain("timed out");
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ASSET_REQUEST_TIMEOUT_MS);
+      await pending;
+    });
+    expect(library.busy).toBe(false);
+    expect(library.page).toBe(previous);
+    expect(library.error).toContain("timed out");
     holdReads = false;
     await act(async () => library.refresh());
-    expect(library.status).toBe("ready"); expect(library.page?.items).toHaveLength(80);
+    expect(library.status).toBe("ready");
+    expect(library.page?.items).toHaveLength(80);
   });
 
   it("requires explicit verified recovery after a write deadline without automatic resend", async () => {
-    await loadTwoPages(); vi.useFakeTimers(); holdWrites = true;
+    await loadTwoPages();
+    vi.useFakeTimers();
+    holdWrites = true;
     const row = library.page!.items[50]!;
     let pending!: Promise<void>;
-    await act(async () => { pending = library.retain(row, "liked"); });
-    await act(async () => { await vi.advanceTimersByTimeAsync(ASSET_REQUEST_TIMEOUT_MS); await pending; });
-    expect(library.busy).toBe(false); expect(library.needsCheck).toBe(true); expect(library.error).toContain("may have been saved");
+    await act(async () => {
+      pending = library.retain(row, "liked");
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ASSET_REQUEST_TIMEOUT_MS);
+      await pending;
+    });
+    expect(library.busy).toBe(false);
+    expect(library.needsCheck).toBe(true);
+    expect(library.error).toContain("may have been saved");
     expect(library.page?.items[50]!.asset.liked).toBe(false);
-    await act(async () => library.retain(row, "liked")); expect(pendingWrites).toHaveLength(1);
+    await act(async () => library.retain(row, "liked"));
+    expect(pendingWrites).toHaveLength(1);
     // The timed-out request eventually committed. Its response cannot publish.
-    await act(async () => { pendingWrites[0]!.resolve(applyWrite(pendingWrites[0]!)); });
-    expect(library.needsCheck).toBe(true); expect(library.page?.items[50]!.asset.liked).toBe(false);
+    await act(async () => {
+      pendingWrites[0]!.resolve(applyWrite(pendingWrites[0]!));
+    });
+    expect(library.needsCheck).toBe(true);
+    expect(library.page?.items[50]!.asset.liked).toBe(false);
     await act(async () => library.refresh());
-    expect(library.status).toBe("ready"); expect(library.needsCheck).toBe(false);
-    expect(library.page?.items).toHaveLength(80); expect(library.page?.items[50]!.asset.liked).toBe(true);
+    expect(library.status).toBe("ready");
+    expect(library.needsCheck).toBe(false);
+    expect(library.page?.items).toHaveLength(80);
+    expect(library.page?.items[50]!.asset.liked).toBe(true);
     expect(pendingWrites).toHaveLength(1);
   });
 });

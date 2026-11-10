@@ -2,11 +2,73 @@ import { describe, expect, it } from "vitest";
 import { describeAssetEvidence } from "@/features/identity-deliverables/model/asset-evidence";
 import { assetVersionDetailSchema, assetRevisionFreshness } from "@/domain/asset-library";
 import type { LogoExportManifest } from "@/domain/logo-deliverables";
-const id=(n:number)=>`97000000-0000-4000-8000-${String(n).padStart(12,"0")}`;
-const file={id:id(9),reference:{ownerId:id(1),projectId:id(2),assetId:id(3),versionId:id(4),contentHash:"a".repeat(64)},verification:{status:"verified" as const,checkedAt:"2026-10-07T00:00:00Z",contentHash:"a".repeat(64),mimeType:"image/svg+xml",byteLength:100},purpose:"brand_asset" as const,sourceReceiptId:id(8),rightsEvidenceId:null,publicationState:"committed" as const};
-const version=assetVersionDetailSchema.parse({...file.reference,versionNumber:1,inputRevision:1,inputHash:"b".repeat(64),createdAt:"2026-10-07T00:00:00Z",mimeType:file.verification.mimeType,format:"svg",provenance:{status:"legacy_unverified"},vectorStatus:"unverified",licenseStatus:"unverified",fileState:"unverified",fileVerification:null,freshness:assetRevisionFreshness(1,1)});
-const manifest:LogoExportManifest={id:id(10),ownerId:id(1),projectId:id(2),requestKey:id(11),approvedLogoId:id(12),directionApprovalId:id(13),variantSetId:id(14),variantReviewId:id(15),sourceSnapshotHash:"c".repeat(64),files:[{role:"primary.black",format:"svg",variantId:id(16),asset:file}],licenseOmissions:[],inputRevisions:[],createdAt:"2026-10-07T00:00:00Z"};
-describe("exact manifest-backed Assets labels",()=>{
- it("shows confirmed export provenance without upgrading legal rights or current file availability",()=>{const result=describeAssetEvidence(version,[manifest]);expect(result.approvedExportId).toBe(manifest.id);expect(result.origin).toContain("Approved logo export");expect(result.vector).toContain("Verified vector");expect(result.rights).toContain("no exclusivity");expect(version.fileState).toBe("unverified");expect(version.provenance.status).toBe("legacy_unverified");});
- it("preserves legacy labels for absent, foreign or different-byte manifests",()=>{expect(describeAssetEvidence(version,[]).origin).toBe("Legacy record · provider unverified");for(const changed of [{...manifest,ownerId:id(99)},{...manifest,files:[{...manifest.files[0]!,asset:{...file,reference:{...file.reference,contentHash:"f".repeat(64)}}}]}])expect(describeAssetEvidence(version,[changed]).approvedExportId).toBeNull();});
+const id = (n: number) => `97000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+const file = {
+  id: id(9),
+  reference: { ownerId: id(1), projectId: id(2), assetId: id(3), versionId: id(4), contentHash: "a".repeat(64) },
+  verification: {
+    status: "verified" as const,
+    checkedAt: "2026-10-07T00:00:00Z",
+    contentHash: "a".repeat(64),
+    mimeType: "image/svg+xml",
+    byteLength: 100,
+  },
+  purpose: "brand_asset" as const,
+  sourceReceiptId: id(8),
+  rightsEvidenceId: null,
+  publicationState: "committed" as const,
+};
+const version = assetVersionDetailSchema.parse({
+  ...file.reference,
+  versionNumber: 1,
+  inputRevision: 1,
+  inputHash: "b".repeat(64),
+  createdAt: "2026-10-07T00:00:00Z",
+  mimeType: file.verification.mimeType,
+  format: "svg",
+  provenance: { status: "legacy_unverified" },
+  vectorStatus: "unverified",
+  licenseStatus: "unverified",
+  fileState: "unverified",
+  fileVerification: null,
+  freshness: assetRevisionFreshness(1, 1),
+});
+const manifest: LogoExportManifest = {
+  id: id(10),
+  ownerId: id(1),
+  projectId: id(2),
+  requestKey: id(11),
+  approvedLogoId: id(12),
+  directionApprovalId: id(13),
+  variantSetId: id(14),
+  variantReviewId: id(15),
+  sourceSnapshotHash: "c".repeat(64),
+  files: [{ role: "primary.black", format: "svg", variantId: id(16), asset: file }],
+  licenseOmissions: [],
+  inputRevisions: [],
+  createdAt: "2026-10-07T00:00:00Z",
+};
+describe("exact manifest-backed Assets labels", () => {
+  it("shows confirmed export provenance without upgrading legal rights or current file availability", () => {
+    const result = describeAssetEvidence(version, [manifest]);
+    expect(result.approvedExportId).toBe(manifest.id);
+    expect(result.origin).toContain("Approved logo export");
+    expect(result.vector).toContain("Verified vector");
+    expect(result.rights).toContain("no exclusivity");
+    expect(version.fileState).toBe("unverified");
+    expect(version.provenance.status).toBe("legacy_unverified");
+  });
+  it("preserves legacy labels for absent, foreign or different-byte manifests", () => {
+    expect(describeAssetEvidence(version, []).origin).toBe("Legacy record · provider unverified");
+    for (const changed of [
+      { ...manifest, ownerId: id(99) },
+      {
+        ...manifest,
+        files: [
+          { ...manifest.files[0]!, asset: { ...file, reference: { ...file.reference, contentHash: "f".repeat(64) } } },
+        ],
+      },
+    ])
+      expect(describeAssetEvidence(version, [changed]).approvedExportId).toBeNull();
+  });
 });

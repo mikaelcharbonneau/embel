@@ -66,7 +66,7 @@ const logoRuntimeFiles = [
   "node_modules/geist/dist/fonts/geist-sans/Geist-Variable.ttf",
   "node_modules/geist/dist/fonts/geist-sans/Geist-Italic*.ttf",
   "node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.ttf",
-  "node_modules/geist/dist/fonts/geist-mono/GeistMono-Italic*.ttf"
+  "node_modules/geist/dist/fonts/geist-mono/GeistMono-Italic*.ttf",
 ];
 
 const nextConfig: NextConfig = {
@@ -74,7 +74,15 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   // Confirmation callbacks carry a one-time sign-in code in the query string.
   logging: { incomingRequests: { ignore: [/^\/auth\/callback(?:[/?]|$)/] } },
-  serverExternalPackages: ["@resvg/resvg-js","@napi-rs/canvas","fontkit","harfbuzzjs","pdfjs-dist","pdfkit","sharp"],
+  serverExternalPackages: [
+    "@resvg/resvg-js",
+    "@napi-rs/canvas",
+    "fontkit",
+    "harfbuzzjs",
+    "pdfjs-dist",
+    "pdfkit",
+    "sharp",
+  ],
   outputFileTracingIncludes: {
     "/*": ["scripts/certs/supabase-prod-ca-2021.crt"],
     "/api/home/**": logoRuntimeFiles,
@@ -98,14 +106,22 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   async headers() {
-    return [{ source: "/(.*)", headers: [
-      { key: "X-Content-Type-Options", value: "nosniff" },
-      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-      { key: "X-Frame-Options", value: "DENY" },
-      // Same-origin capability only. Voice still requires explicit Start and the browser permission prompt.
-      { key: "Permissions-Policy", value: "camera=(), microphone=(self), on-device-speech-recognition=(self), geolocation=()" }
-    ] }];
-  }
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-Frame-Options", value: "DENY" },
+          // Same-origin capability only. Voice still requires explicit Start and the browser permission prompt.
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(self), on-device-speech-recognition=(self), geolocation=()",
+          },
+        ],
+      },
+    ];
+  },
 };
 /** The app's own settings, before Workflow adds its build transforms (read by tests). */
 export const appConfig = nextConfig;

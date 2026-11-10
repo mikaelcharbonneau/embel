@@ -10,10 +10,18 @@ function Preview() {
   const session = useAccountSession();
   // Every Logo page belongs to a saved project; any other path shows "Project unavailable".
   const projectId = location.pathname.match(/\/account\/([^/]+)\/logo/)?.[1] ?? "";
-  return <main style={{ maxWidth: 1140, margin: "auto", padding: 20 }}>
-    <p>Local synthetic test only. No live provider, storage or charges.</p>
-    <button type="button" onClick={session.refresh}>Recheck test account</button>
-    <LogoCreationWorkspace projectId={projectId} mode={location.pathname.endsWith("/editor") ? "refine" : "setup"} />
-  </main>;
+  return (
+    <main style={{ maxWidth: 1140, margin: "auto", padding: 20 }}>
+      <p>Local synthetic test only. No live provider, storage or charges.</p>
+      <button type="button" onClick={session.refresh}>
+        Recheck test account
+      </button>
+      <LogoCreationWorkspace projectId={projectId} mode={location.pathname.endsWith("/editor") ? "refine" : "setup"} />
+    </main>
+  );
 }
-createRoot(document.getElementById("root")!).render(<AccountSessionProvider><Preview /></AccountSessionProvider>);
+createRoot(document.getElementById("root")!).render(
+  <AccountSessionProvider>
+    <Preview />
+  </AccountSessionProvider>,
+);

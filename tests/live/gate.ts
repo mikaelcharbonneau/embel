@@ -19,7 +19,7 @@ export function readLiveConfig(env: Environment, approvedProjectRef = APPROVED_L
   if (!/^sb_publishable_[A-Za-z0-9_-]{8,256}$/.test(publishableKey)) {
     throw new Error("Live tests require a publishable key; privileged and legacy keys are not accepted.");
   }
-  const users = ["A", "B"].map(label => {
+  const users = ["A", "B"].map((label) => {
     const token = env[`FLUID_LIVE_USER_${label}_ACCESS_TOKEN`] ?? "";
     const fixture = fixtureSchema.safeParse({
       projectId: env[`FLUID_LIVE_USER_${label}_PROJECT_ID`],

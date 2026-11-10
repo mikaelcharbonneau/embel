@@ -23,18 +23,30 @@ describe("live integration gate (no network)", () => {
 
   it("remains locked until a verified development target is recorded", () => {
     expect(() => readLiveConfig(fixture, null)).toThrow("locked");
-    expect(() => readLiveConfig({ ...fixture, FLUID_LIVE_PROJECT_REF: "wrong-target" }, approved)).toThrow("does not match");
+    expect(() => readLiveConfig({ ...fixture, FLUID_LIVE_PROJECT_REF: "wrong-target" }, approved)).toThrow(
+      "does not match",
+    );
     expect(() => readLiveConfig(fixture, "https://unexpected.example")).toThrow("locked");
   });
 
   it("rejects elevated keys, missing fixtures, or reused identities without disclosing values", () => {
     for (const key of ["sb_secret_sensitive_value", "eyJ.legacy.signature", ""]) {
-      expect(() => readLiveConfig({ ...fixture, FLUID_LIVE_PUBLISHABLE_KEY: key }, approved)).toThrow("publishable key");
+      expect(() => readLiveConfig({ ...fixture, FLUID_LIVE_PUBLISHABLE_KEY: key }, approved)).toThrow(
+        "publishable key",
+      );
     }
-    expect(() => readLiveConfig({ ...fixture, FLUID_LIVE_USER_A_PROJECT_ID: undefined }, approved)).toThrow("identity A");
-    expect(() => readLiveConfig({ ...fixture, FLUID_LIVE_USER_B_ACCESS_TOKEN: fixture.FLUID_LIVE_USER_A_ACCESS_TOKEN }, approved)).toThrow("distinct");
-    expect(() => readLiveConfig({ ...fixture, FLUID_LIVE_USER_B_PROJECT_ID: fixture.FLUID_LIVE_USER_A_PROJECT_ID }, approved)).toThrow("distinct");
-    expect(() => readLiveConfig({ ...fixture, FLUID_LIVE_USER_A_ACCESS_TOKEN: "sensitive-invalid-token" }, approved)).toThrow("temporary access token");
+    expect(() => readLiveConfig({ ...fixture, FLUID_LIVE_USER_A_PROJECT_ID: undefined }, approved)).toThrow(
+      "identity A",
+    );
+    expect(() =>
+      readLiveConfig({ ...fixture, FLUID_LIVE_USER_B_ACCESS_TOKEN: fixture.FLUID_LIVE_USER_A_ACCESS_TOKEN }, approved),
+    ).toThrow("distinct");
+    expect(() =>
+      readLiveConfig({ ...fixture, FLUID_LIVE_USER_B_PROJECT_ID: fixture.FLUID_LIVE_USER_A_PROJECT_ID }, approved),
+    ).toThrow("distinct");
+    expect(() =>
+      readLiveConfig({ ...fixture, FLUID_LIVE_USER_A_ACCESS_TOKEN: "sensitive-invalid-token" }, approved),
+    ).toThrow("temporary access token");
   });
 
   it("derives the only network target from the allowlisted project", () => {

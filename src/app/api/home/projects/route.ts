@@ -12,5 +12,7 @@ export async function POST(request: Request) {
     assertExpectedAccount(request, auth.userId);
     const input = await readJson(request, attachedProjectDraftInputSchema, 32_768);
     return privateJson(await saveAttachedProjectDraft(auth, input, request.signal));
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

@@ -1,8 +1,12 @@
 import "server-only";
 import { z } from "zod";
 import {
-  namingFeedCursorSchema, namingUsageSchema,
-  type NamingFeedCursor, type NamingGenerationFeed, type NamingRun, type NamingUsage,
+  namingFeedCursorSchema,
+  namingUsageSchema,
+  type NamingFeedCursor,
+  type NamingGenerationFeed,
+  type NamingRun,
+  type NamingUsage,
 } from "@/domain/naming-generation";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError, type ApiErrorCode } from "../http/errors";
@@ -21,7 +25,8 @@ const inputCodes: readonly ApiErrorCode[] = ["preferences_incomplete", "invalid_
 
 /** The contract raises its code as the exception message; never echo other text. */
 export function namingDatabaseError(error: { code?: unknown; message?: unknown }): ApiError {
-  const code = String(error.code ?? ""), message = String(error.message ?? "") as ApiErrorCode;
+  const code = String(error.code ?? ""),
+    message = String(error.message ?? "") as ApiErrorCode;
   if (["PGRST301", "PGRST302", "PGRST303", "42501"].includes(code)) return new ApiError("unauthenticated");
   if (["P0002", "PGRST116"].includes(code)) return new ApiError("not_found");
   if (code === "40001") return new ApiError(conflictCodes.includes(message) ? message : "conflict");
@@ -41,21 +46,37 @@ function stored<T>(schema: z.ZodType<T>, value: unknown): T {
   if (!parsed.success) throw new ApiError("integration_unavailable");
   return parsed.data;
 }
-export async function rpc<T>(auth: AuthenticatedContext, name: string, args: Record<string, unknown>, schema: z.ZodType<T>): Promise<T> {
+export async function rpc<T>(
+  auth: AuthenticatedContext,
+  name: string,
+  args: Record<string, unknown>,
+  schema: z.ZodType<T>,
+): Promise<T> {
   const { data, error } = await auth.client.rpc(name, args);
   if (error) throw namingDatabaseError(error);
   return stored(schema, normalizeNamingRows(data, auth.userId));
 }
 
 /** Every entry must be one of this project's generated names. */
-export function verifyFeed(auth: AuthenticatedContext, projectId: string, feed: NamingGenerationFeed): NamingGenerationFeed {
+export function verifyFeed(
+  auth: AuthenticatedContext,
+  projectId: string,
+  feed: NamingGenerationFeed,
+): NamingGenerationFeed {
   if (feed.projectId !== projectId) throw new ApiError("not_found");
   const seen = new Set<string>();
   for (const row of feed.entries) {
     const { candidate, retention } = row.entry;
-    if (candidate.ownerId !== auth.userId || candidate.projectId !== projectId || retention.ownerId !== auth.userId
-      || retention.projectId !== projectId || retention.candidateId !== candidate.id) throw new ApiError("not_found");
-    if (candidate.origin.kind !== "brainstorm" || candidate.origin.runId !== row.runId || seen.has(candidate.id)) throw new ApiError("integration_unavailable");
+    if (
+      candidate.ownerId !== auth.userId ||
+      candidate.projectId !== projectId ||
+      retention.ownerId !== auth.userId ||
+      retention.projectId !== projectId ||
+      retention.candidateId !== candidate.id
+    )
+      throw new ApiError("not_found");
+    if (candidate.origin.kind !== "brainstorm" || candidate.origin.runId !== row.runId || seen.has(candidate.id))
+      throw new ApiError("integration_unavailable");
     seen.add(candidate.id);
   }
   return feed;
@@ -68,9 +89,9 @@ const usageRowSchema = z.strictObject({ jobId: z.uuid(), ...namingUsageSchema.sh
 
 /** Token counts recorded by a run's saved rounds. Jobs without saved rounds are omitted. */
 export async function getNamingUsage(auth: AuthenticatedContext, jobIds: readonly string[]): Promise<NamingJobUsage[]> {
-  const ids = [...new Set(jobIds.map(value => value.toLowerCase()))];
+  const ids = [...new Set(jobIds.map((value) => value.toLowerCase()))];
   if (!ids.length) return [];
-  if (ids.length > 100 || ids.some(value => !z.uuid().safeParse(value).success)) throw new ApiError("invalid_input");
+  if (ids.length > 100 || ids.some((value) => !z.uuid().safeParse(value).success)) throw new ApiError("invalid_input");
   const rows = await rpc(auth, "get_naming_usage", { p_jobs: ids }, z.array(usageRowSchema).max(ids.length));
   const seen = new Set<string>();
   for (const row of rows) {
@@ -83,11 +104,16 @@ export async function getNamingUsage(auth: AuthenticatedContext, jobIds: readonl
 /** GET feed query: an optional paired `(createdAt, id)` cursor and a bounded limit. */
 export function readNamingFeedQuery(request: Request): { cursor?: NamingFeedCursor; limit: number } {
   const params = new URL(request.url).searchParams;
-  for (const key of params.keys()) if (!["cursorCreatedAt", "cursorId", "limit"].includes(key) || params.getAll(key).length !== 1) throw new ApiError("invalid_input");
+  for (const key of params.keys())
+    if (!["cursorCreatedAt", "cursorId", "limit"].includes(key) || params.getAll(key).length !== 1)
+      throw new ApiError("invalid_input");
   if (params.has("cursorCreatedAt") !== params.has("cursorId")) throw new ApiError("invalid_input");
   let cursor: NamingFeedCursor | undefined;
   if (params.has("cursorId")) {
-    const parsed = namingFeedCursorSchema.safeParse({ createdAt: params.get("cursorCreatedAt"), id: params.get("cursorId") });
+    const parsed = namingFeedCursorSchema.safeParse({
+      createdAt: params.get("cursorCreatedAt"),
+      id: params.get("cursorId"),
+    });
     if (!parsed.success) throw new ApiError("invalid_input");
     cursor = parsed.data;
   }

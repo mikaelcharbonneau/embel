@@ -1,16 +1,92 @@
 import { describe, expect, it } from "vitest";
 const id = (n: number) => `50000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-const ownerId=id(1), projectId=id(2), hash="a".repeat(64);
-import { attachmentPolicySchema, attachmentCapabilitySchema, PROPOSED_HOME_ATTACHMENT_POLICY, ownedAttachmentRefSchema, stageHomeAttachmentInputSchema, attachedProjectDraftInputSchema, requestLookupSchema } from "../../src/domain/attachments";
+const ownerId = id(1),
+  projectId = id(2),
+  hash = "a".repeat(64);
+import {
+  attachmentPolicySchema,
+  attachmentCapabilitySchema,
+  PROPOSED_HOME_ATTACHMENT_POLICY,
+  ownedAttachmentRefSchema,
+  stageHomeAttachmentInputSchema,
+  attachedProjectDraftInputSchema,
+  requestLookupSchema,
+} from "../../src/domain/attachments";
 import { z } from "zod";
-describe("Home attachment contracts",()=>{
- it("keeps the proposed policy nullable, bounded and unavailable when absent",()=>{expect(PROPOSED_HOME_ATTACHMENT_POLICY).toEqual({allowedMimeTypes:["text/plain","application/pdf","image/png","image/jpeg"],maxFiles:5,maxFileBytes:10485760,maxTotalBytes:26214400});expect(attachmentCapabilitySchema.safeParse(null).success).toBe(true);expect(attachmentPolicySchema.safeParse({...PROPOSED_HOME_ATTACHMENT_POLICY,allowedMimeTypes:["image/svg+xml"]}).success).toBe(false);});
- it("keeps staged private files unattached and linked files revision bound",()=>{const ref={id:id(3),ownerId,projectId:null,projectRevision:null,blobVersionId:id(4),contentHash:hash,mimeType:"image/png",byteLength:100,name:"example.png",sourceReceiptId:id(5),state:"staged"};expect(ownedAttachmentRefSchema.safeParse(ref).success).toBe(true);expect(ownedAttachmentRefSchema.safeParse({...ref,state:"linked"}).success).toBe(false);expect(ownedAttachmentRefSchema.safeParse({...ref,state:"linked",projectId,projectRevision:1}).success).toBe(true);});
- it("rejects ownership and source proofs in browser upload/finalization commands",()=>{const c={requestKey:id(3),name:"example.png",mimeType:"image/png",contentHash:hash};expect(stageHomeAttachmentInputSchema.safeParse(c).success).toBe(true);expect(stageHomeAttachmentInputSchema.safeParse({...c,ownerId}).success).toBe(false);const p={requestKey:id(3),project:{title:"Studio",scope:"complete_brand",context:{}},attachmentIds:[id(4)]};expect(attachedProjectDraftInputSchema.safeParse(p).success).toBe(true);expect(attachedProjectDraftInputSchema.safeParse({...p,attachmentIds:[id(4),id(4)]}).success).toBe(false);});
- it("distinguishes pending, absent, and committed request recovery",()=>{const schema=requestLookupSchema(z.strictObject({id:z.uuid()}));expect(schema.safeParse({status:"pending",requestKey:id(3)}).success).toBe(true);expect(schema.safeParse({status:"not_found",receipt:{id:id(4)}}).success).toBe(false);});
+describe("Home attachment contracts", () => {
+  it("keeps the proposed policy nullable, bounded and unavailable when absent", () => {
+    expect(PROPOSED_HOME_ATTACHMENT_POLICY).toEqual({
+      allowedMimeTypes: ["text/plain", "application/pdf", "image/png", "image/jpeg"],
+      maxFiles: 5,
+      maxFileBytes: 10485760,
+      maxTotalBytes: 26214400,
+    });
+    expect(attachmentCapabilitySchema.safeParse(null).success).toBe(true);
+    expect(
+      attachmentPolicySchema.safeParse({ ...PROPOSED_HOME_ATTACHMENT_POLICY, allowedMimeTypes: ["image/svg+xml"] })
+        .success,
+    ).toBe(false);
+  });
+  it("keeps staged private files unattached and linked files revision bound", () => {
+    const ref = {
+      id: id(3),
+      ownerId,
+      projectId: null,
+      projectRevision: null,
+      blobVersionId: id(4),
+      contentHash: hash,
+      mimeType: "image/png",
+      byteLength: 100,
+      name: "example.png",
+      sourceReceiptId: id(5),
+      state: "staged",
+    };
+    expect(ownedAttachmentRefSchema.safeParse(ref).success).toBe(true);
+    expect(ownedAttachmentRefSchema.safeParse({ ...ref, state: "linked" }).success).toBe(false);
+    expect(ownedAttachmentRefSchema.safeParse({ ...ref, state: "linked", projectId, projectRevision: 1 }).success).toBe(
+      true,
+    );
+  });
+  it("rejects ownership and source proofs in browser upload/finalization commands", () => {
+    const c = { requestKey: id(3), name: "example.png", mimeType: "image/png", contentHash: hash };
+    expect(stageHomeAttachmentInputSchema.safeParse(c).success).toBe(true);
+    expect(stageHomeAttachmentInputSchema.safeParse({ ...c, ownerId }).success).toBe(false);
+    const p = {
+      requestKey: id(3),
+      project: { title: "Studio", scope: "complete_brand", context: {} },
+      attachmentIds: [id(4)],
+    };
+    expect(attachedProjectDraftInputSchema.safeParse(p).success).toBe(true);
+    expect(attachedProjectDraftInputSchema.safeParse({ ...p, attachmentIds: [id(4), id(4)] }).success).toBe(false);
+  });
+  it("distinguishes pending, absent, and committed request recovery", () => {
+    const schema = requestLookupSchema(z.strictObject({ id: z.uuid() }));
+    expect(schema.safeParse({ status: "pending", requestKey: id(3) }).success).toBe(true);
+    expect(schema.safeParse({ status: "not_found", receipt: { id: id(4) } }).success).toBe(false);
+  });
 });
 
-describe("attachment exact limits",()=>{
- it("rejects absent configured policy instead of substituting the proposal",()=>{expect(attachmentPolicySchema.safeParse(null).success).toBe(false);expect(attachmentCapabilitySchema.parse(null)).toBeNull();expect(attachmentCapabilitySchema.safeParse(undefined).success).toBe(false);});
- it("accepts the per-file ceiling and rejects the next byte",()=>{const r={id:id(3),ownerId,projectId:null,projectRevision:null,blobVersionId:id(4),contentHash:hash,mimeType:"application/pdf",byteLength:10485760,name:"example.pdf",sourceReceiptId:id(5),state:"staged"};expect(ownedAttachmentRefSchema.safeParse(r).success).toBe(true);expect(ownedAttachmentRefSchema.safeParse({...r,byteLength:10485761}).success).toBe(false);});
+describe("attachment exact limits", () => {
+  it("rejects absent configured policy instead of substituting the proposal", () => {
+    expect(attachmentPolicySchema.safeParse(null).success).toBe(false);
+    expect(attachmentCapabilitySchema.parse(null)).toBeNull();
+    expect(attachmentCapabilitySchema.safeParse(undefined).success).toBe(false);
+  });
+  it("accepts the per-file ceiling and rejects the next byte", () => {
+    const r = {
+      id: id(3),
+      ownerId,
+      projectId: null,
+      projectRevision: null,
+      blobVersionId: id(4),
+      contentHash: hash,
+      mimeType: "application/pdf",
+      byteLength: 10485760,
+      name: "example.pdf",
+      sourceReceiptId: id(5),
+      state: "staged",
+    };
+    expect(ownedAttachmentRefSchema.safeParse(r).success).toBe(true);
+    expect(ownedAttachmentRefSchema.safeParse({ ...r, byteLength: 10485761 }).success).toBe(false);
+  });
 });

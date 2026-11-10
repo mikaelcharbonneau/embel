@@ -9,9 +9,13 @@ import "@/styles/recorded-usage.css";
 
 type Entry = RecordedUsage["entries"][number];
 const labels: Record<Entry["operation"], string> = {
-  "strategy.reformulate": "Strategy · Brief", "strategy.competitors": "Strategy · Competitors",
-  "strategy.audience": "Strategy · Audience", "strategy.positioning": "Strategy · Positioning",
-  "strategy.personality": "Voice · Personality", "naming.generate": "Voice · Name", "strategy.slogan": "Voice · Slogan",
+  "strategy.reformulate": "Strategy · Brief",
+  "strategy.competitors": "Strategy · Competitors",
+  "strategy.audience": "Strategy · Audience",
+  "strategy.positioning": "Strategy · Positioning",
+  "strategy.personality": "Voice · Personality",
+  "naming.generate": "Voice · Name",
+  "strategy.slogan": "Voice · Slogan",
 };
 const notRecorded = "Not recorded for this request.";
 
@@ -24,28 +28,55 @@ function tokensUsed(tokens: Entry["tokens"]) {
 function usageSummary(usage: RecordedUsage) {
   const count = usage.entries.length;
   if (!count) return "No requests yet. Your usage appears here after Embel completes a step for you.";
-  const used = usage.entries.map(entry => tokensUsed(entry.tokens)).filter((value): value is number => value !== null);
+  const used = usage.entries
+    .map((entry) => tokensUsed(entry.tokens))
+    .filter((value): value is number => value !== null);
   const total = used.reduce((sum, value) => sum + BigInt(value), 0n).toLocaleString("en-US");
-  const requests = count === usage.limit ? `Last ${count} requests` : `${count} ${count === 1 ? "request" : "requests"}`;
+  const requests =
+    count === usage.limit ? `Last ${count} requests` : `${count} ${count === 1 ? "request" : "requests"}`;
   return `${requests} · ${!used.length ? "tokens not recorded" : used.length < count ? `at least ${total} tokens used` : `${total} tokens used`}`;
 }
 
 export function RecordedUsageSection({ active = true }: { active?: boolean }) {
   const { session } = useAccountSession();
-  return <section className="recorded-usage" aria-labelledby="recorded-usage-title">
-    {session.status === "ready" ? <OwnedRecordedUsage key={`${session.userId}:${session.generation}`} account={session} active={active} /> : <>
-      <UsageHeader />
-      {session.status === "checking" ? <><p className="sr-only" role="status">Checking your account…</p><PendingUsageFrame /><CoverageNote /></> :
-        <p className="recorded-usage-message" role="status">{session.status === "signed_out" ? "Sign in to see your usage." : "Your usage can’t be shown right now. Check your connection and try again."}</p>}
-    </>}
-  </section>;
+  return (
+    <section className="recorded-usage" aria-labelledby="recorded-usage-title">
+      {session.status === "ready" ? (
+        <OwnedRecordedUsage key={`${session.userId}:${session.generation}`} account={session} active={active} />
+      ) : (
+        <>
+          <UsageHeader />
+          {session.status === "checking" ? (
+            <>
+              <p className="sr-only" role="status">
+                Checking your account…
+              </p>
+              <PendingUsageFrame />
+              <CoverageNote />
+            </>
+          ) : (
+            <p className="recorded-usage-message" role="status">
+              {session.status === "signed_out"
+                ? "Sign in to see your usage."
+                : "Your usage can’t be shown right now. Check your connection and try again."}
+            </p>
+          )}
+        </>
+      )}
+    </section>
+  );
 }
 
 function UsageHeader({ summary, action }: { summary?: string; action?: ReactNode }) {
-  return <header className="recorded-usage-header">
-    <div><h2 id="recorded-usage-title">Recent requests</h2><p className="recorded-usage-summary">{summary ?? "Requests Embel completed for you, newest first."}</p></div>
-    {action}
-  </header>;
+  return (
+    <header className="recorded-usage-header">
+      <div>
+        <h2 id="recorded-usage-title">Recent requests</h2>
+        <p className="recorded-usage-summary">{summary ?? "Requests Embel completed for you, newest first."}</p>
+      </div>
+      {action}
+    </header>
+  );
 }
 
 function CoverageNote() {
@@ -55,27 +86,58 @@ function CoverageNote() {
 function PendingUsageFrame() {
   // Public page capacity only: never carry private row counts, text or measured
   // geometry through account verification. Terminal states remove this frame.
-  return <div className="recorded-usage-pending-frame" aria-hidden="true" inert>
-    {Array.from({ length: RECORDED_USAGE_LIMIT }, (_, index) => <div key={index} className="recorded-usage-pending-slot" />)}
-  </div>;
+  return (
+    <div className="recorded-usage-pending-frame" aria-hidden="true" inert>
+      {Array.from({ length: RECORDED_USAGE_LIMIT }, (_, index) => (
+        <div key={index} className="recorded-usage-pending-slot" />
+      ))}
+    </div>
+  );
 }
 
 function UsageTable({ entries }: { entries: RecordedUsage["entries"] }) {
-  const unrecorded = entries.some(entry => tokensUsed(entry.tokens) === null);
-  return <>
-    <table className="recorded-usage-table">
-      <thead><tr><th scope="col">Step</th><th scope="col">Date</th><th scope="col">Tokens used</th></tr></thead>
-      <tbody>{entries.map(entry => {
-        const used = tokensUsed(entry.tokens);
-        return <tr key={entry.id} className="recorded-usage-entry">
-          <th scope="row">{labels[entry.operation]}</th>
-          <td><BrowserLocalDate dateTime={entry.completedAt} /></td>
-          <td>{used === null ? <><span aria-hidden="true">—</span><span className="sr-only">{notRecorded}</span></> : used.toLocaleString("en-US")}</td>
-        </tr>;
-      })}</tbody>
-    </table>
-    {unrecorded && <p className="recorded-usage-note" aria-hidden="true">— {notRecorded}</p>}
-  </>;
+  const unrecorded = entries.some((entry) => tokensUsed(entry.tokens) === null);
+  return (
+    <>
+      <table className="recorded-usage-table">
+        <thead>
+          <tr>
+            <th scope="col">Step</th>
+            <th scope="col">Date</th>
+            <th scope="col">Tokens used</th>
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map((entry) => {
+            const used = tokensUsed(entry.tokens);
+            return (
+              <tr key={entry.id} className="recorded-usage-entry">
+                <th scope="row">{labels[entry.operation]}</th>
+                <td>
+                  <BrowserLocalDate dateTime={entry.completedAt} />
+                </td>
+                <td>
+                  {used === null ? (
+                    <>
+                      <span aria-hidden="true">—</span>
+                      <span className="sr-only">{notRecorded}</span>
+                    </>
+                  ) : (
+                    used.toLocaleString("en-US")
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {unrecorded && (
+        <p className="recorded-usage-note" aria-hidden="true">
+          — {notRecorded}
+        </p>
+      )}
+    </>
+  );
 }
 
 function OwnedRecordedUsage({ account, active }: { account: VerifiedAccount; active: boolean }) {
@@ -95,47 +157,91 @@ function OwnedRecordedUsage({ account, active }: { account: VerifiedAccount; act
   const committedCycle = useRef<typeof cycle | null>(null);
   useLayoutEffect(() => {
     committedCycle.current = cycle;
-    return () => { committedCycle.current = null; };
+    return () => {
+      committedCycle.current = null;
+    };
   }, [cycle]);
   useEffect(() => {
-    if (!active) { reading.current = false; return; }
+    if (!active) {
+      reading.current = false;
+      return;
+    }
     const controller = new AbortController();
     const epoch = ++readEpoch.current;
     let disposed = false;
     let failed = false;
-    const current = () => !disposed && readEpoch.current === epoch && committedCycle.current === cycle && scope.isCurrent(scope.account);
+    const current = () =>
+      !disposed && readEpoch.current === epoch && committedCycle.current === cycle && scope.isCurrent(scope.account);
     reading.current = true;
     const timeout = setTimeout(() => controller.abort(), 15_000);
-    void accountRequest("/api/usage", recordedUsageSchema, { signal: controller.signal }).then(reply => {
-      if (!current() || controller.signal.aborted) return;
-      if (reply.ownerId !== scope.account.userId) { scope.expire(scope.account); return; }
-      setStored({ scope, data: reply });
-    }).catch(cause => {
-      if (!current()) return;
-      if (cause instanceof AccountRequestError && cause.status === 401) { scope.expire(scope.account); return; }
-      failed = true;
-    }).finally(() => {
-      clearTimeout(timeout);
-      if (current()) { reading.current = false; setSettled({ cycle, error: failed }); }
-    });
+    void accountRequest("/api/usage", recordedUsageSchema, { signal: controller.signal })
+      .then((reply) => {
+        if (!current() || controller.signal.aborted) return;
+        if (reply.ownerId !== scope.account.userId) {
+          scope.expire(scope.account);
+          return;
+        }
+        setStored({ scope, data: reply });
+      })
+      .catch((cause) => {
+        if (!current()) return;
+        if (cause instanceof AccountRequestError && cause.status === 401) {
+          scope.expire(scope.account);
+          return;
+        }
+        failed = true;
+      })
+      .finally(() => {
+        clearTimeout(timeout);
+        if (current()) {
+          reading.current = false;
+          setSettled({ cycle, error: failed });
+        }
+      });
     return () => {
-      disposed = true; controller.abort(); clearTimeout(timeout);
-      readEpoch.current = epoch + 1; reading.current = false;
+      disposed = true;
+      controller.abort();
+      clearTimeout(timeout);
+      readEpoch.current = epoch + 1;
+      reading.current = false;
     };
   }, [active, scope, cycle]);
   function refresh() {
-    if (!active || pending || reading.current || committedCycle.current !== cycle || !scope.isCurrent(scope.account)) return;
-    reading.current = true; setRetry(value => value + 1);
+    if (!active || pending || reading.current || committedCycle.current !== cycle || !scope.isCurrent(scope.account))
+      return;
+    reading.current = true;
+    setRetry((value) => value + 1);
   }
-  return <>
-    <UsageHeader summary={snapshot ? usageSummary(snapshot) : undefined} action={<button type="button" className="button secondary small recorded-usage-refresh" disabled={!active} aria-disabled={!active || pending} onClick={refresh}>Refresh</button>} />
-    {/* Progress is announced, not shown; failures stay visible. */}
-    <p className="sr-only" role="status">{pending ? snapshot ? "Refreshing usage…" : "Loading usage…" : error ? "" : "Usage loaded."}</p>
-    {error && <p className="recorded-usage-error" role="alert">{snapshot
-      ? "Usage couldn’t be refreshed. The list shows the last results. Check your connection and try again."
-      : "Usage couldn’t be loaded. Check your connection and try again."}</p>}
-    {!snapshot && pending && <PendingUsageFrame />}
-    {snapshot && snapshot.entries.length > 0 && <UsageTable entries={snapshot.entries} />}
-    <CoverageNote />
-  </>;
+  return (
+    <>
+      <UsageHeader
+        summary={snapshot ? usageSummary(snapshot) : undefined}
+        action={
+          <button
+            type="button"
+            className="button secondary small recorded-usage-refresh"
+            disabled={!active}
+            aria-disabled={!active || pending}
+            onClick={refresh}
+          >
+            Refresh
+          </button>
+        }
+      />
+      {/* Progress is announced, not shown; failures stay visible. */}
+      <p className="sr-only" role="status">
+        {pending ? (snapshot ? "Refreshing usage…" : "Loading usage…") : error ? "" : "Usage loaded."}
+      </p>
+      {error && (
+        <p className="recorded-usage-error" role="alert">
+          {snapshot
+            ? "Usage couldn’t be refreshed. The list shows the last results. Check your connection and try again."
+            : "Usage couldn’t be loaded. Check your connection and try again."}
+        </p>
+      )}
+      {!snapshot && pending && <PendingUsageFrame />}
+      {snapshot && snapshot.entries.length > 0 && <UsageTable entries={snapshot.entries} />}
+      <CoverageNote />
+    </>
+  );
 }

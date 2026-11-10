@@ -1,53 +1,223 @@
-.auth-card { background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius-panel); padding: 30px; }
-.auth-card h1 { font-size: 28px; letter-spacing: -.7px; }
-.auth-intro { color: var(--secondary); font-size: 13px; line-height: 1.7; margin-top: 11px; }
-.auth-card form { margin-top: 24px; }
-.auth-field { display: block; font-size: var(--font-ui); font-weight: 500; }
-.auth-field + .auth-field { margin-top: 20px; }
-.auth-field input { display: block; width: 100%; margin-top: 8px; padding: 11px 12px; min-height: 44px; color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--paper); font-size: 14px; font-weight: 400; }
-.auth-field input:disabled { background: var(--canvas); color: var(--secondary); }
+.auth-card {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  padding: 30px;
+}
+.auth-card h1 {
+  font-size: 28px;
+  letter-spacing: -0.7px;
+}
+.auth-intro {
+  color: var(--secondary);
+  font-size: 13px;
+  line-height: 1.7;
+  margin-top: 11px;
+}
+.auth-card form {
+  margin-top: 24px;
+}
+.auth-field {
+  display: block;
+  font-size: var(--font-ui);
+  font-weight: 500;
+}
+.auth-field + .auth-field {
+  margin-top: 20px;
+}
+.auth-field input {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 11px 12px;
+  min-height: 44px;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--paper);
+  font-size: 14px;
+  font-weight: 400;
+}
+.auth-field input:disabled {
+  background: var(--canvas);
+  color: var(--secondary);
+}
 /* The show/hide toggle sits over the password input's right edge. The wrapper
    also leaves room for a future "Forgot password?" link beside the label. */
-.auth-password-field { position: relative; }
-.auth-field + .auth-password-field { margin-top: 20px; }
-.auth-password-field input { padding-right: 48px; }
-.auth-password-toggle { position: absolute; bottom: 0; right: 0; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--secondary); }
-.auth-password-toggle:hover:not(:disabled) { color: var(--text); }
-.auth-password-toggle:focus-visible { outline-offset: -6px; }
+.auth-password-field {
+  position: relative;
+}
+.auth-field + .auth-password-field {
+  margin-top: 20px;
+}
+.auth-password-field input {
+  padding-right: 48px;
+}
+.auth-password-toggle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--secondary);
+}
+.auth-password-toggle:hover:not(:disabled) {
+  color: var(--text);
+}
+.auth-password-toggle:focus-visible {
+  outline-offset: -6px;
+}
 /* .text-link centers its text in a 44px target; lift it so the words share the label's line. */
-.auth-forgot-link { position: absolute; top: -12px; right: 0; z-index: 1; font-size: var(--font-ui); font-weight: 500; }
-.auth-submit { width: 100%; justify-content: space-between; margin-top: 24px; }
-.auth-continue { margin-top: 24px; }
-.auth-progress { width: 13px; height: 13px; border: 1.5px solid #ffffff70; border-top-color: var(--paper); border-radius: 50%; animation: auth-spin 800ms linear infinite; }
-.auth-status { color: var(--secondary); font-size: var(--font-ui); text-align: center; margin-top: 12px; }
-.auth-browser-link { display: flex; width: fit-content; margin: 19px auto 0; font-size: var(--font-ui); }
-.auth-unavailable { display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; padding: 13px; background: var(--canvas); border: 1px solid var(--border); border-radius: var(--radius-control); color: var(--secondary); }
-.auth-unavailable p { font-size: var(--font-ui); line-height: 1.65; }
-.auth-unavailable svg { margin-top: 2px; }
-.auth-session-action { color: var(--text); }
-.auth-session-notice { padding: 12px 40px; background: var(--warning-soft); border-bottom: 1px solid var(--warning-border); color: var(--warning); font-size: var(--font-ui); line-height: 1.65; }
-.auth-signout-dialog { width: min(450px, calc(100vw - 40px)); border: 1px solid var(--border); border-radius: var(--radius-panel); background: var(--paper); color: var(--text); padding: 25px; box-shadow: 0 16px 60px #00000020; }
-.auth-signout-dialog::backdrop { background: #19191955; }
-.auth-signout-dialog h2 { font-size: 20px; line-height: 1.4; }
-.auth-signout-dialog p { color: var(--secondary); font-size: var(--font-ui); line-height: 1.75; margin-top: 12px; }
-.auth-dialog-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 9px; margin-top: 24px; }
-@keyframes auth-spin { to { transform: rotate(360deg); } }
-@media (max-width: 760px) { .auth-session-notice { padding: 12px 20px; } }
+.auth-forgot-link {
+  position: absolute;
+  top: -12px;
+  right: 0;
+  z-index: 1;
+  font-size: var(--font-ui);
+  font-weight: 500;
+}
+.auth-submit {
+  width: 100%;
+  justify-content: space-between;
+  margin-top: 24px;
+}
+.auth-continue {
+  margin-top: 24px;
+}
+.auth-progress {
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid #ffffff70;
+  border-top-color: var(--paper);
+  border-radius: 50%;
+  animation: auth-spin 800ms linear infinite;
+}
+.auth-status {
+  color: var(--secondary);
+  font-size: var(--font-ui);
+  text-align: center;
+  margin-top: 12px;
+}
+.auth-browser-link {
+  display: flex;
+  width: fit-content;
+  margin: 19px auto 0;
+  font-size: var(--font-ui);
+}
+.auth-unavailable {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 20px;
+  padding: 13px;
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--secondary);
+}
+.auth-unavailable p {
+  font-size: var(--font-ui);
+  line-height: 1.65;
+}
+.auth-unavailable svg {
+  margin-top: 2px;
+}
+.auth-session-action {
+  color: var(--text);
+}
+.auth-session-notice {
+  padding: 12px 40px;
+  background: var(--warning-soft);
+  border-bottom: 1px solid var(--warning-border);
+  color: var(--warning);
+  font-size: var(--font-ui);
+  line-height: 1.65;
+}
+.auth-signout-dialog {
+  width: min(450px, calc(100vw - 40px));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--paper);
+  color: var(--text);
+  padding: 25px;
+  box-shadow: 0 16px 60px #00000020;
+}
+.auth-signout-dialog::backdrop {
+  background: #19191955;
+}
+.auth-signout-dialog h2 {
+  font-size: 20px;
+  line-height: 1.4;
+}
+.auth-signout-dialog p {
+  color: var(--secondary);
+  font-size: var(--font-ui);
+  line-height: 1.75;
+  margin-top: 12px;
+}
+.auth-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 24px;
+}
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 760px) {
+  .auth-session-notice {
+    padding: 12px 20px;
+  }
+}
 @media (max-width: 540px) {
-  .auth-card { padding: 24px 21px; }
-  .auth-field input { font-size: 16px; }
-  .auth-account-access { gap: 10px; }
-  .auth-account-access .text-link { font-size: var(--font-ui); }
-  .auth-account-access .preview-badge { display: none; }
-  .auth-signout-dialog { padding: 22px; }
+  .auth-card {
+    padding: 24px 21px;
+  }
+  .auth-field input {
+    font-size: 16px;
+  }
+  .auth-account-access {
+    gap: 10px;
+  }
+  .auth-account-access .text-link {
+    font-size: var(--font-ui);
+  }
+  .auth-account-access .preview-badge {
+    display: none;
+  }
+  .auth-signout-dialog {
+    padding: 22px;
+  }
 }
 
 /* Cloudflare Turnstile (shown only when a site key is configured). */
-.auth-captcha { margin-top: 20px; min-height: 65px; }
-.auth-captcha + .auth-submit { margin-top: 16px; }
+.auth-captcha {
+  margin-top: 20px;
+  min-height: 65px;
+}
+.auth-captcha + .auth-submit {
+  margin-top: 16px;
+}
 
 /* Delete account confirmation. */
-.account-delete-dialog { width: min(480px, calc(100vw - 40px)); }
-.account-delete-field { margin-top: 20px; }
-.account-delete-field input { border-radius: var(--radius-control); }
-.auth-signout-dialog p.account-delete-error { color: var(--danger); }
+.account-delete-dialog {
+  width: min(480px, calc(100vw - 40px));
+}
+.account-delete-field {
+  margin-top: 20px;
+}
+.account-delete-field input {
+  border-radius: var(--radius-control);
+}
+.auth-signout-dialog p.account-delete-error {
+  color: var(--danger);
+}

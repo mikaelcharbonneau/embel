@@ -4,7 +4,10 @@ import { errorResponse, privateJson } from "@/server/http/errors";
 export const dynamic = "force-dynamic";
 export async function GET(request: Request, context: { params: Promise<{ projectId: string }> }) {
   try {
-    const auth = await getAuthenticatedContext(), { projectId } = await context.params;
+    const auth = await getAuthenticatedContext(),
+      { projectId } = await context.params;
     return privateJson(await getIdentityReferences(auth, projectId, readIdentityReferenceQuery(request)));
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

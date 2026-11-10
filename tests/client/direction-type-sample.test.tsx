@@ -10,14 +10,24 @@ class TestFace {
   finish!: () => void;
   fail!: () => void;
 
-  constructor(readonly family: string, readonly source: string, readonly descriptors: FontFaceDescriptors) {
+  constructor(
+    readonly family: string,
+    readonly source: string,
+    readonly descriptors: FontFaceDescriptors,
+  ) {
     TestFace.instances.push(this);
   }
 
   load() {
     return new Promise<void>((resolve, reject) => {
-      this.finish = () => { this.status = "loaded"; resolve(); };
-      this.fail = () => { this.status = "error"; reject(Error("Font unavailable")); };
+      this.finish = () => {
+        this.status = "loaded";
+        resolve();
+      };
+      this.fail = () => {
+        this.status = "error";
+        reject(Error("Font unavailable"));
+      };
     });
   }
 }
@@ -69,12 +79,15 @@ describe("saved direction type specimen", () => {
     ["Lora", "Cedar", 900, "normal"],
     ["Lora", "Cedar", 600, "italic"],
     ["Unlisted family", "Cedar", 600, "normal"],
-  ] as const)("uses an explicit unavailable state for unsupported %s / %s / %i / %s", async (family, brandName, weight, style) => {
-    await render(family, brandName, weight, style);
-    expect(host.textContent).toContain("Type sample unavailable");
-    expect(host.querySelector("bdi")).toBeNull();
-    expect(TestFace.instances).toHaveLength(0);
-  });
+  ] as const)(
+    "uses an explicit unavailable state for unsupported %s / %s / %i / %s",
+    async (family, brandName, weight, style) => {
+      await render(family, brandName, weight, style);
+      expect(host.textContent).toContain("Type sample unavailable");
+      expect(host.querySelector("bdi")).toBeNull();
+      expect(TestFace.instances).toHaveLength(0);
+    },
+  );
 
   it("does not show a system-font substitute when the selected local file fails", async () => {
     await render("Lora", "Cedar");

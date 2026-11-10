@@ -18,11 +18,23 @@ describe("verified account session endpoint", () => {
     doubles.cookies.mockResolvedValue({ getAll: () => [], set: vi.fn() });
     doubles.createServerClient.mockReturnValue({ auth: { getUser: doubles.getUser } });
   });
-  afterEach(() => { vi.unstubAllEnvs(); });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
 
   it("returns only the verified user ID and prevents caching", async () => {
     const id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-    doubles.getUser.mockResolvedValue({ data: { user: { id, email: "local-fixture@example.invalid", email_confirmed_at: "2026-10-13T10:00:00Z", user_metadata: { owner: "untrusted" } } }, error: null });
+    doubles.getUser.mockResolvedValue({
+      data: {
+        user: {
+          id,
+          email: "local-fixture@example.invalid",
+          email_confirmed_at: "2026-10-13T10:00:00Z",
+          user_metadata: { owner: "untrusted" },
+        },
+      },
+      error: null,
+    });
     const response = await GET();
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ user: { id } });
@@ -57,17 +69,26 @@ describe("verified account session endpoint", () => {
       expect(await response.json()).toEqual({ authenticated: false });
       expect(response.headers.get("cache-control")).toBe("private, no-store");
     }
-    doubles.getUser.mockResolvedValue({ data: { user: null }, error: { status: 503, message: "private-auth-diagnostic" } });
+    doubles.getUser.mockResolvedValue({
+      data: { user: null },
+      error: { status: 503, message: "private-auth-diagnostic" },
+    });
     expect((await GET({ [SESSION_STATE_HEADER]: "1" })).status).toBe(503);
     const id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-    doubles.getUser.mockResolvedValue({ data: { user: { id, email_confirmed_at: "2026-10-13T10:00:00Z" } }, error: null });
+    doubles.getUser.mockResolvedValue({
+      data: { user: { id, email_confirmed_at: "2026-10-13T10:00:00Z" } },
+      error: null,
+    });
     expect(await (await GET({ [SESSION_STATE_HEADER]: "1" })).json()).toEqual({ user: { id } });
   });
 
   it("never advertises the retired per-customer enrollment, whatever the environment says", async () => {
     vi.stubEnv("EMBEL_ACCOUNT_ENROLLMENT_ENABLED", "true");
     const id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-    doubles.getUser.mockResolvedValue({ data: { user: { id, email_confirmed_at: "2026-10-13T10:00:00Z" } }, error: null });
+    doubles.getUser.mockResolvedValue({
+      data: { user: { id, email_confirmed_at: "2026-10-13T10:00:00Z" } },
+      error: null,
+    });
     expect(await (await GET()).json()).toEqual({ user: { id } });
     expect(doubles.createServerClient).toHaveBeenCalledOnce();
   });
@@ -80,7 +101,10 @@ describe("verified account session endpoint", () => {
 
   it("distinguishes unavailable Auth from signed-out sessions and redacts diagnostics", async () => {
     for (const error of [{ status: 503 }, { status: 429 }, { name: "AuthRetryableFetchError", status: 0 }]) {
-      doubles.getUser.mockResolvedValue({ data: { user: null }, error: { ...error, message: "private-auth-diagnostic" } });
+      doubles.getUser.mockResolvedValue({
+        data: { user: null },
+        error: { ...error, message: "private-auth-diagnostic" },
+      });
       const response = await GET();
       expect(response.status).toBe(503);
       expect(await response.text()).not.toContain("private-auth-diagnostic");

@@ -4,7 +4,15 @@ import { createAccountDraftMemory } from "@/components/workspace/account-draft-m
 import { accountProjectDraft } from "@/components/workspace/project-draft-adapter";
 
 function entry(index: number, dirty = false) {
-  const saved = accountProjectSchema.parse({ id: `aaaaaaaa-1111-4111-8111-${String(index).padStart(12, "0")}`, owner_id: "bbbbbbbb-1111-4111-8111-111111111111", scope: "complete_brand", title: `Local memory fixture ${index}`, current_revision: 1, created_at: "2026-10-02T10:00:00Z", context: {} });
+  const saved = accountProjectSchema.parse({
+    id: `aaaaaaaa-1111-4111-8111-${String(index).padStart(12, "0")}`,
+    owner_id: "bbbbbbbb-1111-4111-8111-111111111111",
+    scope: "complete_brand",
+    title: `Local memory fixture ${index}`,
+    current_revision: 1,
+    created_at: "2026-10-02T10:00:00Z",
+    context: {},
+  });
   const draft = accountProjectDraft(saved);
   if (dirty) draft.namingNotes = "An unsaved note";
   return { generation: 1, ownerId: saved.owner_id, saved, draft, conflict: false };
@@ -31,7 +39,14 @@ describe("bounded account draft memory", () => {
   });
   it("retains unsent conversation text and choices at capacity without treating either as a project PATCH", () => {
     const memory = createAccountDraftMemory();
-    for (let index = 0; index < 20; index++) memory.set({ ...entry(index), guidedInput: index % 2 ? { prompt: "An unsent question", selection: null } : { prompt: "", selection: { turnId: "saved-turn", ids: ["unconfirmed-choice"] } } });
+    for (let index = 0; index < 20; index++)
+      memory.set({
+        ...entry(index),
+        guidedInput:
+          index % 2
+            ? { prompt: "An unsent question", selection: null }
+            : { prompt: "", selection: { turnId: "saved-turn", ids: ["unconfirmed-choice"] } },
+      });
     expect(memory.hasUnsaved()).toBe(true);
     expect(memory.set(entry(20))).toBe(false);
     expect(memory.get(entry(0).saved.id)?.guidedInput?.selection?.ids).toEqual(["unconfirmed-choice"]);

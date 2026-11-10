@@ -7,11 +7,14 @@ import { ApiError } from "../http/errors";
 export async function getVerifiedAccountContext(requestSignal?: AbortSignal) {
   const client = await createRouteAuthClient(requestSignal);
   // Auth server validation; never authorize from getSession() or editable user_metadata.
-  const { data, error } = await client.auth.getUser().catch(() => { throw new ApiError("integration_unavailable"); });
+  const { data, error } = await client.auth.getUser().catch(() => {
+    throw new ApiError("integration_unavailable");
+  });
   if (error && (error.name === "AuthRetryableFetchError" || error.status === 429 || (error.status ?? 0) >= 500)) {
     throw new ApiError("integration_unavailable");
   }
-  if (error || !data.user || data.user.is_anonymous || !data.user.email_confirmed_at) throw new ApiError("unauthenticated");
+  if (error || !data.user || data.user.is_anonymous || !data.user.email_confirmed_at)
+    throw new ApiError("unauthenticated");
   return { client, user: data.user };
 }
 

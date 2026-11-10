@@ -1,5 +1,6 @@
 /* Shared by the Logo, Visual directions and Brand assets workspaces. */
-.frame, :global(.project-workspace):has(.frame) {
+.frame,
+:global(.project-workspace):has(.frame) {
   --branding-gutter: 32px;
   --branding-max-width: 1440px;
   --branding-title-size: 32px;
@@ -23,47 +24,70 @@
   padding-inline: max(var(--branding-gutter), calc((100% - var(--branding-max-width)) / 2 + var(--branding-gutter)));
 }
 
-.frame h1, .frame .title {
+.frame h1,
+.frame .title {
   margin: 0;
   font-size: var(--branding-title-size);
   line-height: 1.2;
   font-weight: 500;
-  letter-spacing: -.03em;
+  letter-spacing: -0.03em;
 }
-.frame h2, .frame .sectionHeading {
+.frame h2,
+.frame .sectionHeading {
   margin: 0;
   font-size: var(--branding-section-size);
   line-height: 1.35;
   font-weight: 500;
-  letter-spacing: -.02em;
+  letter-spacing: -0.02em;
 }
-.frame :is(h3, h4), .frame .subheading {
+.frame :is(h3, h4),
+.frame .subheading {
   margin: 0;
   font-size: var(--branding-subheading-size);
   line-height: 1.4;
   font-weight: 500;
-  letter-spacing: -.01em;
+  letter-spacing: -0.01em;
 }
-.frame .eyebrow, .frame .intro {
+.frame .eyebrow,
+.frame .intro {
   color: var(--secondary, #696965);
   font-weight: 400;
   line-height: 1.5;
   letter-spacing: normal;
 }
-.frame .eyebrow { margin: 0 0 6px; font-size: 12px; }
-.frame .intro { margin: 8px 0 0; font-size: 14px; }
+.frame .eyebrow {
+  margin: 0 0 6px;
+  font-size: 12px;
+}
+.frame .intro {
+  margin: 8px 0 0;
+  font-size: 14px;
+}
 
-.frame button, .frame .actionLink { min-height: var(--branding-action-height); }
-.frame .actionLink { display: inline-flex; align-items: center; justify-content: center; }
+.frame button,
+.frame .actionLink {
+  min-height: var(--branding-action-height);
+}
+.frame .actionLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 
 @media (max-width: 1100px) {
-  .frame, :global(.project-workspace):has(.frame) { --branding-gutter: 24px; }
+  .frame,
+  :global(.project-workspace):has(.frame) {
+    --branding-gutter: 24px;
+  }
 }
 @media (max-width: 760px) {
-  .frame, :global(.project-workspace):has(.frame) {
+  .frame,
+  :global(.project-workspace):has(.frame) {
     --branding-gutter: 16px;
     --branding-title-size: 28px;
     --branding-section-size: 18px;
   }
-  .frame { padding-block: 20px 32px; }
+  .frame {
+    padding-block: 20px 32px;
+  }
 }

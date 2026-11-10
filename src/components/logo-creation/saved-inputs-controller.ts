@@ -1,5 +1,10 @@
 import { logoBriefOutdated, logoSavedInputsSchema, type LogoSavedInputs } from "@/domain/logo-saved-inputs";
-import type { LogoBriefDraft, LogoExpectedHeads, LogoReferenceSelection, LogoStageRevision } from "@/domain/logo-workspace";
+import type {
+  LogoBriefDraft,
+  LogoExpectedHeads,
+  LogoReferenceSelection,
+  LogoStageRevision,
+} from "@/domain/logo-workspace";
 import type { LogoQuoteRequest } from "@/domain/logo-jobs";
 import type { LogoDraftRecord } from "../identity/logo-draft-memory";
 import { AccountRequestError, accountErrorMessage } from "../workspace/account-api";
@@ -33,18 +38,32 @@ type Input = {
 };
 /** Notes usually take seconds; past this the concepts go ahead without the
  * unfinished ones, which join the next set once written. */
-const STYLE_NOTE_WAIT_ROUNDS = 30, STYLE_NOTE_WAIT_MS = 2_000;
+const STYLE_NOTE_WAIT_ROUNDS = 30,
+  STYLE_NOTE_WAIT_MS = 2_000;
 
 const same = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
-const byReference = (rows: readonly LogoReferenceSelection[]) => [...rows].sort((a, b) => a.referenceId.localeCompare(b.referenceId));
-export const logoDraftHasProtectedWork = (draft: LogoDraftRecord) => draft.dirty || draft.conflict || !!draft.vectorDraft || !!draft.directionDraft
-  || !!draft.pendingMutation || !!draft.pendingIntent || !!draft.pendingExport;
+const byReference = (rows: readonly LogoReferenceSelection[]) =>
+  [...rows].sort((a, b) => a.referenceId.localeCompare(b.referenceId));
+export const logoDraftHasProtectedWork = (draft: LogoDraftRecord) =>
+  draft.dirty ||
+  draft.conflict ||
+  !!draft.vectorDraft ||
+  !!draft.directionDraft ||
+  !!draft.pendingMutation ||
+  !!draft.pendingIntent ||
+  !!draft.pendingExport;
 const blockedEdits = "Your logo changes haven’t finished saving. They’re kept. Refresh logo inputs once they’re saved.";
 const changed = "Your brand or logo brief changed. Refresh logo inputs to continue.";
 const noName = "Choose and save a brand name in your project before generating logo concepts.";
 const savedRevisionOf = (revision: LogoStageRevision | null, ref: { id: string; revision: number }, input: Input) =>
-  revision && revision.stage === "brief_references" && revision.id === ref.id && revision.revision === ref.revision
-  && revision.ownerId === input.ownerId && revision.projectId === input.projectId ? revision : null;
+  revision &&
+  revision.stage === "brief_references" &&
+  revision.id === ref.id &&
+  revision.revision === ref.revision &&
+  revision.ownerId === input.ownerId &&
+  revision.projectId === input.projectId
+    ? revision
+    : null;
 
 /** Prepares the saved inputs for new concepts: the latest brand and inspiration,
  * or a brief edited by hand since they last changed, and the liked uploaded
@@ -54,7 +73,11 @@ export async function prepareSavedLogoConcepts(input: Input): Promise<LogoSavedI
   const current = () => !input.signal.aborted && input.isCurrent();
   const captured = input.getDraft();
   if (!current()) return { status: "obsolete" };
-  if (!captured?.workspace || captured.workspace.ownerId !== input.ownerId || captured.workspace.projectId !== input.projectId)
+  if (
+    !captured?.workspace ||
+    captured.workspace.ownerId !== input.ownerId ||
+    captured.workspace.projectId !== input.projectId
+  )
     return { status: "blocked", message: "Your saved logo details could not be loaded. Try again." };
   if (logoDraftHasProtectedWork(captured)) return { status: "blocked", message: blockedEdits };
   const unchanged = () => current() && input.getDraft() === captured;
@@ -65,35 +88,62 @@ export async function prepareSavedLogoConcepts(input: Input): Promise<LogoSavedI
     if (!current()) return { status: "obsolete" };
     if (!unchanged()) return { status: "blocked", message: blockedEdits };
     const parsed = logoSavedInputsSchema.safeParse(raw);
-    if (!parsed.success || parsed.data.ownerId !== input.ownerId || parsed.data.projectId !== input.projectId) throw new AccountRequestError(502);
+    if (!parsed.success || parsed.data.ownerId !== input.ownerId || parsed.data.projectId !== input.projectId)
+      throw new AccountRequestError(502);
     source = parsed.data;
-    if (source.projectRevision !== captured.workspace.heads.projectRevision) return { status: "blocked", message: changed, source };
+    if (source.projectRevision !== captured.workspace.heads.projectRevision)
+      return { status: "blocked", message: changed, source };
     // Liked uploads guide concepts through style notes: request the missing ones
     // once, then wait briefly for them. A note that is unavailable or still
     // being written stays out of this brief rather than holding the click.
-    if (!input.checkOnly && (input.requestStyleNote || input.requestStyleNotes) && input.wait && source.uploadNotes.some(note => note.status === "missing" || note.status === "pending")) {
-      const awaited = new Set(source.uploadNotes.filter(row => row.status === "pending").map(row => row.referenceId));
-      const missing = source.uploadNotes.filter(row => row.status === "missing").map(row => row.referenceId);
+    if (
+      !input.checkOnly &&
+      (input.requestStyleNote || input.requestStyleNotes) &&
+      input.wait &&
+      source.uploadNotes.some((note) => note.status === "missing" || note.status === "pending")
+    ) {
+      const awaited = new Set(
+        source.uploadNotes.filter((row) => row.status === "pending").map((row) => row.referenceId),
+      );
+      const missing = source.uploadNotes.filter((row) => row.status === "missing").map((row) => row.referenceId);
       if (input.requestStyleNotes && missing.length) {
-        try { await input.requestStyleNotes(missing, input.signal); for (const id of missing) awaited.add(id); }
-        catch { if (!current()) return { status: "obsolete" }; }
-      } else if (input.requestStyleNote) for (const referenceId of missing) {
-        try { await input.requestStyleNote(referenceId, captured.workspace.heads, input.signal); awaited.add(referenceId); }
-        catch { if (!current()) return { status: "obsolete" }; }
-      }
+        try {
+          await input.requestStyleNotes(missing, input.signal);
+          for (const id of missing) awaited.add(id);
+        } catch {
+          if (!current()) return { status: "obsolete" };
+        }
+      } else if (input.requestStyleNote)
+        for (const referenceId of missing) {
+          try {
+            await input.requestStyleNote(referenceId, captured.workspace.heads, input.signal);
+            awaited.add(referenceId);
+          } catch {
+            if (!current()) return { status: "obsolete" };
+          }
+        }
       for (let round = 0; awaited.size && round < STYLE_NOTE_WAIT_ROUNDS; round += 1) {
         await input.wait(STYLE_NOTE_WAIT_MS, input.signal);
         if (!current()) return { status: "obsolete" };
         if (!unchanged()) return { status: "blocked", message: blockedEdits };
         const again = logoSavedInputsSchema.safeParse(await input.readSavedInputs(input.signal));
         if (!current()) return { status: "obsolete" };
-        if (!again.success || again.data.ownerId !== input.ownerId || again.data.projectId !== input.projectId) throw new AccountRequestError(502);
+        if (!again.success || again.data.ownerId !== input.ownerId || again.data.projectId !== input.projectId)
+          throw new AccountRequestError(502);
         source = again.data;
-        if (source.projectRevision !== captured.workspace.heads.projectRevision) return { status: "blocked", message: changed, source };
-        if (!source.uploadNotes.some(note => awaited.has(note.referenceId) && (note.status === "pending" || note.status === "missing"))) break;
+        if (source.projectRevision !== captured.workspace.heads.projectRevision)
+          return { status: "blocked", message: changed, source };
+        if (
+          !source.uploadNotes.some(
+            (note) => awaited.has(note.referenceId) && (note.status === "pending" || note.status === "missing"),
+          )
+        )
+          break;
       }
     }
-    const briefRef = captured.workspace.stages.brief_references, currentBrief = briefRef ? captured.brief : null, draft = source.draft;
+    const briefRef = captured.workspace.stages.brief_references,
+      currentBrief = briefRef ? captured.brief : null,
+      draft = source.draft;
     let used: "brand" | "current" = draft ? "brand" : "current";
     if (draft && currentBrief && briefRef && !same(currentBrief, draft)) {
       const saved = savedRevisionOf(await input.readBriefRevision(briefRef.id, input.signal), briefRef, input);
@@ -102,18 +152,26 @@ export async function prepareSavedLogoConcepts(input: Input): Promise<LogoSavedI
       if (!saved) throw new AccountRequestError(502);
       if (!logoBriefOutdated(saved.payload, source)) used = "current";
     }
-    const brief = used === "brand" && draft ? { ...draft, logoTypes: currentBrief?.logoTypes ?? draft.logoTypes } : currentBrief;
+    const brief =
+      used === "brand" && draft ? { ...draft, logoTypes: currentBrief?.logoTypes ?? draft.logoTypes } : currentBrief;
     if (!brief) return { status: "blocked", message: noName, source };
     const needsSave = !currentBrief || !same(currentBrief, brief);
     if (input.checkOnly) {
       const latest = input.getDraft();
-      return { status: "checked", source, outdated: needsSave || !latest || !same(byReference(latest.references), byReference(source.references)) };
+      return {
+        status: "checked",
+        source,
+        outdated: needsSave || !latest || !same(byReference(latest.references), byReference(source.references)),
+      };
     }
     if (needsSave) {
-      if (captured.workspace.capabilities.save.status !== "available") return {
-        status: "blocked", source,
-        message: "Your saved brand and inspiration are ready. Logo saving is unavailable. Check availability again to continue.",
-      };
+      if (captured.workspace.capabilities.save.status !== "available")
+        return {
+          status: "blocked",
+          source,
+          message:
+            "Your saved brand and inspiration are ready. Logo saving is unavailable. Check availability again to continue.",
+        };
       if (!unchanged()) return { status: "blocked", message: blockedEdits, source };
       input.onProgress("saving");
       await input.saveBrief(brief);
@@ -125,34 +183,69 @@ export async function prepareSavedLogoConcepts(input: Input): Promise<LogoSavedI
     const afterBrief = input.getDraft();
     const needsReferences = !afterBrief || !same(byReference(afterBrief.references), references);
     if (needsReferences) {
-      if (!afterBrief?.workspace || afterBrief.workspace.capabilities.save.status !== "available") return {
-        status: "blocked", source,
-        message: "Your liked images are ready. Logo saving is unavailable. Check availability again to continue.",
-      };
+      if (!afterBrief?.workspace || afterBrief.workspace.capabilities.save.status !== "available")
+        return {
+          status: "blocked",
+          source,
+          message: "Your liked images are ready. Logo saving is unavailable. Check availability again to continue.",
+        };
       if (logoDraftHasProtectedWork(afterBrief)) return { status: "blocked", message: blockedEdits, source };
       input.onProgress("saving");
       await input.saveReferences(references);
       if (!current()) return { status: "obsolete" };
     }
-    const acknowledged = input.getDraft(), saves = Number(needsSave) + Number(needsReferences);
-    if (!acknowledged?.workspace || acknowledged.workspace.ownerId !== input.ownerId || acknowledged.workspace.projectId !== input.projectId
-      || acknowledged.workspace.heads.projectRevision !== source.projectRevision || logoDraftHasProtectedWork(acknowledged)
-      || !same(acknowledged.brief, brief) || !same(byReference(acknowledged.references), references)
-      || saves > 0 && acknowledged.workspace.heads.stageRevisions.brief_references !== captured.workspace.heads.stageRevisions.brief_references + saves)
-      return { status: "blocked", source, message: "We couldn’t confirm your logo brief was saved. Check the save below before continuing." };
+    const acknowledged = input.getDraft(),
+      saves = Number(needsSave) + Number(needsReferences);
+    if (
+      !acknowledged?.workspace ||
+      acknowledged.workspace.ownerId !== input.ownerId ||
+      acknowledged.workspace.projectId !== input.projectId ||
+      acknowledged.workspace.heads.projectRevision !== source.projectRevision ||
+      logoDraftHasProtectedWork(acknowledged) ||
+      !same(acknowledged.brief, brief) ||
+      !same(byReference(acknowledged.references), references) ||
+      (saves > 0 &&
+        acknowledged.workspace.heads.stageRevisions.brief_references !==
+          captured.workspace.heads.stageRevisions.brief_references + saves)
+    )
+      return {
+        status: "blocked",
+        source,
+        message: "We couldn’t confirm your logo brief was saved. Check the save below before continuing.",
+      };
     const ref = acknowledged.workspace.stages.brief_references;
-    if (!ref) return { status: "blocked", source, message: "Your logo brief could not be saved. Refresh logo inputs to try again." };
+    if (!ref)
+      return {
+        status: "blocked",
+        source,
+        message: "Your logo brief could not be saved. Refresh logo inputs to try again.",
+      };
     const revision = savedRevisionOf(await input.readBriefRevision(ref.id, input.signal), ref, input);
     if (!current()) return { status: "obsolete" };
     if (input.getDraft() !== acknowledged) return { status: "blocked", message: blockedEdits, source };
     if (!revision) throw new AccountRequestError(502);
     const { name, activity, audience, personality, logoTypes } = revision.payload;
     if (!same({ name, activity, audience, personality, logoTypes }, brief)) throw new AccountRequestError(502);
-    return { status: "prepared", source, used, request: { operation: "concepts", expected: acknowledged.workspace.heads,
-      briefRevisionId: ref.id, referenceSnapshotId: revision.payload.referenceSnapshotId } };
+    return {
+      status: "prepared",
+      source,
+      used,
+      request: {
+        operation: "concepts",
+        expected: acknowledged.workspace.heads,
+        briefRevisionId: ref.id,
+        referenceSnapshotId: revision.payload.referenceSnapshotId,
+      },
+    };
   } catch (error) {
     if (!current()) return { status: "obsolete" };
-    return { status: "blocked", ...(source ? { source } : {}), message: error instanceof AccountRequestError && error.status === 409
-      ? changed : `${accountErrorMessage(error)} Your saved brand and earlier logo work are kept.` };
+    return {
+      status: "blocked",
+      ...(source ? { source } : {}),
+      message:
+        error instanceof AccountRequestError && error.status === 409
+          ? changed
+          : `${accountErrorMessage(error)} Your saved brand and earlier logo work are kept.`,
+    };
   }
 }

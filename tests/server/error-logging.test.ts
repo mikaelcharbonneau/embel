@@ -9,9 +9,13 @@ let lines: string[];
 
 beforeEach(() => {
   lines = [];
-  vi.spyOn(console, "error").mockImplementation((line: unknown) => { lines.push(String(line)); });
+  vi.spyOn(console, "error").mockImplementation((line: unknown) => {
+    lines.push(String(line));
+  });
 });
-afterEach(() => { vi.restoreAllMocks(); });
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("server error logging", () => {
   it("logs an unexpected error's type, code and locations, never its message", async () => {
@@ -38,15 +42,31 @@ describe("server error logging", () => {
   it("drops codes that could carry free text and survives a broken logger", () => {
     logServerError("check", Object.assign(new Error(secret), { code: "has spaces and private text" }));
     expect(JSON.parse(lines[0]!).code).toBeUndefined();
-    vi.mocked(console.error).mockImplementation(() => { throw new Error("logger outage"); });
+    vi.mocked(console.error).mockImplementation(() => {
+      throw new Error("logger outage");
+    });
     expect(errorResponse(new Error(secret)).status).toBe(500);
   });
   it("logs a rendering error by route pattern, never the real path or headers", async () => {
-    await onRequestError(Object.assign(new Error(secret), { digest: "123456" }),
+    await onRequestError(
+      Object.assign(new Error(secret), { digest: "123456" }),
       { path: "/auth/callback?code=private-one-time-code", method: "GET", headers: { cookie: "sb-private-cookie" } },
-      { routerKind: "App Router", routePath: "/auth/callback", routeType: "route", renderSource: undefined, revalidateReason: undefined } as never);
+      {
+        routerKind: "App Router",
+        routePath: "/auth/callback",
+        routeType: "route",
+        renderSource: undefined,
+        revalidateReason: undefined,
+      } as never,
+    );
     expect(lines).toHaveLength(1);
     expect(lines[0]).not.toContain("private");
-    expect(JSON.parse(lines[0]!)).toMatchObject({ event: "request_error", routePath: "/auth/callback", routeType: "route", method: "GET", digest: "123456" });
+    expect(JSON.parse(lines[0]!)).toMatchObject({
+      event: "request_error",
+      routePath: "/auth/callback",
+      routeType: "route",
+      method: "GET",
+      digest: "123456",
+    });
   });
 });

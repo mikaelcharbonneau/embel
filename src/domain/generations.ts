@@ -4,7 +4,10 @@ import { z } from "zod";
  * Never the frozen input, the workflow id or any cost (docs/generation-engine.md). */
 export const generationRunSchema = z.strictObject({
   id: z.uuid(),
-  kind: z.string().regex(/^[a-z]+(\.[a-z_]+)+$/u).max(64),
+  kind: z
+    .string()
+    .regex(/^[a-z]+(\.[a-z_]+)+$/u)
+    .max(64),
   status: z.enum(["queued", "running", "succeeded", "failed", "cancelled"]),
   credits: z.number().int().nonnegative(),
   errorCode: z.string().max(64).nullable(),
@@ -20,5 +23,9 @@ export const generationRunResponseSchema = z.strictObject({ run: generationRunSc
 export const generationListResponseSchema = z.strictObject({ runs: z.array(generationRunSchema).max(64) });
 
 /** Credits, never prices. */
-export const creditSummarySchema = z.strictObject({ planId: z.string(), balance: z.number().int(), periodEnd: z.string() });
+export const creditSummarySchema = z.strictObject({
+  planId: z.string(),
+  balance: z.number().int(),
+  periodEnd: z.string(),
+});
 export const creditSummaryResponseSchema = z.strictObject({ credits: creditSummarySchema });

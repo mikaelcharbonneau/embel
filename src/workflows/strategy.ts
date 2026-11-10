@@ -1,6 +1,12 @@
 import { getWorkflowMetadata, sleep } from "workflow";
 import { checkRun, claimRun, finishRun, type ClaimedRun } from "./engine-steps";
-import { createStrategyResponse, pollStrategyResponse, prepareStrategy, settleStrategyResponse, stopStrategyResponse } from "./strategy-steps";
+import {
+  createStrategyResponse,
+  pollStrategyResponse,
+  prepareStrategy,
+  settleStrategyResponse,
+  stopStrategyResponse,
+} from "./strategy-steps";
 
 /** One paid attempt, plus one corrective re-prompt when the reply was unusable. */
 const MAX_ATTEMPTS = 2;
@@ -20,7 +26,8 @@ export async function strategyGeneration(runId: string) {
       // No paid call starts after a cancel or while the engine is paused.
       const state = await checkRun(runId);
       if (state.status !== "running") return { status: state.status };
-      if (state.cancelRequested || state.paused) return await finishRun(runId, "cancelled", state.paused ? "generation_paused" : "cancelled");
+      if (state.cancelRequested || state.paused)
+        return await finishRun(runId, "cancelled", state.paused ? "generation_paused" : "cancelled");
       const { responseId } = await createStrategyResponse(prepared, attempt, correction);
       const result = await followResponse(run, responseId, attempt);
       if (result.state === "succeeded") return await finishRun(runId, "succeeded", null);

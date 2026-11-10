@@ -6,6 +6,10 @@ type RouteContext = { params: Promise<{ projectId: string }> };
 export async function GET(request: Request, context: RouteContext) {
   try {
     const auth = await getAuthenticatedContext();
-    return privateJson(await getCustomProjectNames(auth, (await context.params).projectId, readNamingQuery(request, "batches")));
-  } catch (error) { return errorResponse(error); }
+    return privateJson(
+      await getCustomProjectNames(auth, (await context.params).projectId, readNamingQuery(request, "batches")),
+    );
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

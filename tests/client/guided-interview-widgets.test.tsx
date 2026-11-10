@@ -2,30 +2,85 @@
 import { act, createElement, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { GuidedChoiceWidget, ResearchLoadingScreen, type GuidedChoiceWidgetProps } from "@/components/workspace/guided-interview-widgets";
+import {
+  GuidedChoiceWidget,
+  ResearchLoadingScreen,
+  type GuidedChoiceWidgetProps,
+} from "@/components/workspace/guided-interview-widgets";
 import type { GuidedOption, GuidedReply } from "@/domain/guided-interview";
 
 type ChoiceReply = Extract<GuidedReply, { kind: "choices" }>;
 const competitorId = "11111111-1111-4111-8111-111111111111";
 const competitor: GuidedOption = {
-  id: competitorId, stage: "competitors", label: "Fixture Studio", description: "Synthetic competitor description for this local test.",
-  recommended: true, recommendationReason: "Its product range addresses the same need.",
-  payload: { id: competitorId, name: "Fixture Studio", relevance: "A useful comparison for everyday objects.", url: "https://studio.example.test", origin: "research", selected: false,
-    sources: [{ url: "https://studio.example.test/about", title: "Fixture Studio: About", retrievedAt: "2026-10-14T10:00:00.000Z" }] },
+  id: competitorId,
+  stage: "competitors",
+  label: "Fixture Studio",
+  description: "Synthetic competitor description for this local test.",
+  recommended: true,
+  recommendationReason: "Its product range addresses the same need.",
+  payload: {
+    id: competitorId,
+    name: "Fixture Studio",
+    relevance: "A useful comparison for everyday objects.",
+    url: "https://studio.example.test",
+    origin: "research",
+    selected: false,
+    sources: [
+      {
+        url: "https://studio.example.test/about",
+        title: "Fixture Studio: About",
+        retrievedAt: "2026-10-14T10:00:00.000Z",
+      },
+    ],
+  },
 };
 const audienceId = "22222222-2222-4222-8222-222222222222";
 const audience: GuidedOption = {
-  id: audienceId, stage: "audience", label: "People furnishing their first home", description: "Buyers building a lasting collection from a small starting budget.",
-  recommended: true, recommendationReason: "Your practical, durable range meets their immediate priorities.",
-  payload: { id: audienceId, label: "People furnishing their first home", needs: ["Affordable essentials", "Pieces that last"], reason: "They are making several considered purchases at once.", origin: "proposal", selected: false, sources: [] },
+  id: audienceId,
+  stage: "audience",
+  label: "People furnishing their first home",
+  description: "Buyers building a lasting collection from a small starting budget.",
+  recommended: true,
+  recommendationReason: "Your practical, durable range meets their immediate priorities.",
+  payload: {
+    id: audienceId,
+    label: "People furnishing their first home",
+    needs: ["Affordable essentials", "Pieces that last"],
+    reason: "They are making several considered purchases at once.",
+    origin: "proposal",
+    selected: false,
+    sources: [],
+  },
 };
 const personality: GuidedOption = {
-  id: "warm-confident", stage: "personality", label: "Warm and quietly confident", description: "A considered, approachable voice with a clear point of view.",
-  recommended: true, recommendationReason: "This supports the audience's wish for lasting usefulness.",
-  payload: { profile: { sincerity: 75, excitement: 25, competence: 65, sophistication: 40, ruggedness: 15 }, traits: ["Warm", "Thoughtful", "Confident"], expression: "Welcoming language, restrained layouts, and tactile materials.", toneExample: "Good things, chosen for every day." },
+  id: "warm-confident",
+  stage: "personality",
+  label: "Warm and quietly confident",
+  description: "A considered, approachable voice with a clear point of view.",
+  recommended: true,
+  recommendationReason: "This supports the audience's wish for lasting usefulness.",
+  payload: {
+    profile: { sincerity: 75, excitement: 25, competence: 65, sophistication: 40, ruggedness: 15 },
+    traits: ["Warm", "Thoughtful", "Confident"],
+    expression: "Welcoming language, restrained layouts, and tactile materials.",
+    toneExample: "Good things, chosen for every day.",
+  },
 };
 function choices(option: GuidedOption, additional: GuidedOption[] = []): ChoiceReply {
-  return { kind: "choices", turnId: "fixture-turn", stage: option.stage, message: "A synthetic assistant reply.", question: option.stage === "competitors" ? "Which brands belong in your comparison?" : option.stage === "audience" ? "Who are you here for?" : "How should your brand feel?", selectionMode: option.stage === "personality" ? "single" : "multiple", options: [option, ...additional] };
+  return {
+    kind: "choices",
+    turnId: "fixture-turn",
+    stage: option.stage,
+    message: "A synthetic assistant reply.",
+    question:
+      option.stage === "competitors"
+        ? "Which brands belong in your comparison?"
+        : option.stage === "audience"
+          ? "Who are you here for?"
+          : "How should your brand feel?",
+    selectionMode: option.stage === "personality" ? "single" : "multiple",
+    options: [option, ...additional],
+  };
 }
 
 let host: HTMLDivElement;
@@ -34,25 +89,55 @@ const onSelectionChange = vi.fn<(ids: string[]) => void>();
 const onContinue = vi.fn();
 function Harness({ reply, initialSelectedIds = [] }: { reply: ChoiceReply; initialSelectedIds?: string[] }) {
   const [selectedIds, setSelectedIds] = useState(initialSelectedIds);
-  return <GuidedChoiceWidget reply={reply} selectedIds={selectedIds} onSelectionChange={(ids) => { onSelectionChange(ids); setSelectedIds(ids); }} onContinue={onContinue} />;
+  return (
+    <GuidedChoiceWidget
+      reply={reply}
+      selectedIds={selectedIds}
+      onSelectionChange={(ids) => {
+        onSelectionChange(ids);
+        setSelectedIds(ids);
+      }}
+      onContinue={onContinue}
+    />
+  );
 }
 async function render(reply = choices(competitor), props: Partial<GuidedChoiceWidgetProps> = {}) {
-  await act(async () => root.render(createElement(GuidedChoiceWidget, { reply, selectedIds: [], onSelectionChange, onContinue, ...props })));
+  await act(async () =>
+    root.render(createElement(GuidedChoiceWidget, { reply, selectedIds: [], onSelectionChange, onContinue, ...props })),
+  );
 }
-function continueButton() { return [...host.querySelectorAll("button")].find((button) => button.textContent === "Continue")!; }
+function continueButton() {
+  return [...host.querySelectorAll("button")].find((button) => button.textContent === "Continue")!;
+}
 beforeEach(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
-  onSelectionChange.mockReset(); onContinue.mockReset();
-  host = document.createElement("div"); document.body.append(host); root = createRoot(host);
+  onSelectionChange.mockReset();
+  onContinue.mockReset();
+  host = document.createElement("div");
+  document.body.append(host);
+  root = createRoot(host);
 });
-afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
+afterEach(async () => {
+  await act(async () => root.unmount());
+  host.remove();
+});
 
 describe("guided interview choice controls", () => {
   it("marks recommendations on compact competitor cards without selecting or confirming them", async () => {
-    const other: GuidedOption = { ...competitor, id: "44444444-4444-4444-8444-444444444444", label: "Other Studio", recommended: false, recommendationReason: null,
-      payload: { ...competitor.payload, id: "44444444-4444-4444-8444-444444444444", name: "Other Studio" } };
+    const other: GuidedOption = {
+      ...competitor,
+      id: "44444444-4444-4444-8444-444444444444",
+      label: "Other Studio",
+      recommended: false,
+      recommendationReason: null,
+      payload: { ...competitor.payload, id: "44444444-4444-4444-8444-444444444444", name: "Other Studio" },
+    };
     await render(choices(competitor, [other]));
-    expect([...host.querySelectorAll(".guided-choice-recommended")].map(badge => badge.closest(".guided-choice-card")?.textContent)).toEqual([expect.stringContaining("Fixture Studio")]);
+    expect(
+      [...host.querySelectorAll(".guided-choice-recommended")].map(
+        (badge) => badge.closest(".guided-choice-card")?.textContent,
+      ),
+    ).toEqual([expect.stringContaining("Fixture Studio")]);
     // Competitor cards stay compact: the recommendation reason is not repeated in a box.
     expect(host.textContent).not.toContain(competitor.recommendationReason);
     expect(host.querySelector<HTMLInputElement>("input")?.checked).toBe(false);
@@ -63,7 +148,10 @@ describe("guided interview choice controls", () => {
   });
 
   it("leaves out the badge when every card is recommended, and a reason that repeats the description", async () => {
-    const repeated: GuidedOption = { ...competitor, payload: { ...competitor.payload, relevance: "Synthetic competitor description for this local test." } };
+    const repeated: GuidedOption = {
+      ...competitor,
+      payload: { ...competitor.payload, relevance: "Synthetic competitor description for this local test." },
+    };
     await render(choices(repeated));
     expect(host.querySelector(".guided-choice-recommended")).toBeNull();
     expect(host.textContent).not.toContain("Why it matters");
@@ -72,7 +160,14 @@ describe("guided interview choice controls", () => {
   });
 
   it("keeps multi-select choices editable until Continue explicitly confirms them", async () => {
-    const second: GuidedOption = { ...audience, id: "33333333-3333-4333-8333-333333333333", label: "Thoughtful gift buyers", recommended: false, recommendationReason: null, payload: { ...audience.payload, id: "33333333-3333-4333-8333-333333333333" } };
+    const second: GuidedOption = {
+      ...audience,
+      id: "33333333-3333-4333-8333-333333333333",
+      label: "Thoughtful gift buyers",
+      recommended: false,
+      recommendationReason: null,
+      payload: { ...audience.payload, id: "33333333-3333-4333-8333-333333333333" },
+    };
     await act(async () => root.render(<Harness reply={choices(audience, [second])} />));
     const inputs = host.querySelectorAll<HTMLInputElement>("input");
     await act(async () => inputs[0]!.click());
@@ -87,7 +182,13 @@ describe("guided interview choice controls", () => {
   });
 
   it("uses one native radio group for personality and replaces the earlier selection", async () => {
-    const second: GuidedOption = { ...personality, id: "energetic-expressive", label: "Energetic and expressive", recommended: false, recommendationReason: null };
+    const second: GuidedOption = {
+      ...personality,
+      id: "energetic-expressive",
+      label: "Energetic and expressive",
+      recommended: false,
+      recommendationReason: null,
+    };
     await act(async () => root.render(<Harness reply={choices(personality, [second])} />));
     const inputs = host.querySelectorAll<HTMLInputElement>('input[type="radio"]');
     expect(inputs.length).toBe(2);
@@ -114,12 +215,18 @@ describe("guided interview choice controls", () => {
   it("opens evidence separately from the competitor selection", async () => {
     await render();
     const links = [...host.querySelectorAll<HTMLAnchorElement>("a")];
-    expect(links.map((link) => link.href)).toEqual(["https://studio.example.test/", "https://studio.example.test/about"]);
+    expect(links.map((link) => link.href)).toEqual([
+      "https://studio.example.test/",
+      "https://studio.example.test/about",
+    ]);
     for (const link of links) {
       expect(link.closest("label")).toBeNull();
       expect(link.target).toBe("_blank");
       expect(link.rel).toContain("noopener");
-      await act(async () => { link.addEventListener("click", (event) => event.preventDefault(), { once: true }); link.click(); });
+      await act(async () => {
+        link.addEventListener("click", (event) => event.preventDefault(), { once: true });
+        link.click();
+      });
     }
     expect(host.querySelector<HTMLInputElement>("input")?.checked).toBe(false);
     expect(onSelectionChange).not.toHaveBeenCalled();
@@ -127,7 +234,16 @@ describe("guided interview choice controls", () => {
   });
 
   it("does not render unsafe provider URLs as links", async () => {
-    await render(choices({ ...competitor, payload: { ...competitor.payload, url: "javascript:alert(1)", sources: [{ url: "data:text/html,unsafe", title: "Unsafe", retrievedAt: "2026-10-14T10:00:00.000Z" }] } }));
+    await render(
+      choices({
+        ...competitor,
+        payload: {
+          ...competitor.payload,
+          url: "javascript:alert(1)",
+          sources: [{ url: "data:text/html,unsafe", title: "Unsafe", retrievedAt: "2026-10-14T10:00:00.000Z" }],
+        },
+      }),
+    );
     expect(host.querySelector("a")).toBeNull();
     expect(host.textContent).toContain(competitor.description);
   });
@@ -137,7 +253,9 @@ describe("guided interview choice controls", () => {
     const input = host.querySelector<HTMLInputElement>("input")!;
     expect(input.labels?.length).toBe(1);
     expect(document.getElementById(input.getAttribute("aria-labelledby")!)?.textContent).toBe(audience.label);
-    expect(document.getElementById(input.getAttribute("aria-describedby")!)?.textContent).toContain(audience.description);
+    expect(document.getElementById(input.getAttribute("aria-describedby")!)?.textContent).toContain(
+      audience.description,
+    );
     expect(host.querySelector("legend")?.textContent).toBe("Who are you here for?");
     expect(input.disabled).toBe(true);
     expect(continueButton().disabled).toBe(true);
@@ -171,7 +289,9 @@ describe("guided interview choice controls", () => {
 describe("research loading screen", () => {
   it("uses the approved logo and a live research message with an explicit cancellation action", async () => {
     const onCancel = vi.fn();
-    await act(async () => root.render(<ResearchLoadingScreen message="Checking relevant brand sources." onCancel={onCancel} />));
+    await act(async () =>
+      root.render(<ResearchLoadingScreen message="Checking relevant brand sources." onCancel={onCancel} />),
+    );
     expect(host.querySelector<HTMLImageElement>("img")?.getAttribute("src")).toBe("/embel-mark.svg");
     expect(host.querySelector('[role="status"]')?.textContent).toContain("Checking relevant brand sources.");
     expect(host.querySelector("svg")).toBeNull();

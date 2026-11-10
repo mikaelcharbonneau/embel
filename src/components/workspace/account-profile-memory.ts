@@ -18,22 +18,44 @@ export function createAccountProfileMemory() {
   let owner: string | null = null;
   let workspace: ProfileWorkspace | null = null;
   const listeners = new Set<() => void>();
-  const notify = () => { for (const listener of listeners) listener(); };
+  const notify = () => {
+    for (const listener of listeners) listener();
+  };
   const admits = (account: Account) => bound?.userId === account.userId && bound.generation === account.generation;
   return {
     bind(account: Account | null) {
       bound = account;
-      if (account && owner !== account.userId) { owner = account.userId; workspace = null; }
+      if (account && owner !== account.userId) {
+        owner = account.userId;
+        workspace = null;
+      }
       notify();
     },
-    get: (account: Account) => admits(account) ? workspace : null,
+    get: (account: Account) => (admits(account) ? workspace : null),
     set(account: Account, next: ProfileWorkspace) {
-      if (!admits(account) || next.saved.ownerId !== account.userId || (next.latest && next.latest.ownerId !== account.userId)) return false;
-      workspace = { ...next, values: { ...next.values } }; notify(); return true;
+      if (
+        !admits(account) ||
+        next.saved.ownerId !== account.userId ||
+        (next.latest && next.latest.ownerId !== account.userId)
+      )
+        return false;
+      workspace = { ...next, values: { ...next.values } };
+      notify();
+      return true;
     },
-    clear() { workspace = null; owner = null; bound = null; notify(); },
+    clear() {
+      workspace = null;
+      owner = null;
+      bound = null;
+      notify();
+    },
     hasUnsaved: () => workspace !== null && profileHasEdits(workspace),
-    subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
+    subscribe(listener: () => void) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
   };
 }
 

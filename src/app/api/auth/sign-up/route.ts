@@ -21,13 +21,22 @@ export async function POST(request: Request) {
     assertMutationOrigin(request, origin);
     const { captchaToken, ...credentials } = await readJson(request, credentialsSchema, 8192);
     const { client, commitCookies } = await createAuthTransitionClient(request.signal);
-    const { data, error } = await client.auth.signUp({
-      ...credentials, options: { emailRedirectTo: `${origin}/auth/callback`, ...captchaOptions(captchaToken) },
-    }).catch(() => { throw new ApiError("integration_unavailable"); });
+    const { data, error } = await client.auth
+      .signUp({
+        ...credentials,
+        options: { emailRedirectTo: `${origin}/auth/callback`, ...captchaOptions(captchaToken) },
+      })
+      .catch(() => {
+        throw new ApiError("integration_unavailable");
+      });
     // Both provider duplicate errors and obfuscated duplicate-user successes
     // have the same public response as a new email awaiting confirmation.
     if (error) {
-      if ((error.status === 400 || error.status === 422) && (error.code === "user_already_exists" || error.code === "email_exists")) return privateJson(confirmation);
+      if (
+        (error.status === 400 || error.status === 422) &&
+        (error.code === "user_already_exists" || error.code === "email_exists")
+      )
+        return privateJson(confirmation);
       throw signUpFailure(error);
     }
     if (!data.user || data.user.is_anonymous) throw new ApiError("signup_failed");
@@ -42,5 +51,7 @@ export async function POST(request: Request) {
     // PKCE verifier cookies must survive until the email is opened in this browser.
     commitCookies();
     return privateJson(confirmation);
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

@@ -1,0 +1,29 @@
+# The format scripts only target TypeScript, JavaScript and CSS source.
+# Generated, vendored and byte-sensitive paths are excluded here.
+node_modules/
+.next/
+dist/
+coverage/
+playwright-report/
+test-results/
+.references/
+.tmp/
+.local-fluid/
+.embel-dev/
+.vercel/
+.claude/
+.codex/
+next-env.d.ts
+package-lock.json
+
+# SQL, migrations and their archives: hashed and byte-compared, never formatted.
+supabase/
+
+# Documentation and archives
+docs/
+
+# Static assets (fonts, SVG, images, vendored files)
+public/
+
+# Read as text by tests/client/ui-restoration.test.tsx with exact selector matching.
+src/styles/globals.css

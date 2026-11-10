@@ -8,14 +8,21 @@ const AUTH_PAGES = ["/sign-in", "/sign-up", "/forgot-password", "/reset-password
 /** Production credentials belong to the configured site, not its deployment aliases. */
 export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  if (process.env.VERCEL !== "1" || process.env.VERCEL_ENV !== "production" ||
-      !["GET", "HEAD"].includes(request.method) || !AUTH_PAGES.includes(path)) {
+  if (
+    process.env.VERCEL !== "1" ||
+    process.env.VERCEL_ENV !== "production" ||
+    !["GET", "HEAD"].includes(request.method) ||
+    !AUTH_PAGES.includes(path)
+  ) {
     return NextResponse.next();
   }
 
   let origin: string;
-  try { origin = getApplicationOrigin(); }
-  catch { return NextResponse.next(); }
+  try {
+    origin = getApplicationOrigin();
+  } catch {
+    return NextResponse.next();
+  }
   if (request.nextUrl.origin === origin) return NextResponse.next();
 
   // Only navigation moves. API bodies, callbacks and browser draft pages retain

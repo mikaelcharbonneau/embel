@@ -31,7 +31,8 @@ const MAX_FILES = 5_000;
 
 /** Internal bookkeeping that is not the person's data: provider costs, worker
  * leases, workflow and idempotency identifiers, internal plans. */
-const INTERNAL_FIELD = /(^|_)cost(_|$)|microusd|^lease_|_lease$|workflow_run_id|idempotency_key|provider_response_id|^plan_(manifest|fingerprint)$|^worker_id$|^policy_identity$/u;
+const INTERNAL_FIELD =
+  /(^|_)cost(_|$)|microusd|^lease_|_lease$|workflow_run_id|idempotency_key|provider_response_id|^plan_(manifest|fingerprint)$|^worker_id$|^policy_identity$/u;
 
 export type ExportTable = { table: string; keyColumns: string[] };
 export interface AccountExportSource {
@@ -43,18 +44,33 @@ export interface AccountExportSource {
 
 export function exportRow(table: string, row: Record<string, unknown>): Record<string, unknown> | null {
   // "sent.*" outputs mark a paid call before it is sent; internal, like publicRun hides them.
-  if (table === "generation_outputs" && typeof row.output_key === "string" && row.output_key.startsWith("sent.")) return null;
+  if (table === "generation_outputs" && typeof row.output_key === "string" && row.output_key.startsWith("sent."))
+    return null;
   return Object.fromEntries(Object.entries(row).filter(([key]) => !INTERNAL_FIELD.test(key)));
 }
 
 const extensions: Record<string, string> = {
-  "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/svg+xml": "svg", "image/gif": "gif",
-  "application/pdf": "pdf", "application/zip": "zip", "application/json": "json", "text/plain": "txt",
-  "font/woff2": "woff2", "font/woff": "woff", "font/ttf": "ttf", "font/otf": "otf",
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "image/svg+xml": "svg",
+  "image/gif": "gif",
+  "application/pdf": "pdf",
+  "application/zip": "zip",
+  "application/json": "json",
+  "text/plain": "txt",
+  "font/woff2": "woff2",
+  "font/woff": "woff",
+  "font/ttf": "ttf",
+  "font/otf": "otf",
 };
 /** ZIP path for one Storage object: the path after the owner prefix, plus an extension. */
 export function exportFileName(ownerId: string, path: string, mimeType: string) {
-  const relative = path.slice(ownerId.length + 1).split("/").filter(part => part && part !== "." && part !== "..").join("/");
+  const relative = path
+    .slice(ownerId.length + 1)
+    .split("/")
+    .filter((part) => part && part !== "." && part !== "..")
+    .join("/");
   const extension = extensions[mimeType.split(";", 1)[0]!.trim().toLowerCase()];
   return `files/${relative}${extension ? `.${extension}` : ""}`;
 }
@@ -79,30 +95,69 @@ function pacedStream(build: (write: (chunk: Uint8Array) => void, room: () => Pro
   let wake: (() => void) | null = null;
   let cancelled = false;
   let controller!: ReadableStreamDefaultController<Uint8Array>;
-  const stream = new ReadableStream<Uint8Array>({
-    start(c) { controller = c; },
-    pull() { wake?.(); wake = null; },
-    // The person closed the page: stop reading files at the next step.
-    cancel() { cancelled = true; wake?.(); wake = null; },
-  }, { highWaterMark: 4 });
+  const stream = new ReadableStream<Uint8Array>(
+    {
+      start(c) {
+        controller = c;
+      },
+      pull() {
+        wake?.();
+        wake = null;
+      },
+      // The person closed the page: stop reading files at the next step.
+      cancel() {
+        cancelled = true;
+        wake?.();
+        wake = null;
+      },
+    },
+    { highWaterMark: 4 },
+  );
   const stopped = new Error("account_export_cancelled");
-  const room = () => cancelled ? Promise.reject(stopped)
-    : (controller.desiredSize ?? 1) > 0 ? Promise.resolve()
-    : new Promise<void>((resolve, reject) => { wake = () => cancelled ? reject(stopped) : resolve(); });
-  void build(chunk => { if (!cancelled) controller.enqueue(chunk); }, room).then(() => { if (!cancelled) controller.close(); }).catch(error => {
-    if (cancelled) return;
-    logServerError("account_export_failed", error);
-    try { controller.error(new Error("account_export_failed")); } catch { /* already closed */ }
-  });
+  const room = () =>
+    cancelled
+      ? Promise.reject(stopped)
+      : (controller.desiredSize ?? 1) > 0
+        ? Promise.resolve()
+        : new Promise<void>((resolve, reject) => {
+            wake = () => (cancelled ? reject(stopped) : resolve());
+          });
+  void build((chunk) => {
+    if (!cancelled) controller.enqueue(chunk);
+  }, room)
+    .then(() => {
+      if (!cancelled) controller.close();
+    })
+    .catch((error) => {
+      if (cancelled) return;
+      logServerError("account_export_failed", error);
+      try {
+        controller.error(new Error("account_export_failed"));
+      } catch {
+        /* already closed */
+      }
+    });
   return stream;
 }
 
-export function buildAccountExport(ownerId: string, account: unknown, source: AccountExportSource, cap = FILE_BYTES_CAP): ReadableStream<Uint8Array> {
+export function buildAccountExport(
+  ownerId: string,
+  account: unknown,
+  source: AccountExportSource,
+  cap = FILE_BYTES_CAP,
+): ReadableStream<Uint8Array> {
   return pacedStream(async (write, room) => {
-    let finished: () => void; let failed: (error: unknown) => void;
-    const done = new Promise<void>((resolve, reject) => { finished = resolve; failed = reject; });
+    let finished: () => void;
+    let failed: (error: unknown) => void;
+    const done = new Promise<void>((resolve, reject) => {
+      finished = resolve;
+      failed = reject;
+    });
     const zip = new Zip((error, chunk, final) => {
-      if (error) { failed(error); return; }
+      if (error) {
+        failed(error);
+        return;
+      }
       write(chunk);
       if (final) finished();
     });
@@ -144,7 +199,14 @@ export function buildAccountExport(ownerId: string, account: unknown, source: Ac
       for (const path of page) {
         if (!path.startsWith(`${ownerId}/`)) throw new Error("account_export_file_outside_prefix");
         const relative = path.slice(ownerId.length + 1);
-        if (total >= cap) { files.push({ path: relative, included: false, reason: "This download reached its size limit. The file is still in your Embel account." }); continue; }
+        if (total >= cap) {
+          files.push({
+            path: relative,
+            included: false,
+            reason: "This download reached its size limit. The file is still in your Embel account.",
+          });
+          continue;
+        }
         await room();
         try {
           const file = await source.downloadFile(path);
@@ -169,23 +231,32 @@ export function buildAccountExport(ownerId: string, account: unknown, source: Ac
 /** The person's own data through their own login, and their files through the
  * server key, limited to their own Storage prefix. */
 export function supabaseExportSource(auth: ProfileContext, admin: SupabaseClient): AccountExportSource {
-  const tableSchema = z.array(z.object({ table_name: z.string().regex(/^[a-z_][a-z0-9_]{0,62}$/u), key_columns: z.array(z.string()).nullable() }));
+  const tableSchema = z.array(
+    z.object({ table_name: z.string().regex(/^[a-z_][a-z0-9_]{0,62}$/u), key_columns: z.array(z.string()).nullable() }),
+  );
   return {
     async tables() {
       const { data, error } = await auth.client.rpc("account_export_tables");
       if (error) throw Object.assign(new Error("account_export_tables"), { code: error.code });
-      return tableSchema.parse(data ?? []).map(row => ({ table: row.table_name, keyColumns: row.key_columns ?? [] }));
+      return tableSchema.parse(data ?? []).map((row) => ({ table: row.table_name, keyColumns: row.key_columns ?? [] }));
     },
     async rows(table, offset, limit) {
       let query = auth.client.from(table.table).select("*").eq("owner_id", auth.userId);
       for (const column of table.keyColumns) query = query.order(column, { ascending: true });
       const { data, error } = await query.range(offset, offset + limit - 1);
       // A table the person cannot read through the API is simply not part of their export.
-      if (error) { logServerError("account_export_table", error, { table: table.table }); return []; }
+      if (error) {
+        logServerError("account_export_table", error, { table: table.table });
+        return [];
+      }
       return z.array(z.record(z.string(), z.unknown())).parse(data ?? []);
     },
     async listFiles(after) {
-      const { data, error } = await admin.rpc("account_storage_objects", { p_owner: auth.userId, p_after: after, p_limit: FILE_PAGE });
+      const { data, error } = await admin.rpc("account_storage_objects", {
+        p_owner: auth.userId,
+        p_after: after,
+        p_limit: FILE_PAGE,
+      });
       if (error) throw Object.assign(new Error("account_export_files"), { code: error.code });
       return z.array(z.string()).parse(data ?? []);
     },
@@ -201,16 +272,25 @@ export function supabaseExportSource(auth: ProfileContext, admin: SupabaseClient
 /** Rate limit (3 a day, in the database), then the streamed ZIP. */
 export async function startAccountExport(signal?: AbortSignal) {
   const auth = await getProfileContext(signal);
-  return { auth, open: async () => {
-    // Configuration problems surface before a download is counted against the limit.
-    const admin = accountAdminClient();
-    const { error } = await auth.client.rpc("admit_account_export");
-    if (error) {
-      if (error.message === "export_rate_limited") throw new ApiError("export_rate_limited");
-      throw new ApiError("integration_unavailable");
-    }
-    const profile = await readAccountProfile(auth);
-    const account = { id: auth.userId, email: auth.email, exportedAt: new Date().toISOString(), profile: profile.values, profileUpdatedAt: profile.updatedAt };
-    return buildAccountExport(auth.userId, account, supabaseExportSource(auth, admin));
-  } };
+  return {
+    auth,
+    open: async () => {
+      // Configuration problems surface before a download is counted against the limit.
+      const admin = accountAdminClient();
+      const { error } = await auth.client.rpc("admit_account_export");
+      if (error) {
+        if (error.message === "export_rate_limited") throw new ApiError("export_rate_limited");
+        throw new ApiError("integration_unavailable");
+      }
+      const profile = await readAccountProfile(auth);
+      const account = {
+        id: auth.userId,
+        email: auth.email,
+        exportedAt: new Date().toISOString(),
+        profile: profile.values,
+        profileUpdatedAt: profile.updatedAt,
+      };
+      return buildAccountExport(auth.userId, account, supabaseExportSource(auth, admin));
+    },
+  };
 }

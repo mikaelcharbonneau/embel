@@ -4,7 +4,8 @@ import { readLiveConfig } from "../live/gate";
 // These are inert placeholders, never credentials. The suite does not create clients.
 const approved = "abcdefghijklmnopqrst";
 const fixture = {
-  FLUID_RUN_LIVE_TESTS: "1", FLUID_LIVE_PROJECT_REF: approved,
+  FLUID_RUN_LIVE_TESTS: "1",
+  FLUID_LIVE_PROJECT_REF: approved,
   FLUID_LIVE_PUBLISHABLE_KEY: "sb_publishable_qa_fixture_only",
   FLUID_LIVE_USER_A_ACCESS_TOKEN: "fixture.ownerA.signature",
   FLUID_LIVE_USER_B_ACCESS_TOKEN: "fixture.ownerB.signature",
@@ -16,7 +17,9 @@ const fixture = {
 
 describe("independent live-test gate attacks (no network)", () => {
   it("never reads credentials while disabled or while the target is explicitly locked", () => {
-    const credentialRead = vi.fn(() => { throw new Error("Credential getter must never run"); });
+    const credentialRead = vi.fn(() => {
+      throw new Error("Credential getter must never run");
+    });
     const env = { FLUID_RUN_LIVE_TESTS: "0", FLUID_LIVE_PROJECT_REF: approved };
     Object.defineProperty(env, "FLUID_LIVE_PUBLISHABLE_KEY", { get: credentialRead });
     expect(readLiveConfig(env)).toBeNull();
@@ -26,12 +29,23 @@ describe("independent live-test gate attacks (no network)", () => {
   });
 
   it("does not accept an alternate destination from ambient application settings", () => {
-    const parsed = readLiveConfig({
-      ...fixture, SUPABASE_URL: "https://unapproved.invalid", NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:1",
-      FLUID_LIVE_URL: "https://unapproved.invalid", FLUID_APPROVED_LIVE_PROJECT_REF: "wrongprojectreference",
-    }, approved);
+    const parsed = readLiveConfig(
+      {
+        ...fixture,
+        SUPABASE_URL: "https://unapproved.invalid",
+        NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:1",
+        FLUID_LIVE_URL: "https://unapproved.invalid",
+        FLUID_APPROVED_LIVE_PROJECT_REF: "wrongprojectreference",
+      },
+      approved,
+    );
     expect(parsed?.url).toBe(`https://${approved}.supabase.co`);
-    for (const ref of ["https://unapproved.invalid", `${approved}.unapproved.invalid`, `${approved}/path`, approved.toUpperCase()]) {
+    for (const ref of [
+      "https://unapproved.invalid",
+      `${approved}.unapproved.invalid`,
+      `${approved}/path`,
+      approved.toUpperCase(),
+    ]) {
       expect(() => readLiveConfig({ ...fixture, FLUID_LIVE_PROJECT_REF: ref }, approved)).toThrow("does not match");
     }
   });
@@ -46,8 +60,11 @@ describe("independent live-test gate attacks (no network)", () => {
     ];
     for (const overrides of cases) {
       let failure: unknown;
-      try { readLiveConfig({ ...fixture, ...overrides }, approved); }
-      catch (error) { failure = error; }
+      try {
+        readLiveConfig({ ...fixture, ...overrides }, approved);
+      } catch (error) {
+        failure = error;
+      }
       expect(failure).toBeInstanceOf(Error);
       const message = (failure as Error).message;
       for (const rejected of Object.values(overrides)) expect(message).not.toContain(rejected);

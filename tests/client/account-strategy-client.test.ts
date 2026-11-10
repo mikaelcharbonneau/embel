@@ -1,31 +1,124 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { accountProjectSchema } from "@/domain/project-api";
-import { DEFAULT_SUBSCRIPTION_LIMITS, strategyJobSchema, strategyOverviewResponseSchema, type StrategyJob } from "@/domain/strategy-jobs";
+import {
+  DEFAULT_SUBSCRIPTION_LIMITS,
+  strategyJobSchema,
+  strategyOverviewResponseSchema,
+  type StrategyJob,
+} from "@/domain/strategy-jobs";
 import { accountProjectDraft } from "@/components/workspace/project-draft-adapter";
-import { canContinueStrategy, forgetStrategyIntent, formatStrategyCap, promptStrategyPlan, readStrategyIntent, rememberStrategyIntent, rememberStrategyPlan, strategyIntentPlan, strategyAllowanceLabel, strategyAvailabilityMessage, strategyIdempotencyKey, strategyJobMatchesRequest, strategyRequestPayload, strategyResultApplication, verifyStrategyJobs } from "@/components/workspace/account-strategy-client";
+import {
+  canContinueStrategy,
+  forgetStrategyIntent,
+  formatStrategyCap,
+  promptStrategyPlan,
+  readStrategyIntent,
+  rememberStrategyIntent,
+  rememberStrategyPlan,
+  strategyIntentPlan,
+  strategyAllowanceLabel,
+  strategyAvailabilityMessage,
+  strategyIdempotencyKey,
+  strategyJobMatchesRequest,
+  strategyRequestPayload,
+  strategyResultApplication,
+  verifyStrategyJobs,
+} from "@/components/workspace/account-strategy-client";
 
 const owner = "aaaaaaaa-1111-4111-8111-111111111111";
 const projectId = "bbbbbbbb-1111-4111-8111-111111111111";
 const when = "2026-10-03T10:00:00Z";
-const project = accountProjectSchema.parse({ id: projectId, owner_id: owner, title: "Local strategy fixture", scope: "complete_brand", current_revision: 3, created_at: when, context: { description: "A neighborhood kitchen" } });
+const project = accountProjectSchema.parse({
+  id: projectId,
+  owner_id: owner,
+  title: "Local strategy fixture",
+  scope: "complete_brand",
+  current_revision: 3,
+  created_at: when,
+  context: { description: "A neighborhood kitchen" },
+});
 function job() {
-  const parsed = strategyJobSchema.parse({ id: "cccccccc-1111-4111-8111-111111111111", owner_id: owner, project_id: projectId, operation: "strategy.reformulate", input_revision: 3, state: "succeeded", progress: 100, reserved_cost_microusd: 100000, actual_cost_microusd: 2000, error_code: null, cancel_requested_at: null, created_at: when, finished_at: when, results: [{ stepKey: "response", output: { version: 1, provider: "openai", operation: "strategy.reformulate", model: "fixture-model", responseId: "fixture-response", requestId: null, generatedAt: when, usage: { inputTokens: 1, outputTokens: 1, cachedInputTokens: 0, cacheWriteInputTokens: 0, webSearchCalls: 0 }, proposal: { message: "Fixture response", activity: "Kitchen", offering: "Lunch", knownAudience: "Neighbors", questions: [] } } }] });
+  const parsed = strategyJobSchema.parse({
+    id: "cccccccc-1111-4111-8111-111111111111",
+    owner_id: owner,
+    project_id: projectId,
+    operation: "strategy.reformulate",
+    input_revision: 3,
+    state: "succeeded",
+    progress: 100,
+    reserved_cost_microusd: 100000,
+    actual_cost_microusd: 2000,
+    error_code: null,
+    cancel_requested_at: null,
+    created_at: when,
+    finished_at: when,
+    results: [
+      {
+        stepKey: "response",
+        output: {
+          version: 1,
+          provider: "openai",
+          operation: "strategy.reformulate",
+          model: "fixture-model",
+          responseId: "fixture-response",
+          requestId: null,
+          generatedAt: when,
+          usage: { inputTokens: 1, outputTokens: 1, cachedInputTokens: 0, cacheWriteInputTokens: 0, webSearchCalls: 0 },
+          proposal: {
+            message: "Fixture response",
+            activity: "Kitchen",
+            offering: "Lunch",
+            knownAudience: "Neighbors",
+            questions: [],
+          },
+        },
+      },
+    ],
+  });
   if (parsed.billingMode === "chatgpt_subscription") throw new Error("Expected API fixture");
   return parsed;
 }
-const availability = { status: "available" as const, operations: [{ operation: "strategy.competitors" as const, maximumCostMicrousd: 2000000 }] };
+const availability = {
+  status: "available" as const,
+  operations: [{ operation: "strategy.competitors" as const, maximumCostMicrousd: 2000000 }],
+};
 const intent = { ownerId: owner, projectId, revision: 3, reformulationCap: 100000, competitorsCap: 2000000 };
-const workspace = { ownerId: owner, generation: 1, saved: project, draft: accountProjectDraft(project), conflict: false };
-const appliedProject = { ...project, current_revision: 4, context: { ...project.context, activity: "Kitchen", offering: "Lunch", knownAudience: "Neighbors" } };
+const workspace = {
+  ownerId: owner,
+  generation: 1,
+  saved: project,
+  draft: accountProjectDraft(project),
+  conflict: false,
+};
+const appliedProject = {
+  ...project,
+  current_revision: 4,
+  context: { ...project.context, activity: "Kitchen", offering: "Lunch", knownAudience: "Neighbors" },
+};
 const appliedWorkspace = { ...workspace, saved: appliedProject, draft: accountProjectDraft(appliedProject) };
 function appliedJob(input: StrategyJob = job()): StrategyJob {
-  return { ...input, results: input.results.map(result => ({ ...result, application: { jobId: input.id, stepKey: result.stepKey, inputRevision: input.input_revision, appliedRevision: input.input_revision + 1, appliedAt: when } })) };
+  return {
+    ...input,
+    results: input.results.map((result) => ({
+      ...result,
+      application: {
+        jobId: input.id,
+        stepKey: result.stepKey,
+        inputRevision: input.input_revision,
+        appliedRevision: input.input_revision + 1,
+        appliedAt: when,
+      },
+    })),
+  };
 }
 
 afterEach(() => vi.unstubAllGlobals());
 describe("account strategy availability messages", () => {
   it("describes unavailable account allowance after an applied response without claiming a provider outage or trial exhaustion", () => {
-    const overview = strategyOverviewResponseSchema.parse({ availability: { status: "unavailable", operations: [], reason: "budget_unavailable" }, jobs: [appliedJob()] });
+    const overview = strategyOverviewResponseSchema.parse({
+      availability: { status: "unavailable", operations: [], reason: "budget_unavailable" },
+      jobs: [appliedJob()],
+    });
     const message = strategyAvailabilityMessage(overview.availability, "project");
     expect(message).toBe("No AI requests are available for this account. You can still edit and save your project.");
     expect(message).not.toMatch(/OpenAI|trial|exhausted|No AI request was sent/i);
@@ -35,10 +128,16 @@ describe("account strategy availability messages", () => {
     ["worker_unavailable", "AI replies are unavailable right now."],
     ["subscription_unavailable", "The ChatGPT connection is unavailable."],
     ["quota_unavailable", "The current AI request limit is unavailable."],
-    ["request_unresolved", "A previous request needs review before another can start. Check its status before trying again."],
+    [
+      "request_unresolved",
+      "A previous request needs review before another can start. Check its status before trying again.",
+    ],
     ["request_active", "A request is already in progress. Wait for it to finish, then check status."],
   ] as const)("retains the verified %s reason without making claims about earlier requests", (reason, expected) => {
-    const overview = strategyOverviewResponseSchema.parse({ availability: { status: "unavailable", operations: [], reason }, jobs: [] });
+    const overview = strategyOverviewResponseSchema.parse({
+      availability: { status: "unavailable", operations: [], reason },
+      jobs: [],
+    });
     const message = strategyAvailabilityMessage(overview.availability, "project");
     expect(message).toContain(expected);
     expect(message).toContain("You can still edit and save your project.");
@@ -52,12 +151,20 @@ describe("account strategy availability messages", () => {
   });
   it("describes an unsupported response plan without treating other ready operations as a provider outage", () => {
     expect(promptStrategyPlan(availability)).toBeNull();
-    expect(strategyAvailabilityMessage(availability, "project")).toBe("AI replies are not enabled for this step. You can still edit and save your project.");
+    expect(strategyAvailabilityMessage(availability, "project")).toBe(
+      "AI replies are not enabled for this step. You can still edit and save your project.",
+    );
   });
   it("preserves prompt retention and no-send context for Home callers that stop before admission", () => {
-    expect(strategyAvailabilityMessage({ status: "unavailable", operations: [], reason: "budget_unavailable" })).toBe("No AI requests are available for this account. No AI request was sent. Your prompt is kept.");
-    expect(strategyAvailabilityMessage({ status: "unavailable", operations: [], reason: "worker_unavailable" })).toBe("The AI worker is not ready. Recheck after it is connected. No AI request was sent. Your prompt is kept.");
-    expect(strategyAvailabilityMessage(null)).toBe("AI availability could not be confirmed. Recheck before sending. Your prompt is kept.");
+    expect(strategyAvailabilityMessage({ status: "unavailable", operations: [], reason: "budget_unavailable" })).toBe(
+      "No AI requests are available for this account. No AI request was sent. Your prompt is kept.",
+    );
+    expect(strategyAvailabilityMessage({ status: "unavailable", operations: [], reason: "worker_unavailable" })).toBe(
+      "The AI worker is not ready. Recheck after it is connected. No AI request was sent. Your prompt is kept.",
+    );
+    expect(strategyAvailabilityMessage(null)).toBe(
+      "AI availability could not be confirmed. Recheck before sending. Your prompt is kept.",
+    );
   });
 });
 
@@ -92,19 +199,50 @@ describe("account strategy admission", () => {
     expect(canContinueStrategy(intent, workspace, overview)).toBe(false);
     expect(canContinueStrategy(null, appliedWorkspace, overview)).toBe(false);
     expect(canContinueStrategy({ ...intent, ownerId: projectId }, appliedWorkspace, overview)).toBe(false);
-    expect(canContinueStrategy(intent, { ...appliedWorkspace, draft: { ...appliedWorkspace.draft, description: "An unsaved correction" } }, overview)).toBe(false);
+    expect(
+      canContinueStrategy(
+        intent,
+        { ...appliedWorkspace, draft: { ...appliedWorkspace.draft, description: "An unsaved correction" } },
+        overview,
+      ),
+    ).toBe(false);
     expect(canContinueStrategy(intent, { ...appliedWorkspace, conflict: true }, overview)).toBe(false);
     const laterProject = { ...appliedProject, current_revision: 5 };
-    expect(canContinueStrategy(intent, { ...appliedWorkspace, saved: laterProject, draft: accountProjectDraft(laterProject) }, overview)).toBe(false);
-    expect(canContinueStrategy(intent, appliedWorkspace, { ...overview, jobs: [{ ...appliedJob(), state: "running" }] })).toBe(false);
-    expect(canContinueStrategy(intent, appliedWorkspace, { ...overview, jobs: [{ ...appliedJob(), results: [] }] })).toBe(false);
-    expect(canContinueStrategy(intent, appliedWorkspace, { ...overview, jobs: [{ ...appliedJob(), cancel_requested_at: when }] })).toBe(false);
+    expect(
+      canContinueStrategy(
+        intent,
+        { ...appliedWorkspace, saved: laterProject, draft: accountProjectDraft(laterProject) },
+        overview,
+      ),
+    ).toBe(false);
+    expect(
+      canContinueStrategy(intent, appliedWorkspace, { ...overview, jobs: [{ ...appliedJob(), state: "running" }] }),
+    ).toBe(false);
+    expect(
+      canContinueStrategy(intent, appliedWorkspace, { ...overview, jobs: [{ ...appliedJob(), results: [] }] }),
+    ).toBe(false);
+    expect(
+      canContinueStrategy(intent, appliedWorkspace, {
+        ...overview,
+        jobs: [{ ...appliedJob(), cancel_requested_at: when }],
+      }),
+    ).toBe(false);
   });
   it("does not confuse an older competitor request with one on the accepted response version", () => {
-    const competitor = { ...job(), operation: "strategy.competitors" as const, state: "cancelled" as const, results: [] };
+    const competitor = {
+      ...job(),
+      operation: "strategy.competitors" as const,
+      state: "cancelled" as const,
+      results: [],
+    };
     const overview = strategyOverviewResponseSchema.parse({ availability, jobs: [appliedJob(), competitor] });
     expect(canContinueStrategy(intent, appliedWorkspace, overview)).toBe(true);
-    expect(canContinueStrategy(intent, appliedWorkspace, { ...overview, jobs: [appliedJob(), { ...competitor, input_revision: 4 }] })).toBe(false);
+    expect(
+      canContinueStrategy(intent, appliedWorkspace, {
+        ...overview,
+        jobs: [appliedJob(), { ...competitor, input_revision: 4 }],
+      }),
+    ).toBe(false);
   });
   it("requires the exact job, result step and revision in an application receipt", () => {
     const accepted = appliedJob();
@@ -120,8 +258,18 @@ describe("account strategy admission", () => {
   it("does not silently accept an increased cost or unavailable worker", () => {
     const overview = strategyOverviewResponseSchema.parse({ availability, jobs: [appliedJob()] });
     expect(canContinueStrategy({ ...intent, competitorsCap: 1000000 }, appliedWorkspace, overview)).toBe(false);
-    expect(canContinueStrategy(intent, appliedWorkspace, { ...overview, availability: { status: "unavailable", reason: "worker_unavailable", operations: [] } })).toBe(false);
-    expect(canContinueStrategy(intent, appliedWorkspace, { ...overview, jobs: [{ ...job(), reserved_cost_microusd: intent.reformulationCap + 1, results: appliedJob().results }] })).toBe(false);
+    expect(
+      canContinueStrategy(intent, appliedWorkspace, {
+        ...overview,
+        availability: { status: "unavailable", reason: "worker_unavailable", operations: [] },
+      }),
+    ).toBe(false);
+    expect(
+      canContinueStrategy(intent, appliedWorkspace, {
+        ...overview,
+        jobs: [{ ...job(), reserved_cost_microusd: intent.reformulationCap + 1, results: appliedJob().results }],
+      }),
+    ).toBe(false);
   });
   it("never rounds a disclosed maximum below the actual cap", () => {
     expect(formatStrategyCap(122880)).toBe("$0.13");
@@ -130,7 +278,12 @@ describe("account strategy admission", () => {
   });
   it("persists only scoped cost consent and prevents reuse by another account or revision", () => {
     const values = new Map<string, string>();
-    vi.stubGlobal("window", { sessionStorage: { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value) } });
+    vi.stubGlobal("window", {
+      sessionStorage: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+      },
+    });
     const scoped = { ...intent, revision: 11 };
     rememberStrategyIntent(scoped);
     expect(readStrategyIntent(owner, projectId, 11)).toEqual(scoped);
@@ -141,9 +294,18 @@ describe("account strategy admission", () => {
   it("cancellation revokes continuation even if session storage cannot be updated", () => {
     const values = new Map<string, string>();
     let locked = false;
-    vi.stubGlobal("window", { sessionStorage: { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => { if (locked) throw new Error("Synthetic storage failure"); values.set(key, value); } } });
+    vi.stubGlobal("window", {
+      sessionStorage: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => {
+          if (locked) throw new Error("Synthetic storage failure");
+          values.set(key, value);
+        },
+      },
+    });
     const scoped = { ...intent, revision: 13 };
-    rememberStrategyIntent(scoped); locked = true;
+    rememberStrategyIntent(scoped);
+    locked = true;
     forgetStrategyIntent(owner, projectId, 13);
     expect(readStrategyIntent(owner, projectId, 13)).toBeNull();
   });
@@ -152,12 +314,45 @@ describe("account strategy admission", () => {
 describe("ChatGPT subscription request admission", () => {
   const limits = { ...DEFAULT_SUBSCRIPTION_LIMITS };
   const policyIdentity = "a".repeat(64);
-  const subscriptionIntent = { ownerId: owner, projectId, revision: 3, billingMode: "chatgpt_subscription" as const, reformulationLimits: limits, competitorsLimits: limits, reformulationPolicyIdentity: policyIdentity, competitorsPolicyIdentity: policyIdentity };
+  const subscriptionIntent = {
+    ownerId: owner,
+    projectId,
+    revision: 3,
+    billingMode: "chatgpt_subscription" as const,
+    reformulationLimits: limits,
+    competitorsLimits: limits,
+    reformulationPolicyIdentity: policyIdentity,
+    competitorsPolicyIdentity: policyIdentity,
+  };
   function subscriptionJob() {
     const result = job();
-    return strategyJobSchema.parse({ ...result, billingMode: "chatgpt_subscription", policyIdentity, results: result.results.map(item => ({ ...item, output: { ...item.output, billingMode: "chatgpt_subscription", usage: null } })) });
+    return strategyJobSchema.parse({
+      ...result,
+      billingMode: "chatgpt_subscription",
+      policyIdentity,
+      results: result.results.map((item) => ({
+        ...item,
+        output: { ...item.output, billingMode: "chatgpt_subscription", usage: null },
+      })),
+    });
   }
-  const subscriptionAvailability = { status: "available" as const, operations: [{ operation: "strategy.competitors" as const, billingMode: "chatgpt_subscription" as const, limits, policyIdentity }, { operation: "strategy.reformulate" as const, billingMode: "chatgpt_subscription" as const, limits, policyIdentity }] };
+  const subscriptionAvailability = {
+    status: "available" as const,
+    operations: [
+      {
+        operation: "strategy.competitors" as const,
+        billingMode: "chatgpt_subscription" as const,
+        limits,
+        policyIdentity,
+      },
+      {
+        operation: "strategy.reformulate" as const,
+        billingMode: "chatgpt_subscription" as const,
+        limits,
+        policyIdentity,
+      },
+    ],
+  };
   it("uses a different stable request identity for subscription and API billing", () => {
     const paid = strategyIdempotencyKey(projectId, 3, "strategy.reformulate", "openai_api");
     const subscription = strategyIdempotencyKey(projectId, 3, "strategy.reformulate", "chatgpt_subscription");
@@ -165,67 +360,167 @@ describe("ChatGPT subscription request admission", () => {
     expect(subscription).toBe(strategyIdempotencyKey(projectId, 3, "strategy.reformulate", "chatgpt_subscription"));
   });
   it("continues the accepted subscription chain without treating plan use as money", () => {
-    const overview = strategyOverviewResponseSchema.parse({ availability: subscriptionAvailability, jobs: [appliedJob(subscriptionJob())] });
+    const overview = strategyOverviewResponseSchema.parse({
+      availability: subscriptionAvailability,
+      jobs: [appliedJob(subscriptionJob())],
+    });
     expect(canContinueStrategy(subscriptionIntent, appliedWorkspace, overview)).toBe(true);
     expect(canContinueStrategy(subscriptionIntent, workspace, overview)).toBe(false);
     expect(canContinueStrategy(intent, appliedWorkspace, overview)).toBe(false);
     expect(canContinueStrategy(subscriptionIntent, appliedWorkspace, { ...overview, availability })).toBe(false);
-    expect(canContinueStrategy(subscriptionIntent, appliedWorkspace, { ...overview, jobs: [appliedJob()] })).toBe(false);
-    expect(canContinueStrategy(subscriptionIntent, appliedWorkspace, { ...overview, availability: { ...subscriptionAvailability, operations: subscriptionAvailability.operations.map(item => ({ ...item, limits: { ...limits, maxRequestsPerHour: limits.maxRequestsPerHour + 1 } })) } })).toBe(false);
+    expect(canContinueStrategy(subscriptionIntent, appliedWorkspace, { ...overview, jobs: [appliedJob()] })).toBe(
+      false,
+    );
+    expect(
+      canContinueStrategy(subscriptionIntent, appliedWorkspace, {
+        ...overview,
+        availability: {
+          ...subscriptionAvailability,
+          operations: subscriptionAvailability.operations.map((item) => ({
+            ...item,
+            limits: { ...limits, maxRequestsPerHour: limits.maxRequestsPerHour + 1 },
+          })),
+        },
+      }),
+    ).toBe(false);
   });
   it("binds automatic continuation and accepted replies to the exact selected policy", () => {
-    const overview = strategyOverviewResponseSchema.parse({ availability: subscriptionAvailability, jobs: [appliedJob(subscriptionJob())] });
+    const overview = strategyOverviewResponseSchema.parse({
+      availability: subscriptionAvailability,
+      jobs: [appliedJob(subscriptionJob())],
+    });
     for (const operation of ["strategy.reformulate", "strategy.competitors"]) {
-      const changed = { ...subscriptionAvailability, operations: subscriptionAvailability.operations.map(item => item.operation === operation ? { ...item, policyIdentity: "b".repeat(64) } : item) };
-      expect(canContinueStrategy(subscriptionIntent, appliedWorkspace, { ...overview, availability: changed })).toBe(false);
+      const changed = {
+        ...subscriptionAvailability,
+        operations: subscriptionAvailability.operations.map((item) =>
+          item.operation === operation ? { ...item, policyIdentity: "b".repeat(64) } : item,
+        ),
+      };
+      expect(canContinueStrategy(subscriptionIntent, appliedWorkspace, { ...overview, availability: changed })).toBe(
+        false,
+      );
     }
     const changedJob = strategyJobSchema.parse({ ...appliedJob(subscriptionJob()), policyIdentity: "b".repeat(64) });
     expect(canContinueStrategy(subscriptionIntent, appliedWorkspace, { ...overview, jobs: [changedJob] })).toBe(false);
-    expect(strategyJobMatchesRequest(changedJob, "strategy.reformulate", 3, { billingMode: "chatgpt_subscription", limits, policyIdentity })).toBe(false);
+    expect(
+      strategyJobMatchesRequest(changedJob, "strategy.reformulate", 3, {
+        billingMode: "chatgpt_subscription",
+        limits,
+        policyIdentity,
+      }),
+    ).toBe(false);
   });
   it("stores accepted policy identities and rejects legacy subscription consent without them", () => {
     const values = new Map<string, string>();
-    vi.stubGlobal("window", { sessionStorage: { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value) } });
+    vi.stubGlobal("window", {
+      sessionStorage: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+      },
+    });
     const scoped = { ...subscriptionIntent, revision: 31 };
     rememberStrategyIntent(scoped);
     expect(JSON.parse([...values.values()][0]!)).toEqual([scoped]);
-    values.set("fluid.strategy-consent.v1", JSON.stringify([{ ownerId: owner, projectId, revision: 32, billingMode: "chatgpt_subscription", reformulationLimits: limits, competitorsLimits: limits }]));
+    values.set(
+      "fluid.strategy-consent.v1",
+      JSON.stringify([
+        {
+          ownerId: owner,
+          projectId,
+          revision: 32,
+          billingMode: "chatgpt_subscription",
+          reformulationLimits: limits,
+          competitorsLimits: limits,
+        },
+      ]),
+    );
     expect(readStrategyIntent(owner, projectId, 32)).toBeNull();
   });
   it("omits currency from subscription requests and disclosures while retaining API caps", () => {
     const allowance = { billingMode: "chatgpt_subscription" as const, limits, policyIdentity };
-    expect(strategyRequestPayload(projectId, 3, "strategy.reformulate", allowance)).toEqual({ billingMode: "chatgpt_subscription", acceptedPolicyIdentity: policyIdentity, operation: "strategy.reformulate", expectedRevision: 3, idempotencyKey: strategyIdempotencyKey(projectId, 3, "strategy.reformulate", "chatgpt_subscription") });
+    expect(strategyRequestPayload(projectId, 3, "strategy.reformulate", allowance)).toEqual({
+      billingMode: "chatgpt_subscription",
+      acceptedPolicyIdentity: policyIdentity,
+      operation: "strategy.reformulate",
+      expectedRevision: 3,
+      idempotencyKey: strategyIdempotencyKey(projectId, 3, "strategy.reformulate", "chatgpt_subscription"),
+    });
     const label = strategyAllowanceLabel(allowance);
     expect(label).toContain("ChatGPT plan limits apply");
     expect(label).toContain(`${limits.maxRequestsPerHour} requests per hour`);
     expect(label).not.toMatch(/\$|free|remaining/i);
-    expect(strategyRequestPayload(projectId, 3, "strategy.reformulate", { billingMode: "openai_api", maximumCostMicrousd: 123456 })).toHaveProperty("acceptedMaxCostMicrousd", 123456);
+    expect(
+      strategyRequestPayload(projectId, 3, "strategy.reformulate", {
+        billingMode: "openai_api",
+        maximumCostMicrousd: 123456,
+      }),
+    ).toHaveProperty("acceptedMaxCostMicrousd", 123456);
   });
   it("never bundles different billing modes into one accepted prompt plan", () => {
-    expect(promptStrategyPlan({ status: "available", operations: [{ operation: "strategy.reformulate", billingMode: "chatgpt_subscription", limits, policyIdentity }, { operation: "strategy.competitors", maximumCostMicrousd: 100000 }] })).toBeNull();
+    expect(
+      promptStrategyPlan({
+        status: "available",
+        operations: [
+          { operation: "strategy.reformulate", billingMode: "chatgpt_subscription", limits, policyIdentity },
+          { operation: "strategy.competitors", maximumCostMicrousd: 100000 },
+        ],
+      }),
+    ).toBeNull();
   });
 });
 
-
 describe("response-only API consent", () => {
-  const responseAvailability = { status: "available" as const, operations: [{ operation: "strategy.reformulate" as const, maximumCostMicrousd: 122880 }] };
+  const responseAvailability = {
+    status: "available" as const,
+    operations: [{ operation: "strategy.reformulate" as const, maximumCostMicrousd: 122880 }],
+  };
   it("offers one explicitly response-only plan when API research is unavailable", () => {
-    expect(promptStrategyPlan(responseAvailability)).toEqual({ kind: "response_only", billingMode: "openai_api", reformulation: { billingMode: "openai_api", maximumCostMicrousd: 122880 } });
-    expect(promptStrategyPlan({ status: "available", operations: [{ operation: "strategy.competitors", maximumCostMicrousd: 100000 }] })).toBeNull();
+    expect(promptStrategyPlan(responseAvailability)).toEqual({
+      kind: "response_only",
+      billingMode: "openai_api",
+      reformulation: { billingMode: "openai_api", maximumCostMicrousd: 122880 },
+    });
+    expect(
+      promptStrategyPlan({
+        status: "available",
+        operations: [{ operation: "strategy.competitors", maximumCostMicrousd: 100000 }],
+      }),
+    ).toBeNull();
   });
   it("does not fall back to response-only for mixed billing or incomplete subscription plans", () => {
-    const subscription = { operation: "strategy.competitors" as const, billingMode: "chatgpt_subscription" as const, limits: DEFAULT_SUBSCRIPTION_LIMITS, policyIdentity: "a".repeat(64) };
-    expect(promptStrategyPlan({ status: "available", operations: [...responseAvailability.operations, subscription] })).toBeNull();
-    expect(promptStrategyPlan({ status: "available", operations: [{ ...subscription, operation: "strategy.reformulate" }] })).toBeNull();
+    const subscription = {
+      operation: "strategy.competitors" as const,
+      billingMode: "chatgpt_subscription" as const,
+      limits: DEFAULT_SUBSCRIPTION_LIMITS,
+      policyIdentity: "a".repeat(64),
+    };
+    expect(
+      promptStrategyPlan({ status: "available", operations: [...responseAvailability.operations, subscription] }),
+    ).toBeNull();
+    expect(
+      promptStrategyPlan({ status: "available", operations: [{ ...subscription, operation: "strategy.reformulate" }] }),
+    ).toBeNull();
   });
   it("stores no research allowance and never continues after acceptance or later readiness", async () => {
     const values = new Map<string, string>();
-    vi.stubGlobal("window", { sessionStorage: { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value) } });
+    vi.stubGlobal("window", {
+      sessionStorage: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+      },
+    });
     const plan = promptStrategyPlan(responseAvailability);
     expect(plan).not.toBeNull();
     rememberStrategyPlan({ ownerId: owner, projectId, revision: 3 }, plan!);
     const saved = readStrategyIntent(owner, projectId, 3);
-    expect(saved).toEqual({ ownerId: owner, projectId, revision: 3, kind: "response_only", billingMode: "openai_api", reformulationCap: 122880 });
+    expect(saved).toEqual({
+      ownerId: owner,
+      projectId,
+      revision: 3,
+      kind: "response_only",
+      billingMode: "openai_api",
+      reformulationCap: 122880,
+    });
     expect(strategyIntentPlan(saved!)).not.toHaveProperty("competitors");
     const overview = strategyOverviewResponseSchema.parse({ availability, jobs: [appliedJob()] });
     expect(canContinueStrategy(saved, appliedWorkspace, overview)).toBe(false);
@@ -234,11 +529,28 @@ describe("response-only API consent", () => {
     const restored = reopened.readStrategyIntent(owner, projectId, 3);
     expect(restored).toEqual(saved);
     expect(reopened.canContinueStrategy(restored, appliedWorkspace, overview)).toBe(false);
-    expect(reopened.canContinueStrategy(restored, appliedWorkspace, { ...overview, availability: responseAvailability })).toBe(false);
+    expect(
+      reopened.canContinueStrategy(restored, appliedWorkspace, { ...overview, availability: responseAvailability }),
+    ).toBe(false);
     expect(reopened.readStrategyIntent(projectId, projectId, 3)).toBeNull();
   });
   it("rejects a stored response-only intent containing a filled-in research allowance", () => {
-    vi.stubGlobal("window", { sessionStorage: { getItem: () => JSON.stringify([{ ownerId: owner, projectId, revision: 97, billingMode: "openai_api", kind: "response_only", reformulationCap: 122880, competitorsCap: 3142880 }]) } });
+    vi.stubGlobal("window", {
+      sessionStorage: {
+        getItem: () =>
+          JSON.stringify([
+            {
+              ownerId: owner,
+              projectId,
+              revision: 97,
+              billingMode: "openai_api",
+              kind: "response_only",
+              reformulationCap: 122880,
+              competitorsCap: 3142880,
+            },
+          ]),
+      },
+    });
     expect(readStrategyIntent(owner, projectId, 97)).toBeNull();
   });
 });

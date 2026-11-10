@@ -16,15 +16,24 @@ import { logoImageUsageSchema } from "./openai-image-usage";
  * Direct synchronous Images generations AND edits use the full input rates;
  * Responses cached-input discounts and Batch prices do not apply. */
 export const SUNBURST_STANDARD_IMAGE_PRICING = Object.freeze({
-  binding: Object.freeze({ model: IMAGE_MODEL, api: "direct-images", serviceTier: "standard", rateVersion: "2026-10-07.v1" } as const),
+  binding: Object.freeze({
+    model: IMAGE_MODEL,
+    api: "direct-images",
+    serviceTier: "standard",
+    rateVersion: "2026-10-07.v1",
+  } as const),
   currency: "USD" as const,
   verifiedAt: "2026-11-09" as const,
   endpoints: Object.freeze(["/v1/images/generations", "/v1/images/edits"] as const),
   microusdPerToken: Object.freeze({ textInput: 5, imageInput: 8, imageOutput: 30 } as const),
 });
 const basis = SUNBURST_STANDARD_IMAGE_PRICING.binding;
-const bindingSchema = z.strictObject({ model: z.enum([basis.model, CAPPED_LOGO_IMAGE_MODEL]), api: z.literal(basis.api),
-  serviceTier: z.literal(basis.serviceTier), rateVersion: z.literal(basis.rateVersion) });
+const bindingSchema = z.strictObject({
+  model: z.enum([basis.model, CAPPED_LOGO_IMAGE_MODEL]),
+  api: z.literal(basis.api),
+  serviceTier: z.literal(basis.serviceTier),
+  rateVersion: z.literal(basis.rateVersion),
+});
 export type LogoImagePricingBinding = { model: string; api: string; serviceTier: string; rateVersion: string };
 const unknown: LogoBillingObservation = Object.freeze({ status: "unknown", confirmedMicrousd: null });
 
@@ -33,16 +42,19 @@ const unknown: LogoBillingObservation = Object.freeze({ status: "unknown", confi
  * predispatch reservation. Trusted composition must bind this exact basis to
  * its separately reviewed immutable policy identity. Unsupported bases fail
  * closed, and incomplete usage never becomes a zero-cost observation. */
-export function createSunburstStandardImageUsagePricer(binding: LogoImagePricingBinding): LogoImageConfiguration["priceUsage"] | null {
+export function createSunburstStandardImageUsagePricer(
+  binding: LogoImagePricingBinding,
+): LogoImageConfiguration["priceUsage"] | null {
   if (!bindingSchema.safeParse(binding).success) return null;
   const rates = SUNBURST_STANDARD_IMAGE_PRICING.microusdPerToken;
-  return usage => {
+  return (usage) => {
     const parsed = logoImageUsageSchema.safeParse(usage);
     if (!parsed.success) return unknown;
     const value = parsed.data;
-    const charge = BigInt(value.input_tokens_details.text_tokens) * BigInt(rates.textInput)
-      + BigInt(value.input_tokens_details.image_tokens) * BigInt(rates.imageInput)
-      + BigInt(value.output_tokens) * BigInt(rates.imageOutput);
+    const charge =
+      BigInt(value.input_tokens_details.text_tokens) * BigInt(rates.textInput) +
+      BigInt(value.input_tokens_details.image_tokens) * BigInt(rates.imageInput) +
+      BigInt(value.output_tokens) * BigInt(rates.imageOutput);
     if (charge > BigInt(Number.MAX_SAFE_INTEGER)) return unknown;
     // No reservation/cap enters this calculation: retain the actual observed
     // charge, including an overrun. Explicit complete zero usage is valid.

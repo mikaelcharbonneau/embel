@@ -13,5 +13,7 @@ export async function POST(request: Request, context: { params: Promise<{ projec
     const input = await readJson(request, reviewLogoVariantsInputSchema, LOGO_MUTATION_MAX_BYTES);
     const services = await resolveLogoRequestServices(auth, projectId, request.signal);
     return privateJson(await services.workspace.reviewLogoVariants(auth, projectId, input, request.signal));
-  } catch (error) { return logoErrorResponse(error); }
+  } catch (error) {
+    return logoErrorResponse(error);
+  }
 }

@@ -18,5 +18,7 @@ export async function POST(request: Request) {
     assertExpectedAccount(request, context.user.id);
     await deleteSignedInAccount(context, input.confirmEmail);
     return privateJson({ deleted: true });
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

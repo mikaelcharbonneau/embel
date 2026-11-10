@@ -32,7 +32,10 @@ export const sharedStoragePolicyQualificationSql = `WITH shared_storage_required
  JOIN pg_catalog.pg_proc helper ON helper.pronamespace=private_namespace.oid AND helper.proname=required.helper_name AND helper.pronargs=0
  JOIN pg_catalog.pg_language language ON language.oid=helper.prolang`;
 
-export async function qualifySharedStoragePolicies(connection: { query(sql: string): Promise<{ rows: unknown[] }> }): Promise<void> {
- const result = await connection.query(sharedStoragePolicyQualificationSql);
- if (result.rows.length !== 1 || (result.rows[0] as { valid?: unknown }).valid !== true) throw new Error("shared_storage_policy_unavailable");
+export async function qualifySharedStoragePolicies(connection: {
+  query(sql: string): Promise<{ rows: unknown[] }>;
+}): Promise<void> {
+  const result = await connection.query(sharedStoragePolicyQualificationSql);
+  if (result.rows.length !== 1 || (result.rows[0] as { valid?: unknown }).valid !== true)
+    throw new Error("shared_storage_policy_unavailable");
 }

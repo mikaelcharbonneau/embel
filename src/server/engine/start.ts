@@ -20,7 +20,7 @@ type InputBuilder = (auth: AuthenticatedContext, projectId: string, input: unkno
 /** Every kind the engine runs, and the workflow that runs it (docs/generation-engine.md). */
 const workflows: Readonly<Record<string, (runId: string) => Promise<unknown>>> = {
   "engine.probe": probeGeneration,
-  ...Object.fromEntries(STRATEGY_OPERATIONS.map(operation => [operation, strategyGeneration])),
+  ...Object.fromEntries(STRATEGY_OPERATIONS.map((operation) => [operation, strategyGeneration])),
   [NAMING_KIND]: namingGeneration,
   [LOGO_CONCEPTS_KIND]: logoImagesGeneration,
   [LOGO_REFINE_KIND]: logoImagesGeneration,
@@ -34,8 +34,15 @@ const ROUTE_ONLY_KINDS: ReadonlySet<string> = new Set([IDENTITY_DIRECTIONS_KIND]
  * names what to answer: the project revision for Strategy; the kind of request, the saved
  * versions and the seed names for Naming; the Logo workspace heads and what to draw for Logo. */
 const inputs: Readonly<Record<string, InputBuilder>> = {
-  ...Object.fromEntries(STRATEGY_OPERATIONS.map(operation =>
-    [operation, (auth, projectId, input) => buildStrategyRunInput(auth, projectId, operation, input)] satisfies [string, InputBuilder])),
+  ...Object.fromEntries(
+    STRATEGY_OPERATIONS.map(
+      (operation) =>
+        [operation, (auth, projectId, input) => buildStrategyRunInput(auth, projectId, operation, input)] satisfies [
+          string,
+          InputBuilder,
+        ],
+    ),
+  ),
   [NAMING_KIND]: buildNamingRunInput,
   [LOGO_CONCEPTS_KIND]: buildLogoConceptsRunInput,
   [LOGO_REFINE_KIND]: buildLogoRefineRunInput,
@@ -56,16 +63,25 @@ export class WorkflowStartError extends Error {
  * returns its run as admitted: its input is never rebuilt from newer data, and its workflow
  * starts only if it never did (a second start loses the claim and ends without touching it).
  */
-export async function startGeneration(auth: AuthenticatedContext, projectId: string, request: z.infer<typeof startGenerationSchema>): Promise<{ run: GenerationRunRow; reused: boolean }> {
+export async function startGeneration(
+  auth: AuthenticatedContext,
+  projectId: string,
+  request: z.infer<typeof startGenerationSchema>,
+): Promise<{ run: GenerationRunRow; reused: boolean }> {
   const workflow = Object.hasOwn(workflows, request.kind) ? workflows[request.kind]! : null;
   if (!workflow || ROUTE_ONLY_KINDS.has(request.kind)) throw new ApiError("generation_unavailable");
   const build = Object.hasOwn(inputs, request.kind) ? inputs[request.kind]! : null;
   const existing = build ? await findGeneration(auth, projectId, request.idempotencyKey) : null;
-  const admission = build ? { ...request, input: existing ? {} : await build(auth, projectId, request.input ?? {}) } : request;
+  const admission = build
+    ? { ...request, input: existing ? {} : await build(auth, projectId, request.input ?? {}) }
+    : request;
   const run = await admitGeneration(auth, projectId, admission);
   if (run.status === "queued" && run.workflow_run_id === null) {
-    try { await start(workflow, [run.id]); }
-    catch { throw new WorkflowStartError(); }
+    try {
+      await start(workflow, [run.id]);
+    } catch {
+      throw new WorkflowStartError();
+    }
   }
   return { run, reused: existing !== null };
 }
@@ -75,6 +91,9 @@ export async function startGeneration(auth: AuthenticatedContext, projectId: str
 export async function startAdmittedRun(kind: string, runId: string): Promise<void> {
   const workflow = Object.hasOwn(workflows, kind) ? workflows[kind]! : null;
   if (!workflow) throw new ApiError("generation_unavailable");
-  try { await start(workflow, [runId]); }
-  catch { throw new WorkflowStartError(); }
+  try {
+    await start(workflow, [runId]);
+  } catch {
+    throw new WorkflowStartError();
+  }
 }

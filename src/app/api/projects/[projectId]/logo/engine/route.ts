@@ -14,5 +14,7 @@ export async function GET(_request: Request, context: { params: Promise<{ projec
     const { projectId } = await context.params;
     const engine = await logoEngineEnabled(auth);
     return privateJson({ engine, runs: engine ? await listGenerations(auth, projectId, { step: "logo" }) : [] });
-  } catch (error) { return logoErrorResponse(error); }
+  } catch (error) {
+    return logoErrorResponse(error);
+  }
 }

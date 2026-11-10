@@ -4,10 +4,12 @@ import { logoErrorResponse } from "@/server/http/logo-errors";
 import { readLogoReferenceSnapshot } from "@/server/data/logo-workspace";
 
 export const dynamic = "force-dynamic";
-export async function GET(request: Request, context: {params: Promise<{projectId: string; snapshotId: string}>}) {
+export async function GET(request: Request, context: { params: Promise<{ projectId: string; snapshotId: string }> }) {
   try {
     const auth = await getAuthenticatedContext();
     const { projectId, snapshotId } = await context.params;
     return privateJson(await readLogoReferenceSnapshot(auth, projectId, snapshotId));
-  } catch (error) { return logoErrorResponse(error); }
+  } catch (error) {
+    return logoErrorResponse(error);
+  }
 }

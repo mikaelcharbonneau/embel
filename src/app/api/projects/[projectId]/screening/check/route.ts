@@ -7,8 +7,18 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export async function POST(request: Request, context: { params: Promise<{ projectId: string }> }) {
   try {
-    assertMutationOrigin(request); if (new URL(request.url).search) throw new ApiError("invalid_input");
+    assertMutationOrigin(request);
+    if (new URL(request.url).search) throw new ApiError("invalid_input");
     const body = await readJson(request, screeningCheckInputSchema, 8192);
-    return privateJson(await checkProjectScreening(await getAuthenticatedContext(), (await context.params).projectId, body, request.signal));
-  } catch (error) { return errorResponse(error); }
+    return privateJson(
+      await checkProjectScreening(
+        await getAuthenticatedContext(),
+        (await context.params).projectId,
+        body,
+        request.signal,
+      ),
+    );
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

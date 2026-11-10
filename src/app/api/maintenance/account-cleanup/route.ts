@@ -12,5 +12,7 @@ export async function GET(request: Request) {
   try {
     assertMaintenanceCaller(request);
     return privateJson(await runAccountCleanup(accountAdminClient()));
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

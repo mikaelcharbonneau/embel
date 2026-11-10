@@ -10,11 +10,14 @@ const reviews = {
 } as const;
 type Continuation = { stage: "strategy" | "naming" | "inspiration"; label: string; href: string };
 
-export function projectStrategyHref(projectId: string) { return `/brands/account/${projectId}?view=strategy`; }
+export function projectStrategyHref(projectId: string) {
+  return `/brands/account/${projectId}?view=strategy`;
+}
 
 /** Derive guidance from saved decisions; navigation never approves or copies inputs. */
 export function getProjectHandoff(project: Pick<AccountProject, "id" | "scope" | "context">) {
-  const base = `/brands/account/${project.id}`, context = project.context;
+  const base = `/brands/account/${project.id}`,
+    context = project.context;
   const strategy = getNamingReadiness(context, "complete_brand");
   const missing: Array<keyof typeof reviews> = [];
   for (const step of strategy.missing) {
@@ -26,23 +29,42 @@ export function getProjectHandoff(project: Pick<AccountProject, "id" | "scope" |
     const personality = missing.indexOf("personality");
     missing.splice(personality < 0 ? missing.length : personality, 0, "positioning");
   }
-  const pendingReviews = missing.map(step => reviews[step]);
+  const pendingReviews = missing.map((step) => reviews[step]);
   const savedName = context.selectedName?.trim() || null;
   let next: Continuation;
   if (!context.description.trim() || pendingReviews.length > 0) {
     const first = pendingReviews[0] ?? reviews.brief;
-    next = { stage: "strategy", label: first.label, href: `${projectStrategyHref(project.id)}#strategy-${first.anchor}` };
+    next = {
+      stage: "strategy",
+      label: first.label,
+      href: `${projectStrategyHref(project.id)}#strategy-${first.anchor}`,
+    };
   } else if (!savedName) {
     next = { stage: "naming", label: savedName ? "Review saved name" : "Continue to Naming", href: `${base}/naming` };
   } else {
     next = { stage: "inspiration", label: "Continue to Inspiration", href: `${base}/inspiration` };
   }
-  return { reviews: pendingReviews, strategyReady: strategy.ready, briefReviewed: !strategy.missing.includes("reformulation") && !strategy.missing.includes("description"), savedName, next };
+  return {
+    reviews: pendingReviews,
+    strategyReady: strategy.ready,
+    briefReviewed: !strategy.missing.includes("reformulation") && !strategy.missing.includes("description"),
+    savedName,
+    next,
+  };
 }
 
-export type ProjectStageEvidence = { ownerId: string; projectId: string; projectRevision: number; approved: boolean; needsReview?: boolean };
+export type ProjectStageEvidence = {
+  ownerId: string;
+  projectId: string;
+  projectRevision: number;
+  approved: boolean;
+  needsReview?: boolean;
+};
 /** Different revisions require a fresh check; they are not proof of material staleness. */
-export function projectEvidenceStatus(evidence: Pick<ProjectStageEvidence, "projectRevision" | "approved" | "needsReview"> | null, projectRevision: number | undefined) {
+export function projectEvidenceStatus(
+  evidence: Pick<ProjectStageEvidence, "projectRevision" | "approved" | "needsReview"> | null,
+  projectRevision: number | undefined,
+) {
   if (!evidence || !projectRevision) return "unchecked";
   if (evidence.projectRevision !== projectRevision) return "recheck";
   if (evidence.needsReview) return "needs_review";

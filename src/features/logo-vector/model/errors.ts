@@ -1,8 +1,19 @@
 export type LogoVectorErrorCode =
-  | "invalid_geometry" | "unsupported_svg" | "limit_exceeded" | "empty_artwork"
-  | "invalid_font" | "font_rights_required" | "unsupported_text" | "unsupported_edit"
-  | "locked_component_changed" | "unsupported_locked_refinement" | "source_mismatch"
-  | "engine_unavailable" | "conversion_failed" | "cancelled" | "timeout";
+  | "invalid_geometry"
+  | "unsupported_svg"
+  | "limit_exceeded"
+  | "empty_artwork"
+  | "invalid_font"
+  | "font_rights_required"
+  | "unsupported_text"
+  | "unsupported_edit"
+  | "locked_component_changed"
+  | "unsupported_locked_refinement"
+  | "source_mismatch"
+  | "engine_unavailable"
+  | "conversion_failed"
+  | "cancelled"
+  | "timeout";
 
 /** Stable public reason; never include the untrusted source XML or private asset data. */
 export class LogoVectorError extends Error {

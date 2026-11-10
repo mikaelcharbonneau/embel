@@ -17,33 +17,94 @@ const source = { url: "https://example.com/strategy-source", title: "Synthetic s
 
 function fixtureProject(): AccountProject {
   return accountProjectSchema.parse({
-    id, owner_id: owner, title: "Strategy browser fixture", scope: "complete_brand", current_revision: 4, created_at: now,
+    id,
+    owner_id: owner,
+    title: "Strategy browser fixture",
+    scope: "complete_brand",
+    current_revision: 4,
+    created_at: now,
     context: {
-      description, activity: "Lighting studio", offering: "Repairable lamps", knownAudience: "Small-home residents", reformulationConfirmed: true,
+      description,
+      activity: "Lighting studio",
+      offering: "Repairable lamps",
+      knownAudience: "Small-home residents",
+      reformulationConfirmed: true,
       competitors: [
-        { id: "33333333-3333-4333-8333-333333333333", name: "Retained competitor fixture", relevance: "Similar customer need", origin: "research", sources: [source], selected: true },
-        { id: "44444444-4444-4444-8444-444444444444", name: "Unretained competitor fixture", relevance: "An exploratory option", origin: "user", sources: [], selected: false },
-      ], competitorReviewComplete: true,
-      audienceSegments: [
-        { id: "55555555-5555-4555-8555-555555555555", label: "Small-home residents", needs: ["Warm light", "Simple repairs"], reason: "Limited space", origin: "proposal", sources: [source], selected: true },
-        { id: "66666666-6666-4666-8666-666666666666", label: "Unselected audience fixture", needs: ["Different light"], reason: "Another possible market", origin: "user", sources: [], selected: false },
+        {
+          id: "33333333-3333-4333-8333-333333333333",
+          name: "Retained competitor fixture",
+          relevance: "Similar customer need",
+          origin: "research",
+          sources: [source],
+          selected: true,
+        },
+        {
+          id: "44444444-4444-4444-8444-444444444444",
+          name: "Unretained competitor fixture",
+          relevance: "An exploratory option",
+          origin: "user",
+          sources: [],
+          selected: false,
+        },
       ],
-      personality: profile, positioning: statement, creativeLocale: "fr-CA",
-      intake: { step: "personality", identityNotes: "Keep these identity notes", namingNotes: "Keep these naming notes", audienceReviewedAt: now, personalityReviewedAt: now, positioningReviewedAt: now },
+      competitorReviewComplete: true,
+      audienceSegments: [
+        {
+          id: "55555555-5555-4555-8555-555555555555",
+          label: "Small-home residents",
+          needs: ["Warm light", "Simple repairs"],
+          reason: "Limited space",
+          origin: "proposal",
+          sources: [source],
+          selected: true,
+        },
+        {
+          id: "66666666-6666-4666-8666-666666666666",
+          label: "Unselected audience fixture",
+          needs: ["Different light"],
+          reason: "Another possible market",
+          origin: "user",
+          sources: [],
+          selected: false,
+        },
+      ],
+      personality: profile,
+      positioning: statement,
+      creativeLocale: "fr-CA",
+      intake: {
+        step: "personality",
+        identityNotes: "Keep these identity notes",
+        namingNotes: "Keep these naming notes",
+        audienceReviewedAt: now,
+        personalityReviewedAt: now,
+        positioningReviewedAt: now,
+      },
     },
   });
 }
 
 async function reply(route: Route, body: unknown, status = 200) {
-  await route.fulfill({ status, contentType: "application/json", headers: { "Cache-Control": "private, no-store" }, body: JSON.stringify(body) });
+  await route.fulfill({
+    status,
+    contentType: "application/json",
+    headers: { "Cache-Control": "private, no-store" },
+    body: JSON.stringify(body),
+  });
 }
 
 async function capture(page: Page, info: TestInfo, filename: string) {
   // Mobile overflow can expand both innerWidth and document.scrollWidth together.
   // Compare with the configured viewport, which does not grow with document layout.
   const width = page.viewportSize()!.width;
-  await expect.poll(() => page.evaluate(() => Math.max(innerWidth, document.documentElement.scrollWidth))).toBeLessThanOrEqual(width);
-  const screenshot = await page.screenshot({ path: info.outputPath(filename), fullPage: true, scale: "css", style: "nextjs-portal { visibility: hidden; }" });
+  await expect
+    .poll(() => page.evaluate(() => Math.max(innerWidth, document.documentElement.scrollWidth)))
+    .toBeLessThanOrEqual(width);
+  const screenshot = await page.screenshot({
+    path: info.outputPath(filename),
+    fullPage: true,
+    scale: "css",
+    style: "nextjs-portal { visibility: hidden; }",
+  });
   expect(screenshot.readUInt32BE(16)).toBe(width);
 }
 
@@ -53,16 +114,35 @@ async function account(page: Page) {
     const request = route.request();
     const path = new URL(request.url()).pathname;
     if (path === "/api/session") return reply(route, { user: { id: owner } });
-    if (path === `/api/projects/${id}/strategy` && request.method() === "GET") return reply(route, { availability: { status: "unavailable", operations: [], reason: "runtime_disabled" }, jobs: [] });
+    if (path === `/api/projects/${id}/strategy` && request.method() === "GET")
+      return reply(route, {
+        availability: { status: "unavailable", operations: [], reason: "runtime_disabled" },
+        jobs: [],
+      });
     if (path !== `/api/projects/${id}`) return reply(route, { error: "Synthetic not found" }, 404);
     if (request.method() === "GET") return reply(route, { project: state.project });
     if (request.method() !== "PATCH") return reply(route, { error: "Synthetic unsupported method" }, 405);
     const body = request.postDataJSON() as Record<string, unknown>;
     state.writes.push(body);
     if (state.failure) return reply(route, { error: "Synthetic save failure" }, state.failure);
-    if (body.expectedRevision !== state.project.current_revision) return reply(route, { error: "Synthetic version conflict" }, 409);
-    state.project = { ...state.project, title: typeof body.title === "string" ? body.title : state.project.title, context: contextSnapshotSchema.parse(body.context), current_revision: state.project.current_revision + 1 };
-    return reply(route, { revision: { project_id: id, owner_id: owner, revision: state.project.current_revision, context: state.project.context, input_hash: "synthetic-only", created_at: now } });
+    if (body.expectedRevision !== state.project.current_revision)
+      return reply(route, { error: "Synthetic version conflict" }, 409);
+    state.project = {
+      ...state.project,
+      title: typeof body.title === "string" ? body.title : state.project.title,
+      context: contextSnapshotSchema.parse(body.context),
+      current_revision: state.project.current_revision + 1,
+    };
+    return reply(route, {
+      revision: {
+        project_id: id,
+        owner_id: owner,
+        revision: state.project.current_revision,
+        context: state.project.context,
+        input_hash: "synthetic-only",
+        created_at: now,
+      },
+    });
   });
   return state;
 }
@@ -76,7 +156,9 @@ async function openBrief(page: Page) {
   return brief;
 }
 
-test("account fixture: failed saving and a revision conflict retain brief edits without claiming a save", async ({ page }) => {
+test("account fixture: failed saving and a revision conflict retain brief edits without claiming a save", async ({
+  page,
+}) => {
   const state = await account(page);
   const brief = await openBrief(page);
   const field = brief.getByRole("textbox", { name: "Brief description", exact: true });
@@ -112,10 +194,13 @@ test("account fixture: failed saving and a revision conflict retain brief edits 
 });
 
 test("project design: Strategy and its brief open without changing the saved context", async ({ page }, info) => {
-  const state = await account(page), original = JSON.stringify(state.project);
+  const state = await account(page),
+    original = JSON.stringify(state.project);
   const brief = await openBrief(page);
   await expect(brief.getByRole("textbox", { name: "Brief description", exact: true })).toHaveValue(description);
-  await expect(brief.getByRole("textbox", { name: "What the business does", exact: true })).toHaveValue("Lighting studio");
+  await expect(brief.getByRole("textbox", { name: "What the business does", exact: true })).toHaveValue(
+    "Lighting studio",
+  );
   await expect(brief.getByRole("status")).toHaveText("Saved");
   const box = await brief.boundingBox();
   expect(box!.y).toBeGreaterThanOrEqual(0);
@@ -126,5 +211,6 @@ test("project design: Strategy and its brief open without changing the saved con
   await expect(page.getByRole("button", { name: "Edit brief", exact: true })).toBeFocused();
   await expectProjectCanvas(page);
   await capture(page, info, "project-strategy.png");
-  expect(JSON.stringify(state.project)).toBe(original); expect(state.writes).toHaveLength(0);
+  expect(JSON.stringify(state.project)).toBe(original);
+  expect(state.writes).toHaveLength(0);
 });

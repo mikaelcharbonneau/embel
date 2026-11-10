@@ -11,9 +11,13 @@ type RouteContext = { params: Promise<{ projectId: string }> };
 export async function POST(request: Request, context: RouteContext) {
   try {
     await assertNotBot();
-    assertMutationOrigin(request); const auth = await getAuthenticatedContext(); assertExpectedAccount(request, auth.userId);
+    assertMutationOrigin(request);
+    const auth = await getAuthenticatedContext();
+    assertExpectedAccount(request, auth.userId);
     const body = await readJson(request, startNamingRunRequestSchema, 4096);
     if (body.kind === "steer") throw new ApiError("invalid_input");
     return privateJson(await startNamingEngineRun(auth, (await context.params).projectId, body));
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

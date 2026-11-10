@@ -1,4 +1,6 @@
-.section { min-width: 0; }
+.section {
+  min-width: 0;
+}
 .tabs {
   display: grid;
   grid-auto-columns: 1fr;
@@ -21,12 +23,36 @@
   font-weight: 500;
   cursor: pointer;
 }
-.tabs button:hover { color: var(--text); }
-.tabs button[aria-selected=true] { color: var(--text); background: var(--paper); box-shadow: 0 1px 2px #19191914, 0 0 0 1px var(--border); }
-.tabs button:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
-.form { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
-.form label { display: grid; flex: 1 1 140px; min-width: 0; gap: 6px; color: var(--secondary); font-size: 12px; font-weight: 500; }
-.form :is(input,select) {
+.tabs button:hover {
+  color: var(--text);
+}
+.tabs button[aria-selected="true"] {
+  color: var(--text);
+  background: var(--paper);
+  box-shadow:
+    0 1px 2px #19191914,
+    0 0 0 1px var(--border);
+}
+.tabs button:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
+.form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+}
+.form label {
+  display: grid;
+  flex: 1 1 140px;
+  min-width: 0;
+  gap: 6px;
+  color: var(--secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+.form :is(input, select) {
   width: 100%;
   min-height: 44px;
   min-width: 0;
@@ -38,10 +64,30 @@
   font: inherit;
   font-size: 15px;
 }
-.form :is(input,select):focus-visible { outline: 2px solid var(--text); outline-offset: -1px; border-color: transparent; }
-.form > button { height: 44px; min-height: 44px; padding-inline: 18px; border-radius: 10px; }
-.section p, .status { margin: 8px 0 0; color: var(--secondary); font-size: 13px; line-height: 1.5; }
-.status { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.form :is(input, select):focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+.form > button {
+  height: 44px;
+  min-height: 44px;
+  padding-inline: 18px;
+  border-radius: 10px;
+}
+.section p,
+.status {
+  margin: 8px 0 0;
+  color: var(--secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .result {
   margin-top: 14px;
   padding: 14px 16px;
@@ -51,9 +97,21 @@
   font-size: 14px;
   overflow-wrap: anywhere;
 }
-.resultHead { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
-.resultHead strong { font-size: 15px; font-weight: 600; }
-.result > p { color: var(--text); font-size: 14px; }
+.resultHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.resultHead strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+.result > p {
+  color: var(--text);
+  font-size: 14px;
+}
 .pill {
   display: inline-flex;
   align-items: center;
@@ -66,15 +124,62 @@
   font-weight: 500;
   white-space: nowrap;
 }
-.dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-.pill[data-tone=positive] { color: var(--positive); background: #3d64481a; }
-.pill[data-tone=negative] { color: var(--text); }
-.pill[data-tone=negative] .dot { background: var(--accent-ink); }
-.more { margin-top: 6px; font-size: 13px; }
-.more > summary { width: fit-content; color: var(--secondary); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
-.more > summary:hover { color: var(--text); }
-.more p { margin-top: 6px; }
-.result ul { max-height: 14rem; margin: 6px 0 0; overflow: auto; padding-inline-start: 20px; color: var(--secondary); font-size: 13px; }
-.meta { display: block; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); color: var(--secondary); font-size: 12px; }
-.section a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
-@media (max-width: 700px) { .form :is(input,select) { font-size: 16px; } }
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.pill[data-tone="positive"] {
+  color: var(--positive);
+  background: #3d64481a;
+}
+.pill[data-tone="negative"] {
+  color: var(--text);
+}
+.pill[data-tone="negative"] .dot {
+  background: var(--accent-ink);
+}
+.more {
+  margin-top: 6px;
+  font-size: 13px;
+}
+.more > summary {
+  width: fit-content;
+  color: var(--secondary);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.more > summary:hover {
+  color: var(--text);
+}
+.more p {
+  margin-top: 6px;
+}
+.result ul {
+  max-height: 14rem;
+  margin: 6px 0 0;
+  overflow: auto;
+  padding-inline-start: 20px;
+  color: var(--secondary);
+  font-size: 13px;
+}
+.meta {
+  display: block;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  color: var(--secondary);
+  font-size: 12px;
+}
+.section a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+@media (max-width: 700px) {
+  .form :is(input, select) {
+    font-size: 16px;
+  }
+}
