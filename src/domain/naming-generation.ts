@@ -118,6 +118,8 @@ export type NamingFeedEntry = z.infer<typeof namingFeedEntrySchema>;
 export const namingGenerationFeedSchema = z.strictObject({
   version: z.literal(2), projectId: z.uuid(), availability: namingAvailabilitySchema, run: namingRunSchema.nullable(),
   entries: z.array(namingFeedEntrySchema).max(100), nextCursor: namingFeedCursorSchema.nullable(),
+  /** Present while Naming runs on the generation engine (docs/generation-engine.md, step 3). */
+  engine: z.literal(true).optional(),
 });
 export type NamingGenerationFeed = z.infer<typeof namingGenerationFeedSchema>;
 

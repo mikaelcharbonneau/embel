@@ -53,7 +53,37 @@ export async function listRecordedUsage(auth: AuthenticatedContext) {
       tokens.set(step.job_id, step.receipt_operation === null ? null : recordedTokens(step.usage));
     }
   }
-  return verified(recordedUsageSchema, { ownerId: auth.userId, limit: RECORDED_USAGE_LIMIT,
-    entries: jobs.map(job => ({ id: job.id, operation: job.operation, completedAt: job.finished_at, tokens: tokens.get(job.id) ?? null })),
+  const entries = [
+    ...jobs.map(job => ({ id: job.id, operation: job.operation, completedAt: job.finished_at, tokens: tokens.get(job.id) ?? null })),
+    ...await engineNamingUsage(auth),
+    // A stable sort: entries finished at the same moment keep their database order.
+  ].sort((a, b) => Date.parse(b.completedAt) - Date.parse(a.completedAt)).slice(0, RECORDED_USAGE_LIMIT);
+  return verified(recordedUsageSchema, { ownerId: auth.userId, limit: RECORDED_USAGE_LIMIT, entries });
+}
+
+const engineRunSchema = z.object({ id: z.uuid(), owner_id: z.uuid(), kind: z.literal("naming.generate"), status: z.literal("succeeded"), finished_at: z.iso.datetime({ offset: true }) });
+const engineOutputSchema = z.object({ run_id: z.uuid(), owner_id: z.uuid(), usage: z.unknown().optional() });
+const outputTokensSchema = z.object({ inputTokens: z.number().int().nonnegative(), outputTokens: z.number().int().nonnegative() });
+/** Naming runs on the generation engine: token counts recorded on each saved reply
+ * (generation_outputs), summed per run. Costs stay there and are never shown. */
+async function engineNamingUsage(auth: AuthenticatedContext) {
+  const reply = await auth.client.from("generation_runs").select("id,owner_id,kind,status,finished_at")
+    .eq("owner_id", auth.userId).eq("kind", "naming.generate").eq("status", "succeeded")
+    .order("finished_at", { ascending: false }).limit(RECORDED_USAGE_LIMIT);
+  if (reply.error) throw new ApiError("integration_unavailable");
+  const runs = verified(z.array(engineRunSchema).max(RECORDED_USAGE_LIMIT), reply.data);
+  if (runs.some(run => run.owner_id !== auth.userId)) throw new ApiError("integration_unavailable");
+  if (!runs.length) return [];
+  const outputs = await auth.client.from("generation_outputs").select("run_id,owner_id,usage:output->usage")
+    .eq("owner_id", auth.userId).in("run_id", runs.map(run => run.id)).limit(RECORDED_USAGE_LIMIT * 10);
+  if (outputs.error) throw new ApiError("integration_unavailable");
+  const rows = verified(z.array(engineOutputSchema).max(RECORDED_USAGE_LIMIT * 10), outputs.data);
+  if (rows.some(row => row.owner_id !== auth.userId || !runs.some(run => run.id === row.run_id))) throw new ApiError("integration_unavailable");
+  return runs.map(run => {
+    const recorded = rows.filter(row => row.run_id === run.id).flatMap(row => { const usage = outputTokensSchema.safeParse(row.usage); return usage.success ? [usage.data] : []; });
+    const inputTokens = recorded.reduce((sum, usage) => sum + usage.inputTokens, 0), outputTokens = recorded.reduce((sum, usage) => sum + usage.outputTokens, 0);
+    const totalTokens = inputTokens + outputTokens;
+    return { id: run.id, operation: run.kind, completedAt: run.finished_at,
+      tokens: recorded.length && Number.isSafeInteger(totalTokens) ? { inputTokens, outputTokens, totalTokens } : null };
   });
 }

@@ -1,14 +1,18 @@
 import { z } from "zod";
 import { AccountRequestError } from "@/components/workspace/account-api";
 import { boundedAccountRequest } from "@/components/workspace/bounded-account-request";
+import { creditsMessage } from "@/components/workspace/credits-message";
+import { creditSummaryResponseSchema } from "@/domain/generations";
 import {
   NAMING_RUN_TARGET, namingGenerationFeedSchema, namingRunActive, namingRunSchema, startNamingRunRequestSchema,
   type NamingFeedCursor, type NamingFeedEntry, type NamingGenerationFeed, type NamingRunErrorCode, type NamingRunKind, type StartNamingRunRequest,
 } from "@/domain/naming-generation";
 import type { NamingAccount, NamingBrainMemory, NamingFeedState } from "./naming-brain-memory";
 
-/** Poll every second while a run is working, otherwise every 15 seconds (visible tabs only). */
+/** Poll every second while a run is working (every 3 seconds on the generation engine),
+ * otherwise every 15 seconds (visible tabs only). */
 export const NAMING_ACTIVE_POLL_MS = 1_000;
+export const NAMING_ENGINE_ACTIVE_POLL_MS = 3_000;
 export const NAMING_IDLE_POLL_MS = 15_000;
 /** One read follows at most this many 100-name pages; the next poll continues from there. */
 export const NAMING_FEED_MAX_PAGES = 50;
@@ -20,7 +24,8 @@ export const namingStartResponseSchema = z.strictObject({ feed: namingGeneration
 export type NamingBasis = { projectRevision: number; preferencesVersion: number };
 
 export function namingPollInterval(state: NamingFeedState | null | undefined) {
-  return state && (state.pending || state.stopping || namingRunActive(state.feed?.run)) ? NAMING_ACTIVE_POLL_MS : NAMING_IDLE_POLL_MS;
+  if (!state || !(state.pending || state.stopping || namingRunActive(state.feed?.run))) return NAMING_IDLE_POLL_MS;
+  return state.feed?.engine ? NAMING_ENGINE_ACTIVE_POLL_MS : NAMING_ACTIVE_POLL_MS;
 }
 
 /** Keeps known names in place and appends new ones; a newer local heart or save is never undone by an older read. */
@@ -34,7 +39,7 @@ export function mergeNamingFeedEntries(previous: readonly NamingFeedEntry[], inc
   return [...rows.values()];
 }
 
-const failureReasons: Record<NamingRunErrorCode, string> = {
+const failureReasons: Record<NamingRunErrorCode, string> & Record<string, string> = {
   send_interrupted: "Name generation was interrupted before it started.",
   provider_rejected: "The AI service turned down this request.",
   response_failed: "The AI service couldn’t finish these names.",
@@ -44,12 +49,20 @@ const failureReasons: Record<NamingRunErrorCode, string> = {
   no_names: "None of the new names passed the checks.",
   lease_expired: "Name generation stopped unexpectedly.",
   deadline: "Name generation took too long and was stopped.",
+  // Generation engine runs (docs/generation-engine.md).
+  provider_unavailable: "The AI service is busy right now.",
+  run_timed_out: "Name generation took too long and was stopped.",
+  start_failed: "Name generation couldn’t start.",
 };
+/** Out of credits: when they renew, and that nothing is lost. */
+export function namingCreditsMessage(periodEnd: string | null) {
+  return creditsMessage(periodEnd, "Your names are saved.");
+}
 const names = (count: number) => count === 1 ? "1 name" : `${count} names`;
 
 /** Plain copy for a failed run; names it saved before failing stay saved. */
 export function namingFailureMessage(code: string | null, savedCount: number) {
-  const reason = code && code in failureReasons ? failureReasons[code as NamingRunErrorCode] : "Name generation couldn’t finish.";
+  const reason = code && Object.hasOwn(failureReasons, code) ? failureReasons[code]! : "Name generation couldn’t finish.";
   return [reason, savedCount > 0 ? `${names(savedCount)} saved.` : "", code === "no_names" ? "Try again, or adjust your naming choices." : "Try again."].filter(Boolean).join(" ");
 }
 
@@ -79,12 +92,14 @@ function requestFailure(cause: unknown, action: "start" | "stop" | "load") {
     if (action === "start" && cause.status === 503) return "AI name generation is unavailable right now.";
     if (action === "start" && cause.status === 409) return "Your project or naming choices changed, or names are already being generated. Check the latest names, then try again.";
     if (action === "start" && cause.status === 422) return "Finish your naming choices before generating names.";
+    if (action === "start" && cause.status === 402) return namingCreditsMessage(null);
+    if (action === "start" && cause.status === 429) return "You’ve reached today’s limit for name generation. Try again tomorrow. Your names are saved.";
     if (cause.status === 429) return "Too many requests right now. Wait a moment, then try again.";
   }
   return action === "start" ? "Name generation couldn’t be confirmed. Try again." : action === "stop" ? "Stop couldn’t be confirmed. Try again." : "Names couldn’t be loaded. Try again.";
 }
 /** Answers that prove the request started nothing; anything else may have reached SQL. */
-const definitive = (cause: unknown) => cause instanceof AccountRequestError && [400, 401, 403, 404, 409, 413, 422, 429, 503].includes(cause.status);
+const definitive = (cause: unknown) => cause instanceof AccountRequestError && [400, 401, 402, 403, 404, 409, 413, 422, 429, 503].includes(cause.status);
 const cursorOf = (row?: NamingFeedEntry): NamingFeedCursor | null => row ? { createdAt: row.entry.candidate.createdAt, id: row.entry.candidate.id } : null;
 
 type Timers = { setTimeout: (callback: () => void, ms: number) => unknown; clearTimeout: (handle: unknown) => void };
@@ -182,6 +197,11 @@ export function createNamingFeedController(options: {
         update(value => ({ ...value, pending: definitive(cause) ? null : body }));
         fail(cause, "start");
         conflict = cause instanceof AccountRequestError && cause.status === 409;
+        // Out of credits: add when they renew. A failed lookup leaves the message without a date.
+        if (cause instanceof AccountRequestError && cause.status === 402) {
+          const periodEnd = await request("/api/credits", creditSummaryResponseSchema, { signal: controller.signal }).then(reply => reply.credits.periodEnd, () => null);
+          if (periodEnd && live(key, controller)) update(value => ({ ...value, error: namingCreditsMessage(periodEnd) }));
+        }
       }
       return false;
     } finally {

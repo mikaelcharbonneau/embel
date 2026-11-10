@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vite
 import type { z } from "zod";
 import { AccountRequestError } from "@/components/workspace/account-api";
 import { createNamingBrainMemory, type NamingFeedState } from "@/components/naming/naming-brain-memory";
-import { createNamingFeedController, mergeNamingFeedEntries, NAMING_ACTIVE_POLL_MS, NAMING_IDLE_POLL_MS, namingFailureMessage, namingPollInterval, namingStatus } from "@/components/naming/naming-feed-controller";
+import { createNamingFeedController, mergeNamingFeedEntries, NAMING_ACTIVE_POLL_MS, NAMING_ENGINE_ACTIVE_POLL_MS, NAMING_IDLE_POLL_MS, namingCreditsMessage, namingFailureMessage, namingPollInterval, namingStatus } from "@/components/naming/naming-feed-controller";
 import { NAMING_GENERATION_CAUTION, namingRunErrorCodeSchema, type NamingFeedEntry, type NamingGenerationFeed, type NamingRun, type NamingRunState } from "@/domain/naming-generation";
 import { nameIdentityKey, namingStrategyBasis, namingStrategyKey } from "@/domain/project-naming";
 import { contextSnapshotSchema } from "@/domain/projects";
@@ -231,6 +231,58 @@ describe("status copy", () => {
     expect(view({ feed: feed({ availability: { status: "unavailable", code: "worker_unavailable" }, run: run("running", { savedCount: 3 }) }) }).kind).toBe("active");
     expect(view({ feed: feed(), pending: { version: 2, kind: "initial", expectedProjectRevision: 1, expectedPreferencesVersion: 1, seedIds: [], instruction: null, idempotencyKey: "synthetic-key-0001" } })).toEqual({ kind: "starting", message: "Generating names…" });
     expect(view({ feed: feed({ run: run("running") }), error: "Stop couldn’t be confirmed. Try again." })).toEqual({ kind: "error", message: "Stop couldn’t be confirmed. Try again." });
+  });
+});
+
+describe("on the generation engine", () => {
+  /** An engine name: brainstorm origin version 2, run id instead of an old batch. */
+  function engineEntry(n: number): NamingFeedEntry {
+    const row = entry(n), { candidate } = row.entry;
+    return { ...row, entry: { ...row.entry, candidate: { ...candidate, origin: { kind: "brainstorm", version: 2, profile: "brainstorm_v1", ownerId: account.userId, projectId,
+      candidateId: candidate.id, contextRevision: 1, value: candidate.value, runId, outputKey: "round.1.1", responseId: "resp_synthetic", model: "gpt-6-luna", primaryApproach: "real_words", generatedAt: at(n) } } } };
+  }
+  it("shows engine names next to older ones and checks a working run every 3 seconds", async () => {
+    server = feed({ engine: true, run: run("running", { savedCount: 1 }), entries: [entry(1), engineEntry(2)] });
+    const feedController = controller(); const stop = feedController.startPolling(); await settle();
+    expect(state().entries.map(row => row.entry.candidate.origin.kind === "brainstorm" && row.entry.candidate.origin.version)).toEqual([1, 2]);
+    expect(namingPollInterval(state())).toBe(NAMING_ENGINE_ACTIVE_POLL_MS);
+    await vi.advanceTimersByTimeAsync(NAMING_ACTIVE_POLL_MS); expect(reads()).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(NAMING_ENGINE_ACTIVE_POLL_MS - NAMING_ACTIVE_POLL_MS); expect(reads()).toHaveLength(2);
+    server = { ...server, run: run("succeeded", { savedCount: 1 }) };
+    await vi.advanceTimersByTimeAsync(NAMING_ENGINE_ACTIVE_POLL_MS);
+    expect(namingPollInterval(state())).toBe(NAMING_IDLE_POLL_MS);
+    stop();
+  });
+  it("explains running out of credits with the renewal date, without a price, and drops the request", async () => {
+    server = feed({ engine: true });
+    const feedController = controller(); await feedController.load();
+    reply = call => {
+      if (call.path === "/api/credits") return { credits: { planId: "free", balance: 0, periodEnd: "2026-12-01T00:00:00Z" } };
+      if (call.method === "POST") throw new AccountRequestError(402);
+      return { feed: page(call.path) };
+    };
+    expect(await feedController.start()).toBe(false);
+    expect(state()).toMatchObject({ pending: null, retry: "start", error: "You've used this month's credits. They renew on December 1. Your names are saved." });
+    expect(state().error).not.toMatch(/\$|cost|price/iu);
+    expect(namingCreditsMessage(null)).toBe("You've used this month's credits. Your names are saved.");
+  });
+  it("names today's limit, and keeps an admitted run that didn't start for Try again with the same key", async () => {
+    server = feed({ engine: true });
+    const feedController = controller(); await feedController.load();
+    reply = call => { if (call.method === "POST") throw new AccountRequestError(429); return { feed: page(call.path) }; };
+    expect(await feedController.start()).toBe(false);
+    expect(state()).toMatchObject({ pending: null, error: "You’ve reached today’s limit for name generation. Try again tomorrow. Your names are saved." });
+    reply = call => { if (call.method === "POST") throw new AccountRequestError(500); return { feed: page(call.path) }; };
+    expect(await feedController.start()).toBe(false);
+    expect(state().pending).toMatchObject({ idempotencyKey: "synthetic-key-0002" });
+    reply = call => call.method === "POST" ? (server = { ...server, run: run("queued") }, { feed: page(base), run: server.run, reused: true }) : { feed: page(call.path) };
+    expect(await feedController.retry()).toBe(true);
+    expect(writes("/feed/ensure").map(call => (call.body as { idempotencyKey: string }).idempotencyKey)).toEqual(["synthetic-key-0001", "synthetic-key-0002", "synthetic-key-0002"]);
+  });
+  it("describes the engine's own failure reasons plainly", () => {
+    expect(namingFailureMessage("provider_unavailable", 0)).toBe("The AI service is busy right now. Try again.");
+    expect(namingFailureMessage("run_timed_out", 12)).toBe("Name generation took too long and was stopped. 12 names saved. Try again.");
+    expect(namingFailureMessage("policy_mismatch", 0)).toBe("Name generation couldn’t finish. Try again.");
   });
 });
 
