@@ -198,8 +198,7 @@ describe("new restricted Identity SQL replacement", () => {
         create function pg_temp.identity_replacement_worker_probe(p_job uuid,p_owner uuid) returns jsonb
         language sql stable security definer set search_path='' as $probe$
           select pg_catalog.jsonb_build_object('session',session_user,'current',current_user,
-            'workerOwner',public.subscription_worker_owner(),'canRead',public.subscription_worker_can_read_step(p_job,p_owner),
-            'apiWorkerOwner',public.api_text_worker_owner(),'apiCanRead',public.api_text_worker_can_read_step(p_job,p_owner))
+            'workerOwner',public.subscription_worker_owner(),'apiWorkerOwner',public.api_text_worker_owner(),'job',p_job,'owner',p_owner)
         $probe$;
         alter function pg_temp.identity_replacement_worker_probe(uuid,uuid) owner to fluid_identity_writer_definer_v1;
         revoke all on function pg_temp.identity_replacement_worker_probe(uuid,uuid) from public;
@@ -211,20 +210,19 @@ describe("new restricted Identity SQL replacement", () => {
             await db.query("select set_config('request.jwt.claim.sub',$1,true),set_config('fluid.identity.validated','true',true)", [claim]);
             for (const [job, owner] of [[root.jobId, OWNER_A], [foreignRoot.jobId, OWNER_B]]) {
               if (role === "fluid_identity_writer_definer_v1") {
-                // The helper keeps the four predicates (it reads job_steps under their policies); it is no worker.
-                expect((await db.query("select session_user::text session,current_user::text current,public.subscription_worker_owner() worker_owner,public.subscription_worker_can_read_step($1,$2) can_read,public.api_text_worker_owner() api_worker_owner,public.api_text_worker_can_read_step($1,$2) api_can_read", [job, owner])).rows)
-                  .toEqual([{ session: role, current: role, worker_owner: null, can_read: false, api_worker_owner: null, api_can_read: false }]);
+                // The helper can still execute the two old worker identity functions; it is no worker.
+                expect((await db.query("select session_user::text session,current_user::text current,public.subscription_worker_owner() worker_owner,public.api_text_worker_owner() api_worker_owner")).rows)
+                  .toEqual([{ session: role, current: role, worker_owner: null, api_worker_owner: null }]);
               } else {
                 // Since 20261110160000 the replacement logins cannot even call them.
-                for (const sql of ["select public.subscription_worker_owner()", "select public.api_text_worker_owner()",
-                  "select public.subscription_worker_can_read_step($1,$2)", "select public.api_text_worker_can_read_step($1,$2)"]) {
+                for (const sql of ["select public.subscription_worker_owner()", "select public.api_text_worker_owner()"]) {
                   await db.exec("savepoint denied_predicate");
-                  await expect(db.query(sql, sql.includes("$1") ? [job, owner] : [])).rejects.toMatchObject({ code: "42501" });
+                  await expect(db.query(sql)).rejects.toMatchObject({ code: "42501" });
                   await db.exec("rollback to denied_predicate");
                 }
               }
               expect((await db.query("select pg_temp.identity_replacement_worker_probe($1,$2) value", [job, owner])).rows)
-                .toEqual([{ value: { session: role, current: "fluid_identity_writer_definer_v1", workerOwner: null, canRead: false, apiWorkerOwner: null, apiCanRead: false } }]);
+                .toEqual([{ value: { session: role, current: "fluid_identity_writer_definer_v1", workerOwner: null, apiWorkerOwner: null, job, owner } }]);
             }
           }
           for (const sql of [
@@ -234,11 +232,6 @@ describe("new restricted Identity SQL replacement", () => {
             "select * from fluid_private.api_text_worker_principals",
             "update fluid_private.api_text_worker_principals set role_oid=role_oid where false",
             "delete from fluid_private.api_text_worker_principals where false",
-            `select public.claim_api_text_job('${root.jobId}'::uuid,'fixture',60,'unapproved-policy','unapproved-deployment')`,
-            "select public.check_api_text_runtime('strategy.reformulate','{}'::jsonb,'unapproved-deployment')",
-            `select public.configure_subscription_runtime('${OWNER_A}'::uuid,'{}'::jsonb)`,
-            `select public.claim_subscription_job('fixture','${OWNER_A}'::uuid,'fixture',60)`,
-            `select public.complete_job_step('${root.jobId}'::uuid,'${randomUUID()}'::uuid,'fixture','fixture',0::bigint,'{}'::jsonb,null::text)`,
           ]) {
             await db.exec("savepoint denied_worker_access");
             await expect(db.query(sql)).rejects.toMatchObject({ code: "42501" });

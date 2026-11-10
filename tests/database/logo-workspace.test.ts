@@ -86,14 +86,6 @@ describe("V2 workspace actual authenticated PostgreSQL persistence", () => {
     const workspace = logoWorkspaceV2Schema.parse(await start({ requestKey: randomUUID(), brief: input }));
     expect(await rpc("read_logo_workspace_record", [workspace.projectId, "stage", workspace.stages.brief_references!.id])).toMatchObject({ payload: { name } });
   });
-  it("no one can start a logo-only project or read its old start records any more", async () => {
-    for (const role of ["authenticated", "anon", "service_role"] as const) {
-      await expect(asRole(db, role, OWNER_A, () => db.query("select public.start_logo_project($1)", [{ requestKey: randomUUID(), brief }])), role).rejects.toMatchObject({ code: "42501", message: expect.stringContaining("permission denied") });
-      await expect(asRole(db, role, OWNER_A, () => db.query("select public.read_logo_project_creation($1)", [randomUUID()])), role).rejects.toMatchObject({ code: "42501", message: expect.stringContaining("permission denied") });
-      await expect(asRole(db, role, OWNER_A, () => db.query("select public.list_logo_project_creations('{}')")), role).rejects.toMatchObject({ code: "42501", message: expect.stringContaining("permission denied") });
-    }
-    expect(await counts()).toMatchObject({ projects: 0, revisions: 0, receipts: 0 });
-  });
   it("anonymous/service-role cannot execute public mutations or private helpers", async () => {
     const project = await unopened();
     for (const role of ["anon", "service_role"] as const) {

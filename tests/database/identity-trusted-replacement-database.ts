@@ -8,19 +8,16 @@ export const identityFixturePrincipals: Readonly<Record<string, string>> = Objec
   [OWNER_A]: "fixture_identity_replacement_a", [OWNER_B]: "fixture_identity_replacement_b",
 });
 const helper = "fluid_identity_writer_definer_v1";
-const inherited = ["public.subscription_worker_owner()", "public.subscription_worker_can_read_step(uuid,uuid)",
-  "public.api_text_worker_owner()", "public.api_text_worker_can_read_step(uuid,uuid)"];
+// Old worker identity functions kept because kept code still calls them. 20261110160000
+// granted them by name to every existing role, so the helper can execute them. The
+// job_steps policies that used them as predicates are retired (20261110180000).
+const inherited = ["public.subscription_worker_owner()", "public.api_text_worker_owner()"];
 const inheritedHashes: Record<string, string> = {
   subscription_worker_owner: "b8e9db7513576aef1db7860c844782b3d785f4b2ab71df42abe3f28aeb6743f1",
-  // 20261007020000 keeps the owner/session gate and existing ACL, and excludes
-  // all five logo operations from subscription-worker recovery metadata reads.
-  subscription_worker_can_read_step: "7fbb782b3c033ee9d37d7144a29af8a2eaf389bd1b7a2f3c69608b71c28bf769",
   // Reviewed 20261013190236 extends the 20261008010153 session identity with
   // a backend/transaction-bound gateway context and restricted role-name/OID
-  // check, falling back to the pinned legacy owner. Its ACL is unchanged here;
-  // neither this identity helper nor the RLS predicate confers mutation rights.
+  // check, falling back to the pinned legacy owner.
   api_text_worker_owner: "d937524b325c1fb4c33f2d8c84d0dbbb6168f7c62e4d116e529bae0e7d6d8a8a",
-  api_text_worker_can_read_step: "904fc5ef2b2f0fad8649fee21bf99b89f310ae058a9dea5c7bad47bc7afed939",
 };
 const logins = [...Object.values(identityFixturePrincipals), "fixture_identity_replacement_unbound"];
 const entrypoints = ["fluid_private.prepare_identity_transaction(uuid,jsonb,boolean)", "fluid_private.commit_identity_transaction(uuid,jsonb,jsonb)"];
@@ -45,7 +42,6 @@ async function schemaDatabaseACL(db: PGlite) {
 async function inheritedCatalog(db: PGlite) {
   return {
     functions: (await db.query("select p.oid::regprocedure::text signature,pg_get_userbyid(p.proowner) owner,p.prosecdef definer,p.proconfig config,p.proacl::text acl,pg_get_functiondef(p.oid) definition from pg_catalog.pg_proc p where p.oid=any(select to_regprocedure(x)::oid from unnest($1::text[]) x) order by signature", [inherited])).rows,
-    policy: (await db.query("select schemaname,tablename,policyname,roles,cmd,qual,with_check from pg_catalog.pg_policies where schemaname='public' and tablename='job_steps' and policyname in ('subscription_worker_step_read','api_text_worker_step_read') order by policyname")).rows,
   };
 }
 export async function createIdentityTrustedDatabase(): Promise<PGlite> {
@@ -93,7 +89,7 @@ export async function inspectIdentityReplacementCatalog(db: PGlite) {
   }
   const functions = (await db.query<{ oid: number; signature: string; name: string; owner: string; definer: boolean; config: string[]; definition: string; acl: string | null }>(
     "select p.oid,p.oid::regprocedure::text signature,p.proname name,pg_get_userbyid(p.proowner) owner,p.prosecdef definer,p.proconfig config,pg_get_functiondef(p.oid) definition,p.proacl::text acl from pg_catalog.pg_proc p where p.oid=any(select to_regprocedure(x)::oid from unnest($1::text[]) x) order by p.oid::regprocedure::text", [[...entrypoints, ...dependencies, ...inherited]])).rows;
-  requireCatalog(functions.length === 15, "two entrypoints, nine invoker dependencies, four inherited RLS predicates");
+  requireCatalog(functions.length === 13, "two entrypoints, nine invoker dependencies, two inherited worker identity functions");
   for (const fn of functions) {
     const entry = ["prepare_identity_transaction", "commit_identity_transaction"].includes(fn.name);
     const inheritedHash = inheritedHashes[fn.name];
@@ -119,7 +115,7 @@ export async function inspectIdentityReplacementCatalog(db: PGlite) {
     requireCatalog(unexpected.length === 0, `no unlisted data relation rights ${role.rolname}`); unexpectedRelationRights.push({ role: role.rolname, relations: unexpected });
   }
   const inheritedAfter = await inheritedCatalog(db);
-  requireCatalog(JSON.stringify(inheritedAfter) === JSON.stringify(inheritedBaselines.get(db)), "unchanged inherited baseline definitions/ACL/policy");
+  requireCatalog(JSON.stringify(inheritedAfter) === JSON.stringify(inheritedBaselines.get(db)), "unchanged inherited baseline definitions/ACL");
   const workerBindings = (await db.query("select role_name,role_oid from fluid_private.subscription_worker_principals where role_name=any($1::text[]) or role_oid=any($2::oid[]) union all select role_name,role_oid from fluid_private.api_text_worker_principals where role_name=any($1::text[]) or role_oid=any($2::oid[])", [[helper, ...logins], roles.map(r => r.oid)])).rows;
   requireCatalog(workerBindings.length === 0, "replacement name/OID must have no worker binding");
   const executable = [];

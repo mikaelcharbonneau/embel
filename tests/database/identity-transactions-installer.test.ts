@@ -1,12 +1,15 @@
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { readdir,readFile } from 'node:fs/promises';
 import { afterAll,beforeAll,describe,expect,it } from 'vitest';
-import { createTestDatabase,type TestDatabase } from './local-supabase';
+import { createTestDatabase,RETIRE_OLD_WORKER_MIGRATION,type TestDatabase } from './local-supabase';
+import { fixtureMigrationNames } from './fixture-migrations';
 const source=new URL('../../supabase/candidates/identity_transactions.sql',import.meta.url);
 const bodyHashes={identity_web_owner:'49895b45e6a1cafd7aee6966881f462ab74fba3d024c2385563f0a13efb93721',prepare_identity_transaction:'f6db4c816fa1418cb76b40f7d9f9b43effacfec3bbdcaa462325c52c1eabf166',commit_identity_transaction:'63febf976e3504873425fc3d388c319e320291d83a6bc048a4fb56a36a671f6a'};
+// Production installed this packet before the old worker objects were retired, and its
+// predecessor checks name objects that retirement drops, so it runs at that point.
 describe('unapplied production Identity helper installer without fixture principals',()=>{
  let db:TestDatabase;
- beforeAll(async()=>{db=await createTestDatabase();},60_000);
+ beforeAll(async()=>{db=await createTestDatabase({before:RETIRE_OLD_WORKER_MIGRATION});},60_000);
  afterAll(async()=>{await db?.close();});
  it('rejects an unqualified predecessor before creating boundary objects or granting access',async()=>{
   await db.exec('begin; alter function fluid_private.identity_time_key(text) rename to changed_identity_time_key');
@@ -34,5 +37,13 @@ describe('unapplied production Identity helper installer without fixture princip
  it('refuses an existing boundary instead of overwriting bindings or helper authority',async()=>{
   await expect(db.exec(await readFile(source,'utf8'))).rejects.toMatchObject({code:'55000'});await db.exec('rollback');
   expect((await db.query('select * from fluid_private.identity_web_principals')).rows).toHaveLength(0);
+ });
+ it('keeps the installed helpers through the retirement and later migrations',async()=>{
+  const directory=new URL('../../supabase/migrations/',import.meta.url),all=fixtureMigrationNames(await readdir(directory));
+  for(const name of all.slice(all.indexOf(RETIRE_OLD_WORKER_MIGRATION)))await db.exec(await readFile(new URL(name,directory),'utf8'));
+  const functions=(await db.query<{proname:keyof typeof bodyHashes;prosrc:string}>("select p.proname,p.prosrc from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='fluid_private' and p.proname=any($1::text[])",[Object.keys(bodyHashes)])).rows;
+  expect(functions).toHaveLength(3);
+  for(const fn of functions)expect(createHash('sha256').update(fn.prosrc).digest('hex')).toBe(bodyHashes[fn.proname]);
+  expect((await db.query<{present:boolean}>("select to_regclass('fluid_private.identity_web_principals') is not null present")).rows[0]!.present).toBe(true);
  });
 });

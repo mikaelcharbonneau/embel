@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { getIdentityReferences, setReferenceReaction } from "../../src/server/data/identity-references";
-import { asRole, asSubscriptionWorker, OWNER_A, OWNER_B, resetFixture, seedProject, type TestDatabase } from "./local-supabase";
+import { asRole, OWNER_A, OWNER_B, resetFixture, seedProject, type TestDatabase } from "./local-supabase";
 import { createReferenceTestDatabase, seedReference, readReferences, react, capture, referenceDalAuth } from "./identity-reference-database";
 import { identityReferenceBasis } from "../../src/domain/identity-references";
 let db: TestDatabase, project: string, otherProject: string, foreignProject: string;
@@ -28,7 +28,7 @@ describe("reference ownership, capabilities and durable media binding", () => {
     const security = await db.query<{ relrowsecurity: boolean; relforcerowsecurity: boolean }>("select relrowsecurity,relforcerowsecurity from pg_class where relname=any($1::text[])", [tables]);
     expect(security.rows).toHaveLength(4); expect(security.rows.every(row => row.relrowsecurity && row.relforcerowsecurity)).toBe(true);
   });
-  it("rejects direct client writes, anonymous calls and new service/worker capabilities", async () => {
+  it("rejects direct client writes, anonymous calls and new service capabilities", async () => {
     await asRole(db, "authenticated", OWNER_A, async () => {
       for (const table of tables) for (const command of ["insert into", "update", "delete from"]) {
         const sql = command === "insert into" ? `insert into public.${table}(owner_id,project_id) values($1,$2)` : command === "update" ? `update public.${table} set owner_id=$1 where project_id=$2` : `delete from public.${table} where owner_id=$1 and project_id=$2`;
@@ -39,10 +39,6 @@ describe("reference ownership, capabilities and durable media binding", () => {
     for (const role of ["anon", "service_role"] as const) await asRole(db, role, OWNER_A, async () => {
       await expect(db.query("select public.get_identity_references($1,'{}')", [project])).rejects.toMatchObject({ code: "42501" });
       await expect(db.query("select public.set_identity_reference_reaction($1,gen_random_uuid(),'{}')", [project])).rejects.toMatchObject({ code: "42501" });
-    });
-    await asSubscriptionWorker(db, OWNER_A, async () => {
-      await expect(db.query("select public.get_identity_references($1,'{}')", [project])).rejects.toMatchObject({ code: "42501" });
-      await expect(db.query("select * from public.identity_references")).rejects.toMatchObject({ code: "42501" });
     });
   });
   it.each([{ purpose: "brand_asset" }, { purpose: "legacy_unknown" }, { mimeType: "image/svg+xml" }, { mimeType: "text/html" }, { stored: false }])("rejects unusable reference media %j", async options => {

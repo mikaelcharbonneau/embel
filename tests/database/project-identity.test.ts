@@ -131,12 +131,6 @@ describe("Identity guarded public SQL and injected trusted source transactions",
   await expect(rpc("select_identity_system",{...request(f),expectedProjectRevision:otherRoot.input.projectRevision,expectedReferenceRevision:otherRoot.input.referenceSnapshot.referenceRevision},OWNER_A,other)).rejects.toMatchObject({code:"not_found"});
   await expect(rpc("select_identity_system",request(f),OWNER_B)).rejects.toMatchObject({code:"not_found"});
  });
- it.each(["select_identity_system","refine_identity_component"])("keeps public %s unavailable before writes, even for a valid owner",async(name)=>{
-  const f=await seedIdentityRoot(db,projectId);
-  await expect(asRole(db,"authenticated",OWNER_A,()=>db.query(`select public.${name}($1,$2::jsonb)`,[projectId,JSON.stringify(request(f))]))).rejects.toMatchObject({code:"55000"});
-  await expect(asRole(db,"authenticated",OWNER_B,()=>db.query(`select public.${name}($1,$2::jsonb)`,[projectId,JSON.stringify(request(f))]))).rejects.toMatchObject({code:"P0002"});
-  for(const table of ["identity_sessions","identity_selections","identity_component_changes","asset_usages"]){expect((await db.query(`select count(*)::int count from public.${table}`)).rows[0]).toEqual({count:0});}
- });
  it("denies execution of every private Identity helper and keeps the worker unchanged",async()=>{
   const rows=await db.query<{signature:string;auth:boolean;anon:boolean;worker:boolean}>("select p.oid::regprocedure::text signature,has_function_privilege('authenticated',p.oid,'execute') auth,has_function_privilege('anon',p.oid,'execute') anon,has_function_privilege('fixture_subscription_worker_a',p.oid,'execute') worker from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='fluid_private' and p.proname like 'identity_%'");
   expect(rows.rows.length).toBeGreaterThan(10);for(const row of rows.rows)expect({auth:row.auth,anon:row.anon,worker:row.worker}).toEqual({auth:false,anon:false,worker:false});

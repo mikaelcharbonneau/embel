@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { asRole, asSubscriptionWorker, createTestDatabase, enqueue, HASH, OWNER_A, OWNER_B, resetFixture, seedProject, type TestDatabase } from "../database/local-supabase";
+import { asRole, createTestDatabase, enqueue, HASH, OWNER_A, OWNER_B, resetFixture, seedProject, type TestDatabase } from "../database/local-supabase";
 import type { LogoWorkspaceV2 } from "../../src/domain/logo-workspace";
 import { ownerQuery, startLogoFixture } from "../database/logo-project-fixture";
 
@@ -14,19 +14,14 @@ const reviewedLogoAndHomeFunctions = [
   "public.read_logo_current_vector(uuid)",
   // 20261007011000: server/data/logo-jobs.ts uses bounded quote/admission and
   // owner-scoped recovery. Reconcile is read-only; it cannot dispatch a retry.
-  "public.quote_logo_operation(uuid, jsonb)",
-  "public.admit_logo_operation(uuid, jsonb)",
   "public.read_logo_request(uuid, uuid)",
-  "public.reconcile_logo_request(uuid, uuid)",
   // 20261007011700 and 20261007012000: vector history and exact direction source
   // reads used by features/logo-vector and features/identity-directions/server.
-  "public.list_logo_vector_history(uuid, jsonb)",
   "public.read_logo_direction_selection_sources(uuid, jsonb)",
   // 20261007013000: features/identity-deliverables/server/persistence.ts reads
   // owned frozen proofs and requests an explicitly reviewed zero-cost export.
   "public.read_logo_deliverable_sources(uuid)",
   "public.read_logo_variant_set(uuid, uuid)",
-  "public.request_logo_export(uuid, jsonb)",
   "public.get_logo_export(uuid, uuid)",
   "public.get_logo_deliverables(uuid, jsonb)",
   // 20261110090000: generation engine. Owner-derived admission with credits and limits,
@@ -45,16 +40,7 @@ const reviewedLogoAndHomeFunctions = [
   "public.start_identity_directions(uuid, jsonb)",
   "public.cancel_identity_directions(uuid, uuid)",
   "public.close_identity_directions_intent(uuid, jsonb)",
-  // local20261007014000: server/data/home-lifecycle.ts preserves manual source
-  // provenance through owner-derived association/promotion and receipt recovery.
-  "public.attach_idea_to_project(jsonb)",
-  "public.read_idea_project_attachment_request(uuid)",
-  "public.get_project_idea_attachments(uuid, uuid, integer)",
-  "public.promote_standalone_workspace(jsonb)",
-  "public.read_standalone_promotion_request(uuid)",
-  "public.get_standalone_promotion_source(uuid)",
   // Frozen revision/hash inspection, never the mutable standalone workspace head.
-  "public.get_standalone_promotion_snapshot(uuid)",
   // 20261007015000: owned upload-status recovery and one-time project attachment
   // linking; byte upload/verification helpers receive no authenticated EXECUTE.
   "public.read_home_attachment_request(uuid)",
@@ -72,21 +58,11 @@ const reviewedLogoAndHomeFunctions = [
   // Exact-body cancellation only: project-locked immutable tombstone; a
   // committed registration remains successful and cannot be deleted or replaced.
   "public.cancel_logo_input_request(uuid, jsonb)",
-  // 20261007018000: features/logo-vector/server/cancellation.ts reads exact
-  // edit outcomes and appends owner/project-locked cancellation proofs only.
-  "public.cancel_logo_vector_edit(uuid, jsonb)",
-  "public.read_logo_vector_edit_request(uuid, uuid)",
-  // 20261007021000: server/data/logo-capabilities.ts exposes only five fresh
-  // owned readiness hints; no policy, worker, job or stored workspace mutation.
-  "public.read_logo_capabilities(uuid)",
 ] as const;
 
 const reviewedAccountWorkflowFunctions = [
   // Reviewed owner-scoped hosted admission/availability and read-only delivery recovery.
   // Existing migrations 20261019024815 and 20261020033500; no grant changes here.
-  "public.get_hosted_naming_availability(uuid)",
-  "public.ensure_hosted_naming_brain_run(uuid, jsonb)",
-  "public.get_strategy_job_deliveries(uuid, uuid[])",
   // 20261029180000: owned read-only Strategy summaries. Raw input and lease
   // fields stay private; this grants no worker mutation or execution authority.
   "public.get_strategy_job_summaries(uuid, uuid)",
@@ -100,18 +76,9 @@ const reviewedAccountWorkflowFunctions = [
   "public.review_project_visual_direction(uuid, jsonb)",
   "public.get_project_screening(uuid, jsonb)",
   "public.record_project_screening(uuid, jsonb)",
-  // 20261013190229: owned standalone jobs and retention. No worker readiness,
-  // claim, pulse or finish entrypoint receives a client EXECUTE grant.
-  "public.get_standalone_names(timestamp with time zone, uuid)",
-  "public.get_standalone_name_job(uuid)",
-  "public.enqueue_standalone_names(jsonb)",
-  "public.cancel_standalone_names(uuid)",
-  "public.retain_standalone_name(uuid, integer, boolean, boolean)",
   // 20261015201722 / 20261015201757: parsed public wrappers delegate to exact
   // private helpers below without granting private-schema USAGE or raw writes.
   "public.create_project_with_request(uuid, text, text, jsonb, text)",
-  "public.get_names_workspace()",
-  "public.save_names_workspace(integer, uuid, jsonb)",
   // 20261015232500 / 20261015235900: owner/revision/lifecycle-fenced recoverable
   // deletion and restore, with durable stop intent and read-only status.
   // set_project_deleted is no longer client-callable (20261110160000).
@@ -123,7 +90,6 @@ const reviewedAccountWorkflowFunctions = [
 
 const authenticatedWrapperFunctions = [
   "fluid_private.create_project_with_request(uuid, text, text, jsonb, text)",
-  "fluid_private.save_names_workspace(integer, uuid, jsonb)",
 ] as const;
 
 // Uses the real greenfield migration in local PostgreSQL/WASM, with emulated Auth claims.
@@ -133,6 +99,11 @@ describe("independent database boundary attacks", () => {
   beforeAll(async () => { db = await createTestDatabase(); }, 30_000);
   beforeEach(async () => { await resetFixture(db); });
   afterAll(async () => { await db?.close(); });
+  // A direct login with no grants of its own, as the retired worker logins were.
+  async function asUnrelatedLogin<T>(run: () => Promise<T>): Promise<T> {
+    await db.exec("grant connect on database postgres to fixture_subscription_worker_a; grant usage on schema public to fixture_subscription_worker_a; set session authorization fixture_subscription_worker_a");
+    try { return await run(); } finally { await db.exec("set session authorization postgres"); }
+  }
 
   async function fullTenant(owner: string) {
     const project = await seedProject(db, owner);
@@ -213,7 +184,7 @@ describe("independent database boundary attacks", () => {
         await expect(db.query(`update public.${table} set owner_id=$1 where project_id=$2`, [OWNER_A, a.project])).rejects.toMatchObject({ code: "42501" });
       }
     });
-    await asSubscriptionWorker(db, OWNER_A, async () => {
+    await asUnrelatedLogin(async () => {
       for (const table of tables) await expect(db.query(`select owner_id from public.${table}`)).rejects.toMatchObject({ code: "42501" });
     });
     for (const table of ["identity_references", "identity_reference_snapshots"]) {
@@ -265,7 +236,7 @@ describe("independent database boundary attacks", () => {
         await expect(db.query(`update public.${table} set owner_id=$1`, [OWNER_A]), table).rejects.toMatchObject({ code: "42501" });
       }
     });
-    await asSubscriptionWorker(db, OWNER_A, async () => {
+    await asUnrelatedLogin(async () => {
       for (const table of tables) await expect(db.query(`select owner_id from public.${table}`), table).rejects.toMatchObject({ code: "42501" });
     });
     for (const table of ["logo_stage_revisions", "logo_reference_sources", "logo_reference_snapshots", "logo_workspace_requests"]) {
@@ -280,10 +251,6 @@ describe("independent database boundary attacks", () => {
       expect((await db.query("select id from public.projects")).rows).toEqual([]);
       expect((await db.query("select name from storage.objects")).rows).toEqual([]);
       await expect(db.query("select * from public.create_project('naming_only','No identity','{}',$1)", [HASH])).rejects.toThrow(/unauthenticated/);
-      await expect(db.query("select public.get_strategy_availability(null)")).rejects.toThrow(/unauthenticated/);
-      await expect(db.query("select public.enqueue_strategy_job($1,1,'strategy.reformulate','qa-no-subject-claim',100)", [a.project])).rejects.toThrow(/unauthenticated/);
-      await expect(db.query("select public.apply_strategy_job_result($1,$2,1,'qa-step')", [a.project, a.job])).rejects.toThrow(/unauthenticated/);
-      await expect(db.query("select public.apply_strategy_job_result_v2($1,$2,1,'qa-step')", [a.project, a.job])).rejects.toThrow(/unauthenticated/);
       await expect(db.query("select public.list_account_assets('{}')")).rejects.toThrow(/unauthenticated/);
       await expect(db.query("select public.get_asset_detail($1,'{}')", [a.asset])).rejects.toThrow(/unauthenticated/);
       await expect(db.query("select public.set_asset_retention($1,0,true,true)", [a.asset])).rejects.toThrow(/unauthenticated/);
@@ -295,18 +262,8 @@ describe("independent database boundary attacks", () => {
           `(${types ? types.split(", ").map(type => `null::${type}`).join(", ") : ""})`);
         await expect(db.query(`select ${invocation}`), signature).rejects.toMatchObject({ code: "42501", message: "unauthenticated" });
       }
-      // All authenticated-only RPCs introduced by the manual Ideas, standalone
-      // and logo migrations must reject a missing UID before processing input.
+      // The Logo workspace RPCs must reject a missing UID before processing input.
       for (const sql of [
-        "select public.create_idea(null,null)",
-        "select public.update_idea(null,null,null,null)",
-        "select public.get_idea(null)",
-        "select public.list_ideas(null,null,null,null,null)",
-        "select public.create_idea_brand(null,null,null,null,null)",
-        "select public.get_project_idea_source(null)",
-        "select public.get_standalone_workspace(null)",
-        "select public.get_standalone_import(null)",
-        "select public.save_standalone_workspace(null,null,null,null,null)",
         "select public.get_logo_workspace(null)",
         "select public.read_logo_workspace_record(null,null,null)",
         "select public.list_logo_workspace_records(null,null,null)",
@@ -318,23 +275,20 @@ describe("independent database boundary attacks", () => {
   });
 
   it("keeps private helpers and all worker functions unavailable to client roles", async () => {
-    const principal = await asSubscriptionWorker(db, OWNER_A, async () => (await db.query<{ login: string }>("select session_user as login")).rows[0]!.login);
-    const grants = await db.query<{ signature: string; anonymous: boolean; authenticated: boolean; worker: boolean; subscription_worker: boolean }>(
-      "select n.nspname || '.' || p.proname || '(' || oidvectortypes(p.proargtypes) || ')' as signature,has_function_privilege('anon',p.oid,'execute') as anonymous,has_function_privilege('authenticated',p.oid,'execute') as authenticated,has_function_privilege('service_role',p.oid,'execute') as worker,has_function_privilege($1,p.oid,'execute') as subscription_worker from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','fluid_private')", [principal],
+    const grants = await db.query<{ signature: string; anonymous: boolean; authenticated: boolean; worker: boolean; unrelated_login: boolean }>(
+      "select n.nspname || '.' || p.proname || '(' || oidvectortypes(p.proargtypes) || ')' as signature,has_function_privilege('anon',p.oid,'execute') as anonymous,has_function_privilege('authenticated',p.oid,'execute') as authenticated,has_function_privilege('service_role',p.oid,'execute') as worker,has_function_privilege('fixture_subscription_worker_a',p.oid,'execute') as unrelated_login from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','fluid_private')",
     );
     // Exact reviewed signatures: a newly introduced overload must not inherit an
     // allowlist entry merely because it shares the name of a safe client RPC.
-    // The four worker RLS helpers reveal only the actual session's binding (or null)
-    // and an owner-scoped boolean used by the job_steps policies. They confer no
-    // execution authority. 20261110160000 revoked them from PUBLIC and anon; the
-    // signed-in role, service_role and worker logins keep explicit grants because
-    // those roles evaluate the job_steps policies.
+    // The two old worker identity helpers reveal only the actual session's binding
+    // (null for everyone now) and confer no execution authority. Project lifecycle
+    // guards still call them as the signed-in role. 20261110160000 revoked them from
+    // PUBLIC and anon; 20261110180000 dropped the job_steps worker policies and the
+    // worker functions that service_role and the worker logins executed.
     const publicFunctions = new Set([
       "public.subscription_worker_owner()",
-      "public.subscription_worker_can_read_step(uuid, uuid)",
       // Actual-session identity and owner-scoped RLS predicate only; no mutation.
       "public.api_text_worker_owner()",
-      "public.api_text_worker_can_read_step(uuid, uuid)",
     ]);
     // 20261007022000 grants only this exact private RLS predicate to the
     // authenticated role. It is not a public RPC: private-schema USAGE remains
@@ -350,24 +304,12 @@ describe("independent database boundary attacks", () => {
       ...authenticatedPolicyFunctions,
       "public.create_project(text, text, jsonb, text)",
       "public.append_project_revision(uuid, integer, jsonb, text, text)",
-      "public.expand_project_scope(uuid, integer)",
       "public.request_job_cancel(uuid)",
-      "public.get_strategy_availability(uuid)",
-      "public.enqueue_strategy_job(uuid, integer, text, text, bigint)",
-      // 20261017090000: explicit operator-bound local prototype admission and
-      // owner-scoped readiness. Worker actions and metadata remain ungranted.
-      "public.get_local_strategy_availability(uuid)",
-      "public.enqueue_local_strategy_job(uuid, integer, text, text, bigint)",
-      "public.ensure_local_naming_brain_run(uuid, jsonb)",
-      "public.enqueue_subscription_strategy_job(uuid, integer, text, text, text)",
-      "public.apply_strategy_job_result(uuid, uuid, integer, text)",
-      "public.apply_strategy_job_result_v2(uuid, uuid, integer, text)",
       "public.save_naming_preferences(uuid, integer, jsonb)",
       "public.save_naming_view(uuid, integer, jsonb)",
       "public.set_name_retention(uuid, uuid, integer, boolean, boolean)",
       "public.get_naming_availability(uuid)",
       "public.get_naming_batch(uuid, uuid)",
-      "public.enqueue_subscription_naming_job(uuid, integer, integer, integer, text, text)",
       "public.import_local_name(uuid, integer, jsonb, jsonb, text, text)",
       "public.persist_name_transform(uuid, uuid, uuid, jsonb, jsonb, text)",
       "public.select_project_name(uuid, uuid, integer, boolean)",
@@ -377,16 +319,6 @@ describe("independent database boundary attacks", () => {
       "public.get_naming_batches(uuid, jsonb)",
       "public.get_project_naming(uuid, jsonb)",
       "public.get_account_names(jsonb)",
-      // 20261016180000: exactly the authenticated owner-scoped Naming surface.
-      "public.append_prepared_naming_set(uuid, uuid)",
-      "public.ensure_naming_brain_run(uuid, jsonb)",
-      "public.get_naming_brain_candidate_source(uuid, uuid)",
-      "public.get_naming_brain_candidate_sources(uuid, jsonb)",
-      "public.get_naming_brain_job_accounting(uuid)",
-      "public.get_naming_brain_run(uuid, uuid)",
-      "public.get_naming_feed(uuid, jsonb)",
-      "public.steer_naming_feed(uuid, jsonb)",
-      "public.stop_naming_feed(uuid, jsonb)",
       "public.list_account_assets(jsonb)",
       "public.get_asset_detail(uuid, jsonb)",
       "public.set_asset_retention(uuid, integer, boolean, boolean)",
@@ -397,22 +329,6 @@ describe("independent database boundary attacks", () => {
       "public.list_identity_systems(uuid, jsonb)",
       "public.get_identity_system(uuid, uuid)",
       "public.set_identity_preferences(uuid, jsonb)",
-      // Public selection/refinement remain executable guards: every owned call
-      // raises55000 before writes. The trusted helpers have no client grant.
-      "public.select_identity_system(uuid, jsonb)",
-      "public.refine_identity_component(uuid, jsonb)",
-      // 20261005221000_manual_ideas: auth.uid()-derived owners, immutable source
-      // links, and no anonymous, service-role or subscription-worker grants.
-      "public.create_idea(uuid, jsonb)",
-      "public.update_idea(uuid, integer, uuid, jsonb)",
-      "public.get_idea(uuid)",
-      "public.list_ideas(timestamp with time zone, uuid, integer, text, text)",
-      "public.create_idea_brand(uuid, integer, uuid, jsonb, text)",
-      "public.get_project_idea_source(uuid)",
-      // 20261006010000_standalone_workspaces: owned manual drafts/imports only.
-      "public.get_standalone_workspace(text)",
-      "public.get_standalone_import(uuid)",
-      "public.save_standalone_workspace(text, integer, uuid, jsonb, jsonb)",
       // 20261006130000_logo_workspace_v2: owner-checked manual history and CAS;
       // no generation, upload, provider execution or broader worker access.
       // 20261109100000 retired its logo-only project start and readers.
@@ -421,51 +337,19 @@ describe("independent database boundary attacks", () => {
       "public.list_logo_workspace_records(uuid, text, jsonb)",
       "public.apply_logo_workspace_command(uuid, jsonb)",
     ]);
-    const workerFunctions = new Set([
-      ...publicFunctions,
-      "public.enqueue_job(uuid, uuid, text, integer, text, jsonb, text, bigint, integer)",
-      "public.claim_job(text, integer)",
-      "public.heartbeat_job(uuid, uuid, integer)",
-      "public.report_job_progress(uuid, uuid, integer)",
-      "public.register_job_plan(uuid, uuid, jsonb)",
-      "public.begin_job_step(uuid, uuid, text, text, bigint)",
-      "public.complete_job_step(uuid, uuid, text, text, bigint, jsonb, text)",
-      "public.finish_job(uuid, uuid, text, text)",
-      "public.expire_job_leases()",
-      "public.report_strategy_worker_ready(text, jsonb, integer)",
-    ]);
-    const subscriptionFunctions = new Set([
-      ...publicFunctions,
-      "public.heartbeat_job(uuid, uuid, integer)",
-      "public.register_job_plan(uuid, uuid, jsonb)",
-      "public.begin_job_step(uuid, uuid, text, text, bigint)",
-      "public.complete_job_step(uuid, uuid, text, text, bigint, jsonb, text)",
-      "public.finish_job(uuid, uuid, text, text)",
-      "public.expire_job_leases()",
-      "public.configure_subscription_runtime(uuid, text, jsonb, boolean)",
-      // Opt-in execute grants belong only to the disposable local worker fixture.
-      "public.configure_subscription_runtime(uuid, jsonb)",
-      "public.complete_naming_job_step(uuid, uuid, text, text, bigint, jsonb, text)",
-      "public.get_subscription_runtime_bindings()",
-      "public.report_subscription_worker_ready(uuid, text, text, jsonb, integer)",
-      "public.disable_subscription_runtime(uuid, text)",
-      "public.claim_subscription_job(text, uuid, text, integer)",
-      "public.append_subscription_partial(uuid, uuid, text)",
-    ]);
+    // service_role and a direct login keep only the two identity helpers.
+    const workerFunctions = new Set([...publicFunctions]);
+    const unrelatedLoginFunctions = new Set([...publicFunctions]);
     expect(grants.rows.length).toBeGreaterThan(10);
     expect(new Set(grants.rows.filter(grant => grant.authenticated).map(grant => grant.signature))).toEqual(userFunctions);
     expect(new Set(grants.rows.filter(grant => grant.worker).map(grant => grant.signature))).toEqual(workerFunctions);
-    expect(new Set(grants.rows.filter(grant => grant.subscription_worker).map(grant => grant.signature))).toEqual(subscriptionFunctions);
+    expect(new Set(grants.rows.filter(grant => grant.unrelated_login).map(grant => grant.signature))).toEqual(unrelatedLoginFunctions);
     for (const grant of grants.rows) {
       expect(grant.anonymous, grant.signature).toBe(false);
       expect(grant.authenticated, grant.signature).toBe(userFunctions.has(grant.signature));
       expect(grant.worker, grant.signature).toBe(workerFunctions.has(grant.signature));
-      expect(grant.subscription_worker, grant.signature).toBe(subscriptionFunctions.has(grant.signature));
+      expect(grant.unrelated_login, grant.signature).toBe(unrelatedLoginFunctions.has(grant.signature));
     }
-    await asRole(db, "authenticated", OWNER_A, async () => {
-      await expect(db.query("select public.local_strategy_job_action($1,'finish','[]')", [randomUUID()])).rejects.toMatchObject({ code: "42501" });
-      await expect(db.query("select * from public.read_local_strategy_steps($1,$2,$3,null)", [randomUUID(), OWNER_A, randomUUID()])).rejects.toMatchObject({ code: "42501" });
-    });
     expect((await db.query("select has_schema_privilege('authenticated','fluid_private','USAGE') as usage")).rows).toEqual([{ usage: false }]);
     for (const signature of [...authenticatedPolicyFunctions, ...authenticatedWrapperFunctions]) {
       expect((await db.query("select has_function_privilege('authenticated',$1,'EXECUTE WITH GRANT OPTION') as grantable", [signature])).rows).toEqual([{ grantable: false }]);
@@ -473,12 +357,11 @@ describe("independent database boundary attacks", () => {
     for (const owner of [OWNER_A, null]) await asRole(db, "authenticated", owner, async () => {
       await expect(db.query("select fluid_private.owner_staging_object_allowed('fluid-assets','unlisted')")).rejects.toMatchObject({ code: "42501" });
       await expect(db.query("select fluid_private.create_project_with_request(null,null,null,null,null)")).rejects.toMatchObject({ code: "42501" });
-      await expect(db.query("select fluid_private.save_names_workspace(null,null,null)")).rejects.toMatchObject({ code: "42501" });
     });
     const columns = await db.query<{ column_name: string }>(
-      "select attname as column_name from pg_attribute where attrelid='public.job_steps'::regclass and attnum>0 and not attisdropped and has_column_privilege($1,attrelid,attnum,'select') order by attname", [principal],
+      "select attname as column_name from pg_attribute where attrelid='public.job_steps'::regclass and attnum>0 and not attisdropped and has_column_privilege('fixture_subscription_worker_a',attrelid,attnum,'select') order by attname",
     );
-    expect(columns.rows.map(row => row.column_name)).toEqual(["job_id", "owner_id", "project_id", "request_key", "reserved_cost_microusd", "state", "step_key"]);
+    expect(columns.rows).toEqual([]);
   });
 
   it("rejects foreign project reads across the new logo and Home client surface in both directions", async () => {
@@ -487,16 +370,9 @@ describe("independent database boundary attacks", () => {
     // absent UUID. Project-scoped readers must fence it before looking up data.
     const projectReads = [
       "select public.read_logo_current_vector($1)",
-      "select public.list_logo_vector_history($1,'{}')",
       "select public.read_logo_request($1,null)",
-      "select public.read_logo_vector_edit_request($1,null)",
-      "select public.read_logo_capabilities($1)",
-      "select public.reconcile_logo_request($1,null)",
       "select public.read_logo_deliverable_sources($1)",
       "select public.get_logo_deliverables($1,'{}')",
-      "select public.get_project_idea_attachments($1,null,20)",
-      "select public.get_standalone_promotion_source($1)",
-      "select public.get_standalone_promotion_snapshot($1)",
       "select public.read_logo_input_request($1,null)",
       "select public.list_logo_input_references($1,'{\"limit\":20}')",
       "select public.list_logo_input_fonts($1)",
@@ -505,22 +381,8 @@ describe("independent database boundary attacks", () => {
     for (const [owner, own, other] of [[OWNER_A, a, b], [OWNER_B, b, a]] as const) {
       await asRole(db, "authenticated", owner, async () => {
         for (const sql of projectReads) await expect(db.query(sql, [other.id]), sql).rejects.toMatchObject({ code: "P0002" });
-        const ownSource = await db.query<{ value: unknown }>("select public.get_standalone_promotion_snapshot($1) as value", [own.id]);
-        expect(ownSource.rows).toEqual([{ value: { ownerId: owner, projectId: own.id, source: null, snapshot: null } }]);
         const ownFonts = await db.query<{ value: unknown }>("select public.list_logo_input_fonts($1) as value", [own.id]);
         expect(ownFonts.rows).toEqual([{ value: [] }]);
-        const ownCapabilities = await db.query<{ value: { observedAt: string } }>("select public.read_logo_capabilities($1) as value", [own.id]);
-        expect(ownCapabilities.rows).toEqual([{ value: {
-          ownerId: owner, projectId: own.id, observedAt: expect.any(String),
-          operations: {
-            "identity.logo_concept": { status: "unavailable" },
-            "identity.logo_refine": { status: "unavailable" },
-            "identity.logo_vectorize": { status: "unavailable" },
-            "identity.logo_directions": { status: "unavailable" },
-            "identity.logo_export": { status: "unavailable" },
-          },
-        } }]);
-        expect(Number.isFinite(Date.parse(ownCapabilities.rows[0]!.value.observedAt))).toBe(true);
       });
     }
   });
@@ -544,35 +406,6 @@ describe("independent database boundary attacks", () => {
     expect((await db.query("select owner_id,project_id,request_key from public.logo_input_rejections")).rows).toEqual([]);
   });
 
-  it("scopes vector-edit cancellation and its populated proof to the owning project through RPCs only", async () => {
-    const a = await seedProject(db, OWNER_A), b = await seedProject(db, OWNER_B);
-    const saved: { owner_id: string; project_id: string; request_key: string }[] = [];
-    for (const [owner, own, other] of [[OWNER_A, a, b], [OWNER_B, b, a]] as const) {
-      await asRole(db, "authenticated", owner, async () => {
-        const workspace = (await db.query<{ value: LogoWorkspaceV2 }>("select public.get_logo_workspace($1) as value", [own.id])).rows[0]!.value;
-        const command = {
-          method: "saveLogoEdit",
-          body: { requestKey: randomUUID(), expected: workspace.heads, baseVectorRevisionId: randomUUID(), edit: { kind: "locks", componentIds: [] } },
-        };
-        // Valid passive metadata must reach the ownership check without creating
-        // an unauthorized tombstone, even before an edit has been admitted.
-        await expect(db.query("select public.cancel_logo_vector_edit($1,$2)", [other.id, command])).rejects.toMatchObject({ code: "P0002" });
-        const expected = { status: "cancelled", ownerId: owner, projectId: own.id, requestKey: command.body.requestKey, command };
-        expect((await db.query("select public.cancel_logo_vector_edit($1,$2) as value", [own.id, command])).rows).toEqual([{ value: expected }]);
-        expect((await db.query("select public.read_logo_vector_edit_request($1,$2) as value", [own.id, command.body.requestKey])).rows).toEqual([{ value: expected }]);
-        await expect(db.query("select owner_id,command from public.logo_vector_edit_cancellations")).rejects.toMatchObject({ code: "42501" });
-        saved.push({ owner_id: owner, project_id: own.id, request_key: command.body.requestKey });
-      });
-    }
-    for (const [owner, foreign] of [[OWNER_A, saved[1]!], [OWNER_B, saved[0]!]] as const) {
-      await asRole(db, "authenticated", owner, async () => {
-        await expect(db.query("select public.read_logo_vector_edit_request($1,$2)", [foreign.project_id, foreign.request_key])).rejects.toMatchObject({ code: "P0002" });
-      });
-    }
-    // Exactly the two legitimate proofs exist; both foreign cancellations were inert.
-    expect((await db.query("select owner_id,project_id,request_key from public.logo_vector_edit_cancellations order by owner_id")).rows).toEqual(saved);
-  });
-
   it("denies direct calls to renamed base readers while the authenticated wrappers still work", async () => {
     const project = await seedProject(db);
     async function attackBaseReaders() {
@@ -582,25 +415,13 @@ describe("independent database boundary attacks", () => {
     for (const role of ["anon", "authenticated", "service_role"] as const) {
       await asRole(db, role, OWNER_A, attackBaseReaders);
     }
-    await asSubscriptionWorker(db, OWNER_A, attackBaseReaders);
+    await asUnrelatedLogin(attackBaseReaders);
     await asRole(db, "authenticated", OWNER_A, async () => {
       const page = await db.query<{ value: { items: unknown[] } }>("select public.list_logo_workspace_records($1,'brief_references','{}') as value", [project.id]);
       expect(page.rows[0]!.value.items).toEqual([]);
       // Reaching the checked not-found result proves wrapper -> private base
       // delegation still works without exposing the base function to clients.
       await expect(db.query("select public.read_logo_workspace_record($1,'stage',$2)", [project.id, randomUUID()])).rejects.toMatchObject({ code: "P0002" });
-    });
-  });
-
-  it("keeps authenticated strategy RPCs owner-scoped and denies client policy mutation", async () => {
-    const a = await fullTenant(OWNER_A);
-    await asRole(db, "authenticated", OWNER_B, async () => {
-      await expect(db.query("select public.get_strategy_availability($1)", [a.project])).rejects.toThrow(/not_found/);
-      await expect(db.query("select public.enqueue_strategy_job($1,1,'strategy.reformulate','qa-foreign-owner-job',100)", [a.project])).rejects.toThrow(/not_found/);
-      await expect(db.query("select public.apply_strategy_job_result($1,$2,1,'qa-step')", [a.project, a.job])).rejects.toThrow(/not_found/);
-      await expect(db.query("select public.apply_strategy_job_result_v2($1,$2,1,'qa-step')", [a.project, a.job])).rejects.toThrow(/not_found/);
-      await expect(db.query("select public.report_strategy_worker_ready('strategy.reformulate','{}'::jsonb,60)")).rejects.toThrow(/permission denied/);
-      await expect(db.query("update fluid_private.strategy_runtime_policy set enabled=true")).rejects.toThrow(/permission denied/);
     });
   });
 
@@ -632,26 +453,21 @@ describe("independent database boundary attacks", () => {
     expect((await db.query("select current_selection_id,selection_revision from public.asset_heads where asset_id=$1", [otherAsset])).rows).toEqual([{ current_selection_id: null, selection_revision: 0 }]);
   });
 
-  it("rolls back malformed enqueue reservations and keeps same-key requests scoped to one owner", async () => {
+  it("rolls back a malformed job's reservation and keeps same-key requests scoped to one owner", async () => {
     const a = await seedProject(db), b = await seedProject(db, OWNER_B);
     await expect(enqueue(db, a.id, "invalid-attempts", 900, OWNER_A, 11)).rejects.toThrow(/check constraint/);
     expect((await db.query("select reserved_microusd from public.usage_accounts where owner_id=$1", [OWNER_A])).rows).toEqual([{ reserved_microusd: 0 }]);
     const first = await enqueue(db, a.id, "shared-request-key", 50);
     const second = await enqueue(db, b.id, "shared-request-key", 50, OWNER_B);
     expect(second.id).not.toBe(first.id);
-    await asRole(db, "service_role", null, async () => {
-      await expect(db.query("select * from public.enqueue_job($1,$2,'strategy',1,$3,'{}','shared-request-key',50,3)", [OWNER_A, b.id, HASH])).rejects.toThrow(/idempotency_conflict/);
-    });
   });
 
   // 20261110160000_harden_database_api.sql. Anonymous visitors can reach any function that
   // anon or PUBLIC may execute; new functions must start private.
   describe("database API hardening", () => {
-    const rlsHelpers = [
+    const identityHelpers = [
       "public.api_text_worker_owner()",
-      "public.api_text_worker_can_read_step(uuid,uuid)",
       "public.subscription_worker_owner()",
-      "public.subscription_worker_can_read_step(uuid,uuid)",
     ] as const;
     const executable = async (role: string, signature: string) =>
       (await db.query<{ allowed: boolean }>("select has_function_privilege($1,$2,'EXECUTE') as allowed", [role, signature])).rows[0]!.allowed;
@@ -661,27 +477,21 @@ describe("independent database boundary attacks", () => {
         `select p.oid::regprocedure::text as signature, has_function_privilege('anon',p.oid,'EXECUTE') as anon,
            exists(select 1 from aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a where a.grantee=0 and a.privilege_type='EXECUTE') as public_grant
          from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prosecdef`);
-      expect(definers.rows.length).toBeGreaterThan(100);
+      expect(definers.rows.length).toBeGreaterThan(50);
       expect(definers.rows.filter(row => row.anon || row.public_grant)).toEqual([]);
       await asRole(db, "anon", null, async () => {
         for (const sql of [
-          "select public.api_text_worker_owner()", "select public.api_text_worker_can_read_step(null, null)",
-          "select public.subscription_worker_owner()", "select public.subscription_worker_can_read_step(null, null)",
+          "select public.api_text_worker_owner()", "select public.subscription_worker_owner()",
         ]) await expect(db.query(sql), sql).rejects.toMatchObject({ code: "42501" });
       });
     });
 
-    it("keeps the worker RLS helpers working for the roles that read job_steps, and anonymous reads still stop at the table", async () => {
-      for (const signature of rlsHelpers) {
+    it("keeps the old worker identity helpers executable for the lifecycle guards, and anonymous reads still stop at job_steps", async () => {
+      for (const signature of identityHelpers) {
         expect(await executable("authenticated", signature), signature).toBe(true);
         expect(await executable("service_role", signature), signature).toBe(true);
-        expect(await executable("fixture_subscription_worker_a", signature), signature).toBe(true);
       }
-      // The job_steps policies call these helpers as the reading role, so a revoked helper would break these reads.
       await asRole(db, "authenticated", OWNER_A, async () => {
-        expect((await db.query("select job_id from public.job_steps")).rows).toEqual([]);
-      });
-      await asSubscriptionWorker(db, OWNER_A, async () => {
         expect((await db.query("select job_id from public.job_steps")).rows).toEqual([]);
       });
       // anon holds no privilege on job_steps (foundation migration), so its policies are never evaluated.

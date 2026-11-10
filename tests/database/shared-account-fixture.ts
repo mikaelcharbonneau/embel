@@ -1,39 +1,43 @@
-import { readFile } from "node:fs/promises";
+import type { PGlite } from "@electric-sql/pglite";
 import { randomUUID } from "node:crypto";
-import { createTestDatabase, resetFixture, OWNER_A, OWNER_B, type TestDatabase } from "./local-supabase";
+import { applyPacket, createTestDatabase, resetFixture, OWNER_A, OWNER_B, type TestDatabase } from "./local-supabase";
 import { applySharedImageModel } from "./shared-image-model-fixture";
 
 export const sharedHttpOrigin = "https://fricsfwqibyhemknqgyf.supabase.co";
 export const sharedHttpRoles = { home: "embel_shared_http_home_test", identity: "embel_shared_http_identity_test" } as const;
-export async function createSharedAccountFixture(options: { selectedLogoBoards?: boolean } = {}) {
-  const db = await createTestDatabase();
-  await db.exec(`alter table auth.users add column if not exists email_confirmed_at timestamptz,
-   add column if not exists is_anonymous boolean not null default false,add column if not exists banned_until timestamptz,add column if not exists deleted_at timestamptz;
-   create table if not exists auth.sessions(id uuid primary key,user_id uuid not null references auth.users(id) on delete cascade,not_after timestamptz);
-   create or replace function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;
-   create role authenticator login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
-   grant authenticated to authenticator;
-   grant execute on function auth.jwt() to authenticated;`);
-  await db.exec(await readFile(new URL("../../supabase/candidates/identity_transactions.sql", import.meta.url), "utf8"));
-  await db.exec(await readFile(new URL("../../supabase/candidates/shared_worker_pool.sql", import.meta.url), "utf8"));
-  await db.exec(await readFile(new URL("../../supabase/candidates/shared_account_http.sql", import.meta.url), "utf8"));
-  // Qualification now requires both customer and permanent legacy-actor
-  // Storage fences. Install real reviewed prerequisites; never fabricate a
-  // policy/helper response to make the fixed web login appear ready.
-  for (const name of ["candidates/logo_worker_storage.sql", "candidates/logo_production_storage.sql", "activation/logo_production_storage.sql", "candidates/logo_generative_storage.sql", "activation/logo_generative_storage.sql", "candidates/logo_local_concepts.sql", "activation/logo_concepts_50_publication_adjudication.sql", "candidates/logo_local_refinements.sql", "candidates/shared_worker_logo.sql", "candidates/shared_storage_authority.sql"])
-   await db.exec(await readFile(new URL("../../supabase/" + name, import.meta.url), "utf8"));
-  // Web qualification must be tested against the final installed writers, not
-  // only the earlier HTTP packet. Historical generation fixtures opt in later.
-  if (options.selectedLogoBoards) for (const name of ["shared_logo_http.sql", "shared_logo_advanced.sql", "shared_identity_generation.sql", "shared_identity_selected_logo_boards.sql", "shared_identity_http_writer_permissions.sql"])
-   await db.exec(await readFile(new URL("../../supabase/candidates/" + name, import.meta.url), "utf8"));
-  if (options.selectedLogoBoards) await applySharedImageModel(db);
-  await db.exec(`create role ${sharedHttpRoles.home} login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
-   create role ${sharedHttpRoles.identity} login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
-   grant usage on schema public to ${sharedHttpRoles.home},${sharedHttpRoles.identity};
-   grant execute on function public.shared_account_http_principal(),public.execute_shared_home_request(text,text,jsonb,jsonb) to ${sharedHttpRoles.home};
-   grant execute on function public.shared_account_http_principal(),public.prepare_shared_identity_request(text,uuid,jsonb,boolean),public.commit_shared_identity_request(uuid,jsonb,jsonb),public.finish_shared_identity_request() to ${sharedHttpRoles.identity};
-   insert into fluid_private.shared_http_principals(lane,role_name,role_oid,enabled) select case when rolname='${sharedHttpRoles.home}' then 'home' else 'identity' end,rolname,oid,true from pg_roles where rolname in('${sharedHttpRoles.home}','${sharedHttpRoles.identity}');
-   insert into fluid_private.shared_http_target(mode,origin) values('hosted','${sharedHttpOrigin}');`);
+/** Production installed the shared packets before the old worker objects were retired,
+ * and their predecessor checks name objects the retirement drops, so the packets, logins
+ * and bindings are installed at that point of the migration history. `beforeRetirement`
+ * adds more of that setup after this fixture's own. */
+export async function createSharedAccountFixture(options: { selectedLogoBoards?: boolean; beforeRetirement?: (db: PGlite) => Promise<void> } = {}) {
+  const db = await createTestDatabase({ beforeRetirement: async db => {
+    await db.exec(`alter table auth.users add column if not exists email_confirmed_at timestamptz,
+     add column if not exists is_anonymous boolean not null default false,add column if not exists banned_until timestamptz,add column if not exists deleted_at timestamptz;
+     create table if not exists auth.sessions(id uuid primary key,user_id uuid not null references auth.users(id) on delete cascade,not_after timestamptz);
+     create or replace function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;
+     create role authenticator login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
+     grant authenticated to authenticator;
+     grant execute on function auth.jwt() to authenticated;`);
+    for (const name of ["identity_transactions.sql", "shared_worker_pool.sql", "shared_account_http.sql"]) await applyPacket(db, "candidates/" + name);
+    // Qualification requires the customer Storage fences; install the reviewed
+    // prerequisites rather than fabricating a policy or helper response.
+    for (const name of ["candidates/logo_worker_storage.sql", "candidates/logo_generative_storage.sql", "candidates/logo_local_concepts.sql", "activation/logo_concepts_50_publication_adjudication.sql", "candidates/logo_local_refinements.sql", "candidates/shared_worker_logo.sql", "candidates/shared_storage_authority.sql"])
+      await applyPacket(db, name);
+    // Web qualification is tested against the final installed writers.
+    if (options.selectedLogoBoards) {
+      for (const name of ["shared_logo_http.sql", "shared_logo_advanced.sql", "shared_identity_generation.sql", "shared_identity_selected_logo_boards.sql", "shared_identity_http_writer_permissions.sql"])
+        await applyPacket(db, "candidates/" + name);
+      await applySharedImageModel(db);
+    }
+    await db.exec(`create role ${sharedHttpRoles.home} login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
+     create role ${sharedHttpRoles.identity} login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
+     grant usage on schema public to ${sharedHttpRoles.home},${sharedHttpRoles.identity};
+     grant execute on function public.shared_account_http_principal(),public.execute_shared_home_request(text,text,jsonb,jsonb) to ${sharedHttpRoles.home};
+     grant execute on function public.shared_account_http_principal(),public.prepare_shared_identity_request(text,uuid,jsonb,boolean),public.commit_shared_identity_request(uuid,jsonb,jsonb),public.finish_shared_identity_request() to ${sharedHttpRoles.identity};
+     insert into fluid_private.shared_http_principals(lane,role_name,role_oid,enabled) select case when rolname='${sharedHttpRoles.home}' then 'home' else 'identity' end,rolname,oid,true from pg_roles where rolname in('${sharedHttpRoles.home}','${sharedHttpRoles.identity}');
+     insert into fluid_private.shared_http_target(mode,origin) values('hosted','${sharedHttpOrigin}');`);
+    await options.beforeRetirement?.(db);
+  } });
   await resetFixture(db);
   await db.exec("update auth.users set email_confirmed_at=clock_timestamp(),is_anonymous=false");
   const sessions: Record<string, string> = { [OWNER_A]: randomUUID(), [OWNER_B]: randomUUID() };

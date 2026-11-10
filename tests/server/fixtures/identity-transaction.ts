@@ -61,6 +61,31 @@ export function createIdentityTransactionFixture(db: TestDatabase, owner: string
     await db.query("select id from public.assets where project_id=$1 and owner_id=$2 order by id for update",[project,owner]);
     return {version:1,kind:"new",principal,projectId:project,ownerId:owner,proofs,project:state.project,session:state.session,preferences:state.preferences,referenceSnapshot:state.referenceSnapshot,previousSelection,targetSystemId:request[refinement?"baseSystemVersionId":"systemVersionId"],selectionId:randomUUID(),systemVersionId:randomUUID(),changeId:randomUUID(),now,reason:(await db.query("select id from public.identity_selections where system_id=$1 and owner_id=$2",[request.systemVersionId,owner])).rows.length?"restored":"selected"};
   }
+  // What the retired fluid_private.identity_write_selection did: revision checks, the
+  // selection, its asset usages, the session head and the assets' used flags.
+  async function writeSelection(project: string,systemId: string,state: Record<string,unknown>,accept: boolean,reason: string,id: string,at: unknown) {
+    const check = (await db.query<{stale:boolean;behind:boolean;previous_id:string|null;previous_conflict:boolean}>(`
+      with s as (select v.*,fluid_private.identity_system_json(v)->'input' input from public.identity_system_versions v where v.id=$1 and v.project_id=$2 and v.owner_id=$3),
+        p as (select * from public.identity_selections where id=($4::jsonb->>'previousSelectionId')::uuid and project_id=$2 and owner_id=$3)
+      select s.input->'basis'<>$4::jsonb->'currentBasis' stale,
+        ($4::jsonb->>'projectRevision')::bigint<coalesce((s.source->>'editedAtProjectRevision')::bigint,(s.input->>'projectRevision')::bigint)
+          or ($4::jsonb->>'referenceRevision')::bigint<coalesce((s.source->>'editedAtReferenceRevision')::bigint,(s.input#>>'{referenceSnapshot,referenceRevision}')::bigint)
+          or ($4::jsonb->>'preferencesRevision')::bigint<coalesce((s.source->>'editedAtPreferencesRevision')::bigint,(s.input->>'preferencesRevision')::bigint) behind,
+        p.id previous_id,
+        coalesce(p.identity_revision<>($4::jsonb->>'identityRevision')::bigint or p.project_revision>($4::jsonb->>'projectRevision')::bigint
+          or p.reference_revision>($4::jsonb->>'referenceRevision')::bigint or coalesce(p.preferences_revision,0)>($4::jsonb->>'preferencesRevision')::bigint,false) previous_conflict
+      from s left join p on true`,[systemId,project,owner,JSON.stringify(state)])).rows[0];
+    if (!check) throw {code:"P0002"};
+    if (check.behind || check.previous_conflict || (check.stale && !accept)) throw {code:"PT409"};
+    await db.query("select id from public.assets where owner_id=$1 and project_id=$2 and (id in (select asset_id from public.asset_usages where selection_id=$3) or id in (select asset_id from public.identity_system_files where system_id=$4)) order by id for update",[owner,project,check.previous_id,systemId]);
+    await db.query(`insert into public.identity_selections(id,project_id,owner_id,system_id,identity_revision,project_revision,reference_revision,preferences_revision,current_basis,accepted_earlier_basis,previous_selection_id,reason,created_at)
+      values($1,$2,$3,$4,($5::jsonb->>'identityRevision')::bigint+1,($5::jsonb->>'projectRevision')::integer,($5::jsonb->>'referenceRevision')::bigint,nullif(($5::jsonb->>'preferencesRevision')::bigint,0),$5::jsonb->'currentBasis',$6,$7,$8,$9)`,
+      [id,project,owner,systemId,JSON.stringify(state),check.stale,check.previous_id,reason,at]);
+    await db.query("insert into public.asset_usages(selection_id,system_id,slot,project_id,owner_id,asset_id,version_id) select $1,system_id,slot,project_id,owner_id,asset_id,version_id from public.identity_system_files where system_id=$2 and project_id=$3 and owner_id=$4",[id,systemId,project,owner]);
+    await db.query("update public.identity_sessions set identity_revision=s.identity_revision,current_selection_id=s.id,updated_at=s.created_at from public.identity_selections s where s.id=$1 and identity_sessions.project_id=$2 and identity_sessions.owner_id=$3",[id,project,owner]);
+    await db.query(`update public.assets a set used=(a.legacy_used or exists(select 1 from public.asset_usages u join public.identity_sessions h on h.current_selection_id=u.selection_id and h.project_id=u.project_id and h.owner_id=u.owner_id where u.asset_id=a.id and u.project_id=a.project_id and u.owner_id=a.owner_id))
+      where a.owner_id=$1 and a.project_id=$2 and (a.id in (select asset_id from public.asset_usages where selection_id=$3) or a.id in (select asset_id from public.asset_usages where selection_id=$4))`,[owner,project,check.previous_id,id]);
+  }
   async function commit(project: string,request: Record<string,unknown>,proposal: {kind:string;currentInput:Record<string,unknown>;response:Record<string,unknown>}) {
     events.push("commit_helper");hooks.stage?.("before_write");
     const input = proposal.currentInput,response = proposal.response;
@@ -75,7 +100,7 @@ export function createIdentityTransactionFixture(db: TestDatabase, owner: string
       await db.query("insert into public.identity_system_files(system_id,slot,project_id,owner_id,component,role,asset_id,version_id) select $1,0,project_id,owner_id,component,role,asset_id,version_id from public.identity_system_files where system_id=$2 and slot=0",[system.id,system.source.baseSystemVersionId]);
       for (const [index,file] of system.productionFiles.entries()) await db.query("insert into public.identity_system_files(system_id,slot,project_id,owner_id,component,role,asset_id,version_id) values($1,$2,$3,$4,$5,$6,$7,$8)",[system.id,index+1,project,owner,file.component,file.role,file.asset.assetId,file.asset.versionId]);hooks.stage?.("files");
     } else { const current=response.currentSelection as {system:{id:string};selection:typeof selection};systemId=current.system.id;selection=current.selection; }
-    await db.query("select fluid_private.identity_write_selection(s,$2::jsonb,$3,$4,$5,$6) from public.identity_system_versions s where id=$1 and project_id=$7 and owner_id=$8",[systemId,JSON.stringify(state),request.acceptEarlierBasis,selection.reason,selection.id,prepared!.now,project,owner]);hooks.stage?.("selection_and_usage");
+    await writeSelection(project,systemId,state,request.acceptEarlierBasis===true,selection.reason,selection.id,prepared!.now);hooks.stage?.("selection_and_usage");
     if (proposal.kind === "refinement") {
       const change = response.change as {id:string;baseSystemVersionId:string;component:string;before:unknown;after:unknown;currentBasis:unknown;acceptedEarlierBasis:boolean};
       await db.query("insert into public.identity_component_changes(id,project_id,owner_id,base_system_id,result_system_id,selection_id,component,before_value,after_value,project_revision,reference_revision,preferences_revision,current_basis,accepted_earlier_basis,idempotency_key,intent,created_at) values($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::jsonb,$10,$11,nullif($12,0),$13::jsonb,$14,$15,$16::jsonb,$17)",[change.id,project,owner,change.baseSystemVersionId,systemId,selection.id,change.component,JSON.stringify(change.before),JSON.stringify(change.after),request.expectedProjectRevision,request.expectedReferenceRevision,request.expectedPreferencesRevision,JSON.stringify(change.currentBasis),change.acceptedEarlierBasis,request.idempotencyKey,JSON.stringify(request),prepared!.now]);hooks.stage?.("change");

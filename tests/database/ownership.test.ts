@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { asRole, asSubscriptionWorker, claim, createTestDatabase, enqueue, HASH, OWNER_A, OWNER_B, registerPlan, resetFixture, seedProject, type TestDatabase } from "./local-supabase";
+import { asRole, claim, createTestDatabase, enqueue, HASH, OWNER_A, OWNER_B, registerPlan, resetFixture, seedProject, type TestDatabase } from "./local-supabase";
+import { beginStep } from "./retired-worker-fixture";
 
 // Explicitly reviewed additions, not an inventory copied from pg_class. The flag
 // records the SELECT grant intended by the named migration's final ACL block.
@@ -19,8 +20,8 @@ const reviewedLogoAndHomeTables = [
   // 20261007013000: only immutable variants/reviews/manifests have owner SELECT.
   ["logo_variant_sets", true], ["logo_variant_reviews", true], ["logo_export_manifests", true],
   ["logo_export_inputs", false], ["logo_export_publications", false],
-  // local20261007014000 and 20261007015000: frozen manual sources and request recovery.
-  ["idea_project_attachments", true], ["idea_project_attachment_requests", true], ["standalone_promotions", true],
+  // 20261007015000: Home request recovery. The idea and standalone sources of
+  // local20261007014000 went with the old worker objects (20261110180000).
   ["home_attachments", true], ["home_attachment_project_requests", true],
   // local20261007017000: byte/rights registration records stay behind checked RPCs.
   ["logo_input_requests", false], ["logo_input_rejections", false],
@@ -38,8 +39,6 @@ const reviewedWorkflowTables = [
 const reviewedAccountNamesTables = [
   // 20261013190229: job policy, lease and partial text have no raw client read.
   ["standalone_name_jobs", false],
-  // 20261015201757: owner-filtered snapshot SELECT; checked RPCs own all writes.
-  ["names_workspaces", true],
 ] as const;
 // 20261110090000: generation engine (docs/generation-engine.md). Owners read their own
 // credits and runs; only start_generation/cancel_generation and the engine login write them.
@@ -67,12 +66,11 @@ describe("local PostgreSQL ownership boundaries (not live Supabase)", () => {
       "identity_reference_heads", "identity_references", "identity_reference_reactions", "identity_reference_snapshots",
       "identity_sessions", "identity_preferences", "identity_input_snapshots", "identity_system_versions",
       "identity_batches", "identity_generated_roots", "identity_system_files", "identity_selections", "identity_component_changes", "asset_usages",
-      "jobs", "job_steps", "usage_accounts", "usage_reservations", "subscription_job_partials", "strategy_job_applications",
+      "jobs", "job_steps", "usage_accounts", "usage_reservations", "subscription_job_partials",
       "naming_sessions", "naming_preferences", "naming_batches", "naming_batch_results",
       "name_candidates", "name_transforms", "name_retention", "name_selections",
       // Reviewed manual persistence migrations; each retains forced owner RLS.
-      "ideas", "idea_revisions", "idea_brand_links",
-      "standalone_workspaces", "standalone_workspace_revisions",
+      "ideas", "idea_revisions",
       "logo_workspaces", "logo_stage_revisions", "logo_stage_heads",
       "logo_reference_sources", "logo_reference_snapshots", "logo_workspace_requests",
       ...reviewedReadOnlyTables.map(([table]) => table),
@@ -90,8 +88,8 @@ describe("local PostgreSQL ownership boundaries (not live Supabase)", () => {
   });
 
   it("keeps reviewed logo, Home and workflow tables read-only for clients and inaccessible to unrelated workers", async () => {
-    const principal = await asSubscriptionWorker(db, OWNER_A, async () =>
-      (await db.query<{ login: string }>("select session_user as login")).rows[0]!.login);
+    // A login with no grants of its own, like the retired worker logins were.
+    const principal = "fixture_subscription_worker_a";
     for (const [table, authenticatedRead] of reviewedReadOnlyTables) {
       for (const role of ["anon", "authenticated", "service_role", principal]) {
         const grants = await db.query<{ read: boolean; column_read: boolean; mutate: boolean; column_mutate: boolean }>(
@@ -169,16 +167,17 @@ describe("local PostgreSQL ownership boundaries (not live Supabase)", () => {
     // 20261015232500's content lifecycle guard rejects the mismatched owned
     // project before the composite foreign key is reached.
     await expect(db.query("insert into public.assets(owner_id,project_id,kind) values($1,$2,'logo')", [OWNER_B, a.id])).rejects.toMatchObject({ code: "P0002", message: "project_not_found" });
-    await expect(enqueue(db, a.id, "foreign-job", 100, OWNER_B)).rejects.toThrow(/not_found/);
+    await expect(db.query(`insert into public.jobs(owner_id,project_id,operation,input_revision,input_hash,input,idempotency_key,reserved_cost_microusd,max_attempts)
+      values($1,$2,'strategy',1,$3,'{}','foreign-job',100,3)`, [OWNER_B, a.id, HASH])).rejects.toMatchObject({ code: "P0002", message: "project_not_found" });
     for (const table of ["assets", "jobs", "usage_reservations"]) expect((await db.query(`select * from public.${table}`)).rows, table).toEqual([]);
   });
 
-  it("restricts jobs, steps and reservations to their owner, and worker RPCs to service_role", async () => {
+  it("restricts jobs, steps and reservations to their owner", async () => {
     const a = await seedProject(db);
     const job = await enqueue(db, a.id);
     const leased = await claim(db);
     await registerPlan(db, leased, [{ key: "tenant-private-step", maximumCostMicrousd: 50 }]);
-    await asRole(db, "service_role", null, () => db.query("select * from public.begin_job_step($1,$2,'tenant-private-step','fixture',50)", [job.id, leased.lease_token]));
+    await beginStep(db, leased, "tenant-private-step", "fixture", 50);
     await asRole(db, "authenticated", OWNER_A, async () => {
       expect((await db.query("select * from public.job_steps")).rows).toHaveLength(1);
       expect((await db.query("select * from public.usage_reservations")).rows).toHaveLength(1);
@@ -195,7 +194,6 @@ describe("local PostgreSQL ownership boundaries (not live Supabase)", () => {
       }
       expect((await db.query<{ owner_id: string }>("select owner_id from public.usage_accounts")).rows).toEqual([{ owner_id: OWNER_B }]);
       await expect(db.query("select * from public.request_job_cancel($1)", [job.id])).rejects.toThrow(/not_found/);
-      await expect(db.query("select * from public.claim_job('attacker',60)")).rejects.toThrow(/permission denied/);
     });
     await asRole(db, "service_role", null, async () => {
       await expect(db.query("update public.jobs set state='succeeded' where id=$1", [job.id])).rejects.toThrow(/permission denied/);
