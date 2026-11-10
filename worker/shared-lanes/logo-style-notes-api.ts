@@ -5,27 +5,15 @@ import type { ClaimedJob, StepOutcome } from "../../src/domain/jobs";
 import { logoStyleNoteApiPolicySchema, logoStyleNoteJobInputSchema, logoStyleNoteObservationSchema,
  type LogoStyleNoteApiPolicy, type LogoStyleNoteObservation } from "../../src/domain/logo-jobs";
 import { logoVectorProposalUsageSchema, logoVectorProposalUsageCost } from "../../src/domain/logo-vector-proposal-jobs";
-import { LOGO_STYLE_NOTE_INSTRUCTION, LOGO_STYLE_NOTE_JSON_SCHEMA, logoStyleNoteSchema } from "../../src/domain/logo-style-notes";
+import { logoStyleNoteSchema } from "../../src/domain/logo-style-notes";
 import { createOpenAIResponsesTransport, OpenAITransportError, type OpenAIResponsesTransport } from "../../src/server/ai/openai-transport";
 
-export type StyleNoteImage = { bytes: Uint8Array; mimeType: "image/png" | "image/jpeg" };
+import { createStyleNoteRequest, type StyleNoteImage } from "../../src/server/logo-creation/style-note-request";
+export { createStyleNoteRequest, type StyleNoteImage };
 export type StyleNoteDispatch = { job: ClaimedJob; beforeDispatch(job: ClaimedJob): Promise<void> };
 export type StyleNoteProvider = { describe(image: StyleNoteImage, signal: AbortSignal, dispatch: StyleNoteDispatch): Promise<{ outcome: StepOutcome; observation: LogoStyleNoteObservation }> };
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 const record = (value: unknown): Record<string, unknown> | null => value !== null && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
-
-/** One structured request: the fixed instruction and the upload on white. */
-export function createStyleNoteRequest(image: StyleNoteImage, rawPolicy: LogoStyleNoteApiPolicy) {
- const policy = logoStyleNoteApiPolicySchema.parse(rawPolicy);
- if (!(image.bytes instanceof Uint8Array) || !image.bytes.byteLength || !["image/png", "image/jpeg"].includes(image.mimeType)) throw Error("style_note_input_unavailable");
- const request = { model: policy.model, input: [{ role: "user", content: [{ type: "input_text", text: LOGO_STYLE_NOTE_INSTRUCTION },
-   { type: "input_image", image_url: `data:${image.mimeType};base64,${Buffer.from(image.bytes).toString("base64")}`, detail: "high" }] }],
-  text: { format: { type: "json_schema", name: "logo_style_note", strict: true, schema: LOGO_STYLE_NOTE_JSON_SCHEMA } },
-  reasoning: { effort: "low" }, max_output_tokens: policy.maxOutputTokens, service_tier: policy.serviceTier, store: false, background: false,
-  stream: false, parallel_tool_calls: false, truncation: "disabled", tools: [], tool_choice: "none" };
- if (Buffer.byteLength(JSON.stringify(request)) > policy.maxInputBytes) throw Error("style_note_input_unavailable");
- return request;
-}
 
 /** No fallback transport, tools or provider retry. Only the exact frozen job and
  * policy may issue one response; actual observed usage is always returned. */
