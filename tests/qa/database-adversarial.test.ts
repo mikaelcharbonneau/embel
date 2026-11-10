@@ -107,7 +107,7 @@ const reviewedAccountWorkflowFunctions = [
   "public.save_names_workspace(integer, uuid, jsonb)",
   // 20261015232500 / 20261015235900: owner/revision/lifecycle-fenced recoverable
   // deletion and restore, with durable stop intent and read-only status.
-  "public.set_project_deleted(uuid, integer, integer, boolean)",
+  // set_project_deleted is no longer client-callable (20261110160000).
   "public.request_project_deletion(uuid, integer, integer)",
   "public.restore_project_deletion(uuid, integer, integer)",
   "public.get_project_deletion(uuid)",
@@ -317,8 +317,11 @@ describe("independent database boundary attacks", () => {
     );
     // Exact reviewed signatures: a newly introduced overload must not inherit an
     // allowlist entry merely because it shares the name of a safe client RPC.
-    // Public identity helpers reveal only the actual session's binding (or null)
-    // and an owner-scoped boolean used by RLS. They confer no execution authority.
+    // The four worker RLS helpers reveal only the actual session's binding (or null)
+    // and an owner-scoped boolean used by the job_steps policies. They confer no
+    // execution authority. 20261110160000 revoked them from PUBLIC and anon; the
+    // signed-in role, service_role and worker logins keep explicit grants because
+    // those roles evaluate the job_steps policies.
     const publicFunctions = new Set([
       "public.subscription_worker_owner()",
       "public.subscription_worker_can_read_step(uuid, uuid)",
@@ -447,7 +450,7 @@ describe("independent database boundary attacks", () => {
     expect(new Set(grants.rows.filter(grant => grant.worker).map(grant => grant.signature))).toEqual(workerFunctions);
     expect(new Set(grants.rows.filter(grant => grant.subscription_worker).map(grant => grant.signature))).toEqual(subscriptionFunctions);
     for (const grant of grants.rows) {
-      expect(grant.anonymous, grant.signature).toBe(publicFunctions.has(grant.signature));
+      expect(grant.anonymous, grant.signature).toBe(false);
       expect(grant.authenticated, grant.signature).toBe(userFunctions.has(grant.signature));
       expect(grant.worker, grant.signature).toBe(workerFunctions.has(grant.signature));
       expect(grant.subscription_worker, grant.signature).toBe(subscriptionFunctions.has(grant.signature));
@@ -631,6 +634,89 @@ describe("independent database boundary attacks", () => {
     expect(second.id).not.toBe(first.id);
     await asRole(db, "service_role", null, async () => {
       await expect(db.query("select * from public.enqueue_job($1,$2,'strategy',1,$3,'{}','shared-request-key',50,3)", [OWNER_A, b.id, HASH])).rejects.toThrow(/idempotency_conflict/);
+    });
+  });
+
+  // 20261110160000_harden_database_api.sql. Anonymous visitors can reach any function that
+  // anon or PUBLIC may execute; new functions must start private.
+  describe("database API hardening", () => {
+    const rlsHelpers = [
+      "public.api_text_worker_owner()",
+      "public.api_text_worker_can_read_step(uuid,uuid)",
+      "public.subscription_worker_owner()",
+      "public.subscription_worker_can_read_step(uuid,uuid)",
+    ] as const;
+    const executable = async (role: string, signature: string) =>
+      (await db.query<{ allowed: boolean }>("select has_function_privilege($1,$2,'EXECUTE') as allowed", [role, signature])).rows[0]!.allowed;
+
+    it("lets anonymous visitors execute no SECURITY DEFINER function in public, directly or through PUBLIC", async () => {
+      const definers = await db.query<{ signature: string; anon: boolean; public_grant: boolean }>(
+        `select p.oid::regprocedure::text as signature, has_function_privilege('anon',p.oid,'EXECUTE') as anon,
+           exists(select 1 from aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a where a.grantee=0 and a.privilege_type='EXECUTE') as public_grant
+         from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prosecdef`);
+      expect(definers.rows.length).toBeGreaterThan(100);
+      expect(definers.rows.filter(row => row.anon || row.public_grant)).toEqual([]);
+      await asRole(db, "anon", null, async () => {
+        for (const sql of [
+          "select public.api_text_worker_owner()", "select public.api_text_worker_can_read_step(null, null)",
+          "select public.subscription_worker_owner()", "select public.subscription_worker_can_read_step(null, null)",
+        ]) await expect(db.query(sql), sql).rejects.toMatchObject({ code: "42501" });
+      });
+    });
+
+    it("keeps the worker RLS helpers working for the roles that read job_steps, and anonymous reads still stop at the table", async () => {
+      for (const signature of rlsHelpers) {
+        expect(await executable("authenticated", signature), signature).toBe(true);
+        expect(await executable("service_role", signature), signature).toBe(true);
+        expect(await executable("fixture_subscription_worker_a", signature), signature).toBe(true);
+      }
+      // The job_steps policies call these helpers as the reading role, so a revoked helper would break these reads.
+      await asRole(db, "authenticated", OWNER_A, async () => {
+        expect((await db.query("select job_id from public.job_steps")).rows).toEqual([]);
+      });
+      await asSubscriptionWorker(db, OWNER_A, async () => {
+        expect((await db.query("select job_id from public.job_steps")).rows).toEqual([]);
+      });
+      // anon holds no privilege on job_steps (foundation migration), so its policies are never evaluated.
+      await asRole(db, "anon", null, async () => {
+        await expect(db.query("select job_id from public.job_steps")).rejects.toMatchObject({ code: "42501" });
+      });
+    });
+
+    it("no longer lets any API role execute set_project_deleted, which the app does not call", async () => {
+      const signature = "public.set_project_deleted(uuid,integer,integer,boolean)";
+      for (const role of ["anon", "authenticated", "service_role"]) expect(await executable(role, signature), role).toBe(false);
+      const project = await seedProject(db);
+      await asRole(db, "authenticated", OWNER_A, async () => {
+        await expect(db.query("select public.set_project_deleted($1,1,0,true)", [project.id])).rejects.toMatchObject({ code: "42501" });
+      });
+      // The supported owner path is untouched.
+      expect(await executable("authenticated", "public.request_project_deletion(uuid,integer,integer)")).toBe(true);
+    });
+
+    it("keeps a newly created function private until it is explicitly granted", async () => {
+      await db.exec("create role qa_hardening_fresh nologin");
+      try {
+        await db.exec(`create function public.qa_hardening_probe() returns integer language sql as 'select 1';
+          create function public.qa_hardening_definer() returns integer language sql security definer set search_path='' as 'select 1';
+          create function fluid_private.qa_hardening_probe() returns integer language sql as 'select 1';`);
+        const probes = ["public.qa_hardening_probe()", "public.qa_hardening_definer()", "fluid_private.qa_hardening_probe()"];
+        for (const signature of probes) {
+          // qa_hardening_fresh stands in for PUBLIC: it has no grants of its own.
+          for (const role of ["anon", "authenticated", "qa_hardening_fresh"]) expect(await executable(role, signature), `${role} ${signature}`).toBe(false);
+          expect(await executable("postgres", signature), signature).toBe(true);
+          expect((await db.query<{ grantees: string[] | null }>(
+            "select array_agg(case when a.grantee=0 then 'PUBLIC' else pg_get_userbyid(a.grantee) end) grantees from pg_proc p cross join lateral aclexplode(p.proacl) a where p.oid=$1::regprocedure and a.grantee<>p.proowner", [signature])).rows[0]!.grantees ?? [])
+            .not.toContain("PUBLIC");
+        }
+        // An explicit grant still works, and grants only what it names.
+        await db.exec("grant execute on function public.qa_hardening_probe() to authenticated");
+        expect(await executable("authenticated", "public.qa_hardening_probe()")).toBe(true);
+        expect(await executable("anon", "public.qa_hardening_probe()")).toBe(false);
+        expect(await executable("qa_hardening_fresh", "public.qa_hardening_probe()")).toBe(false);
+      } finally {
+        await db.exec("drop function if exists public.qa_hardening_probe(); drop function if exists public.qa_hardening_definer(); drop function if exists fluid_private.qa_hardening_probe(); drop role if exists qa_hardening_fresh");
+      }
     });
   });
 });

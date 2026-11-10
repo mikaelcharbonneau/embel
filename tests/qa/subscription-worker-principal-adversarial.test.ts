@@ -191,7 +191,9 @@ describe("independent subscription worker database-principal isolation", () => {
 
   it("rejects role recreation with the same name but a different database OID", async () => {
     const previous = (await db.query<{ role_oid: number }>("select role_oid from fluid_private.subscription_worker_principals where owner_id=$1", [OWNER_A])).rows[0]!.role_oid;
+    // A recreated login has no ACL history. Give it the identity helper so the OID check, not a missing grant, rejects it.
     await db.exec("drop owned by fixture_subscription_worker_a; drop role fixture_subscription_worker_a; create role fixture_subscription_worker_a login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls");
+    await db.exec("grant execute on function public.subscription_worker_owner(),public.subscription_worker_can_read_step(uuid,uuid) to fixture_subscription_worker_a");
     const current = (await db.query<{ oid: number }>("select oid from pg_roles where rolname='fixture_subscription_worker_a'")).rows[0]!.oid;
     expect(current).not.toBe(previous);
     await worker(OWNER_A, async () => {

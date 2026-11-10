@@ -210,8 +210,19 @@ describe("new restricted Identity SQL replacement", () => {
           for (const claim of [OWNER_A, OWNER_B]) {
             await db.query("select set_config('request.jwt.claim.sub',$1,true),set_config('fluid.identity.validated','true',true)", [claim]);
             for (const [job, owner] of [[root.jobId, OWNER_A], [foreignRoot.jobId, OWNER_B]]) {
-              expect((await db.query("select session_user::text session,current_user::text current,public.subscription_worker_owner() worker_owner,public.subscription_worker_can_read_step($1,$2) can_read,public.api_text_worker_owner() api_worker_owner,public.api_text_worker_can_read_step($1,$2) api_can_read", [job, owner])).rows)
-                .toEqual([{ session: role, current: role, worker_owner: null, can_read: false, api_worker_owner: null, api_can_read: false }]);
+              if (role === "fluid_identity_writer_definer_v1") {
+                // The helper keeps the four predicates (it reads job_steps under their policies); it is no worker.
+                expect((await db.query("select session_user::text session,current_user::text current,public.subscription_worker_owner() worker_owner,public.subscription_worker_can_read_step($1,$2) can_read,public.api_text_worker_owner() api_worker_owner,public.api_text_worker_can_read_step($1,$2) api_can_read", [job, owner])).rows)
+                  .toEqual([{ session: role, current: role, worker_owner: null, can_read: false, api_worker_owner: null, api_can_read: false }]);
+              } else {
+                // Since 20261110160000 the replacement logins cannot even call them.
+                for (const sql of ["select public.subscription_worker_owner()", "select public.api_text_worker_owner()",
+                  "select public.subscription_worker_can_read_step($1,$2)", "select public.api_text_worker_can_read_step($1,$2)"]) {
+                  await db.exec("savepoint denied_predicate");
+                  await expect(db.query(sql, sql.includes("$1") ? [job, owner] : [])).rejects.toMatchObject({ code: "42501" });
+                  await db.exec("rollback to denied_predicate");
+                }
+              }
               expect((await db.query("select pg_temp.identity_replacement_worker_probe($1,$2) value", [job, owner])).rows)
                 .toEqual([{ value: { session: role, current: "fluid_identity_writer_definer_v1", workerOwner: null, canRead: false, apiWorkerOwner: null, apiCanRead: false } }]);
             }
@@ -253,7 +264,8 @@ describe("new restricted Identity SQL replacement", () => {
       else if (fault === "public entrypoint") await db.exec("grant execute on function fluid_private.prepare_identity_transaction(uuid,jsonb,boolean) to public");
       else if (fault === "binding write") await db.exec("grant update on fluid_private.identity_web_principals to fixture_identity_replacement_a");
       else if (fault === "unlisted data") await db.exec("grant select on fluid_private.subscription_worker_principals to fixture_identity_replacement_a");
-      else await db.exec("create function public.identity_unexpected_fixture_capability() returns integer language sql as 'select 1'");
+      // New functions are private by default (20261110160000); the fault is a PUBLIC grant.
+      else await db.exec("create function public.identity_unexpected_fixture_capability() returns integer language sql as 'select 1'; grant execute on function public.identity_unexpected_fixture_capability() to public");
       const expected = { "worker binding": "no worker binding", "API worker binding": "no worker binding", "API predicate definition": "unchanged inherited definition/ACL", "API predicate ACL": "unchanged inherited definition/ACL", "public entrypoint": "no replacement PUBLIC execute", "binding write": "private binding rights", "unlisted data": "no unlisted data relation rights", "unlisted callable": "exact callable functions" };
       await expect(inspectIdentityReplacementCatalog(db)).rejects.toThrow(expected[fault as keyof typeof expected]);
     } finally { await db.exec("rollback"); }
