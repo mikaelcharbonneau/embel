@@ -1,0 +1,25 @@
+> Archived November 10, 2026: describes the system before the generation engine.
+
+# Fast-first Naming
+
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
+The approved change simplifies the initial 100 names. Future shared-runtime requests use the explicit immutable `generationProfile: "brainstorm_v1"`. Historical requests keep their original input, provider protocol, evidence and recovery path; replaying an existing intent must return that same request.
+
+The worker asks the existing policy-selected model (currently `gpt-6-luna`) for 120 short creative proposals in one Responses call. Local checks normalize NFC, apply the existing name-identity rule, remove duplicates against the complete owned-project history, enforce selected approaches and saved literal/length constraints, and save up to 100 names. If short, at most two further calls request `min(60, missing + 20)` proposals. There is no research, serial curation, factual verification, web search or monetary spending limit in this initial path. The three-call ceiling limits work for one initial set; it is not a dollar estimate or charge cap. Each call has a 180-second deadline and the run has a 600-second deadline.
+
+Each accepted batch is persisted before another call. Reload reads ordinary owned candidate/feed rows with actual call/response membership. Names and rationales are explicitly unchecked creative proposals. No verified origins, etymologies, availability, research findings, curator artifacts or historical completion witnesses are invented. Research is deferred until shortlisting; this change does not add an automated shortlist-research service. Approach representation is derived from actual saved primary credits and may remain uneven even when 100 names are saved. That does not authorize additional calls solely for coverage.
+
+The exact request commits before create. SDK retries are zero. A response ID commits before further events are consumed. Unknown or lost acknowledgements never grant another create; a known response ID grants GET-only observation. Existing owner isolation, fixed-slot execution authority, cancellation, frozen admissions, history accounting and no-dispatch proofs remain enforced. Token usage is retained when observed, while dollar actuals remain unknown without independent financial evidence.
+
+## Source and release boundary
+
+This feature is a separate source delta from merged `e27ed089e3e53e076e6950621aecaca4ae2e04fc`. It does not modify the frozen Queue/OIDC release, its artifacts or its operational continuation packets.
+
+`shared_naming_brainstorm.sql` is one new incremental candidate, not a replacement ten-packet installer. It checks eight exact predecessor body/security records, extends only the new candidate-root constraint branch, wraps the historical gateway and summary with exact private clones, and creates four append-only private evidence tables plus two authenticated owner RPCs. Non-owner default table/function grants are removed. Installation creates no roles, credentials, admissions, names, jobs or provider requests. Lock timeout is 2 seconds and statement timeout is 30 seconds per statement, not a total transaction bound.
+
+Build and authority verification list this candidate explicitly as the eleventh source packet. `node scripts/verify-shared-worker-native.mjs --compile-authority-only` installs the exact source packets into the cached isolated PostgreSQL fixture and writes their catalog manifest without rerunning unrelated runtime suites. The build still rejects any unreviewed packet hash or source-graph input.
+
+The release coordinator owns integration, the clean merged build, incremental database application and live acceptance. Before changing the authority catalog, stop and drain publishers using the existing release controls; preserve uncertain work and immutable old admissions. Do not rerun the original virgin installer or silently rebind queued jobs. The future worker must use its actual clean merged source/artifact pins and an exact reviewed stopped-publisher continuation; an older continuation's source checks must not be bypassed. The new web admission facade must not be enabled before its database packet and qualified worker are available. Existing saved names remain readable.
+
+Local builds of an uncommitted review candidate report `sourceClean: false`; they are validation artifacts, not production deployment evidence. The real timing/quality benchmark is one fresh normal-UI request after the coordinator releases the reviewed merged source. No paid benchmark, production change or new credential is part of this local qualification.

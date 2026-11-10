@@ -1,202 +1,142 @@
 # Embel
 
-Embel is an account-based workspace for turning a product idea into strategy, a
-name, a logo, visual directions and usable brand assets. It uses Next.js, React,
-TypeScript, Supabase Auth/Postgres/private Storage, and Vercel Workflow for the AI steps.
+Embel helps people turn a product idea into usable branding. You describe your idea once, and Embel
+guides you through a four-step brand journey, with AI doing the heavy work at each stage.
 
-[AGENTS.md](AGENTS.md) records the current working agreement and product decisions.
-This README describes the current source. Dated specifications and release
-records preserve history; they do not override that agreement or prove that a
-new source change is deployed.
+[AGENTS.md](AGENTS.md) is the owner's working agreement and has the final say on product decisions.
+This README describes the code as it is today. Dated records in [docs/archive](docs/archive) preserve
+history and may not match the current system.
 
-## Product journey
+## The brand journey
 
-Users can start a complete brand, Naming only, or visual identity only, and expand
-a saved project without discarding its context.
+| Step | What happens |
+| --- | --- |
+| **1. Strategy** | Competitors, Audience, Positioning. Competitor research starts on its own after the first message on Home. |
+| **2. Voice** | Personality, Name and Slogan (optional). |
+| **3. Identity** | Inspiration, Logo, Creative direction. |
+| **4. Assets** | Brand images, Brand guidelines, Design system. |
 
-1. **Home and Projects:** capture a prompt, sign in, and save an
-   account project. Browser copies support recovery; they are not the ordinary
-   source of account data.
-2. **Strategy:** develop the brief through Competitors, Target audience and Brand
-   personality. Preserve the actual conversation, sources and explicit choices.
-3. **Naming:** explore unchecked creative proposals, keep favorites and history,
-   try deterministic transformations, and choose a name. The current initial
-   brainstorm targets 100 names. Generation does not establish availability,
-   uniqueness or legal clearance. See [fast-first Naming](docs/naming-fast-first.md).
-4. **Logo concepts:** generate six total black-and-white raster concepts across
-   the chosen logo types. Keep partial successes and retry only failed work.
-   Choose one exact concept to continue.
-5. **Visual directions:** generate three distinct raster brand boards using the
-   exact chosen logo. Each direction combines colors, typography, graphics and
-   example uses. Vector approval is not a prerequisite, and the retired
-   component-mixing screen is not part of this journey.
-6. **Brand assets:** choose a direction, then prepare a final board, original logo,
-   palette files, font links, social profile image, post templates and banners.
-   The standard package has 16 files; a verified saved SVG logo is optional.
-   Editable social SVGs can embed the original raster and are not vector logos.
+- **Logo:** Embel draws raster logo concepts. After you pick one, it makes three distinct creative
+  directions using that exact logo. Each shows the logo, colors, typography and example uses.
+  Picking a direction leads to the final brand board and downloads: logo files, color palette,
+  font links, social profile images, post templates and banners.
+- **Saving:** meaningful edits save automatically. "Saved" appears only after the server confirms it,
+  and failures offer a way to recover.
+- **Honesty:** Embel never shows invented AI output, availability or legal clearance. A generated name
+  is not a trademark check.
+- **Usage:** each action starts with one deliberate click. Usage is recorded and duplicate requests
+  are blocked. The app shows no cost estimates.
 
-Project context, Naming choices, and existing Logo brief/reference edits save
-automatically, with confirmation
-before showing Saved and explicit recovery after failures. Project creation,
-AI generation, selection and final acceptance remain deliberate actions. An
-estimate appears beside Generate when a verified estimate is available. One
-click starts generation; there is no extra cost-confirmation screen or fixed
-monetary generation ceiling. Usage and uncertain billing remain visible.
+## How it fits together
 
-A name's details can check a domain, a YouTube handle or an EUIPO trademark on
-request. A provider interface or configured route is not proof of live
-availability, reservation, ownership, legal clearance or filing. External
-reference discovery remains unavailable unless a real source is configured.
+```mermaid
+flowchart TD
+  U[Browser] -->|pages and API calls| W[Next.js web app on Vercel]
+  W -->|start_generation: credits, limits, one run at a time| DB[(Supabase: Postgres, Auth, private Storage)]
+  W -->|starts a run| E[Generation engine: Vercel Workflow]
+  E -->|retries, polling, cancellation| AI[OpenAI]
+  E -->|saves results as embel_engine| DB
+  W -->|status polling every few seconds| DB
+```
 
-## Reliability and privacy
+- **Web app:** Next.js 16.4.4 (webpack build) on Vercel, team `embel`, project `embel`. It serves the
+  screens and the authenticated APIs. Live at `https://www.embel.xyz`.
+- **Supabase (Pro plan):** Postgres 17, Auth, and the private Storage bucket `fluid-assets`. It owns
+  accounts, projects, credits and every result file. Ownership is enforced on the server.
+- **Generation engine:** every AI step runs as a durable Vercel Workflow run inside the web app
+  (workflows in `src/workflows`, server code in `src/server/engine`):
+  - Strategy (`strategy.*`), Naming (`naming.generate`)
+  - Logos (`logo.concepts`, `logo.refine`, `logo.style_note`)
+  - Creative directions (`identity.directions`)
+- **OpenAI:** text steps use the Responses API in background mode. Logos use `gpt-image-2.6-sunburst`
+  at low quality and low complexity with a transparent background.
+- **Credits and limits** live in the SQL function `start_generation`. Each kind can be switched off in
+  `fluid_private.generation_kinds.enabled`. Everything can be paused with `engine_settings.paused`
+  (see [emergency stop](docs/emergency-stop.md)).
 
-- Server-side sessions and database ownership checks govern account access.
-  Private files use immutable versions and verified bytes; browser-supplied
-  owner IDs never grant access.
-- Writes retain their original request identity through lost acknowledgements.
-  Conflicting revisions and account changes cannot silently overwrite another
-  draft or expose another account's work.
-- Long AI operations use durable jobs, cancellation, bounded retries and retained
-  partial results. An uncertain paid request must not be repeated automatically.
-  Recovery can make verified completed output usable while its provider outcome
-  or financial accounting still needs reconciliation.
-- Vector geometry, font rights, usable downloads, successful saves and provider
-  results must be real. Exporting branding does not establish exclusive rights
-  or trademark clearance.
+There are no separate workers, daemons or laptop runtimes any more. The old worker system was removed
+in PR #231. Details: [architecture](docs/architecture.md) and the
+[generation engine](docs/generation-engine.md).
 
-See [product reliability](docs/product-health.md) for remaining work and evidence
-limits. The [October 30 visual identity release record](docs/visual-identity-release-20261030.md)
-records signed-in selection and package download confirmed by the owner. It does
-not establish every failure scenario, every supported language or production
-capacity for thousands of concurrent users.
+## Security
 
-## Local development
+- **BotID** protects every route that starts paid AI work.
+- **Turnstile CAPTCHA** on sign-up, sign-in and password reset is built but switched off until a
+  Cloudflare key is set. See [auth-captcha](docs/auth-captcha.md).
+- **Rate limits** (Vercel WAF rules): [security-rate-limits](docs/security-rate-limits.md).
+- **Database hardening:** new database functions are private by default, and only the web app's own
+  paths can start paid work.
+- Secrets stay out of source code, browser bundles, logs and exports.
 
-Use a Node.js version supported by the complete toolchain:
-`^22.22.2 || ^24.15.0 || >=26.0.0`. The development default in `.nvmrc` is Node 24.
-Dependencies are pinned in `package-lock.json`.
+## Local setup
+
+You need Node 24 (see `.nvmrc`; `package.json` lists the supported range) and Docker.
 
 ```sh
 npm ci
-npm run dev:setup
-npm run dev
+npm run dev:setup     # first time only
+npm run dev:up        # starts local Supabase (database, auth, storage, email)
+npm run dev           # web app at http://127.0.0.1:3105
 ```
 
-The interface is at `http://127.0.0.1:3105`. For local accounts, database, private
-Storage and email, start Docker Desktop/Engine and run `npm run dev:up` before
-starting the web server. `npm run dev:doctor` reports service readiness.
-`npm run dev:down` stops this checkout's services
-and retains its local data.
+Other helpers: `npm run dev:doctor` reports whether local services are ready, and `npm run dev:down`
+stops them while keeping local data. AI calls need an OpenAI key; see
+`npm run dev:secrets` and `config/development`. The local setup does not touch production.
 
-The commands resolve their paths from the checkout and are designed for local
-computers and Codex Cloud. Linux/Cloud is verified; macOS and native Windows
-have not yet been exercised with this setup.
-The pinned CLI, configuration templates and baseline migrations are in Git;
-generated settings and database state remain local. See
-[development setup](docs/development-environment.md) and
-[switching between local and cloud](docs/local-cloud-sync.md).
-`dev:up` also provisions the shared application schema and the restricted web
-principals. The AI steps run on the [generation engine](docs/generation-engine.md)
-inside the web app: set `EMBEL_ENGINE_DATABASE_URL`, `EMBEL_ENGINE_SUPABASE_SECRET_KEY`
-and `OPENAI_API_KEY` for the dev server, and enable the step's kinds in
-`generation_kinds`, to run them locally.
+## Tests
 
-GitHub remains the shared reference for code, nonsecret configuration and SQL
-changes. Credentials and database contents have their own authoritative stores;
-cloning the repository does not copy them or deploy production. See
-[source of truth and service connections](docs/source-of-truth.md).
+| Command | What it checks |
+| --- | --- |
+| `npm run check` | Type check, lint, unit tests and a production build in one go |
+| `npm test` | Unit and integration tests (Vitest) |
+| `npm run test:journey` | The full browser journey, start to finish, against a stand-in AI (`tests/journey`) |
+| `npm run test:e2e` | Other browser tests (Playwright) |
+| `npm run test:setup` | The local setup scripts |
+| `npm run test:live` | Opt-in checks against real services; never part of CI |
 
-## Verification
+Passing tests with stand-ins do not prove that live AI, accounts or Storage work.
 
-```sh
-npm run typecheck
-npm run lint
-npm test -- --maxWorkers=2 --reporter=verbose
-npm run build
-npm run test:e2e
-```
+## Releasing
 
-`npm run check` runs typecheck, lint, the repository test suite and the production
-build. Browser tests use a completed production build. Tests in `tests/live`
-with the `.live.ts` suffix run only through the separately configured
-`npm run test:live`; the ordinary test suite uses local fixtures. Passing fixture
-tests do not establish live provider, account or Storage acceptance.
+1. Open a pull request. CI runs on every pull request: type check, lint, build, sharded unit tests and
+   the full-journey browser test.
+2. Merge to `main` once CI passes.
+3. Production deploys are **manual**, from a clean clone:
+   `vercel deploy --prod --scope embel`. Skew protection is on, so open browser tabs keep working
+   across a deploy.
+4. Database changes are applied by the release lead, never by the pipeline. Keep a rollback path and
+   record what went live.
 
-`npm run test:setup` exercises the portable setup commands. These commands are
-available for the changes being developed; they are not a mandatory publication
-checklist.
+The most recent release steps are in
+[retire-old-worker-release](docs/retire-old-worker-release.md).
 
-## Runtime and deployment
+## Key documents
 
-- **Web:** Next.js handles the interface, authenticated APIs and private download
-  authorization. Production uses `https://www.embel.xyz`; public Supabase
-  configuration and the exact application origin are validated at deployment.
-- **Supabase:** Auth, Postgres and private Storage retain authoritative ownership,
-  revisions, jobs, provider evidence and files. A SQL filename is not evidence
-  that a database has that change installed.
-- **Generation engine:** Strategy, Naming, Logo images and style notes, and
-  Creative directions run as Vercel Workflow runs inside the web app
-  (`src/workflows`, `src/server/engine`). `start_generation` admits each run with
-  the person's own login (credits, limits, one run per step at a time); only the
-  `embel_engine` login writes results. Each step's kinds in `generation_kinds`
-  are its stop switch: a disabled step shows as unavailable. See
-  [the generation engine](docs/generation-engine.md).
-- **Old worker (retired):** the shared worker daemon, the API-text worker, the
-  dedicated Logo worker, ChatGPT-plan mode and the laptop runtimes are gone from
-  the code. Requests they made earlier still display from the old job tables.
-  Their database objects are dropped separately.
+| Document | Read it for |
+| --- | --- |
+| [AGENTS.md](AGENTS.md) | The owner's working agreement |
+| [docs/architecture.md](docs/architecture.md) | Short map of the system |
+| [docs/generation-engine.md](docs/generation-engine.md) | How AI runs, credits and limits work |
+| [docs/architecture-review.md](docs/architecture-review.md) | The November 9 review and plan |
+| [docs/execution-plan.md](docs/execution-plan.md) | Who does which remaining task |
+| [docs/emergency-stop.md](docs/emergency-stop.md) | Stopping AI spending fast |
+| [docs/security-rate-limits.md](docs/security-rate-limits.md), [docs/auth-captcha.md](docs/auth-captcha.md) | Bot and abuse protection |
+| [docs/brand-journey-redesign-plan-20261106.md](docs/brand-journey-redesign-plan-20261106.md) | The current interface design |
+| [docs/archive](docs/archive) | Older records from before the generation engine |
 
-See [production deployment](docs/production-deployment.md) and
-[retiring the old worker](docs/retire-old-worker-release.md). Keep credentials and private
-runtime state outside Git and browser bundles. Use the actual upload file set
-when verifying a Vercel source deployment, not only the full checkout.
-
-Database changes must reconcile the target's migration history and installed
-function bodies. Historical SQL stays immutable. Use a reviewed forward packet
-with exact predecessor guards. Files in `supabase/candidates` can already be deployed; do not
-blanket-apply them or infer installation status from that directory name.
-[Migration history](docs/migration-order.md) explains the older handoff and links
-the current installation authority.
-
-## Source map and historical records
+## Source map
 
 | Location | Purpose |
 | --- | --- |
-| `src/app`, `src/components`, `src/features` | Routes, interface and feature implementations |
+| `src/app`, `src/components`, `src/features` | Pages, interface and feature code |
 | `src/domain` | Shared contracts and validation |
-| `src/server` | Authentication, persistence, providers and runtime boundaries |
-| `src/workflows`, `src/server/engine` | The generation engine: AI step workflows, admission and results |
-| `supabase` | Historical migrations, guarded forward packets and setup material |
-| `tests` | Unit, database, security, browser and opt-in live checks |
+| `src/server` | Authentication, data access, providers; `src/server/engine` is the generation engine |
+| `src/workflows` | The AI step workflows |
+| `supabase` | Database migrations |
+| `tests` | Unit, database, security, browser and live checks |
 
-The product was renamed from Fluid to Embel on October 13, 2026. Existing
-`FLUID_*` configuration names and historical identifiers can remain for
-compatibility; see [the branding record](docs/embel-branding.md). The repository
-is private and grants no open-source license. Preserve all third-party font and
-fixture licenses and [external reference provenance](docs/references.md).
-
-[Architecture](docs/architecture.md) and
-[provider contracts](docs/standalone-provider-contracts.md) explain technical
-boundaries. Earlier source-transfer verification is preserved in
-[the October 15 regression record](docs/regression-verification-20261015.md) and
-[the October 16 reconnection record](docs/repository-reconnection-20261016.md).
-Those dated results are not current full-product acceptance claims.
-
-## Multilingual brand assets
-
-Finished brand assets use bundled, licensed font files with inspected character
-coverage. The catalog includes Latin, Greek, Cyrillic, Japanese, simplified and
-traditional Chinese, Korean, Arabic, Hebrew, Devanagari, Bengali, Gurmukhi,
-Gujarati, Tamil, Telugu, Kannada, Malayalam, Sinhala, Thai, Lao, Myanmar, Khmer,
-Armenian, Georgian and Ethiopic. Font choice is limited to faces that cover the
-complete saved name; right-to-left names retain their direction in PNG and SVG.
-PNG preparation loads only the chosen, verified fonts. Editable SVGs retain the
-selected family and Unicode text; install the linked fonts before opening or
-editing them. Font binaries are not embedded in SVGs or the ZIP.
-
-This is broad script coverage, not every Unicode character or language. Emoji,
-rare characters and some combinations of scripts may have no supported face.
-The app identifies unsupported names before new generation. Drafts and historical
-results remain readable; it never silently substitutes missing glyphs. Font
-sources, licenses, hashes and coverage are recorded in
-[font provenance](public/fonts/brand/provenance.json).
+The product was renamed from Fluid to Embel on October 13, 2026, so some `FLUID_*` settings and the
+`fluid_private` database schema keep their old names ([branding record](docs/embel-branding.md)).
+The repository is private and grants no open-source license. Keep third-party font and fixture
+licenses ([font provenance](public/fonts/brand/provenance.json),
+[references](docs/references.md)).

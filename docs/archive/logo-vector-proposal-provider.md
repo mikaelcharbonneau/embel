@@ -1,0 +1,43 @@
+> Archived November 10, 2026: describes the system before the generation engine.
+
+# Disconnected vector text proposal producer
+
+Historical component/integration documentation. See the [current checkpoint verification status](verification-status.md); machine-specific execution evidence is intentionally retained outside this source snapshot.
+
+Task 4, 2026-10-08. Source-only implementation against the eight frozen shared files in the accepted proposal contract manifest. This adds four isolated modules, dedicated synthetic tests and this evidence note. It does not alter the five-lane runtime, existing transport, Strategy configuration, SQL, UI, fonts, images, storage, deployment or any live policy.
+
+## Boundaries
+
+The new explicit configuration names `identity.logo_vector_propose`, requires `paidCallsApproved: true` and carries the independently validated complete `textPolicy`. Construction without those exact inputs and all required injected ports is null and performs no I/O, environment lookup or timer creation. Generic API approval, image configuration and reformulation settings do not enable it. The passive capability contains `textPolicy`, not top-level subscription `policy`/`billingMode`, and is intentionally not passed through or registered with the existing five-lane readiness parser.
+
+The provider uses only the existing fixed-origin OpenAI Responses transport, or an explicit transport injection. It constructs the complete final request before token counting, bounds its bytes independently, freezes it and counts that exact final body. After counting it rechecks policy/claim/readiness/cancellation, recreates and compares the body, and checks the synchronous host fence at invocation. For the built-in transport the fence runs immediately before physical fetch; for an injected transport it runs at that injection's invocation boundary. An injected transport must itself remain fixed-origin and no-retry; this adapter cannot police side effects hidden inside arbitrary injected code. The one planned step memoizes its invocation. Durable original-step admission/reconciliation remains the authority across process restarts.
+
+Request mode is pinned to `json_object` by `logo-vector-propose-api-v1` and included in the request fingerprint. Explicit JSON instructions and the exact local output schema are supplied. The local schema is not loosened. OpenAI's [Structured Outputs guide](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses), checked 2026-10-08, documents Responses `text.format: {type: 'json_object'}` and requires explicit instructions to produce JSON. This is JSON mode, not strict provider-schema enforcement. Current account/model support, real response quality and pricing remain unqualified for activation.
+
+Only one of six bounded commands or an explicit unsupported answer is accepted. Metadata validation uses the frozen context and existing validator. It does not prove the model followed a natural-language multi-control request, or that a candidate will pass actual glyph, geometry, non-target and lock checks. No artwork is computed or published here; Task 3 remains a separate authenticated zero-AI-cost materialization boundary.
+
+## Retention and pricing
+
+Observed model, service tier, response status/identity, zero-tool evidence and complete token subcounts are independently checked. Missing model remains null. Matching complete usage uses the frozen exact standard-tier rates with integer micro-USD rounding. Wrong model/tier/tools or missing usage remains unknown billing, never a free request. The existing `src/server/ai/strategy-response.ts::calculateStrategyCost` changes input/output rates above 272,000 observed input tokens. The new card is standard-only: that threshold is tested, and larger anomalous usage retains its tokens with unknown billing. Usage above the admitted 32,768-token policy limit remains reconciliation-only even when its standard-rate bill is known and below the reservation. This source-grounded guard is not current live price qualification. Known usage on malformed, oversized, incomplete or refused output is retained and priced when its identity permits exact pricing. Unsupported output is a valid charged terminal text answer with no candidate.
+
+A response labelled completed with an error/incomplete marker is still incomplete. The default transport has a bounded pass-through byte observer for its inference response. Its hash covers the actual observed wire bytes, and interrupted or invalid JSON/UTF-8 bodies retain the bounded raw prefix. Injected parsed-body transports use the serialized observed envelope hash; this is not a claim about their wire framing. Up to 32,768 output bytes are retained as base64 with exact observed byte count/hash and honest truncation. Cancellation or host admission stop after dispatch does not prevent the handler from calling `recordResponse` then `stageProposal`. Both ports intentionally lack AbortSignal. Uncertain recording/staging acknowledgment returns bounded typed unpublished evidence and the known charge for reconciliation; no inference retry follows.
+
+The frozen `LogoVectorProposalWorkerPorts` are contracts, not implementations supplied by this Task. The durable SQL/DAL owner must implement authoritative source, context-hash, claimant-role and lease checks. Task 4 compares the entire resolved input to the immutable job input and all returned receipts to the original owner/project/job/lease/quote/input/context/response identities. It does not recompute PostgreSQL's context hash using an invented JavaScript canonicalization.
+
+## Verification record
+
+Dedicated tests were authored first. The initial provider/policy source was authored while the shared verification slot was occupied, as directed by the parallel work assignment. The first actual provider run was GREEN (34/34, exit 0), not a verified pre-implementation RED cycle. No RED-first TDD claim is made. Later focused commands, counts and exact file manifests are recorded with the deliverable.
+
+All provider responses, credentials strings, runtime callbacks and persistence acknowledgments in these tests are synthetic local fixtures. They prove neither deployed SQL, actual tenant isolation, live billing, hosted concurrency, account/model access, completed user flow nor creative quality. No provider or paid service was called.
+
+Final focused verification, 2026-10-08:
+
+- `NODE_OPTIONS=--max-old-space-size=1024 ./node_modules/.bin/vitest run tests/server/logo-vector-proposal-provider.test.ts tests/worker/logo-vector-proposals.test.ts tests/worker/logo-vector-proposal-runtime-adapter.test.ts tests/worker/runner.test.ts --maxWorkers=1`: exit 0, 83/83 tests across 4 suites. This includes 50 provider, 13 handler, 8 passive-adapter and 12 unchanged-runner tests.
+- `NODE_OPTIONS=--max-old-space-size=2048 ./node_modules/.bin/tsc --project docs/evidence/logo-vector-proposal-provider/tsconfig.json --pretty false`: exit 0, scoped to the 8 owned source/test files plus their imports.
+- Scoped `eslint` on those same 8 owned files, 1 GiB heap: exit 0.
+- Frozen shared-file SHA-256 verification: 8/8 unchanged.
+- No full application suite/build, real database, browser or provider validation was run in this Task. The parent explicitly limited the serialized verification slot to these bounded checks.
+
+A first four-suite run found one actual wire-observation bug: the shared bounded schema freezes its parsed output, so overwriting the response hash afterward threw and downgraded real known usage to unknown. The hash is now supplied before parsing; the real default-transport path passed the regression. The final pricing/status RED run separately demonstrated that above-threshold usage had been priced with an unqualified standard card and that contradictory completed+error markers had been accepted. Both regressions pass after the fixes. The earlier initial provider-only GREEN run is not represented as RED-first evidence.
+
+Packet ownership: 4 production modules, 4 dedicated test files (including a fixture helper), this document, and local evidence. Shared overlays are listed separately and are not authored by this packet. No existing production, shared contract, transport, host, main/integration, SQL, UI or dependency file was changed by this worker.
