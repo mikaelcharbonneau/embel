@@ -483,7 +483,7 @@ retention policy (question 9).
   - confirm the first daily backup under Database → Backups;
   - take a manual backup;
   - turn on leaked-password protection after M10.
-- **M10, built locally (not deployed):**
+- **M10, live since November 9, 2026 (release 1 below):**
   - a "Forgot password?" link, plus "Reset your password" and "Choose a new password" screens;
   - the reset email reuses the existing `/auth/callback`, so Supabase's allowed-address list needs no
     change;
@@ -492,19 +492,63 @@ retention policy (question 9).
   - tested against the local Supabase copy and its test inbox: the email link works, the old password
     stops working, an ordinary signed-in session can't change the password, and all 5,044 API, server
     and client tests pass.
-- **M7, partly addressed while Sentry waits (built locally, not deployed):**
+- **M7, partly addressed while Sentry waits (live since November 9, 2026):**
   - unexpected server errors, and API failures caused on the server side, now write one line to
     Vercel's runtime logs: the error type, a short code and the code locations;
   - errors Next.js catches while showing pages are logged by route pattern;
   - messages, real paths, headers and request bodies are never logged;
   - Sentry is still needed for alerts and for errors in the browser.
 - **Step 0.4 (Sentry):** postponed by the owner on November 9, 2026; still needed before launch (M7).
-- **Step 0.6 with Micro:** switch the idle logo slots back on in stages (two, then the other two), and
-  watch database memory and connections. Move to Small (2 GB, about $5 a month more) if memory runs
-  low.
+- **Step 0.6, decided against:** the live worker's configuration carries only two logo slots. Switching on
+  the other four would mean regenerating every worker password and rebuilding the pinned worker program.
+  That effort goes into moving logos to the engine instead (step 4.4).
 - **Observed:** the API-text worker, which the README calls historical, still holds a database
   connection and runs its every-minute repair job. It will be retired in step 4.2.
+- **November 9, 2026, release 1 (live):** production now runs `main` at 7ca1193
+  (deployment `dpl_GuVVJ7eByWqKTqJJxbW6Fmjz7rLC`). It includes #200, #204, #206, #213, #214 and #215:
+  - the password reset (M10) and server error logging (M7, partly);
+  - the generation engine's foundation: credits, runs and the `embel_engine` database login, which
+    connects through Supabase's transaction pooler with a pinned certificate;
+  - the standalone tools, Ideas and the vector logo editor are removed.
 
+  Database changes `20261109110000` (repo file `20261109100000_retire_logo_only_creation`) and
+  `20261110090000_generation_engine` were applied first and checked against the local copy.
+
+  Checked after the deploy:
+  - `/api/health` reports the new release;
+  - the main pages answer, and the removed pages answer 404;
+  - the new engine routes refuse anyone who isn't signed in;
+  - Vercel shows no runtime errors.
+
+  Rollback, if ever needed:
+  1. redeploy `dpl_F79SgeeDVVQMvbvJtrYSUMLDJcS5` (commit 6bb2d36);
+  2. drop the engine objects with the saved rollback script;
+  3. re-grant the logo-only functions.
+- **Step 4.2, Strategy (#216, merged):** the six Strategy operations run on the engine with OpenAI
+  background mode, behind one switch. The switch turns on only when all six kinds are enabled.
+  - Local real-AI check: 6 of 6 runs succeeded and one deliberate cancel was refunded. Research took
+    about 26 s, the other steps 16–23 s.
+  - It needs an OpenAI key in the web app's production settings before it can be switched on.
+- **Engine safety net (#217):** a run whose workflow stops reporting ends after its kind's time limit
+  (30 minutes by default) and its credits come back. Cancelling a stuck run ends it at once.
+
+- **November 9, 2026, release 2 (live):** production runs `main` at 1a9035d
+  (deployment `dpl_6adobHBkefLbA5sBu6eA4Sre3GPd`, a redeploy so it includes the web app's new
+  `OPENAI_API_KEY`).
+  - Database changes `20261110120000_strategy_engine_kinds` and `20261110130000_engine_running_time_limit`
+    were applied first. The three changed functions match the repository exactly, and their access
+    rights were checked.
+  - The six `strategy.*` kinds were then enabled, so Strategy now runs on the engine.
+  - To roll back Strategy, run
+    `update fluid_private.generation_kinds set enabled = false where kind like 'strategy.%';`.
+    To stop every engine run at once, set `fluid_private.engine_settings.paused = true`.
+  - Watch for 48 hours:
+    - success rate and error codes in `generation_runs`;
+    - research finishing in under 2 minutes;
+    - no runs ending as `run_timed_out`;
+    - daily `cost_microusd` against the $50 cap;
+    - Vercel Workflow failures.
+  - The old Strategy slot, the API-text worker, its queue and its cron stay until a cleanup after that.
 ### Files that change most
 
 - **New:**
