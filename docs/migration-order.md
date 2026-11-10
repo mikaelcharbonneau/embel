@@ -79,6 +79,26 @@ themselves and names from the new generation path stay. A final check fails the
 packet if any remaining function still names a removed object.
 
 
+## November 10: the three November 9 Logo packets are superseded
+
+Do not apply `shared_logo_types_keep_concepts.sql`, `shared_logo_style_notes.sql`
+or `shared_image_model_2_6.sql` to production. Logo concepts, refinements and
+style notes move to the generation engine instead (`docs/generation-engine.md`,
+step 4):
+
+- the logo types change is migration `20261110150000_logo_types_keep_concepts`,
+  which installs the candidate's exact function bodies (and is a no-op where the
+  candidate already ran); the post-install packet list no longer names it;
+- style notes are engine outputs (`logo.style_note`); no `logo_style_notes`
+  table or `read_logo_style_note_jobs` reader is needed;
+- the engine draws with `gpt-image-2.6-sunburst`; the shared worker keeps its
+  current 2.5 policies until its Logo lanes are retired, and the web readers
+  accept either model.
+
+The worker source on `main` still lists the two remaining packets in its
+authority manifest, so do not rebuild or redeploy the shared worker from it.
+The entries below are kept as history.
+
 ## November 9 logo types packet
 
 `supabase/candidates/shared_logo_types_keep_concepts.sql` follows

@@ -169,6 +169,11 @@ export async function drawLogoImage(deps: LogoRunDeps, run: ClaimedLogoRun, targ
   catch { return save(deps, run, target.key, { ...failure("invalid_output"), provider }, reply.providerRequestId, reply.costMicrousd); }
   if (inspection.width !== 1024 || inspection.height !== 1024) return save(deps, run, target.key, { ...failure("invalid_dimensions"), provider }, reply.providerRequestId, reply.costMicrousd);
   if (!inspection.isMonochrome) return save(deps, run, target.key, { ...failure("chromatic_output"), provider }, reply.providerRequestId, reply.costMicrousd);
+  // A run stopped while this image was drawn keeps its usage but stores no file.
+  const state = await deps.db.check(run.id).catch(() => null);
+  if (state && (state.status !== "running" || state.cancelRequested)) {
+    return save(deps, run, target.key, { ...failure("run_stopped"), provider }, reply.providerRequestId, reply.costMicrousd);
+  }
   const asset = { ownerId: run.ownerId, projectId: run.projectId, assetId: deps.newId(), versionId: deps.newId() };
   for (let tries = 1; ; tries++) {
     try { await deps.storage.put(run, asset, bytes, "image/png"); break; }

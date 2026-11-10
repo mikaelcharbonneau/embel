@@ -49,28 +49,31 @@ development provider key. The first full run on November 9 made 56 requests
 ## Liked uploads
 
 A liked upload ("Your images") gets its own note, written once per upload
-version by the admitted operation `identity.logo_style_note`
-(`supabase/candidates/shared_logo_style_notes.sql`):
+version, on the generation engine only (kind `logo.style_note`,
+`src/workflows/logo.ts`). While the Logo kinds are off there are no upload
+notes, and the shared worker keeps attaching liked uploads to concepts.
 
-- Clicking Generate (or More concepts) requests a note for each liked upload
-  that has none, then waits up to a minute for them. A note still being
-  written, or one that is unavailable, stays out of that brief; it joins the
-  next set once written.
-- The worker decodes the upload in the isolated raster child, places it on
-  white (a transparent logo is otherwise read as solid black) and sends it at
-  most 1024 px, as PNG or, if larger, JPEG within the 128 KiB request bound.
-- One structured `gpt-6.1-sol` request under Creative direction's exact text
-  prices and limits; usage is recorded from the response before the note is
-  stored, and the price is checked against the policy in the database.
-- Notes are stored in `public.logo_style_notes` (owner-readable, never
-  changed). An unclear outcome is left for review and never repeated; a
-  request is not admitted while another for the same upload version is
-  unfinished or awaiting review. After two definite failures, that upload
-  version is not requested again automatically.
-- Concepts no longer attach uploads as images; refinements still attach their
-  base logo and references. Ready upload notes come first in the brief, then
-  library likes, at most four in all.
-- A saved brief whose liked-style lines differ from the latest (for example,
-  an upload note written after the brief was saved) counts as outdated.
+- Preparing a new set requests one run for every liked upload that has no note,
+  then waits up to a minute for them. A note still being written, or one that is
+  unavailable, stays out of that brief; it joins the next set once written.
+- The engine reads the exact upload version from Storage, decodes it in the
+  isolated raster child, places it on white (a transparent logo is otherwise
+  read as solid black) and sends it at most 1024 px, as PNG or, if larger, JPEG
+  within the 128 KiB request bound.
+- One structured `gpt-6.1-sol` request in background mode, under Creative
+  direction's exact text prices and limits (the worker lane's request,
+  `src/server/logo-creation/style-note-request.ts`). The note is saved as the
+  run's output `note.<referenceId>` with its cost.
+- A request whose outcome is unknown is never repeated automatically; after two
+  finished runs without a note for the same upload version, it is not requested
+  again automatically.
+- Concepts don't attach uploads as images; refinements still attach their base
+  logo and references. Ready upload notes come first in the brief, then library
+  likes, at most four in all.
+- A saved brief whose liked-style lines differ from the latest (for example, an
+  upload note written after the brief was saved) counts as outdated.
+
+The candidate `supabase/candidates/shared_logo_style_notes.sql` (worker lane,
+`logo_style_notes` table) is superseded and not applied.
 
 The first local note: 1,447 input and 61 output tokens, recorded at $0.004.

@@ -84,6 +84,8 @@ const nextConfig: NextConfig = {
     "/api/projects/*/logo{,/**}": logoRuntimeFiles,
     "/api/projects/*/identity{,/**}": logoRuntimeFiles,
     "/api/assets/*/logo-export": logoRuntimeFiles,
+    // Logo image steps of the generation engine check images in the isolated raster child.
+    "/.well-known/workflow/**": logoRuntimeFiles,
   },
   turbopack: { root: process.cwd() },
   poweredByHeader: false,
