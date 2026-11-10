@@ -1,3 +1,4 @@
+import { assertNotBot } from "@/server/http/bot-protection";
 import { enqueueStrategyJobSchema, STRATEGY_JOB_MUTATION_MAX_BYTES } from "@/domain/strategy-jobs";
 import { getAuthenticatedContext } from "@/server/auth/context";
 import { enqueueStrategyJob, getStrategyOverview } from "@/server/data/strategy-jobs";
@@ -16,6 +17,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
 export async function POST(request: Request, context: RouteContext) {
   try {
+    await assertNotBot();
     assertMutationOrigin(request);
     const auth = await getAuthenticatedContext();
     const input = await readJson(request, enqueueStrategyJobSchema, STRATEGY_JOB_MUTATION_MAX_BYTES);
