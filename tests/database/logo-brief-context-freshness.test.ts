@@ -21,7 +21,7 @@ describe('logo brief freshness compares exact owned saved context',()=>{
   await db.exec('begin');
   try{
    // Deliberate LOCAL corruption fixture only; rollback restores the immutable rows and trigger.
-   await db.exec('alter table public.project_revisions disable trigger revisions_immutable');
+   await db.exec('alter table public.project_revisions disable trigger revisions_immutable, disable trigger revisions_immutable_on_delete');
    await db.query('delete from public.project_revisions where owner_id=$1 and project_id=$2 and revision=$3',[OWNER_A,project,missing==='current'?2:1]);
    expect((await read(project)).staleStages).toContainEqual({stage:'brief_references',reasons:['project_revision_changed']});
   }finally{await db.exec('rollback');}
