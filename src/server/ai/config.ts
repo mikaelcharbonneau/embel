@@ -14,6 +14,12 @@ export const GUIDED_RESEARCH_MAX_INPUT_TOKENS = 3_150_000;
 export const GUIDED_RESEARCH_MAX_COST_MICROUSD = 15_892_880;
 export const LOCAL_STRATEGY_MODEL = "gpt-6-luna";
 export const LOCAL_STRATEGY_PRICING_VERSION = "2026-10-18";
+/** Naming generation uses the same model as the Naming worker lane (policy version 2, low reasoning). */
+export const OPENAI_NAMING_MODEL = "gpt-6-luna";
+/** gpt-6-luna Standard prices in microdollars per million tokens, checked 2026-10-18:
+ * https://developers.openai.com/api/docs/pricing and https://developers.openai.com/api/docs/models/gpt-6-luna */
+export const LUNA_PRICES = Object.freeze({ inputMicrousdPerMillionTokens: 100_000, cachedInputMicrousdPerMillionTokens: 10_000,
+  cacheWriteMicrousdPerMillionTokens: 125_000, outputMicrousdPerMillionTokens: 500_000 });
 
 type GuidedStrategyOperation = StrategyOperation;
 
@@ -37,8 +43,7 @@ export function guidedStrategyPolicy(operation: GuidedStrategyOperation, model: 
     // https://developers.openai.com/api/docs/pricing
     // https://developers.openai.com/api/docs/models/gpt-6-luna
     // Long-context research reserves cache writes at $0.25/M and output at $0.75/M.
-    ...(luna ? { model, inputMicrousdPerMillionTokens: 100_000, cachedInputMicrousdPerMillionTokens: 10_000,
-      cacheWriteMicrousdPerMillionTokens: 125_000, outputMicrousdPerMillionTokens: 500_000 } : {}),
+    ...(luna ? { model, ...LUNA_PRICES } : {}),
   });
 }
 

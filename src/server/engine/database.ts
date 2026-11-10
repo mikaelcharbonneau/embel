@@ -4,9 +4,10 @@ import path from "node:path";
 import { attachDatabasePool } from "@vercel/functions";
 import { Pool } from "pg";
 
-/** The only database functions the engine login may call (docs/generation-engine.md). */
-export type EngineFunction = "engine_claim" | "engine_check" | "engine_save_output" | "engine_finish";
-const ENGINE_FUNCTIONS: readonly EngineFunction[] = ["engine_claim", "engine_check", "engine_save_output", "engine_finish"];
+/** The only database functions the engine login may call (docs/generation-engine.md).
+ * engine_save_names adds a naming run's checked names to the project with their output. */
+export type EngineFunction = "engine_claim" | "engine_check" | "engine_save_output" | "engine_save_names" | "engine_finish";
+const ENGINE_FUNCTIONS: readonly EngineFunction[] = ["engine_claim", "engine_check", "engine_save_output", "engine_save_names", "engine_finish"];
 
 let pool: Pool | null = null;
 
