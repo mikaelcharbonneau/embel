@@ -6,11 +6,11 @@ import { createLogoOwnerStorageTransport } from "../../src/server/runtime/logo-o
 import type { AuthenticatedContext } from "../../src/server/auth/context";
 const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", project = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", origin = "https://fricsfwqibyhemknqgyf.supabase.co", role = "embel_shared_http_logo_test";
 const principal = { roleName: role, roleOid: 12345, databaseUrl: `postgresql://${role}:inert-secret@db.fricsfwqibyhemknqgyf.supabase.co:5432/postgres?sslmode=verify-full` };
-const env = () => ({ EMBEL_SHARED_WORKERS_ENABLED: "true", NODE_ENV: "production", NEXT_PUBLIC_SUPABASE_URL: origin, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_inertfixture", EMBEL_SHARED_LOGO_HTTP_CONFIG: JSON.stringify(principal) });
+const env = () => ({ EMBEL_SHARED_ACCOUNT_HTTP_ENABLED: "true", NODE_ENV: "production", NEXT_PUBLIC_SUPABASE_URL: origin, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_inertfixture", EMBEL_SHARED_LOGO_HTTP_CONFIG: JSON.stringify(principal) });
 describe("separate finite Logo verifier and purpose-bound customer delegation", () => {
   afterEach(() => vi.unstubAllEnvs());
-  it("does not borrow legacy/worker credentials and conceals configured password from serialization", () => {
-    expect(readSharedLogoHttpConfiguration({ ...env(), EMBEL_SHARED_WORKERS_ENABLED: "false" })).toBeNull();
+  it("does not borrow other credentials and conceals configured password from serialization", () => {
+    expect(readSharedLogoHttpConfiguration({ ...env(), EMBEL_SHARED_ACCOUNT_HTTP_ENABLED: "false" })).toBeNull();
     expect(readSharedLogoHttpConfiguration({ ...env(), EMBEL_SHARED_LOGO_HTTP_CONFIG: undefined, FLUID_LOGO_WEB_DATABASE_URL: principal.databaseUrl })).toBeNull();
     const config = readSharedLogoHttpConfiguration(env())!;
     expect(config.principal.roleName).toBe(role); expect(config.principal.password).toBe("inert-secret"); expect(JSON.stringify(config)).not.toContain("inert-secret");

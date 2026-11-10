@@ -80,7 +80,7 @@ export async function createSharedLogoFixture() {
         } };
       } }),
     };
-    return createSharedLogoHttpRuntime({ EMBEL_SHARED_WORKERS_ENABLED: "true", NEXT_PUBLIC_SUPABASE_URL: sharedHttpOrigin, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_inertfixture", EMBEL_SHARED_LOGO_HTTP_CONFIG: JSON.stringify({ roleName: sharedLogoRole, roleOid, databaseUrl: `postgresql://${sharedLogoRole}:inertfixture@db.fricsfwqibyhemknqgyf.supabase.co:5432/postgres?sslmode=verify-full` }) }, dependencies)!;
+    return createSharedLogoHttpRuntime({ EMBEL_SHARED_ACCOUNT_HTTP_ENABLED: "true", NEXT_PUBLIC_SUPABASE_URL: sharedHttpOrigin, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_inertfixture", EMBEL_SHARED_LOGO_HTTP_CONFIG: JSON.stringify({ roleName: sharedLogoRole, roleOid, databaseUrl: `postgresql://${sharedLogoRole}:inertfixture@db.fricsfwqibyhemknqgyf.supabase.co:5432/postgres?sslmode=verify-full` }) }, dependencies)!;
   }
   return { ...f, roleOid, issueLogo: issue, executeLogo: execute, auth, start, seedVector, objects, calls, runtime };
 }

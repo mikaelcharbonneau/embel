@@ -13,9 +13,7 @@ import { identityReferenceSnapshotSchema } from "@/domain/identity-references";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 import { productionIdentityTransactions,productionIdentitySaveAvailability } from "./identity-transaction";
-import { resolveDevelopmentIdentityRuntime } from "../development/identity";
-import { acquireAccountIdentityRuntime } from "../runtime/account-http-lanes";
-import { sharedAccountHttpConfigured } from "../shared-account/bootstrap";
+import { sharedAccountHttpConfigured, acquireSharedAccountIdentity as acquireAccountIdentityRuntime } from "../shared-account/bootstrap";
 
 function input<T>(schema:z.ZodType<T>,value:unknown):T {const result=schema.safeParse(value);if(!result.success)throw new ApiError("invalid_input");return result.data;}
 function stored<T>(schema:z.ZodType<T>,value:unknown):T {const result=schema.safeParse(value);if(!result.success)throw new ApiError("integration_unavailable");return result.data;}
@@ -99,7 +97,7 @@ export async function getProjectIdentity(auth:AuthenticatedContext,id:string,val
  id=projectId(id);const {response,currentBasis,systems}=await readHistory(auth,id,value,"get_project_identity");
  const lease=await acquireAccountIdentityRuntime(auth);
  try {
- const runtime=lease.value??(!lease.configured?await resolveDevelopmentIdentityRuntime(auth.userId):null);
+ const runtime=lease.value;
  return stored(projectIdentityOverviewSchema,{ownerId:auth.userId,projectId:id,project:response.project,session:response.session,preferences:response.preferences,
   ...(response.logoBrief?{logoBrief:response.logoBrief}:{}),referenceSnapshot:response.referenceSnapshot,currentBasis,readiness:getIdentityReadiness(response.project.context,response.project.scope,response.referenceSnapshot),systems,
   saveAvailability:runtime?.saveAvailability??productionIdentitySaveAvailability,
@@ -138,7 +136,7 @@ export async function selectIdentitySystem(auth:AuthenticatedContext,id:string,v
  id=projectId(id);const request=input(selectIdentitySystemSchema,canonicalBody(value,"systemVersionId"));
  await checkMutationProject(auth,id);const lease=await acquireAccountIdentityRuntime(auth,signal);
  try {
- const runtime=lease.value??(!lease.configured?await resolveDevelopmentIdentityRuntime(auth.userId,signal):null);
+ const runtime=lease.value;
  return await (runtime?.transactions??productionIdentityTransactions).select(auth,id,request,signal);
  } finally {await lease.release();}
 }
@@ -146,7 +144,7 @@ export async function refineIdentityComponent(auth:AuthenticatedContext,id:strin
  id=projectId(id);const request=input(refineIdentityComponentSchema,canonicalBody(value,"baseSystemVersionId"));
  await checkMutationProject(auth,id);const lease=await acquireAccountIdentityRuntime(auth,signal);
  try {
- const runtime=lease.value??(!lease.configured?await resolveDevelopmentIdentityRuntime(auth.userId,signal):null);
+ const runtime=lease.value;
  return await (runtime?.transactions??productionIdentityTransactions).refine(auth,id,request,signal);
  } finally {await lease.release();}
 }

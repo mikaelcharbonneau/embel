@@ -4,7 +4,7 @@ import {
   domainSyntaxError, orderLabel, prepareDomainSearch, purchasedDomainSchema, quoteBlockReason,
   readDomainCheck, readDomainQuote, unavailableDomainAdapter,
 } from "../../../src/features/domain-workspace/model";
-import { domainFixtures } from "../../../src/features/domain-workspace/fixtures";
+import { domainFixtures } from "./fixtures";
 const now = Date.parse("2026-10-05T12:00:00Z");
 const { check, quote, order, purchased, adapter } = domainFixtures(now);
 

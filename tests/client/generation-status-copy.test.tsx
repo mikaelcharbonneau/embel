@@ -20,7 +20,6 @@ vi.mock("@/components/assets/asset-detail", () => ({ AssetDetailDialog: () => nu
 vi.mock("@/components/assets/asset-preview", () => ({ AssetPreview: () => null }));
 vi.mock("@/components/workspace/account-profile-editor", () => ({ AccountProfileEditor: () => null }));
 vi.mock("@/components/workspace/account-access", () => ({ AccountAccess: () => null }));
-vi.mock("@/components/workspace/local-chatgpt-settings", () => ({ LocalChatGPTSettings: () => null }));
 vi.mock("@/components/workspace/recorded-usage", () => ({ RecordedUsageSection: () => null }));
 
 let root: Root, host: HTMLDivElement, fetcher: ReturnType<typeof vi.fn>;

@@ -17,8 +17,8 @@ export class LogoFileError extends Error {
   constructor(public readonly code: "invalid_options" | "unavailable" | "render_failed" | "verification_failed" | "size_limit" | "timeout", message: string) { super(message); this.name = "LogoFileError"; }
 }
 export function assertSupportedExportRuntime(version = process.versions.node): void {
-  const [major, minor] = version.split(".").map(Number);
-  if (!major || (major !== 22 && major < 24) || (major === 22 && (minor ?? 0) < 13)) throw new LogoFileError("unavailable", "Logo exports require a qualified Node 22.13+ or 24+ runtime.");
+  const [major] = version.split(".").map(Number);
+  if (!major || major < 24) throw new LogoFileError("unavailable", "Logo exports require Node 24 or newer.");
 }
 export function assertFileBytes(bytes: Uint8Array): void {
   if (!(bytes instanceof Uint8Array) || !bytes.byteLength || bytes.byteLength > LOGO_MAX_FILE_BYTES) throw new LogoFileError("size_limit", "The logo file exceeds the supported byte limit or is empty.");

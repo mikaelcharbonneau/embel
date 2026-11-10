@@ -2,9 +2,8 @@ import "server-only";
 import { z } from "zod";
 import type { AuthenticatedContext } from "@/server/auth/context";
 import { ApiError } from "@/server/http/errors";
-import { LOGO_SUPABASE_ORIGIN } from "./logo-web-configuration";
+import { LOGO_SUPABASE_ORIGIN, qualifySharedSupabaseOrigin } from "./shared-supabase-origin";
 import type { SupabasePrivateAssetTransport } from "./private-asset-storage";
-import { qualifySharedSupabaseOrigin } from "./shared-supabase-origin";
 
 const unavailable = () => new ApiError("integration_unavailable");
 

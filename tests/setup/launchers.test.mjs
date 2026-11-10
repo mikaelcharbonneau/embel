@@ -35,8 +35,8 @@ export async function load(url, context, nextLoad) {
     apiPort: 55421, dbPort: 55422, shadowPort: 55420, mailPort: 55424,
   }));
   await writeFile(path.join(root, ".env.development.local"), "APP_ORIGIN=http://127.0.0.1:1111\nEMBEL_DEVELOPMENT_PROVIDER_API_KEY=fixture-local\n");
-  await writeFile(path.join(root, ".embel-dev/strategy.env"), "EMBEL_DEVELOPMENT_PROVIDER_API_KEY=fixture-lane\nEMBEL_DEVELOPMENT_DISPATCH_APPROVED=true\nFLUID_PAID_CALLS_APPROVED=true\n");
-  await writeFile(path.join(root, ".embel-dev/web.env"), "EMBEL_DEVELOPMENT_ENABLED=true\nAPP_ORIGIN=http://127.0.0.1:3155\nNEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:55421\nNEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_fixture\nFLUID_PAID_CALLS_APPROVED=false\nEMBEL_DEVELOPMENT_PROVIDER_API_KEY=fixture-managed-ignored\n");
+  await writeFile(path.join(root, ".embel-dev/strategy.env"), "EMBEL_DEVELOPMENT_PROVIDER_API_KEY=fixture-lane\n");
+  await writeFile(path.join(root, ".embel-dev/web.env"), "EMBEL_DEVELOPMENT_ENABLED=true\nAPP_ORIGIN=http://127.0.0.1:3155\nNEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:55421\nNEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_fixture\nEMBEL_DEVELOPMENT_PROVIDER_API_KEY=fixture-managed-ignored\n");
   return root;
 }
 
@@ -44,7 +44,7 @@ function environment(overrides = {}) {
   const result = { ...process.env };
   for (const key of Object.keys(result)) {
     if (/^(?:EMBEL_|NEXT_PUBLIC_SUPABASE_|VERCEL(?:_|$))/.test(key)
-      || ["APP_ORIGIN", "NODE_ENV", "FLUID_PAID_CALLS_APPROVED", "FIXTURE_EXIT_CODE"].includes(key)) delete result[key];
+      || ["APP_ORIGIN", "NODE_ENV", "FIXTURE_EXIT_CODE"].includes(key)) delete result[key];
   }
   return { ...result, APP_ORIGIN: "https://fixture.invalid", NODE_ENV: "production", ...overrides };
 }

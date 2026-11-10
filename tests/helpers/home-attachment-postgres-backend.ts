@@ -1,10 +1,10 @@
-import 'server-only';
+/** Test-only adapter: drives the home attachment SQL functions over a plain connection. */
 import { z } from 'zod';
 import { attachedProjectDraftReceiptSchema, ownedAttachmentRefSchema, requestLookupSchema } from '@/domain/attachments';
 import type { AuthenticatedContext } from '@/server/auth/context';
 import type { IdentityConnectionFactory } from '@/server/data/identity-transaction';
 import { ApiError } from '@/server/http/errors';
-import { homeAttachmentReservationSchema, type HomeAttachmentBackend } from './index';
+import { homeAttachmentReservationSchema, type HomeAttachmentBackend } from '@/server/home-attachments';
 const bindingSchema = z.strictObject({ ownerId: z.uuid(), roleName: z.string().regex(/^[a-z][a-z0-9_]{0,62}$/), roleOid: z.number().int().positive().max(4_294_967_295) });
 const principalSchema = z.strictObject({ role_name: z.string(), role_oid: z.coerce.number().int().positive(), owner_id: z.uuid() });
 function parse<T>(schema: z.ZodType<T>, raw: unknown): T { const p = schema.safeParse(raw); if (!p.success) throw new ApiError('integration_unavailable'); return p.data; }

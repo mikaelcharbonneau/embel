@@ -41,7 +41,7 @@ function fixture(options: { enabled: boolean; runs?: unknown[]; answers?: Record
   const auth = { userId: ownerId, client: { rpc, from: () => chain } } as unknown as AuthenticatedContext;
   return { auth, calls: () => calls.filter(name => name !== "get_generation_catalog"), filters };
 }
-beforeEach(() => { started.runs = []; started.fail = false; vi.stubEnv("EMBEL_SHARED_WORKERS_ENABLED", "true"); });
+beforeEach(() => { started.runs = []; started.fail = false; vi.stubEnv("EMBEL_SHARED_ACCOUNT_HTTP_ENABLED", "true"); });
 
 describe("Creative directions with the engine kind off", () => {
   it("show the step as unavailable and fall back to nothing", async () => {
@@ -55,7 +55,7 @@ describe("Creative directions with the engine kind off", () => {
 
 describe("Creative directions with the engine kind on", () => {
   it("offer rounds under the engine's policy, even without the shared worker runtime", async () => {
-    vi.stubEnv("EMBEL_SHARED_WORKERS_ENABLED", "false");
+    vi.stubEnv("EMBEL_SHARED_ACCOUNT_HTTP_ENABLED", "false");
     const f = fixture({ enabled: true, answers: { get_identity_directions_availability: { data: available } } });
     expect(await getIdentityAvailability(f.auth, projectId)).toMatchObject({ status: "available", policyIdentity: ENGINE_IDENTITY_POLICY_IDENTITY });
     expect(f.calls()).toEqual(["get_identity_directions_availability"]);

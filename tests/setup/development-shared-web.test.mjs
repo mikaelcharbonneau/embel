@@ -23,12 +23,12 @@ test("shared web uses distinct restricted principals in a private dotenv file wi
   assert.deepEqual(await prepareSharedWeb(root, settings), { sharedHttpReady: true });
   const env = await sharedWebEnvironment(root, settings, publicValues);
   const account = JSON.parse(env.EMBEL_SHARED_ACCOUNT_HTTP_CONFIG), logo = JSON.parse(env.EMBEL_SHARED_LOGO_HTTP_CONFIG);
-  assert.equal(env.EMBEL_SHARED_WORKERS_ENABLED, "true");
+  assert.equal(env.EMBEL_SHARED_WORKERS_ENABLED, undefined);
   assert.equal(env.EMBEL_DEVELOPMENT_DATABASE_PORT, "55422");
   assert.match(account.identity.roleName, /identity/u);
   assert.match(account.homeVerifier.roleName, /home/u);
   assert.match(logo.roleName, /logo/u);
-  assert.equal(Object.keys(env).length, 5);
+  assert.equal(Object.keys(env).length, 4);
   assert.equal((await stat(path.join(root, ".embel-dev/shared-web.env"))).mode & 0o777, 0o600);
   await writeFile(path.join(root, ".embel-dev/shared-web.env"), await readFile(path.join(root, ".embel-dev/shared-web.env"), "utf8") + "OPENAI_API_KEY=inert-provider-not-web\nNEXT_PUBLIC_UNEXPECTED=inert-ignored\n");
   const projected = await sharedWebEnvironment(root, settings, publicValues);

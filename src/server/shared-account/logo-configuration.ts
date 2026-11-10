@@ -7,7 +7,7 @@ import { sharedDevelopmentDatabasePort } from "@/server/runtime/shared-supabase-
 type Environment = Readonly<Record<string, string | undefined>>;
 const schema = z.strictObject({ roleName: z.string().regex(/^embel_shared_http_logo_[a-z0-9_]{1,35}$/u).max(63), roleOid: z.number().int().positive().max(4_294_967_295), databaseUrl: z.string().min(1).max(8192) });
 export function readSharedLogoHttpConfiguration(env: Environment): { origin: string; publishableKey: string; principal: SharedHttpPrincipal } | null {
-  if (env.EMBEL_SHARED_ACCOUNT_HTTP_ENABLED !== "true" && env.EMBEL_SHARED_WORKERS_ENABLED !== "true") return null;
+  if (env.EMBEL_SHARED_ACCOUNT_HTTP_ENABLED !== "true") return null;
   const raw = env.EMBEL_SHARED_LOGO_HTTP_CONFIG;
   if (raw === undefined) return null;
   try {

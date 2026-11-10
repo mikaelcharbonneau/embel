@@ -10,14 +10,7 @@ export const onRequestError: Instrumentation.onRequestError = (error, request, c
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
-    const { sharedAccountHttpConfigured, startSharedAccountHttpServices } = await import("./server/shared-account/bootstrap");
-    if (sharedAccountHttpConfigured(process.env)) {
-      startSharedAccountHttpServices(process.env);
-      return;
-    }
-    const { startAccountHttpServices } = await import("./server/runtime/account-http-services");
-    startAccountHttpServices(process.env);
-    const { startLogoWebServices } = await import("./server/runtime/logo-web-bootstrap");
-    startLogoWebServices(process.env);
+    const { startSharedAccountHttpServices } = await import("./server/shared-account/bootstrap");
+    startSharedAccountHttpServices(process.env);
   }
 }

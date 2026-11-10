@@ -20,7 +20,6 @@ vi.mock("@/components/workspace/account-session", () => ({
 }));
 vi.mock("@/components/workspace/account-profile-editor", () => ({ AccountProfileEditor: () => null }));
 vi.mock("@/components/workspace/account-access", () => ({ AccountAccess: () => null }));
-vi.mock("@/components/workspace/local-chatgpt-settings", () => ({ LocalChatGPTSettings: () => null }));
 vi.mock("@/components/workspace/browser-local-date", () => ({ BrowserLocalDate: ({ dateTime }: { dateTime: string }) => createElement("time", { dateTime }, dateTime) }));
 vi.mock("next/link", () => ({ default: ({ children, ...props }: ComponentProps<"a">) => createElement("a", props, children) }));
 

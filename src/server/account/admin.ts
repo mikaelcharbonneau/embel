@@ -11,11 +11,10 @@ import { ApiError } from "../http/errors";
  * stores a session and never reaches a browser bundle ("server-only").
  *
  * The key is the one the generation engine already uses for Storage
- * (EMBEL_ENGINE_SUPABASE_SECRET_KEY). EMBEL_ACCOUNT_ADMIN_SECRET_KEY overrides it
- * if a separate key is created for account administration later.
+ * (EMBEL_ENGINE_SUPABASE_SECRET_KEY).
  */
 export function accountAdminClient(env: Record<string, string | undefined> = process.env): SupabaseClient {
-  const key = env.EMBEL_ACCOUNT_ADMIN_SECRET_KEY || env.EMBEL_ENGINE_SUPABASE_SECRET_KEY;
+  const key = env.EMBEL_ENGINE_SUPABASE_SECRET_KEY;
   if (!key || !/^sb_secret_[A-Za-z0-9._-]{10,500}$/u.test(key)) throw new ApiError("integration_unavailable");
   const { url } = getSupabaseConfiguration(env);
   return createClient(url, key, {

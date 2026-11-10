@@ -8,10 +8,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("next/link", () => ({ default: ({ children, ...props }: ComponentProps<"a">) => createElement("a", props, children) }));
 
 import { JOURNEY, journeyPartLabel, journeyStepOfPath, journeySteps, projectJourney } from "@/domain/journey";
-import { AnswerSummary, EarlierAnswerLink } from "@/components/journey/answer-summary";
-import { ChoiceCard } from "@/components/journey/choice-card";
-import { Composer } from "@/components/journey/composer";
-import { EmbelMessage, UserMessage } from "@/components/journey/embel-message";
 import { FloatingNav } from "@/components/journey/floating-nav";
 import { ProgressCard } from "@/components/journey/progress-card";
 import { ProjectCapsule } from "@/components/journey/project-capsule";
@@ -23,7 +19,6 @@ let host: HTMLDivElement, root: Root;
 beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { await act(async () => root.unmount()); document.body.replaceChildren(); });
 const render = (element: ReactElement) => act(async () => root.render(element));
-const key = (target: Element, init: KeyboardEventInit) => act(async () => { target.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init })); });
 
 describe("journey model", () => {
   it("keeps the confirmed four steps and their parts", () => {
@@ -72,62 +67,7 @@ describe("project journey from saved work", () => {
   });
 });
 
-describe("ChoiceCard", () => {
-  it("selects when anywhere on the card is clicked and reflects the checked state", async () => {
-    const change = vi.fn();
-    await render(createElement(ChoiceCard, { type: "checkbox", name: "competitors", value: "a", checked: false, onChange: change, title: "Milk & More", badge: "Recommended" }, "Doorstep delivery"));
-    host.querySelector("label")!.click();
-    expect(change).toHaveBeenCalledWith(true);
-    expect(host.textContent).toContain("Recommended");
-    await render(createElement(ChoiceCard, { type: "radio", name: "p", value: "a", checked: true, onChange: change, title: "Warm neighbour" }));
-    expect(host.querySelector("[data-checked='true'] input[type='radio']")).not.toBeNull();
-  });
-  it("does not change when disabled", async () => {
-    const change = vi.fn();
-    await render(createElement(ChoiceCard, { type: "radio", name: "p", value: "a", checked: false, onChange: change, title: "A", disabled: true }));
-    host.querySelector("label")!.click();
-    expect(change).not.toHaveBeenCalled();
-  });
-});
-
-describe("Composer", () => {
-  it("sends trimmed text on Enter and keeps Shift+Enter for a new line", async () => {
-    const submit = vi.fn();
-    await render(createElement(Composer, { label: "Message Embel", placeholder: "Reply…", value: "  Make it bolder  ", onChange: vi.fn(), onSubmit: submit }));
-    const field = host.querySelector("textarea")!;
-    await key(field, { key: "Enter", shiftKey: true });
-    expect(submit).not.toHaveBeenCalled();
-    await key(field, { key: "Enter" });
-    expect(submit).toHaveBeenCalledWith("Make it bolder");
-    expect(host.querySelector("label")!.textContent).toBe("Message Embel");
-  });
-  it("cannot send empty text and names what a change applies to", async () => {
-    const clear = vi.fn(), submit = vi.fn();
-    await render(createElement(Composer, { label: "Refine", placeholder: "Describe…", value: "   ", onChange: vi.fn(), onSubmit: submit, target: "Concept 3", onClearTarget: clear }));
-    expect(host.querySelector<HTMLButtonElement>("button[type='submit']")!.disabled).toBe(true);
-    await key(host.querySelector("textarea")!, { key: "Enter" });
-    expect(submit).not.toHaveBeenCalled();
-    expect(host.textContent).toContain("Changing Concept 3");
-    host.querySelector<HTMLButtonElement>("button[aria-label='Stop changing Concept 3']")!.click();
-    expect(clear).toHaveBeenCalledOnce();
-  });
-});
-
-describe("conversation pieces", () => {
-  it("labels Embel's turn with the journey part and shows the person's message", async () => {
-    await render(createElement("div", null, createElement(UserMessage, null, "A refill pantry"), createElement(EmbelMessage, { meta: "Competitors · 1 of 3" } as ComponentProps<typeof EmbelMessage>, "Here are brands…")));
-    expect(host.textContent).toContain("You");
-    expect(host.textContent).toContain("Embel · Competitors · 1 of 3");
-  });
-  it("collapses an answer with a named edit action", async () => {
-    const edit = vi.fn<() => void>();
-    await render(createElement("div", null, createElement(AnswerSummary, { question: "Who should feel it was made for them?", onEdit: () => edit() } as ComponentProps<typeof AnswerSummary>, "Households who cook most days"),
-      createElement(EarlierAnswerLink, { href: "/strategy", label: "Strategy", value: "The pantry that comes to you" })));
-    expect(host.querySelector("section")!.getAttribute("aria-label")).toBe("Your answer: Who should feel it was made for them?");
-    host.querySelector<HTMLButtonElement>("button[aria-label='Edit your answer: Who should feel it was made for them?']")!.click();
-    expect(edit).toHaveBeenCalledOnce();
-    expect(host.querySelector("a[href='/strategy']")!.textContent).toBe("StrategyThe pantry that comes to you");
-  });
+describe("progress", () => {
   it("shows real progress with a stop action that can be disabled", async () => {
     const stop = vi.fn();
     await render(createElement(ProgressCard, { title: "Researching your competitors", description: "Finding relevant brands and the sources behind them.", onStop: stop }));

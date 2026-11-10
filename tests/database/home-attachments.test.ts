@@ -5,7 +5,7 @@ import { contextSnapshotSchema } from '@/domain/projects';
 import { attachedProjectDraftReceiptSchema, ownedAttachmentRefSchema } from '@/domain/attachments';
 vi.mock('server-only', () => ({}));
 import { createHomeAttachmentService } from '@/server/home-attachments';
-import { createPostgresHomeAttachmentBackend } from '@/server/home-attachments/postgres';
+import { createPostgresHomeAttachmentBackend } from '../helpers/home-attachment-postgres-backend';
 import type { AuthenticatedContext } from '@/server/auth/context';
 import type { IdentityConnectionFactory } from '@/server/data/identity-transaction';
 import { PROPOSED_HOME_ATTACHMENT_POLICY } from '@/domain/attachments';
