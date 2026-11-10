@@ -17,7 +17,7 @@ const inheritedHashes: Record<string, string> = {
   subscription_worker_can_read_step: "7fbb782b3c033ee9d37d7144a29af8a2eaf389bd1b7a2f3c69608b71c28bf769",
   // Reviewed 20261013190236 extends the 20261008010153 session identity with
   // a backend/transaction-bound gateway context and restricted role-name/OID
-  // check, falling back to the pinned legacy owner. Its PUBLIC ACL is unchanged;
+  // check, falling back to the pinned legacy owner. Its ACL is unchanged here;
   // neither this identity helper nor the RLS predicate confers mutation rights.
   api_text_worker_owner: "d937524b325c1fb4c33f2d8c84d0dbbb6168f7c62e4d116e529bae0e7d6d8a8a",
   api_text_worker_can_read_step: "904fc5ef2b2f0fad8649fee21bf99b89f310ae058a9dea5c7bad47bc7afed939",
@@ -93,12 +93,12 @@ export async function inspectIdentityReplacementCatalog(db: PGlite) {
   }
   const functions = (await db.query<{ oid: number; signature: string; name: string; owner: string; definer: boolean; config: string[]; definition: string; acl: string | null }>(
     "select p.oid,p.oid::regprocedure::text signature,p.proname name,pg_get_userbyid(p.proowner) owner,p.prosecdef definer,p.proconfig config,pg_get_functiondef(p.oid) definition,p.proacl::text acl from pg_catalog.pg_proc p where p.oid=any(select to_regprocedure(x)::oid from unnest($1::text[]) x) order by p.oid::regprocedure::text", [[...entrypoints, ...dependencies, ...inherited]])).rows;
-  requireCatalog(functions.length === 15, "two entrypoints, nine invoker dependencies, four inherited PUBLIC capabilities");
+  requireCatalog(functions.length === 15, "two entrypoints, nine invoker dependencies, four inherited RLS predicates");
   for (const fn of functions) {
     const entry = ["prepare_identity_transaction", "commit_identity_transaction"].includes(fn.name);
     const inheritedHash = inheritedHashes[fn.name];
     requireCatalog(fn.definer === (entry || !!inheritedHash) && fn.owner === (entry ? helper : "postgres") && fn.config?.includes('search_path=""'), `function owner/search path ${fn.signature}`);
-    if (inheritedHash) requireCatalog(fn.owner === "postgres" && digest(fn.definition) === inheritedHash && fn.acl === "{postgres=X/postgres,=X/postgres}", `unchanged inherited definition/ACL ${fn.signature}`);
+    if (inheritedHash) requireCatalog(fn.owner === "postgres" && digest(fn.definition) === inheritedHash && /^\{postgres=X\/postgres(,[^=,]+=X\/postgres)*\}$/.test(fn.acl ?? ""), `unchanged inherited definition/ACL ${fn.signature}`);
   }
   const functionACLs = (await db.query<{ signature: string; grantee: number; grantee_name: string; privilege_type: string; is_grantable: boolean }>(
     "select p.oid::regprocedure::text signature,acl.grantee,case when acl.grantee=0 then 'PUBLIC' else pg_get_userbyid(acl.grantee) end grantee_name,acl.privilege_type,acl.is_grantable from pg_catalog.pg_proc p cross join lateral pg_catalog.aclexplode(coalesce(p.proacl,pg_catalog.acldefault('f',p.proowner))) acl where p.oid=any($1::oid[]) order by signature,acl.grantee", [functions.map(fn => fn.oid)])).rows;
@@ -126,7 +126,7 @@ export async function inspectIdentityReplacementCatalog(db: PGlite) {
   for (const role of roles) {
     const rows = (await db.query<{ oid: number; signature: string }>(
       "select p.oid,p.oid::regprocedure::text signature from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','fluid_private') and has_function_privilege($1,p.oid,'EXECUTE') order by p.oid::regprocedure::text", [role.rolname])).rows;
-    const expected = functions.filter(fn => role.rolname === helper || !!inheritedHashes[fn.name] || ["prepare_identity_transaction", "commit_identity_transaction"].includes(fn.name)).map(fn => fn.oid).sort();
+    const expected = functions.filter(fn => role.rolname === helper || ["prepare_identity_transaction", "commit_identity_transaction"].includes(fn.name)).map(fn => fn.oid).sort();
     requireCatalog(JSON.stringify(rows.map(row => row.oid).sort()) === JSON.stringify(expected), `exact callable functions ${role.rolname}: ${rows.map(r => r.signature).join(",")}`);
     executable.push({ role: role.rolname, functions: rows });
   }

@@ -45,7 +45,11 @@ describe("identity directions engine on a database built from migrations alone",
       [signature])).rows[0];
     for (const signature of PUBLIC_FUNCTIONS) expect(await grants(signature), signature).toEqual({ anon: false, authenticated: true, service: false, engine: false });
     for (const signature of ENGINE_FUNCTIONS) expect(await grants(signature), signature).toEqual({ anon: false, authenticated: false, service: false, engine: true });
-    for (const signature of PRIVATE_FUNCTIONS) expect(await grants(signature), signature).toEqual({ anon: false, authenticated: false, service: false, engine: false });
+    for (const signature of [...PRIVATE_FUNCTIONS, "fluid_private.finish_generation_run(uuid,text,text)"]) expect(await grants(signature), signature).toEqual({ anon: false, authenticated: false, service: false, engine: false });
+    // No PUBLIC entry on any of them: privileges are explicit, not inherited defaults.
+    for (const signature of [...PUBLIC_FUNCTIONS, ...ENGINE_FUNCTIONS, ...PRIVATE_FUNCTIONS, "fluid_private.finish_generation_run(uuid,text,text)"]) {
+      expect((await db.query("select exists(select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a where p.oid = $1::regprocedure and a.grantee = 0) public_grant", [signature])).rows, signature).toEqual([{ public_grant: false }]);
+    }
   });
 
   it("pins the policy identity the server computes", async () => {

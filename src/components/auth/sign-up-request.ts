@@ -28,6 +28,7 @@ export async function requestSignUp(body: string, action: "sign-up" | "resend-co
 
 export function signUpErrorMessage(error: unknown): string {
   if (error instanceof SignUpRequestError) {
+    if (error.status === 400) return "The security check didn't pass. Please try again.";
     if (error.status === 429) return "Too many account attempts. Wait a little before trying again.";
     if (error.status === 503) return "Account creation is unavailable right now. Your work is kept. Please try again shortly.";
     if (error.status === 403) return "This account request couldn't be verified. Refresh the page and try again.";

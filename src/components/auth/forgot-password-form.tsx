@@ -5,12 +5,14 @@ import { useRef, useState, type FormEvent } from "react";
 import { AuthArtwork } from "@/components/ui/auth-artwork";
 import { Icon } from "@/components/ui/icon";
 import { requestPasswordResetEmail, resetEmailErrorMessage } from "./password-reset-request";
+import { readCaptcha, TurnstileWidget, type TurnstileHandle } from "./turnstile-widget";
 import "@/styles/auth.css";
 
 export function ForgotPasswordForm({ configured, overlay = false }: { configured: boolean; overlay?: boolean }) {
   const idPrefix = overlay ? "auth-overlay" : "auth-page";
   const emailInput = useRef<HTMLInputElement>(null);
   const pending = useRef(false);
+  const captcha = useRef<TurnstileHandle>(null);
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
@@ -21,16 +23,19 @@ export function ForgotPasswordForm({ configured, overlay = false }: { configured
     if (disabled || pending.current) return;
     const email = emailInput.current?.value.trim() ?? "";
     if (!email || email.length > 320) { setError("Enter the email address you use for Embel."); return; }
+    const check = readCaptcha(captcha.current);
+    if (!check.ok) { setError(check.message); return; }
     setError("");
     pending.current = true;
     setSubmitting(true);
     try {
-      await requestPasswordResetEmail(email);
+      await requestPasswordResetEmail(email, check.token);
       setSent(true);
     } catch (failure) {
       setError(resetEmailErrorMessage(failure));
     } finally {
       pending.current = false;
+      captcha.current?.reset();
       setSubmitting(false);
     }
   }
@@ -45,6 +50,7 @@ export function ForgotPasswordForm({ configured, overlay = false }: { configured
       </div> : <form method="post" action="/api/auth/password-reset" onSubmit={submit} aria-label="Request a password reset link" aria-busy={submitting}>
         <fieldset disabled={disabled}>
           <label className="auth-field" htmlFor={`${idPrefix}-reset-email`}>Email<input ref={emailInput} id={`${idPrefix}-reset-email`} name="email" type="email" placeholder="you@example.com" autoComplete="username" autoCapitalize="none" spellCheck={false} maxLength={320} required onChange={() => setError("")} aria-describedby={error ? `${idPrefix}-error` : undefined} /></label>
+          <TurnstileWidget handleRef={captcha} />
           <button type="submit" className="button primary auth-submit">{submitting ? "Sending link…" : "Send reset link"}{submitting ? <span className="auth-progress" aria-hidden="true" /> : <AuthArtwork name="submit-arrow" />}</button>
         </fieldset>
         {error && <p className="form-error" id={`${idPrefix}-error`} role="alert">{error}</p>}

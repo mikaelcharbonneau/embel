@@ -17,14 +17,14 @@ function client(answer: () => Response | Promise<Response>) {
 const draw = (images: ReturnType<typeof client>["images"]) => images.draw({ prompt: "Create exactly one original logo concept.", images: [] }, "logo-run-image.0-1");
 
 describe("the engine's Logo image request", () => {
-  it("is #212's request: gpt-image-2.6-sunburst at the highest quality on a transparent PNG", async () => {
-    expect(ENGINE_LOGO_IMAGE).toEqual({ model: "gpt-image-2.6-sunburst", quality: "max", background: "transparent" });
+  it("draws gpt-image-2.6-sunburst at low quality and low complexity on a transparent PNG", async () => {
+    expect(ENGINE_LOGO_IMAGE).toEqual({ model: "gpt-image-2.6-sunburst", quality: "low", complexity: "low", background: "transparent" });
     const png = syntheticPng(1024, 1024, () => [0, 0, 0, 255]);
     const { calls, images } = client(() => reply(png));
     const result = await draw(images);
     expect(calls[0]!.url).toBe("https://api.openai.com/v1/images/generations");
     expect(JSON.parse(String(calls[0]!.init.body))).toEqual({ model: "gpt-image-2.6-sunburst", prompt: "Create exactly one original logo concept.", n: 1, output_format: "png",
-      size: "1024x1024", quality: "max", background: "transparent", moderation: "auto" });
+      size: "1024x1024", quality: "low", complexity: "low", background: "transparent", moderation: "auto" });
     expect(calls[0]!.init.headers).toMatchObject({ "X-Client-Request-Id": "logo-run-image.0-1" });
     expect(result).toMatchObject({ kind: "image", providerRequestId: "req_synthetic", costMicrousd: imageCostMicrousd(usage) });
     expect(imageCostMicrousd(usage)).toBe(100 * 5 + 6_000 * 30);

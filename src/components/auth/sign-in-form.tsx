@@ -9,6 +9,7 @@ import { useAccountSession } from "@/components/workspace/account-session";
 import { requestSignIn, SignInRequestError, signInErrorMessage } from "./sign-in-request";
 import { requestSignUp, signUpErrorMessage } from "./sign-up-request";
 import { hasPromptRecovery } from "@/components/workspace/prompt-recovery";
+import { readCaptcha, TurnstileWidget, type TurnstileHandle } from "./turnstile-widget";
 import { HidePasswordIcon, ShowPasswordIcon } from "./auth-icons";
 import "@/styles/auth.css";
 
@@ -32,6 +33,8 @@ export function SignInForm({ configured, overlay = false, mode = "sign-in", conf
     confirmPasswordInput.current = element;
   }, []);
   const resendEmailInput = useRef<HTMLInputElement>(null);
+  const captcha = useRef<TurnstileHandle>(null);
+  const resendCaptcha = useRef<TurnstileHandle>(null);
   const titleElement = useRef<HTMLHeadingElement>(null);
   const requestPending = useRef(false);
   const credentialGeneration = useRef(0);
@@ -86,13 +89,16 @@ export function SignInForm({ configured, overlay = false, mode = "sign-in", conf
       setError("The passwords didn't match. Enter them again.");
       return;
     }
-    const body = JSON.stringify({ email, password });
+    const check = readCaptcha(captcha.current);
+    if (!check.ok) { setError(check.message); return; }
+    const body = JSON.stringify({ email, password, ...(check.token ? { captchaToken: check.token } : {}) });
     if (signingUp) clearPasswords();
     const submittedGeneration = credentialGeneration.current;
     setError("");
     requestPending.current = true;
     const result = await signIn(() => signingUp ? requestSignUp(body) : requestSignIn(body), mode);
     requestPending.current = false;
+    captcha.current?.reset();
     if (!mounted.current || credentialGeneration.current !== submittedGeneration) return;
     const transientSignIn = !signingUp && !result.ok && result.reason === "failed" && result.error instanceof SignInRequestError && result.error.status === 503;
     if (!transientSignIn) clearPasswords();
@@ -112,11 +118,14 @@ export function SignInForm({ configured, overlay = false, mode = "sign-in", conf
     if (disabled || signedIn || requestPending.current) return;
     const email = resendEmailInput.current?.value.trim() ?? "";
     if (!email || email.length > 320) { setError("Enter a valid email address."); return; }
+    const check = readCaptcha(resendCaptcha.current);
+    if (!check.ok) { setError(check.message); return; }
     setError("");
     setResent(false);
     requestPending.current = true;
-    const result = await signIn(() => requestSignUp(JSON.stringify({ email }), "resend-confirmation"), "sign-up");
+    const result = await signIn(() => requestSignUp(JSON.stringify({ email, ...(check.token ? { captchaToken: check.token } : {}) }), "resend-confirmation"), "sign-up");
     requestPending.current = false;
+    resendCaptcha.current?.reset();
     if (!mounted.current) return;
     if (result.ok) {
       if (resendEmailInput.current) resendEmailInput.current.value = "";
@@ -143,6 +152,7 @@ export function SignInForm({ configured, overlay = false, mode = "sign-in", conf
               {!signingUp && <Link className="text-link auth-forgot-link" href="/forgot-password" replace={overlay} onClick={clearPasswords}>Forgot password?</Link>}
             </div>
             {signingUp && <><p className="auth-field-help" id={`${idPrefix}-password-guidance`}>Use at least 12 characters.</p><label className="auth-field auth-confirm-password" htmlFor={`${idPrefix}-confirm-password`}>Confirm password<input ref={bindConfirmPasswordInput} id={`${idPrefix}-confirm-password`} name="confirmPassword" type={passwordsShown ? "text" : "password"} placeholder="Enter your password again" autoComplete="new-password" autoCapitalize="none" autoCorrect="off" spellCheck={false} minLength={12} maxLength={1024} required onChange={() => setError("")} /></label><p className="auth-field-help">You&apos;ll need to confirm your email before signing in.</p></>}
+            <TurnstileWidget handleRef={captcha} />
             <button type="submit" className="button primary auth-submit">{submitting ? signingUp ? "Creating account…" : "Signing in…" : signingUp ? "Create account" : "Sign in"}{submitting ? <span className="auth-progress" aria-hidden="true" /> : <AuthArtwork name="submit-arrow" />}</button>
           </fieldset>
           {checking && configured && !submitting && <p className="auth-status" role="status">Checking your account…</p>}
@@ -150,7 +160,7 @@ export function SignInForm({ configured, overlay = false, mode = "sign-in", conf
         </form>}
         {(confirming || confirmation === "failed") && !resend && <button type="button" className="text-link auth-resend-toggle" disabled={disabled} onClick={() => { clearPasswords(); setError(""); setResend(true); }}>Request another confirmation email</button>}
         {resend && <form method="post" action="/api/auth/resend-confirmation" aria-label="Resend confirmation" aria-busy={submitting} onSubmit={resendConfirmation}>
-          <fieldset disabled={disabled}><label className="auth-field" htmlFor={`${idPrefix}-confirmation-email`}>Email<input ref={resendEmailInput} id={`${idPrefix}-confirmation-email`} name="email" type="email" placeholder="you@example.com" autoComplete="email" autoCapitalize="none" maxLength={320} required onChange={() => { setError(""); setResent(false); }} /></label><button className="button secondary auth-submit" type="submit">{submitting ? "Requesting email…" : "Resend confirmation"}</button></fieldset>
+          <fieldset disabled={disabled}><label className="auth-field" htmlFor={`${idPrefix}-confirmation-email`}>Email<input ref={resendEmailInput} id={`${idPrefix}-confirmation-email`} name="email" type="email" placeholder="you@example.com" autoComplete="email" autoCapitalize="none" maxLength={320} required onChange={() => { setError(""); setResent(false); }} /></label><TurnstileWidget handleRef={resendCaptcha} /><button className="button secondary auth-submit" type="submit">{submitting ? "Requesting email…" : "Resend confirmation"}</button></fieldset>
           {resent && <p className="auth-status" role="status">If this address is awaiting confirmation, a new email will arrive shortly. Wait a minute before requesting another.</p>}
           {error && <p className="form-error" id={`${idPrefix}-error`} role="alert">{error}</p>}
         </form>}

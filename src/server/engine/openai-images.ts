@@ -9,7 +9,7 @@ import { LOGO_IMAGE_REQUESTS } from "../logo-creation/openai-logo-provider";
 import { EngineProviderError } from "./openai";
 
 // Logo images on the generation engine: the Images API request #212 configures
-// (gpt-image-2.6-sunburst, highest quality, transparent PNG, 1024 x 1024), one
+// (gpt-image-2.6-sunburst, low quality and low complexity, transparent PNG, 1024 x 1024), one
 // attempt per call. The Images API has no background mode and no lookup by id,
 // so an outcome that is unknown can't be recovered: the caller fails that one
 // image instead of sending it again. Calls never retry here.
@@ -21,7 +21,7 @@ export const ENGINE_LOGO_IMAGE = Object.freeze({ model: IMAGE_MODEL, ...LOGO_IMA
 export const ENGINE_BOARD_IMAGE = Object.freeze({ model: IMAGE_MODEL, quality: "medium", background: "opaque" } as const);
 /** The only profiles a request may name; Logo images by default. */
 export type EngineImageProfile = typeof ENGINE_LOGO_IMAGE | typeof ENGINE_BOARD_IMAGE;
-/** A highest-quality image usually takes two to three minutes. */
+/** A low-quality image usually takes well under a minute; this bounds a stalled call. */
 const IMAGE_TIMEOUT_MS = 300_000;
 const RETRY_STATUSES = new Set([429, 500, 502, 503]);
 const UNCERTAIN_STATUSES = new Set([408, 409, 504]);
@@ -79,8 +79,7 @@ export function createEngineImages(options: { apiKey: string; fetch?: typeof fet
       if (!/^[a-zA-Z0-9._:-]{1,200}$/u.test(clientRequestId)) throw new Error("Invalid request id");
       const profile = raw.profile ?? ENGINE_LOGO_IMAGE;
       if (profile !== ENGINE_LOGO_IMAGE && profile !== ENGINE_BOARD_IMAGE) throw new Error("Invalid image profile");
-      request = await validateLogoImageInputs({ model: profile.model, quality: profile.quality, background: profile.background,
-        prompt: raw.prompt, size: "1024x1024", images: raw.images }, signal);
+      request = await validateLogoImageInputs({ ...profile, prompt: raw.prompt, size: "1024x1024", images: raw.images }, signal);
     } catch { throw new EngineProviderError("rejected", null); }
     const { endpoint, body, contentType } = logoImageRequestBody(request);
     let response: Response;

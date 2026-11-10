@@ -469,6 +469,10 @@ begin
 end $$;
 
 -- Grants -------------------------------------------------------------------------
+-- Every function here, new or replaced, gets explicit privileges: a replaced function keeps
+-- its old ACL, and 20261110160000_harden_database_api made new functions private by default.
+-- finish_generation_run stays private: only the engine functions that own it call it.
+revoke all on function fluid_private.finish_generation_run(uuid, text, text) from public, anon, authenticated, service_role;
 revoke all on function fluid_private.engine_identity_policy(), fluid_private.engine_identity_customer(uuid),
   fluid_private.engine_identity_close_job(public.generation_runs), fluid_private.engine_identity_cancel(uuid, uuid, uuid),
   fluid_private.engine_identity_begin(uuid), fluid_private.engine_identity_save_board(uuid, integer, jsonb, text, bigint),

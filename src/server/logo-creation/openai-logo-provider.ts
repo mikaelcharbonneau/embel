@@ -9,7 +9,7 @@ import type { LogoType } from "../../domain/logo-workspace";
 import { logoPromptPersonality, logoTypeDrawsText } from "../../domain/logo-style-notes";
 import { getVectorRefinementCapability } from "../../features/logo-vector/model/locks";
 import { createOpenAIImageTransport, OpenAIImageTransportError, validateLogoImageInputs,
-  type LogoImageUsage, type OpenAIImageBackground, type OpenAIImageQuality, type OpenAIImageTransport, type OpenAIImageRequest,
+  type LogoImageUsage, type OpenAIImageBackground, type OpenAIImageComplexity, type OpenAIImageQuality, type OpenAIImageTransport, type OpenAIImageRequest,
 } from "./openai-image-transport";
 
 export type { LogoImageUsage } from "./openai-image-transport";
@@ -40,11 +40,12 @@ const directions: Record<string, string> = {
   negative_space: "Explore an original meaningful use of negative space.",
   expressive_detail: "Explore distinctive expressive details without losing a readable silhouette.",
 };
-/** A policy's model fixes its whole request. The shared policy draws at the
- * highest quality on a transparent background; the earlier capped policy keeps
+/** A policy's model fixes its whole request. The shared policy draws at low
+ * quality and low complexity on a transparent background (owner's choice,
+ * November 10, 2026, after a cost comparison); the earlier capped policy keeps
  * its medium-quality request on white. */
-export const LOGO_IMAGE_REQUESTS: Readonly<Record<LogoImageModel, Readonly<{ quality: OpenAIImageQuality; background: OpenAIImageBackground }>>> = Object.freeze({
-  [IMAGE_MODEL]: Object.freeze({ quality: "max", background: "transparent" }),
+export const LOGO_IMAGE_REQUESTS: Readonly<Record<LogoImageModel, Readonly<{ quality: OpenAIImageQuality; complexity?: OpenAIImageComplexity; background: OpenAIImageBackground }>>> = Object.freeze({
+  [IMAGE_MODEL]: Object.freeze({ quality: "low", complexity: "low", background: "transparent" }),
   [CAPPED_LOGO_IMAGE_MODEL]: Object.freeze({ quality: "medium", background: "opaque" }),
 });
 const backgrounds: Record<OpenAIImageBackground, string> = {
@@ -105,7 +106,7 @@ export function createLogoImageProvider({ configuration, transport }: { configur
       if (images.length !== expected.length || images.some((image, index) => !sameReference(image.reference, expected[index]!))) throw new Error("Exact reference bytes required");
       // A concept is drawn fresh (generations); only a refinement edits its base preview with its references.
       request = await validateLogoImageInputs({ model: config.model, prompt: "basePreview" in input ? buildLogoRefinementPrompt(input, profile.background) : buildLogoConceptPrompt(input, profile.background),
-        size: "1024x1024", quality: profile.quality, background: profile.background, images: "basePreview" in input ? images : [] }, signal);
+        size: "1024x1024", quality: profile.quality, ...(profile.complexity ? { complexity: profile.complexity } : {}), background: profile.background, images: "basePreview" in input ? images : [] }, signal);
       if (signal.aborted) throw new Error("Aborted");
     } catch { return { status: "not_dispatched", code: "invalid_or_unavailable_inputs", providerRequestId: null, responseHash: null, billing: { status: "recorded", confirmedMicrousd: 0 } }; }
     try {

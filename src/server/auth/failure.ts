@@ -2,7 +2,8 @@ import "server-only";
 import { ApiError } from "../http/errors";
 
 /** Provider diagnostics can contain credentials or identifiers; never return them. */
-export function authFailure(error: { status?: number; name?: string }): ApiError {
+export function authFailure(error: { status?: number; name?: string; code?: string }): ApiError {
+  if (error.code === "captcha_failed") return new ApiError("captcha_failed");
   if (error.status === 429) return new ApiError("auth_rate_limited");
   if (error.name === "AuthRetryableFetchError" || (error.status ?? 0) >= 500 || error.status === 0) {
     return new ApiError("integration_unavailable");
@@ -12,6 +13,7 @@ export function authFailure(error: { status?: number; name?: string }): ApiError
 
 /** Account-state answers stay hidden; only rate limits and outages are reported. */
 export function passwordResetFailure(error: { status?: number; name?: string; code?: string }): ApiError | null {
+  if (error.code === "captcha_failed") return new ApiError("captcha_failed");
   if (error.status === 429 || error.code === "over_email_send_rate_limit") return new ApiError("auth_rate_limited");
   if (["user_not_found", "email_not_confirmed", "user_banned"].includes(error.code ?? "")) return null;
   return new ApiError("integration_unavailable");
