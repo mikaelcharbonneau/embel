@@ -18,7 +18,7 @@ const env = () => ({ NODE_ENV: "test" as const, EMBEL_DEVELOPMENT_ENABLED: "true
   EMBEL_DEVELOPMENT_IDENTITY_OWNER_ID: owner, EMBEL_DEVELOPMENT_IDENTITY_ROLE_NAME: role,
   EMBEL_DEVELOPMENT_IDENTITY_ROLE_OID: "12345" });
 
-const sql = readFileSync(new URL("../database/identity-trusted-replacement.sql", import.meta.url), "utf8");
+const sql = readFileSync(new URL("../../supabase/archive/candidates/identity_transactions.sql", import.meta.url), "utf8");
 function helperRows() {
   return ["identity_web_owner", "prepare_identity_transaction", "commit_identity_transaction"].map(name => {
     const match = sql.match(new RegExp(`create function fluid_private\\.${name}[\\s\\S]*?as \\$\\$([\\s\\S]*?)\\$\\$;`));

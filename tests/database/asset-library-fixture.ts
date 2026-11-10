@@ -1,46 +1,7 @@
-import { PGlite } from "@electric-sql/pglite";
-import { readdir, readFile } from "node:fs/promises";
-import { fixtureMigrationNames } from "./fixture-migrations";
-import { createTestDatabase, installStorageOperationFixture, HASH, OWNER_A, type TestDatabase } from "./local-supabase";
+import { createTestDatabase, HASH, OWNER_A, type TestDatabase } from "./local-supabase";
 
-export const assetLibraryMigration = "20261005010000_asset_library.sql";
-
-/** LOCAL ONLY: ordinary calls exercise every migration; the callback seeds
- * legitimate old rows immediately before the additive Assets upgrade. */
-export async function createAssetLibraryTestDatabase(beforeUpgrade?: (db: TestDatabase) => Promise<void>) {
-  if (!beforeUpgrade) return createTestDatabase();
-  const db = new PGlite();
-  try {
-    await db.exec(`
-    create role anon nologin;
-    create role authenticated nologin;
-    create role service_role nologin bypassrls;
-    create role fixture_subscription_worker_a login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
-    create role fixture_subscription_worker_b login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
-    create schema auth;
-    create table auth.users(id uuid primary key);
-    create function auth.uid() returns uuid language sql stable as
-      $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
-    grant usage on schema auth, public to anon, authenticated, service_role;
-    grant execute on function auth.uid() to anon, authenticated, service_role;
-    create schema storage;
-    create table storage.buckets(id text primary key, name text not null, public boolean not null default false, file_size_limit bigint);
-    create table storage.objects(id uuid primary key default gen_random_uuid(), bucket_id text references storage.buckets(id), name text not null, owner_id text, unique(bucket_id,name));
-    alter table storage.objects enable row level security;
-    grant usage on schema storage to authenticated, service_role;
-    grant select, insert, update, delete on storage.objects to authenticated, service_role;
-    `);
-    await installStorageOperationFixture(db);
-    const directory = new URL("../../supabase/migrations/", import.meta.url);
-    const names = fixtureMigrationNames(await readdir(directory));
-    if (!names.includes(assetLibraryMigration)) throw new Error("Assets migration is not present in this local fixture");
-    for (const name of names) {
-      if (name === assetLibraryMigration) await beforeUpgrade(db);
-      await db.exec(await readFile(new URL(name, directory), "utf8"));
-    }
-    return db;
-  } catch (error) { await db.close(); throw error; }
-}
+/** LOCAL ONLY: the baseline database for the Assets library tests. */
+export const createAssetLibraryTestDatabase = createTestDatabase;
 
 /** Explicit metadata fixtures; no object is uploaded and no provider is called. */
 export async function seedLibraryAsset(db: TestDatabase, projectId: string, options: {

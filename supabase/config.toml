@@ -1,0 +1,41 @@
+# Supabase CLI configuration for the repository root (supabase link, db diff, migration
+# list against production). Local development stacks do not use this file: npm run dev:setup
+# renders config/development/supabase.toml into the checkout's .embel-dev workspace.
+project_id = "embel"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[db.migrations]
+enabled = true
+schema_paths = []
+
+[db.seed]
+enabled = false
+sql_paths = []
+
+[realtime]
+enabled = false
+
+[studio]
+enabled = false
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true

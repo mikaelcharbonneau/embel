@@ -1,13 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { logoConceptBatchSchema, logoRasterRefinementSchema } from "../../src/domain/logo-jobs";
 import { logoMutationReceiptSchema, logoWorkspaceV2Schema, type LogoWorkspaceV2 } from "../../src/domain/logo-workspace";
 import { asRole, createTestDatabase, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from "./local-supabase";
 import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 
-// Migrations 20261110150000_logo_types_keep_concepts and 20261110151000_logo_engine:
-// the Logo kinds, delivery-based refunds, and the engine's Logo records.
+// The Logo kinds, delivery-based refunds, and the engine's Logo records on the baseline.
 let db: TestDatabase;
 beforeAll(async () => { db = await createTestDatabase(); }, 180_000);
 beforeEach(async () => {
@@ -272,14 +270,7 @@ describe("logo types after the first concepts", () => {
     expect((await workspace(OWNER_A, w.projectId)).staleStages.map(stale => stale.stage)).toContain("concepts");
   });
 
-  it("installs the candidate's exact function bodies and runs again without change", async () => {
-    const bodies = async () => (await db.query<{ name: string; hash: string }>(
-      "select p.proname as name, encode(sha256(convert_to(p.prosrc,'UTF8')),'hex') as hash from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='fluid_private' and p.proname in ('logo_brief_same_except_types','logo_workspace_base_json') order by 1")).rows;
-    const manifest = JSON.parse(await readFile(new URL("../../scripts/development/shared-authority-manifest.json", import.meta.url), "utf8")) as { functions: { name: string; sha256: string }[] };
-    const expected = ["logo_brief_same_except_types", "logo_workspace_base_json"].map(name => ({ name, hash: manifest.functions.find(fn => fn.name === name)!.sha256 }));
-    expect(await bodies()).toEqual(expected);
-    await db.exec(await readFile(new URL("../../supabase/migrations/20261110150000_logo_types_keep_concepts.sql", import.meta.url), "utf8"));
-    expect(await bodies()).toEqual(expected);
+  it("keeps the brief comparison helper private", async () => {
     expect((await db.query("select has_function_privilege('authenticated','fluid_private.logo_brief_same_except_types(uuid,uuid,uuid,uuid)','EXECUTE') as granted")).rows).toEqual([{ granted: false }]);
   });
 });

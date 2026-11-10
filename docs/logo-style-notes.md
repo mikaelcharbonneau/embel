@@ -73,7 +73,7 @@ notes, and the shared worker keeps attaching liked uploads to concepts.
 - A saved brief whose liked-style lines differ from the latest (for example, an
   upload note written after the brief was saved) counts as outdated.
 
-The candidate `supabase/candidates/shared_logo_style_notes.sql` (worker lane,
+The candidate `supabase/archive/candidates/shared_logo_style_notes.sql` (worker lane,
 `logo_style_notes` table) is superseded and not applied.
 
 The first local note: 1,447 input and 61 output tokens, recorded at $0.004.

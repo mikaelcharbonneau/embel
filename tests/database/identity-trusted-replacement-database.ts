@@ -3,24 +3,27 @@ import { readFile } from "node:fs/promises";
 import type { PGlite } from "@electric-sql/pglite";
 import { createTestDatabase, OWNER_A, OWNER_B } from "./local-supabase";
 
-/** NEW local SQL fixture. No recovered bytes, passwords, hosted roles or factory activation. */
+/** Local fixture logins bound to the baseline's Identity transaction helpers. No recovered
+ * bytes, passwords, hosted roles or factory activation. */
 export const identityFixturePrincipals: Readonly<Record<string, string>> = Object.freeze({
   [OWNER_A]: "fixture_identity_replacement_a", [OWNER_B]: "fixture_identity_replacement_b",
 });
 const helper = "fluid_identity_writer_definer_v1";
-// Old worker identity functions kept because kept code still calls them. 20261110160000
-// granted them by name to every existing role, so the helper can execute them. The
-// job_steps policies that used them as predicates are retired (20261110180000).
+// Old worker identity functions kept because kept code still calls them; the baseline grants
+// them by name to the helper. The job_steps policies that used them as predicates are retired.
 const inherited = ["public.subscription_worker_owner()", "public.api_text_worker_owner()"];
 const inheritedHashes: Record<string, string> = {
   subscription_worker_owner: "b8e9db7513576aef1db7860c844782b3d785f4b2ab71df42abe3f28aeb6743f1",
-  // Reviewed 20261013190236 extends the 20261008010153 session identity with
-  // a backend/transaction-bound gateway context and restricted role-name/OID
-  // check, falling back to the pinned legacy owner.
-  api_text_worker_owner: "d937524b325c1fb4c33f2d8c84d0dbbb6168f7c62e4d116e529bae0e7d6d8a8a",
+  // The baseline's definition, as the shared worker pool packet left it in production:
+  // the shared Strategy context owner, falling back to the pinned legacy owner.
+  api_text_worker_owner: "f1708c3cf65b4fbe6e0c8982bd0a3d0ae1fa4ff4316c0b2a6ca92d7f216a2131",
 };
 const logins = [...Object.values(identityFixturePrincipals), "fixture_identity_replacement_unbound"];
 const entrypoints = ["fluid_private.prepare_identity_transaction(uuid,jsonb,boolean)", "fluid_private.commit_identity_transaction(uuid,jsonb,jsonb)"];
+// The baseline's shared Identity lane grants the helper these too (definer ones owned by postgres).
+const packetDependencies: Record<string, boolean> = { "fluid_private.identity_application_design_valid(jsonb,jsonb)": false, "fluid_private.identity_board_contrast_ratio(text,text)": false,
+  "fluid_private.identity_current_logo_brief(uuid,uuid)": true, "fluid_private.identity_job_logo_brief(uuid,uuid,uuid)": true, "fluid_private.shared_http_context_owner(text)": true };
+const privateReads = ["fluid_private.identity_web_principals", "fluid_private.identity_system_applications"];
 const dependencies = ["fluid_private.identity_web_owner()", "fluid_private.asset_library_project(public.projects)",
   "fluid_private.identity_session_json(public.identity_sessions)", "fluid_private.identity_preferences_json(public.identity_preferences)",
   "fluid_private.identity_system_json(public.identity_system_versions)", "fluid_private.identity_selection_json(public.identity_selections)",
@@ -49,7 +52,7 @@ export async function createIdentityTrustedDatabase(): Promise<PGlite> {
   try {
     baselines.set(db, await schemaDatabaseACL(db));
     inheritedBaselines.set(db, await inheritedCatalog(db));
-    for (const name of ["identity-trusted-replacement.sql", "identity-trusted-replacement-roles.sql"]) await db.exec(await readFile(new URL(name, import.meta.url), "utf8"));
+    await db.exec(await readFile(new URL("identity-trusted-replacement-roles.sql", import.meta.url), "utf8"));
     await bindIdentityFixturePrincipals(db);
     await inspectIdentityReplacementCatalog(db);
     return db;
@@ -88,12 +91,13 @@ export async function inspectIdentityReplacementCatalog(db: PGlite) {
     schemas.push({ role: role.rolname, ...privileges });
   }
   const functions = (await db.query<{ oid: number; signature: string; name: string; owner: string; definer: boolean; config: string[]; definition: string; acl: string | null }>(
-    "select p.oid,p.oid::regprocedure::text signature,p.proname name,pg_get_userbyid(p.proowner) owner,p.prosecdef definer,p.proconfig config,pg_get_functiondef(p.oid) definition,p.proacl::text acl from pg_catalog.pg_proc p where p.oid=any(select to_regprocedure(x)::oid from unnest($1::text[]) x) order by p.oid::regprocedure::text", [[...entrypoints, ...dependencies, ...inherited]])).rows;
-  requireCatalog(functions.length === 13, "two entrypoints, nine invoker dependencies, two inherited worker identity functions");
+    "select p.oid,p.oid::regprocedure::text signature,p.proname name,pg_get_userbyid(p.proowner) owner,p.prosecdef definer,p.proconfig config,pg_get_functiondef(p.oid) definition,p.proacl::text acl from pg_catalog.pg_proc p where p.oid=any(select to_regprocedure(x)::oid from unnest($1::text[]) x) order by p.oid::regprocedure::text", [[...entrypoints, ...dependencies, ...inherited, ...Object.keys(packetDependencies)]])).rows;
+  requireCatalog(functions.length === 18, "two entrypoints, nine invoker dependencies, two inherited worker identity functions, five shared Identity dependencies");
   for (const fn of functions) {
     const entry = ["prepare_identity_transaction", "commit_identity_transaction"].includes(fn.name);
     const inheritedHash = inheritedHashes[fn.name];
-    requireCatalog(fn.definer === (entry || !!inheritedHash) && fn.owner === (entry ? helper : "postgres") && fn.config?.includes('search_path=""'), `function owner/search path ${fn.signature}`);
+    const packetDefiner = Object.entries(packetDependencies).find(([signature]) => signature.startsWith(`fluid_private.${fn.name}(`))?.[1];
+    requireCatalog(fn.definer === (entry || !!inheritedHash || packetDefiner === true) && fn.owner === (entry ? helper : "postgres") && fn.config?.includes('search_path=""'), `function owner/search path ${fn.signature}`);
     if (inheritedHash) requireCatalog(fn.owner === "postgres" && digest(fn.definition) === inheritedHash && /^\{postgres=X\/postgres(,[^=,]+=X\/postgres)*\}$/.test(fn.acl ?? ""), `unchanged inherited definition/ACL ${fn.signature}`);
   }
   const functionACLs = (await db.query<{ signature: string; grantee: number; grantee_name: string; privilege_type: string; is_grantable: boolean }>(
@@ -111,7 +115,7 @@ export async function inspectIdentityReplacementCatalog(db: PGlite) {
       "select has_table_privilege($1,'fluid_private.identity_web_principals','SELECT') select,has_any_column_privilege($1,'fluid_private.identity_web_principals','INSERT') insert,has_any_column_privilege($1,'fluid_private.identity_web_principals','UPDATE') update,has_table_privilege($1,'fluid_private.identity_web_principals','DELETE') delete,has_table_privilege($1,'fluid_private.identity_web_principals','TRUNCATE') truncate", [role.rolname])).rows[0]!;
     requireCatalog(right.select === (role.rolname === helper) && !right.insert && !right.update && !right.delete && !right.truncate, `private binding rights ${role.rolname}`);
     bindingRights.push({ role: role.rolname, ...right });
-    const unexpected = (await db.query("select n.nspname,c.relname from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid=c.relnamespace where n.nspname in ('public','fluid_private') and c.relkind in ('r','p','v','m') and not(n.nspname='public' and c.relname=any($2::text[])) and c.oid<>'fluid_private.identity_web_principals'::regclass and (has_any_column_privilege($1,c.oid,'SELECT,INSERT,UPDATE,REFERENCES') or has_table_privilege($1,c.oid,'DELETE,TRUNCATE,TRIGGER')) order by n.nspname,c.relname", [role.rolname, reads])).rows;
+    const unexpected = (await db.query("select n.nspname,c.relname from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid=c.relnamespace where n.nspname in ('public','fluid_private') and c.relkind in ('r','p','v','m') and not(n.nspname='public' and c.relname=any($2::text[])) and c.oid<>all(select x::regclass from unnest($3::text[]) x) and (has_any_column_privilege($1,c.oid,'SELECT,INSERT,UPDATE,REFERENCES') or has_table_privilege($1,c.oid,'DELETE,TRUNCATE,TRIGGER')) order by n.nspname,c.relname", [role.rolname, reads, privateReads])).rows;
     requireCatalog(unexpected.length === 0, `no unlisted data relation rights ${role.rolname}`); unexpectedRelationRights.push({ role: role.rolname, relations: unexpected });
   }
   const inheritedAfter = await inheritedCatalog(db);

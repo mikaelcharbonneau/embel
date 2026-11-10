@@ -159,19 +159,3 @@ describe("owned asset library and immutable selections", () => {
     await expect(asRole(db,"authenticated",OWNER_A,()=>db.query("insert into public.asset_selection_receipts(selection_id,asset_id,project_id,owner_id,version_id,project_revision,accepted_stale_basis) values($1,$2,$3,$4,$5,1,false)",[selected.asset.currentSelection!.id,asset,projectId,OWNER_A,first]))).rejects.toMatchObject({code:"42501"});
   });
 });
-
-it("upgrades genuine legacy selection/use rows without rewriting their immutable history", async () => {
-  let projectId="",assetId="",latest="";let beforeVersions:unknown;let beforeSelections:unknown;
-  const db=await createAssetLibraryTestDatabase(async old=>{
-    await resetFixture(old);projectId=(await seedProject(old)).id;assetId=await seedLibraryAsset(old,projectId,{used:true});
-    const first=await seedLibraryVersion(old,projectId,assetId,{version:1});latest=await seedLibraryVersion(old,projectId,assetId,{version:2});
-    await old.query("insert into public.asset_selections(id,owner_id,project_id,asset_id,version_id,reason,created_at) values('11111111-1111-4111-8111-111111111111',$5,$1,$2,$3,'selected','2026-10-01T10:00:00Z'),('22222222-2222-4222-8222-222222222222',$5,$1,$2,$4,'restored','2026-10-01T10:00:00Z')",[projectId,assetId,first,latest,OWNER_A]);
-    beforeVersions=(await old.query("select to_jsonb(v) row from public.asset_versions v order by id")).rows;beforeSelections=(await old.query("select to_jsonb(s) row from public.asset_selections s order by id")).rows;
-  });
-  try {
-    expect((await db.query("select to_jsonb(v) row from public.asset_versions v order by id")).rows).toEqual(beforeVersions);expect((await db.query("select to_jsonb(s) row from public.asset_selections s order by id")).rows).toEqual(beforeSelections);
-    const page=await asRole(db,"authenticated",OWNER_A,async()=>assetLibraryPageSchema.parse((await db.query<{result:unknown}>("select public.list_account_assets('{}') result")).rows[0]!.result));
-    expect(page.items).toHaveLength(1);expect(page.items[0]!.asset).toMatchObject({id:assetId,purpose:"legacy_unknown",retentionRevision:0,selectionRevision:1,usage:{active:false,legacy:true},currentSelection:{versionId:latest,receipt:{status:"legacy_unverified"}}});
-    expect((await db.query("select initialization from public.asset_heads where asset_id=$1",[assetId])).rows).toEqual([{initialization:"legacy_selection"}]);
-  } finally { await db.close(); }
-},30_000);

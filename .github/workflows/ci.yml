@@ -59,10 +59,6 @@ jobs:
           node-version: "22.22.2"
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - name: Fetch pinned native PostgreSQL fixture
-        run: >-
-          docker --host=unix:///var/run/docker.sock pull
-          ghcr.io/supabase/cli/postgres:17.11.0.006-r0@sha256:ee0f2d9747fb9d3c0a29703684ec718f070384ad05bf0d92823ed02cabde8e5a
       - name: Run this shard of the ordinary Vitest suite
         run: >-
           npm test -- --shard=${{ matrix.shard }}/4 --maxWorkers=2

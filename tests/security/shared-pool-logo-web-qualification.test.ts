@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { createSharedLogoFixture, type SharedLogoFixture } from "../database/shared-account-logo-fixture";
-import { applyPacket, OWNER_A } from "../database/local-supabase";
+import { OWNER_A } from "../database/local-supabase";
 import { sharedLogoAdvancedHelperSignatures, sharedLogoHttpHelperHashes } from "../../src/server/shared-account/logo-qualification";
 
 const gateway = "public.execute_shared_logo_request(text,text,jsonb,jsonb)";
@@ -34,10 +34,5 @@ async function qualifiesBaselineOnly(f: SharedLogoFixture) {
 describe("Logo web qualification composes actual installed SQL", () => {
  it("qualifies baseline-only uploads with the exact current gateway and no advanced delegates", async () => {
   await qualifiesBaselineOnly(await createSharedLogoFixture());
- }, 90_000);
- // Production installed the advanced packet before the retirement migration dropped its
- // helpers; the web lane must still qualify on what is left.
- it("qualifies baseline-only uploads after the advanced helpers were installed and retired", async () => {
-  await qualifiesBaselineOnly(await createSharedLogoFixture({ beforeRetirement: db => applyPacket(db, "candidates/shared_logo_advanced.sql") }));
  }, 90_000);
 });

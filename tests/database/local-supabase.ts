@@ -1,85 +1,86 @@
 import { PGlite } from "@electric-sql/pglite";
 import { readdir, readFile } from "node:fs/promises";
-import { createHash } from "node:crypto";
-import { fixtureMigrationNames } from "./fixture-migrations";
 
-type BeforeMigration = (db: PGlite, sql: string) => Promise<void>;
-const sqlHash = (sql: string) => createHash("sha256").update(sql).digest("hex");
+/** LOCAL TEST HARNESS ONLY: the minimal Auth and Storage interfaces the baseline needs
+ * (the columns its auth.users trigger watches, auth.sessions and the Storage tables its
+ * policies fence); no live Supabase services. Shared with the native fixture. */
+export const fixtureSchemaSql = `
+    create schema auth;
+    create table auth.users(id uuid primary key, email text, email_confirmed_at timestamptz, is_anonymous boolean not null default false, banned_until timestamptz, deleted_at timestamptz);
+    create table auth.sessions(id uuid primary key, user_id uuid references auth.users(id) on delete cascade, not_after timestamptz);
+    create function auth.uid() returns uuid language sql stable as
+      $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+    create function auth.jwt() returns jsonb language sql stable as
+      $$ select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;
+    grant usage on schema auth, public to anon, authenticated, service_role;
+    grant execute on function auth.uid(), auth.jwt() to anon, authenticated, service_role;
+    create schema storage;
+    create table storage.buckets(id text primary key, name text not null, public boolean not null default false, file_size_limit bigint);
+    create table storage.objects(id uuid primary key default gen_random_uuid(), bucket_id text references storage.buckets(id), name text not null, owner_id text, created_at timestamptz default now(), unique(bucket_id,name));
+    alter table storage.objects enable row level security;
+    grant usage on schema storage to authenticated, service_role;
+    grant select, insert, update, delete on storage.objects to authenticated, service_role;
+`;
 
-/** The migration that retires the old worker objects. Production ran the shared packets
- * (supabase/candidates) before it, so a fixture that installs a packet does so at this
- * point of the history (see `beforeRetirement`). */
-export const RETIRE_OLD_WORKER_MIGRATION = "20261110180000_retire_old_worker_objects.sql";
+/** The baseline is a pg_dump: its session settings (row_security off, an empty search_path)
+ * must not outlive the migration, as they do not in a migration runner's own session. */
+export const afterMigrationsSql = "reset check_function_bodies; reset client_min_messages; reset row_security; reset search_path";
 
-/** Applies a reviewed packet by its path under supabase/ (e.g. "candidates/x.sql"). */
-export async function applyPacket(db: PGlite, relativePath: string) {
-  await db.exec(await readFile(new URL("../../supabase/" + relativePath, import.meta.url), "utf8"));
+/** Every migration in supabase/migrations, in name order (today the single baseline). */
+export async function migrationFiles() {
+  const directory = new URL("../../supabase/migrations/", import.meta.url);
+  const names = (await readdir(directory)).filter(name => name.endsWith(".sql")).sort();
+  return names.map(name => ({ name, url: new URL(name, directory) }));
 }
 
-/** LOCAL TEST HARNESS ONLY: minimal Auth/Storage interfaces; no live Supabase services.
- * `beforeRetirement` runs after the migrations before RETIRE_OLD_WORKER_MIGRATION and
- * before that migration and the ones after it, like production's history. */
-export async function createTestDatabase(options: { before?: string; additionalMigrations?: readonly string[]; beforeMigration?: BeforeMigration; beforeRetirement?: (db: PGlite) => Promise<void> } = {}) {
+/** LOCAL TEST HARNESS ONLY: a disposable PGlite database with the fixture Auth/Storage
+ * interfaces and every migration applied. */
+export async function createTestDatabase() {
   const db = new PGlite();
   await db.exec(`
     create role anon nologin;
     create role authenticated nologin;
     create role service_role nologin bypassrls;
-    -- Disposable fixture only: candidate helper definitions require a separate
-    -- nonlogin owner before migration. No production role or credential setup.
-    create role fluid_identity_writer_definer_v1 nologin noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
+    -- Disposable unrelated logins for privilege checks. No production role or credential setup.
     create role fixture_subscription_worker_a login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
     create role fixture_subscription_worker_b login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
-    create schema auth;
-    create table auth.users(id uuid primary key);
-    create function auth.uid() returns uuid language sql stable as
-      $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
-    grant usage on schema auth, public to anon, authenticated, service_role;
-    grant execute on function auth.uid() to anon, authenticated, service_role;
-    create schema storage;
-    create table storage.buckets(id text primary key, name text not null, public boolean not null default false, file_size_limit bigint);
-    create table storage.objects(id uuid primary key default gen_random_uuid(), bucket_id text references storage.buckets(id), name text not null, owner_id text, unique(bucket_id,name));
-    alter table storage.objects enable row level security;
-    grant usage on schema storage to authenticated, service_role;
-    grant select, insert, update, delete on storage.objects to authenticated, service_role;
+    ${fixtureSchemaSql}
   `);
   await installStorageOperationFixture(db);
-  const migrationsDirectory = new URL("../../supabase/migrations/", import.meta.url);
-  const migrations = fixtureMigrationNames(await readdir(migrationsDirectory), options.before);
-  const applied = new Set<string>();
-  for (const name of migrations) {
-    if (name === RETIRE_OLD_WORKER_MIGRATION) await options.beforeRetirement?.(db);
-    const sql = await readFile(new URL(name, migrationsDirectory), "utf8");
-    await options.beforeMigration?.(db, sql);
-    await db.exec(sql);
-    applied.add(sqlHash(sql));
-  }
-  for (const sql of options.additionalMigrations ?? []) {
-    // A fixture migration is genuinely executed, never assumed from a filename.
-    if (!applied.has(sqlHash(sql))) {
-      await options.beforeMigration?.(db, sql);
-      await db.exec(sql);
-    }
-    applied.add(sqlHash(sql));
-  }
+  for (const { url } of await migrationFiles()) await db.exec(await readFile(url, "utf8"));
+  await db.exec(afterMigrationsSql);
+  // The local Supabase target; shared fixtures may replace it with a hosted origin.
+  await db.query("insert into fluid_private.shared_http_target(mode, origin) values ('development', $1)", [fixtureAuthOrigin]);
   return db;
 }
 
 export const OWNER_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 export const OWNER_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 export const HASH = "a".repeat(64);
+export const fixtureAuthOrigin = "http://127.0.0.1:54321";
+/** The fixture session of an owner (one per owner, created by resetFixture for OWNER_A/B). */
+export const sessionIdFor = (owner: string) => `${owner.slice(0, 24)}5e5510000000`;
 export type TestDatabase = Awaited<ReturnType<typeof createTestDatabase>>;
 
+/** Runs as a PostgREST request would: the database role plus the verified session's JWT
+ * claims, which the Storage and shared account policies check for signed-in owners. */
 export async function asRole<T>(db: TestDatabase, role: "authenticated" | "anon" | "service_role", owner: string | null, run: () => Promise<T>): Promise<T> {
-  await db.query("select set_config('request.jwt.claim.sub', $1, false)", [owner ?? ""]);
+  const claims = owner && role === "authenticated" ? { sub: owner, role, aud: role, iss: `${fixtureAuthOrigin}/auth/v1`, is_anonymous: false, session_id: sessionIdFor(owner), exp: Math.floor(Date.now() / 1000) + 3600 } : null;
+  await db.query("select set_config('request.jwt.claim.sub', $1, false), set_config('request.jwt.claims', $2, false)", [owner ?? "", claims ? JSON.stringify(claims) : ""]);
   await db.exec(`set role ${role}`);
   try { return await run(); }
-  finally { await db.exec("reset role"); await db.query("select set_config('request.jwt.claim.sub', '', false)"); }
+  finally { await db.exec("reset role"); await db.query("select set_config('request.jwt.claim.sub', '', false), set_config('request.jwt.claims', '', false)"); }
 }
 
+/** Empties the fixture's data. The cascade reaches the operator audit tables that reference
+ * jobs, whose immutability triggers would refuse; the disposable fixture bypasses user
+ * triggers for this one statement (foreign-key cascades do not depend on them). */
 export async function resetFixture(db: TestDatabase) {
-  await db.exec("truncate public.projects, public.project_revisions, public.assets, public.asset_versions, public.asset_selections, public.jobs, public.job_steps, public.usage_reservations, public.usage_accounts, storage.objects, auth.users cascade");
-  await db.query("insert into auth.users(id) values ($1),($2)", [OWNER_A, OWNER_B]);
+  await db.exec(`begin; set local session_replication_role = replica;
+    truncate public.projects, public.project_revisions, public.assets, public.asset_versions, public.asset_selections, public.jobs, public.job_steps, public.usage_reservations, public.usage_accounts, storage.objects, auth.users cascade;
+    commit`);
+  await db.query("insert into auth.users(id, email_confirmed_at) values ($1, clock_timestamp()),($2, clock_timestamp())", [OWNER_A, OWNER_B]);
+  await db.query("insert into auth.sessions(id, user_id) values ($1,$2),($3,$4)", [sessionIdFor(OWNER_A), OWNER_A, sessionIdFor(OWNER_B), OWNER_B]);
   await db.query("insert into public.usage_accounts(owner_id, limit_microusd) values ($1,1000),($2,1000)", [OWNER_A, OWNER_B]);
 }
 

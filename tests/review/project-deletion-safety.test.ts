@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { asRole, createTestDatabase, HASH, OWNER_A, OWNER_B, resetFixture, seedProject, type TestDatabase } from "../database/local-supabase";
 
-const migrationName = "20261015232500_project_soft_deletion.sql";
 const signatures = [
+  "public.request_project_deletion(uuid,integer,integer)",
+  "public.restore_project_deletion(uuid,integer,integer)",
   "fluid_private.require_active_project(uuid,uuid)",
   "fluid_private.guard_project_content_lifecycle()",
   "fluid_private.guard_project_job_admission()",
@@ -15,30 +15,18 @@ const signatures = [
 /** Independent synthetic PostgreSQL review. No hosted database/provider access. */
 describe("independent project deletion safety review", () => {
   let db: TestDatabase;
-  let oldFunctionIds: number[] = [];
-  beforeAll(async () => {
-    db = await createTestDatabase({ before: migrationName });
-    oldFunctionIds = (await db.query<{ oid: number }>("select oid::int from pg_proc")).rows.map(row => row.oid);
-    // Simulate pre-existing default EXECUTE privileges on a restricted worker.
-    await db.exec(`alter default privileges in schema public grant execute on functions to fixture_subscription_worker_a;
-      alter default privileges in schema fluid_private grant execute on functions to fixture_subscription_worker_a;`);
-    await db.exec(await readFile(new URL(`../../supabase/migrations/${migrationName}`, import.meta.url), "utf8"));
-  }, 60_000);
+  beforeAll(async () => { db = await createTestDatabase(); }, 60_000);
   afterAll(async () => { await db?.close(); });
   beforeEach(async () => { await resetFixture(db); });
   async function transition(projectId: string, version: number, deleted: boolean, owner = OWNER_A) {
-    return asRole(db, "authenticated", owner, async () => (await db.query<{ id: string; deleted_at: Date | null; lifecycle_version: number }>(
-      "select * from public.set_project_deleted($1,1,$2,$3)", [projectId, version, deleted],
-    )).rows[0]!);
+    return asRole(db, "authenticated", owner, async () => (await db.query<{ result: { id: string; deleted_at: string | null; lifecycle_version: number; deletion_state: string } }>(
+      `select public.${deleted ? "request" : "restore"}_project_deletion($1,1,$2) result`, [projectId, version],
+    )).rows[0]!.result);
   }
 
-  it.each(signatures)("scrubs inherited worker EXECUTE on %s", async signature => {
+  it.each(signatures)("gives an unrelated login no EXECUTE on %s", async signature => {
     expect((await db.query<{ allowed: boolean }>("select has_function_privilege('fixture_subscription_worker_a',$1,'EXECUTE') as allowed", [signature])).rows).toEqual([{ allowed: false }]);
-  });
-
-  it("leaves no newly-created lifecycle function executable by an inherited worker", async () => {
-    const leaked = await db.query<{ signature: string }>("select oid::regprocedure::text as signature from pg_proc where oid<>all($1::oid[]) and has_function_privilege('fixture_subscription_worker_a',oid,'EXECUTE')", [oldFunctionIds]);
-    expect(leaked.rows).toEqual([]);
+    expect((await db.query<{ allowed: boolean }>("select has_function_privilege('authenticated',$1,'EXECUTE') as allowed", [signature])).rows).toEqual([{ allowed: /_project_deletion\(/.test(signature) }]);
   });
 
   it("rejects stale delete/restore requests across repeated lifecycle cycles", async () => {

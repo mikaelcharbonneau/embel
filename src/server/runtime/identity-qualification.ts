@@ -10,9 +10,9 @@ const helperOwner = "fluid_identity_writer_definer_v1";
 // Reviewed local SQL contract. Runtime never reads or installs test SQL, creates
 // a role, or provisions a binding. An operator must qualify these helpers first.
 const helpers = {
-  identity_web_owner: { hash: "49895b45e6a1cafd7aee6966881f462ab74fba3d024c2385563f0a13efb93721", definer: false, owner: "postgres", volatility: "s" },
-  prepare_identity_transaction: { hash: "f6db4c816fa1418cb76b40f7d9f9b43effacfec3bbdcaa462325c52c1eabf166", definer: true, owner: helperOwner, volatility: "v" },
-  commit_identity_transaction: { hash: "63febf976e3504873425fc3d388c319e320291d83a6bc048a4fb56a36a671f6a", definer: true, owner: helperOwner, volatility: "v" },
+  identity_web_owner: { hash: "b14fbff21d2585886f46f34a4e5d3911edf433561928d85c788da490f63f6131", definer: false, owner: "postgres", volatility: "s" },
+  prepare_identity_transaction: { hash: "7eeebe5a9d06a4cf03eb172017b5287f1cfc728e8280aa9468ef1cb01ffa705d", definer: true, owner: helperOwner, volatility: "v" },
+  commit_identity_transaction: { hash: "a71ce5e81b90668260cabf1162abf30c9dc299234ce3e459efc25b511eb5d0a3", definer: true, owner: helperOwner, volatility: "v" },
 } as const;
 
 const loginSchema = z.strictObject({ role_name: z.string(), role_oid: z.coerce.number().int().positive(), restricted: z.literal(true), incoming_safe: z.boolean() });

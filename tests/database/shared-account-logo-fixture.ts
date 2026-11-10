@@ -1,7 +1,5 @@
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
-import type { PGlite } from "@electric-sql/pglite";
-import { applyPacket } from "./local-supabase";
 import type { AuthenticatedContext } from "../../src/server/auth/context";
 import type { SharedAccountHttpDependencies } from "../../src/server/shared-account/runtime";
 import { createSharedAccountFixture, sharedHttpOrigin } from "./shared-account-fixture";
@@ -9,16 +7,13 @@ import { createSharedLogoHttpRuntime } from "../../src/server/shared-account/log
 import { logoHttpFixture } from "../fixtures/logo-http-runtime";
 import { startLogoFixture } from "./logo-project-fixture";
 export const sharedLogoRole = "embel_shared_http_logo_test";
-/** The Logo packet and login are installed before the retirement migration, like the
- * account fixture's packets; `beforeRetirement` adds more setup after them. */
-export async function createSharedLogoFixture(options: { beforeRetirement?: (db: PGlite) => Promise<void> } = {}) {
-  const f = await createSharedAccountFixture({ beforeRetirement: async db => {
-    await applyPacket(db, "candidates/shared_logo_http.sql");
-    await db.exec(`create role ${sharedLogoRole} login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
+/** The baseline holds the Logo gateway; this fixture adds a disposable Logo login and its
+ * registry row on top of the shared account fixture. */
+export async function createSharedLogoFixture() {
+  const f = await createSharedAccountFixture(), { db } = f;
+  await db.exec(`create role ${sharedLogoRole} login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
       grant usage on schema public to ${sharedLogoRole};grant execute on function public.shared_logo_http_principal(),public.execute_shared_logo_request(text,text,jsonb,jsonb) to ${sharedLogoRole};
       insert into fluid_private.shared_logo_http_principals(lane,role_name,role_oid,enabled) select 'logo',rolname,oid,true from pg_roles where rolname='${sharedLogoRole}';`);
-    await options.beforeRetirement?.(db);
-  } }), { db } = f;
   const roleOid = Number((await db.query<{ oid: number }>("select oid::int oid from pg_roles where rolname=$1", [sharedLogoRole])).rows[0]!.oid);
   async function issue(owner: string, action: string, project: string, intent: unknown) {
     return f.asAuth(owner, async () => (await db.query<{ value: { version: 1; token: string; ownerId: string; expiresAt: string } }>("select public.issue_shared_logo_request($1,$2::jsonb) value", [action, JSON.stringify([project, intent])])).rows[0]!.value);

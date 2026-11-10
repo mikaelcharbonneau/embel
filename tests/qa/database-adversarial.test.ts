@@ -86,6 +86,21 @@ const reviewedAccountWorkflowFunctions = [
   "public.restore_project_deletion(uuid, integer, integer)",
   "public.get_project_deletion(uuid)",
   "public.get_project_deletion_states(uuid[])",
+  // The baseline's shared account, Identity and Logo web lanes: owners issue their own
+  // delegations and read their own uploads and batches; the HTTP logins execute them.
+  "public.issue_shared_account_request(text, text, jsonb)",
+  "public.issue_shared_logo_request(text, jsonb)",
+  "public.prepare_shared_identity_reference_upload(uuid, jsonb)",
+  "public.read_shared_identity_reference_upload(uuid, uuid)",
+  "public.register_shared_identity_reference(uuid, uuid, jsonb)",
+  "public.get_shared_identity_batch(uuid, uuid, text)",
+  "public.get_identity_logo_source(uuid, uuid)",
+  // Owned Naming generation reads and usage.
+  "public.get_naming_generation(uuid, timestamp with time zone, uuid, integer)",
+  "public.get_naming_usage(uuid[])",
+  // Storage policy predicates signed-in owners evaluate through the policies.
+  "fluid_private.shared_http_customer_storage_live()",
+  "fluid_private.shared_storage_legacy_registry_present()",
 ] as const;
 
 const authenticatedWrapperFunctions = [
@@ -337,9 +352,10 @@ describe("independent database boundary attacks", () => {
       "public.list_logo_workspace_records(uuid, text, jsonb)",
       "public.apply_logo_workspace_command(uuid, jsonb)",
     ]);
-    // service_role and a direct login keep only the two identity helpers.
+    // service_role keeps only the two identity helpers; the baseline grants them by name to
+    // production's roles, so a login created afterwards executes nothing.
     const workerFunctions = new Set([...publicFunctions]);
-    const unrelatedLoginFunctions = new Set([...publicFunctions]);
+    const unrelatedLoginFunctions = new Set<string>();
     expect(grants.rows.length).toBeGreaterThan(10);
     expect(new Set(grants.rows.filter(grant => grant.authenticated).map(grant => grant.signature))).toEqual(userFunctions);
     expect(new Set(grants.rows.filter(grant => grant.worker).map(grant => grant.signature))).toEqual(workerFunctions);
