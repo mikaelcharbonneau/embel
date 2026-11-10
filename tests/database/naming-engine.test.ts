@@ -146,7 +146,7 @@ describe("the engine Naming feed", () => {
     finally { await x.db.exec("update fluid_private.generation_kinds set enabled = true where kind = 'naming.generate'"); }
   });
 
-  it("shows a cancel request and the refunded cancelled run, with the names it saved", async () => {
+  it("shows a cancel request and the cancelled run, which keeps its credit for the names it saved", async () => {
     const p = await x.project();
     const run = await x.startEngine(p, OWNER_A, x.engineInput("more"));
     await x.engine.claim(run.id);
@@ -155,6 +155,20 @@ describe("the engine Naming feed", () => {
     expect((await x.feed(p)).run).toMatchObject({ kind: "more", state: "cancel_requested", savedCount: 1 });
     await x.engine.finish(run.id, "cancelled");
     expect((await x.feed(p)).run).toMatchObject({ state: "cancelled", savedCount: 1 });
-    expect((await x.db.query("select kind, delta from public.credit_entries where run_id = $1 order by id", [run.id])).rows).toEqual([{ kind: "charge", delta: -1 }, { kind: "refund", delta: 1 }]);
+    expect((await x.db.query("select kind, delta from public.credit_entries where run_id = $1 order by id", [run.id])).rows).toEqual([{ kind: "charge", delta: -1 }]);
+  });
+
+  it("refunds a cancelled run that delivered no names, and a failed run even with names", async () => {
+    const credits = async (runId: string) => (await x.db.query("select kind, delta from public.credit_entries where run_id = $1 order by id", [runId])).rows;
+    const empty = await x.startEngine(await x.project(), OWNER_A, x.engineInput("more"));
+    await x.engine.claim(empty.id);
+    await brainRpc(x.db, "cancel_generation", [empty.id]);
+    await x.engine.finish(empty.id, "cancelled");
+    expect(await credits(empty.id)).toEqual([{ kind: "charge", delta: -1 }, { kind: "refund", delta: 1 }]);
+    const failed = await x.startEngine(await x.project(), OWNER_A, x.engineInput("more"));
+    await x.engine.claim(failed.id);
+    await x.engine.save(failed.id, "round.1.1", output([name("Ledger")]));
+    await x.engine.finish(failed.id, "failed");
+    expect(await credits(failed.id)).toEqual([{ kind: "charge", delta: -1 }, { kind: "refund", delta: 1 }]);
   });
 });
