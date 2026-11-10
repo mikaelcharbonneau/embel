@@ -33,13 +33,13 @@ describe("logo image producer capability and frozen prompt", () => {
     expect(createImage).toHaveBeenCalledTimes(1); expect(createImage.mock.calls[0]![1]).toBe("original-diagnostic-id");
     expect(createImage.mock.calls[0]![0].model).toBe(IMAGE_MODEL);
   });
-  it("asks for the highest quality on a transparent background; the capped 2.5 policy keeps medium on white", async () => {
-    for (const [model, quality, background, wording, other] of [[IMAGE_MODEL, "max", "transparent", "fully transparent background", "plain white background"],
+  it("asks for low quality and low complexity on a transparent background; the capped 2.5 policy keeps medium on white", async () => {
+    for (const [model, quality, background, wording, other] of [[IMAGE_MODEL, "low", "transparent", "fully transparent background", "plain white background"],
       [CAPPED_LOGO_IMAGE_MODEL, "medium", "opaque", "plain white background", "fully transparent background"]] as const) {
       const createImage = vi.fn().mockResolvedValue(result), producer = createLogoImageProvider({ configuration: { ...config, model }, transport: { createImage } })!;
       expect((await producer.produce(syntheticResolvedLogoConcept(), [], "trace", new AbortController().signal)).status).toBe("completed");
       const request = createImage.mock.calls[0]![0];
-      expect(request).toMatchObject({ model, quality, background }); expect(request.prompt).toContain(wording); expect(request.prompt).not.toContain(other);
+      expect(request).toMatchObject({ model, quality, background }); expect(request.complexity).toBe(model === IMAGE_MODEL ? "low" : undefined); expect(request.prompt).toContain(wording); expect(request.prompt).not.toContain(other);
     }
     expect(buildLogoRefinementPrompt(syntheticResolvedLogoRefinement())).toContain("fully transparent background");
   });

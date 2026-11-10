@@ -9,14 +9,14 @@ import { LOGO_IMAGE_REQUESTS } from "../logo-creation/openai-logo-provider";
 import { EngineProviderError } from "./openai";
 
 // Logo images on the generation engine: the Images API request #212 configures
-// (gpt-image-2.6-sunburst, highest quality, transparent PNG, 1024 x 1024), one
+// (gpt-image-2.6-sunburst, low quality and low complexity, transparent PNG, 1024 x 1024), one
 // attempt per call. The Images API has no background mode and no lookup by id,
 // so an outcome that is unknown can't be recovered: the caller fails that one
 // image instead of sending it again. Calls never retry here.
 
 /** The engine's one image profile. Never changed per request. */
 export const ENGINE_LOGO_IMAGE = Object.freeze({ model: IMAGE_MODEL, ...LOGO_IMAGE_REQUESTS[IMAGE_MODEL] });
-/** A highest-quality image usually takes two to three minutes. */
+/** A low-quality image usually takes well under a minute; this bounds a stalled call. */
 const IMAGE_TIMEOUT_MS = 300_000;
 const RETRY_STATUSES = new Set([429, 500, 502, 503]);
 const UNCERTAIN_STATUSES = new Set([408, 409, 504]);

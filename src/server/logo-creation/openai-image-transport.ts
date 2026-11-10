@@ -10,9 +10,11 @@ import { logoImageUsageSchema, type LogoImageUsage } from "./openai-image-usage"
 export { IMAGE_INPUT_LIMITS } from "../../domain/logo-image-limits";
 export type { LogoImageUsage } from "./openai-image-usage";
 /** "max" is the highest quality level; a transparent background requires PNG output. */
-export type OpenAIImageQuality = "medium" | "max";
+export type OpenAIImageQuality = "low" | "medium" | "max";
+/** How much gpt-image-2.6 plans before drawing ("high" when omitted). It adds no separate fee. */
+export type OpenAIImageComplexity = "low" | "medium" | "high";
 export type OpenAIImageBackground = "opaque" | "transparent";
-export type OpenAIImageRequest = { model: LogoImageModel; prompt: string; size: "1024x1024"; quality: OpenAIImageQuality; background: OpenAIImageBackground; images: readonly VerifiedAssetBytes[] };
+export type OpenAIImageRequest = { model: LogoImageModel; prompt: string; size: "1024x1024"; quality: OpenAIImageQuality; complexity?: OpenAIImageComplexity; background: OpenAIImageBackground; images: readonly VerifiedAssetBytes[] };
 export type OpenAIImageResponse = { bytes: Uint8Array; mimeType: "image/png"; providerRequestId: string | null; responseHash: string; usage: LogoImageUsage | null };
 export interface OpenAIImageTransport { createImage(input: OpenAIImageRequest, clientRequestId: string, signal: AbortSignal): Promise<OpenAIImageResponse> }
 export class OpenAIImageTransportError extends Error {
@@ -52,7 +54,8 @@ async function readResponse(response: Response, signal: AbortSignal): Promise<Ui
  * happen before dispatch. No URL input, implicit upload, or image truncation. */
 export async function validateLogoImageInputs(input: OpenAIImageRequest, signal: AbortSignal): Promise<OpenAIImageRequest> {
   aborted(signal);
-  if (input.model !== IMAGE_MODEL && input.model !== CAPPED_LOGO_IMAGE_MODEL || input.size !== "1024x1024" || input.quality !== "medium" && input.quality !== "max"
+  if (input.model !== IMAGE_MODEL && input.model !== CAPPED_LOGO_IMAGE_MODEL || input.size !== "1024x1024" || !["low", "medium", "max"].includes(input.quality)
+    || input.complexity !== undefined && !["low", "medium", "high"].includes(input.complexity)
     || input.background !== "opaque" && input.background !== "transparent" || typeof input.prompt !== "string"
     || !input.prompt.trim() || input.prompt.length > IMAGE_INPUT_LIMITS.promptCharacters || !Array.isArray(input.images) || input.images.length > IMAGE_INPUT_LIMITS.images) throw new Error("Invalid image request");
   const images = input.images.map(image => ({ ...image, reference: { ...image.reference }, verification: { ...image.verification }, bytes: Uint8Array.from(image.bytes) }));
@@ -61,13 +64,13 @@ export async function validateLogoImageInputs(input: OpenAIImageRequest, signal:
     if (!verifiedAssetBytesSchema.safeParse(image).success || sha256(image.bytes) !== image.reference.contentHash) throw new Error("Invalid image reference");
     await inspectIdentityRaster(image.bytes, image.mimeType, signal); aborted(signal);
   }
-  return { model: input.model, prompt: input.prompt, size: "1024x1024", quality: input.quality, background: input.background, images };
+  return { model: input.model, prompt: input.prompt, size: "1024x1024", quality: input.quality, ...(input.complexity ? { complexity: input.complexity } : {}), background: input.background, images };
 }
 
 /** The exact Images API request for one logo image: JSON for a new drawing,
  * multipart with image[] when it edits supplied images. */
 export function logoImageRequestBody(input: OpenAIImageRequest): { endpoint: "generations" | "edits"; body: string | FormData; contentType: string | null } {
-  const fields = { model: input.model, prompt: input.prompt, n: 1, output_format: "png", size: input.size, quality: input.quality, background: input.background, moderation: "auto" };
+  const fields = { model: input.model, prompt: input.prompt, n: 1, output_format: "png", size: input.size, quality: input.quality, ...(input.complexity ? { complexity: input.complexity } : {}), background: input.background, moderation: "auto" };
   if (!input.images.length) return { endpoint: "generations", body: JSON.stringify(fields), contentType: "application/json" };
   const form = new FormData();
   for (const [key, value] of Object.entries(fields)) form.set(key, String(value));
@@ -98,7 +101,9 @@ export async function readLogoImageReply(response: Response, signal: AbortSignal
 }
 
 /** Official Images API contract checked 2026-10-07 (quality "max" and a
- * transparent background rechecked for gpt-image-2.6-sunburst on 2026-11-09):
+ * transparent background rechecked for gpt-image-2.6-sunburst on 2026-11-09;
+ * quality "low" and the complexity field checked on 2026-11-10, see
+ * https://developers.openai.com/api/docs/guides/image-generation):
  * https://developers.openai.com/api/reference/resources/images/methods/generate
  * https://developers.openai.com/api/reference/resources/images/methods/edit
  * Uses native fetch for exactly one attempt. Multipart image[] preserves local
