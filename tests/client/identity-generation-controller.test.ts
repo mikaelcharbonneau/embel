@@ -112,4 +112,16 @@ describe("Identity generation immutable request lifecycle", () => {
     f.client.stopBatch.mockRejectedValue(new AccountRequestError(503)); await f.controller.stop();
     expect(f.controller.getSnapshot()).toMatchObject({ batch: { status: "needs_reconciliation", terminal: false }, stopAcknowledgedBatchId: null }); expect(f.controller.getSnapshot().error).toBeTruthy();
   });
+  // The generation engine refuses a round for credits or today's limit before admitting anything.
+  it.each([
+    [402, "You've used this month's credits. Your saved directions are kept."],
+    [429, "You've reached today's limit for new directions. Your saved directions are kept. Try again tomorrow."],
+  ])("treats an engine refusal (%i) as final: it says why, keeps no request and names no price", async (status, message) => {
+    const f = setup(); await f.controller.refresh(); f.client.generate.mockRejectedValueOnce(new AccountRequestError(status));
+    await f.controller.start(generationIntent);
+    expect(f.controller.getSnapshot()).toMatchObject({ error: message, retained: null, batch: null });
+    expect(f.memory.hasUnsaved()).toBe(false); expect(message).not.toMatch(/\$|cost|price/i);
+    await f.controller.start({ ...generationIntent, idempotencyKey: "identity-generation-fixture-002" });
+    expect(f.client.generate).toHaveBeenCalledTimes(2);
+  });
 });

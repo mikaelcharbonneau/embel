@@ -14,8 +14,13 @@ import { EngineProviderError } from "./openai";
 // so an outcome that is unknown can't be recovered: the caller fails that one
 // image instead of sending it again. Calls never retry here.
 
-/** The engine's one image profile. Never changed per request. */
+/** The engine's Logo image profile. */
 export const ENGINE_LOGO_IMAGE = Object.freeze({ model: IMAGE_MODEL, ...LOGO_IMAGE_REQUESTS[IMAGE_MODEL] });
+/** A Creative direction board: the shared worker's board request (producer.board),
+ * unchanged: same model, medium quality, opaque background, 1024 x 1024. */
+export const ENGINE_BOARD_IMAGE = Object.freeze({ model: IMAGE_MODEL, quality: "medium", background: "opaque" } as const);
+/** The only profiles a request may name; Logo images by default. */
+export type EngineImageProfile = typeof ENGINE_LOGO_IMAGE | typeof ENGINE_BOARD_IMAGE;
 /** A highest-quality image usually takes two to three minutes. */
 const IMAGE_TIMEOUT_MS = 300_000;
 const RETRY_STATUSES = new Set([429, 500, 502, 503]);
@@ -41,8 +46,9 @@ export function imageCostMicrousd(usage: LogoImageUsage | null): number {
 }
 
 export interface EngineImages {
-  /** One drawing (no images) or edit (base preview first, then references). */
-  draw(input: { prompt: string; images: readonly VerifiedAssetBytes[] }, clientRequestId: string): Promise<EngineImageReply>;
+  /** One drawing (no images) or edit (base preview first, then references), with the
+   * Logo profile unless the request names the board profile. */
+  draw(input: { prompt: string; images: readonly VerifiedAssetBytes[]; profile?: EngineImageProfile }, clientRequestId: string): Promise<EngineImageReply>;
 }
 
 function connectFailure(error: unknown): boolean {
@@ -71,7 +77,10 @@ export function createEngineImages(options: { apiKey: string; fetch?: typeof fet
     let request;
     try {
       if (!/^[a-zA-Z0-9._:-]{1,200}$/u.test(clientRequestId)) throw new Error("Invalid request id");
-      request = await validateLogoImageInputs({ ...ENGINE_LOGO_IMAGE, prompt: raw.prompt, size: "1024x1024", images: raw.images }, signal);
+      const profile = raw.profile ?? ENGINE_LOGO_IMAGE;
+      if (profile !== ENGINE_LOGO_IMAGE && profile !== ENGINE_BOARD_IMAGE) throw new Error("Invalid image profile");
+      request = await validateLogoImageInputs({ model: profile.model, quality: profile.quality, background: profile.background,
+        prompt: raw.prompt, size: "1024x1024", images: raw.images }, signal);
     } catch { throw new EngineProviderError("rejected", null); }
     const { endpoint, body, contentType } = logoImageRequestBody(request);
     let response: Response;
