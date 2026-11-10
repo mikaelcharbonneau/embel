@@ -8,17 +8,16 @@ import { createClient } from "@supabase/supabase-js";
 import pg from "pg";
 import { journeyStack, root } from "./stack.mjs";
 
-// npm run dev:up applies every migration first and installs the reviewed shared packets and
-// the shared HTTP logins afterwards. Two migration blocks depend on what those add, so on a
-// freshly built local stack they do nothing; production ran them after the packets. Each is
-// replayed exactly as written (both are idempotent):
+// npm run dev:up installs the reviewed shared packets just before the migration that retires
+// the old worker objects (20261110180000), so a few earlier migrations ran before them. One
+// block of those depends on what the packets add, so on a freshly built local stack it did
+// nothing; production ran it after the packets. It is replayed exactly as written (idempotent):
 // - 20261110140000_naming_engine widens name_candidates_check1 only once the brainstorm origin
-//   exists; without it the packet's older check refuses every engine name;
-// - 20261110160000_harden_database_api grants the job_steps policy helpers to every existing
-//   login; the shared HTTP logins are created later, so choosing a Creative direction fails.
+//   exists; without it the packet's older check refuses every engine name.
+// 20261110160000_harden_database_api's grants of the job_steps policy helpers were replayed
+// too; 20261110180000 dropped those policies, so nothing needs the grants any more.
 const REPLAYS = [
   { migration: "20261110140000_naming_engine.sql", block: /do \$origin\$[\s\S]*?end \$origin\$;/u },
-  { migration: "20261110160000_harden_database_api.sql", block: /do \$\$\ndeclare r record;[\s\S]*?end \$\$;/u },
 ];
 
 export async function prepareJourneyDatabase() {
