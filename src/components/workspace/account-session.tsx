@@ -17,8 +17,6 @@ import { createLogoDraftMemory, LogoDraftMemoryProvider } from "@/components/ide
 
 import { createLogoInputSession } from "@/features/logo-inputs/client/session";
 import { createHomeInputSession } from "@/features/home-inputs/home-input-session";
-import type { EnrollmentStatus } from "@/domain/account-enrollment";
-import { createAccountEnrollmentClient } from "./account-enrollment-client";
 
 type Session = { status: "checking" | "signed_out" | "unavailable" | "error"; generation: number } | { status: "ready"; userId: string; generation: number };
 export type VerifiedAccount = Extract<Session, { status: "ready" }>;
@@ -26,7 +24,6 @@ type SignOutResult = { ok: true } | { ok: false; reason: "confirmation_required"
 type SignInResult = { ok: true; confirmationRequired?: true } | { ok: false; reason: "pending" } | { ok: false; reason: "failed"; error: unknown };
 type AccountSession = {
   session: Session;
-  enrollment?: EnrollmentStatus;
   refresh: () => void;
   expire: (account: VerifiedAccount) => void;
   isCurrent: (account: VerifiedAccount) => boolean;
@@ -106,12 +103,9 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
   const dismissConfirmation = useCallback(() => setAwaitingConfirmation(false), []);
   const [signInSlow, setSignInSlow] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
-  const [enrollmentAllowed, setEnrollmentAllowed] = useState<{ userId: string; generation: number } | null>(null);
-  const [enrollmentResult, setEnrollmentResult] = useState<{ account: VerifiedAccount; status: EnrollmentStatus } | null>(null);
   const publish = useCallback((next: Session) => {
     // Fence the previous account before notifying private-memory subscribers.
     current.current = next;
-    setEnrollmentAllowed(previous => next.status === "ready" && previous?.userId === next.userId && previous.generation === next.generation ? previous : null);
     // Hide retained edits before any subscribers run. Reverification of the same
     // owner restores the buffer; binding a confirmed different owner clears it.
     inspirationDrafts.bind(next.status === "ready" ? next : null);
@@ -141,7 +135,6 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
       if (controller.signal.aborted || current.current.generation !== generation) return;
       if ("authenticated" in state) { publish({ status: "signed_out", generation }); return; }
       publish({ status: "ready", userId: state.user.id, generation });
-      setEnrollmentAllowed(state.enrollmentEnabled ? { userId: state.user.id, generation } : null);
     }).catch((error: unknown) => {
       if (controller.signal.aborted || current.current.generation !== generation) return;
       publish({ status: failureStatus(error), generation });
@@ -160,12 +153,8 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
     void readSessionState(controller.signal).then(state => {
       if (controller.signal.aborted || request.current !== controller || current.current !== before) return;
       if ("authenticated" in state) { publish({ status: "signed_out", generation: before.generation + 1 }); return; }
-      const { user, enrollmentEnabled } = state;
+      const { user } = state;
       if (user.id !== before.userId) publish({ status: "ready", userId: user.id, generation: before.generation + 1 });
-      setEnrollmentAllowed(previous => {
-        const generation = user.id === before.userId ? before.generation : before.generation + 1;
-        return enrollmentEnabled ? previous?.userId === user.id && previous.generation === generation ? previous : { userId: user.id, generation } : null;
-      });
       // Same owner: preserve the object, generation, drafts, focus and scroll.
     }).catch((error: unknown) => {
       if (controller.signal.aborted || request.current !== controller || current.current !== before) return;
@@ -177,15 +166,6 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
     request.current?.abort();
     publish({ status: "signed_out", generation: current.current.generation + 1 });
   }, [isCurrent, publish]);
-
-  const enrollmentEnabled = session.status === "ready" && enrollmentAllowed?.userId === session.userId && enrollmentAllowed.generation === session.generation;
-  useEffect(() => {
-    if (session.status !== "ready" || !enrollmentEnabled) return;
-    const enrollment = createAccountEnrollmentClient({ account: session, isCurrent, expire,
-      publish: status => { if (isCurrent(session)) setEnrollmentResult(status ? { account: session, status } : null); } });
-    enrollment.start();
-    return () => enrollment.dispose();
-  }, [session, enrollmentEnabled, isCurrent, expire]);
 
   useEffect(() => { namingBrainDrafts.setUnauthorized(account => expire({ ...account, status: "ready" })); }, [namingBrainDrafts, expire]);
 
@@ -309,7 +289,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
     };
   }, [refresh, revalidate, drafts, profileDrafts, inspirationDrafts, screeningDrafts, namingBrainDrafts, identityDrafts, logoDrafts, homeInputSession, logoInputSession]);
 
-  return <SessionContext.Provider value={{ session, enrollment: enrollmentEnabled && enrollmentResult && session.status === "ready" && enrollmentResult.account.userId === session.userId && enrollmentResult.account.generation === session.generation ? enrollmentResult.status : undefined, refresh, expire, isCurrent, drafts, profileDrafts, inspirationDrafts, screeningDrafts, namingBrainDrafts, identityDrafts, logoDrafts, homeInputSession, logoInputSession, signIn, signingIn, signingUp, awaitingConfirmation, dismissConfirmation, signInSlow, signOut, signingOut, signOutError }}><LogoDraftMemoryProvider memory={logoDrafts}>{children}</LogoDraftMemoryProvider></SessionContext.Provider>;
+  return <SessionContext.Provider value={{ session, refresh, expire, isCurrent, drafts, profileDrafts, inspirationDrafts, screeningDrafts, namingBrainDrafts, identityDrafts, logoDrafts, homeInputSession, logoInputSession, signIn, signingIn, signingUp, awaitingConfirmation, dismissConfirmation, signInSlow, signOut, signingOut, signOutError }}><LogoDraftMemoryProvider memory={logoDrafts}>{children}</LogoDraftMemoryProvider></SessionContext.Provider>;
 }
 
 export function useAccountSession() {

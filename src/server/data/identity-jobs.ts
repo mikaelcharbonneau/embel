@@ -6,7 +6,6 @@ import { IMAGE_MODEL } from "@/domain/providers";
 import { brandTextReadiness } from "@/domain/brand-board-fonts";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
-import { isSharedWorkerRuntime } from "../shared-account/routing";
 import { findIdentityDirectionsRun, identityEngineEnabled, identityRunNeedsStart, parseIdentityDirectionsRun } from "../engine/identity";
 import { IDENTITY_DIRECTIONS_KIND } from "../engine/identity-input";
 import { startAdmittedRun } from "../engine/start";
@@ -48,32 +47,22 @@ async function engineRpc(auth:AuthenticatedContext,name:string,args:Record<strin
   const message=typeof result.error==="object"&&result.error!==null&&"message" in result.error&&typeof result.error.message==="string"?result.error.message:"";
   throw Object.hasOwn(engineRefusals,message)?new ApiError(engineRefusals[message]!):rpcFailure(result.error);
 }
+/** Creative directions run on the generation engine. Turning identity.directions off is a
+ * stop switch: the step shows as unavailable and nothing falls back. */
 export async function getIdentityAvailability(auth:AuthenticatedContext,projectId:string):Promise<IdentityAvailability>{
   projectId=uuid(projectId);await ownedProject(auth,projectId);
-  const engine=await identityEngineEnabled(auth);
-  if(!engine&&!isSharedWorkerRuntime())return identityAvailabilitySchema.parse({ownerId:auth.userId,projectId,status:"unavailable",operation:"identity.image",requestedModel:IMAGE_MODEL,reason:"pipeline_not_implemented"});
-  const value=stored(identityAvailabilitySchema,engine
-    ?await engineRpc(auth,"get_identity_directions_availability",{p_project_id:projectId})
-    :await rpc(auth,"get_shared_identity_availability",{p_project_id:projectId}));scope(auth,projectId,value);
+  if(!await identityEngineEnabled(auth))return identityAvailabilitySchema.parse({ownerId:auth.userId,projectId,status:"unavailable",operation:"identity.image",requestedModel:IMAGE_MODEL,reason:"runtime_unavailable"});
+  const value=stored(identityAvailabilitySchema,await engineRpc(auth,"get_identity_directions_availability",{p_project_id:projectId}));scope(auth,projectId,value);
   if(value.status==="available"&&value.version===3&&!brandTextReadiness(value.sourceLogo.brief.payload.name).supported)
     return {ownerId:auth.userId,projectId,status:"unavailable",operation:"identity.image",requestedModel:IMAGE_MODEL,reason:"unsupported_brand_text"};
   return value;
 }
 export async function enqueueIdentityBatch(auth:AuthenticatedContext,projectId:string,input:unknown):Promise<IdentityBatchState>{
   const parsed=identityGenerationIntentSchema.safeParse(input);if(!parsed.success)throw new ApiError("invalid_input");
-  projectId=uuid(projectId);
-  if(await identityEngineEnabled(auth))return startEngineIdentityBatch(auth,projectId,parsed.data);
-  if(isSharedWorkerRuntime()&&"version" in parsed.data&&(parsed.data.version===2||parsed.data.version===3)){
-    const existing=await readIdentityBatchRequest(auth,projectId,parsed.data.idempotencyKey);
-    if(existing){if(!isDeepStrictEqual(existing.intent,parsed.data))throw new ApiError("conflict");return existing;}
-  }
-  const availability=await getIdentityAvailability(auth,projectId);
-  if(availability.status!=="available"||availability.version!==3||!("version" in parsed.data)||parsed.data.version!==3)throw new ApiError("integration_unavailable");
-  if(parsed.data.acceptedPolicyIdentity!==availability.policyIdentity||parsed.data.expectedLogoRevision!==availability.expectedLogoRevision
-    ||!isDeepStrictEqual(parsed.data.sourceLogo,availability.sourceLogo.source))throw new ApiError("conflict");
-  try{const value=stored(identityBatchStateSchema,await rpc(auth,"ensure_shared_identity_batch",{p_project_id:projectId,p_intent:parsed.data}));scope(auth,projectId,value);
-    if(!isDeepStrictEqual(value.intent,parsed.data))throw new ApiError("integration_unavailable");return value;
-  }catch(e){if(e instanceof ApiError&&e.code!=="integration_unavailable")throw e;throw new IdentityAdmissionUncertainError(projectId,parsed.data);}
+  projectId=uuid(projectId);await ownedProject(auth,projectId);
+  // A saved request is still found through its request lookup after the kind is turned off.
+  if(!await identityEngineEnabled(auth))throw new ApiError("generation_unavailable");
+  return startEngineIdentityBatch(auth,projectId,parsed.data);
 }
 /**
  * Creative directions on the generation engine: one request admits (and charges) the
@@ -115,7 +104,8 @@ async function resumeEngineRound(auth:AuthenticatedContext,projectId:string,batc
 async function read(auth:AuthenticatedContext,projectId:string,batchId:string|null,requestKey:string|null):Promise<IdentityBatchState|null>{
   projectId=uuid(projectId);if(batchId!==null)batchId=uuid(batchId);
   if(requestKey!==null&&!z.string().min(16).max(128).regex(/^[A-Za-z0-9._:-]+$/).safeParse(requestKey).success)throw new ApiError("invalid_input");
-  await ownedProject(auth,projectId);if(!isSharedWorkerRuntime()&&!await identityEngineEnabled(auth))throw new ApiError("integration_unavailable");
+  await ownedProject(auth,projectId);
+  // Reads every round's batch records, whether the old worker or the engine made them.
   const value=stored(identityBatchStateSchema.nullable(),await rpc(auth,"get_shared_identity_batch",{p_project_id:projectId,p_batch_id:batchId,p_request_key:requestKey}));
   if(value){scope(auth,projectId,value);if(batchId&&value.batchId!==batchId||requestKey&&value.intent.idempotencyKey!==requestKey)throw new ApiError("integration_unavailable");await resumeEngineRound(auth,projectId,value);}return value;
 }
@@ -124,10 +114,10 @@ export const readIdentityBatchRequest=(auth:AuthenticatedContext,p:string,key:st
 export const getLatestIdentityBatch=(auth:AuthenticatedContext,p:string)=>read(auth,p,null,null);
 export async function cancelIdentityBatch(auth:AuthenticatedContext,projectId:string,batchId:string):Promise<IdentityBatchState>{
   projectId=uuid(projectId);batchId=uuid(batchId);await ownedProject(auth,projectId);
-  // An engine round is stopped through its run, whether or not the kind is still on.
-  const engine=await findIdentityDirectionsRun(auth,projectId,{batchId})!==null;
-  if(!engine&&!isSharedWorkerRuntime())throw new ApiError("integration_unavailable");
-  const value=stored(identityBatchStateSchema,await rpc(auth,engine?"cancel_identity_directions":"cancel_shared_identity_batch",{p_project_id:projectId,p_batch_id:batchId}));scope(auth,projectId,value);if(value.batchId!==batchId)throw new ApiError("integration_unavailable");return value;
+  // An engine round is stopped through its run, whether or not the kind is still on. A round
+  // the old worker made has already finished: nothing runs it any more.
+  if(await findIdentityDirectionsRun(auth,projectId,{batchId})===null)throw new ApiError("conflict");
+  const value=stored(identityBatchStateSchema,await rpc(auth,"cancel_identity_directions",{p_project_id:projectId,p_batch_id:batchId}));scope(auth,projectId,value);if(value.batchId!==batchId)throw new ApiError("integration_unavailable");return value;
 }
 
 /** A missing lookup is not rejection evidence. Only this serialized SQL mutation
@@ -136,12 +126,10 @@ export async function closeIdentityBatchRequest(auth:AuthenticatedContext,projec
   const parsed=identityGenerationIntentSchema.safeParse(input);
   if(!parsed.success||!("version" in parsed.data)||(parsed.data.version!==2&&parsed.data.version!==3))throw new ApiError("invalid_input");
   projectId=uuid(projectId);await ownedProject(auth,projectId);
-  // While the engine is on, or for a request it admitted, the engine's close also stops
-  // an engine round through its run; both leave the same tombstone for a request never admitted.
-  const engine=await identityEngineEnabled(auth)||await findIdentityDirectionsRun(auth,projectId,{idempotencyKey:parsed.data.idempotencyKey})!==null;
-  if(!engine&&!isSharedWorkerRuntime())throw new ApiError("integration_unavailable");
+  // The engine's close stops an engine round through its run, and leaves a tombstone for a
+  // request never admitted.
   try{
-    const result=stored(identityBatchRequestCloseSchema,await rpc(auth,engine?"close_identity_directions_intent":"close_shared_identity_generation_intent",{p_project_id:projectId,p_intent:parsed.data}));
+    const result=stored(identityBatchRequestCloseSchema,await rpc(auth,"close_identity_directions_intent",{p_project_id:projectId,p_intent:parsed.data}));
     if(result.status==="not_admitted"){
       scope(auth,projectId,result);
       if(!isDeepStrictEqual(result.intent,parsed.data))throw new ApiError("integration_unavailable");

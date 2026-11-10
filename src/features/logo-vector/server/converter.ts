@@ -2,12 +2,10 @@ import "server-only";
 import { createHash } from "node:crypto";
 import type { AssetVersionReference } from "../../../domain/asset-library";
 import { verifiedAssetBytesSchema, type VerifiedAssetBytes } from "../../../domain/logo-deliverables";
-import { logoTraceSettingsSchema, logoTypeSchema, type LogoTraceSettings, type LogoVectorDocument } from "../../../domain/logo-vector";
+import type { LogoTraceSettings, LogoVectorDocument } from "../../../domain/logo-vector";
 import type { LogoType } from "../../../domain/logo-workspace";
 import { LogoVectorError } from "../model/errors";
-import { validateLogoVectorDocument } from "../model/geometry";
-import { serializeLogoSvg } from "../model/svg";
-import { runIdentityRasterProcess, runLogoConceptGrayscaleProcess, runLogoVectorProcess } from "../../../server/image-process/process";
+import { runIdentityRasterProcess, runLogoConceptGrayscaleProcess } from "../../../server/image-process/process";
 import { IMAGE_INPUT_LIMITS } from "../../../domain/logo-image-limits";
 
 export const LOGO_RASTER_LIMITS = Object.freeze({ bytes: 33_554_432, pixels: 16_777_216, edge: 8192, timeoutMs: 60_000, teardownMs: 5_000 });
@@ -46,22 +44,6 @@ export function assertIdentityRasterFormat(bytes: Uint8Array, mimeType: string):
     throw new LogoVectorError("source_mismatch", "Raster MIME must match actual PNG, JPEG or WebP bytes.");
   }
 }
-export async function convertLogoRaster(input: LogoVectorWorkInput, signal: AbortSignal): Promise<LogoVectorConversionResult> {
-  assertLogoConversionNotAborted(signal);
-  verifyLogoRasterSource(input.source);
-  const type = logoTypeSchema.safeParse(input.logoType), settings = logoTraceSettingsSchema.safeParse(input.settings);
-  if (!type.success || !settings.success) throw new LogoVectorError("conversion_failed", "Logo type or trace settings are unsupported.");
-  // Snapshot before yielding. Buffer.slice() aliases caller memory, so always copy.
-  const frozen = { source: { ...input.source, reference: { ...input.source.reference }, verification: { ...input.source.verification }, bytes: Uint8Array.from(input.source.bytes) }, logoType: type.data, settings: settings.data };
-  const output = await runLogoVectorProcess(frozen, signal);
-  assertLogoConversionNotAborted(signal);
-  const document = validateLogoVectorDocument(output.document);
-  const svg = serializeLogoSvg(document);
-  assertLogoConversionNotAborted(signal);
-  return { source: frozen.source.reference, sourceContentHash: frozen.source.reference.contentHash, logoType: type.data, document, svg,
-    engine: { name: "@visioncortex/vtracer", version: "1.0.0-alpha.4", artifactHash: output.artifactHash, settings: settings.data }, raster: output.raster };
-}
-
 /** Shared pre-publication inspector; no asset/provenance is invented from decoded pixels. */
 export async function inspectIdentityRaster(bytes: Uint8Array, mimeType: string, signal = new AbortController().signal) {
   assertLogoConversionNotAborted(signal);

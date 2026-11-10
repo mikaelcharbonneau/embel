@@ -53,6 +53,7 @@ export function strategyAvailabilityMessage(availability: StrategyOverview["avai
     ? "AI replies are not enabled for this step. You can still edit and save your project."
     : "The response and competitor research operations are not both ready. Your prompt is kept.";
   const reasons: Record<NonNullable<StrategyOverview["availability"]["reason"]>, string> = {
+    generation_unavailable: context === "project" ? "AI replies are unavailable right now." : "AI is unavailable right now. Try again shortly.",
     worker_unavailable: context === "project" ? "AI replies are unavailable right now." : "The AI worker is not ready. Recheck after it is connected.",
     runtime_disabled: "AI is not enabled in this workspace.",
     budget_unavailable: "No AI requests are available for this account.",

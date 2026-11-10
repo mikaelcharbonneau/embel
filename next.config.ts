@@ -21,7 +21,6 @@ const logoRuntimeFiles = [
   "src/features/logo-vector/model/geometry.ts",
   "src/features/logo-vector/model/limits.ts",
   "src/features/logo-vector/model/svg.ts",
-  "src/server/image-process/engine.ts",
   "src/server/image-process/process.ts",
   "src/server/image-process/raster.ts",
   "node_modules/@esbuild/*/**/*",
@@ -34,7 +33,6 @@ const logoRuntimeFiles = [
   "node_modules/@resvg/resvg-js-*/**/*",
   "node_modules/@resvg/resvg-js/**/*",
   "node_modules/@swc/helpers/**/*",
-  "node_modules/@visioncortex/vtracer/**/*",
   "node_modules/base64-js/**/*",
   "node_modules/brotli/**/*",
   "node_modules/clone/**/*",
@@ -76,7 +74,7 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   // Confirmation callbacks carry a one-time sign-in code in the query string.
   logging: { incomingRequests: { ignore: [/^\/auth\/callback(?:[/?]|$)/] } },
-  serverExternalPackages: ["@resvg/resvg-js","@napi-rs/canvas","@visioncortex/vtracer","fontkit","harfbuzzjs","pdfjs-dist","pdfkit","sharp"],
+  serverExternalPackages: ["@resvg/resvg-js","@napi-rs/canvas","fontkit","harfbuzzjs","pdfjs-dist","pdfkit","sharp"],
   outputFileTracingIncludes: {
     "/*": ["scripts/certs/supabase-prod-ca-2021.crt"],
     "/api/home/**": logoRuntimeFiles,

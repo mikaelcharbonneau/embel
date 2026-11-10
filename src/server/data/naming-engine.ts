@@ -9,13 +9,13 @@ import { NAMING_KIND, namingEngineRequest } from "../engine/naming";
 import { cancelGeneration, type GenerationRunRow } from "../engine/runs";
 import { startGeneration, WorkflowStartError } from "../engine/start";
 import { ApiError } from "../http/errors";
-import { NAMING_FEED_PAGE_LIMIT, namingDatabaseError, projectKey, rpc, verifyFeed, type NamingStartResult } from "./naming-generation";
+import { NAMING_FEED_PAGE_LIMIT, projectKey, rpc, verifyFeed, type NamingStartResult } from "./naming-generation";
 
 /**
- * The Naming screens while naming.generate is enabled (docs/generation-engine.md, step 3).
- * Same routes and shapes as the old path: the feed lists the names of old runs and engine
- * runs together, starting runs goes through start_generation (credits and limits), and Stop
- * cancels the engine run, which returns its credit.
+ * The Naming screens on the generation engine (docs/generation-engine.md, step 3). The feed
+ * lists the names of old runs and engine runs together and says whether naming.generate is
+ * available; starting runs goes through start_generation (credits, limits and the kind's
+ * switch), and Stop cancels the engine run, which returns its credit.
  */
 export async function getNamingEngineFeed(auth: AuthenticatedContext, projectId: string, cursor?: NamingFeedCursor, limit = NAMING_FEED_PAGE_LIMIT): Promise<NamingGenerationFeed> {
   const project = projectKey(projectId);
@@ -58,8 +58,8 @@ export async function startNamingEngineRun(auth: AuthenticatedContext, projectId
   return { feed, run, reused: started.reused };
 }
 
-/** Stop keeps every saved name. It cancels this project's working engine run (its workflow
- * cancels the open OpenAI responses and returns the credit), or an old-path run still working. */
+/** Stop keeps every saved name. It cancels this project's working engine run: its workflow
+ * cancels the open OpenAI responses and returns the credit. */
 export async function stopNamingEngineRun(auth: AuthenticatedContext, projectId: string): Promise<{ feed: NamingGenerationFeed }> {
   const project = projectKey(projectId);
   const active = await auth.client.from("generation_runs").select("id")
@@ -68,14 +68,5 @@ export async function stopNamingEngineRun(auth: AuthenticatedContext, projectId:
   if (active.error) throw new ApiError("integration_unavailable");
   const runs = z.array(z.object({ id: z.uuid() })).parse(active.data ?? []);
   if (runs[0]) await cancelGeneration(auth, project, runs[0].id);
-  else {
-    const legacy = await auth.client.from("jobs").select("id")
-      .eq("owner_id", auth.userId).eq("project_id", project).eq("operation", NAMING_KIND).in("state", ["queued", "running"]).limit(1);
-    if (legacy.error) throw new ApiError("integration_unavailable");
-    if (legacy.data?.length) {
-      const { error } = await auth.client.rpc("stop_naming_run", { p_project: project });
-      if (error) throw namingDatabaseError(error);
-    }
-  }
   return { feed: await getNamingEngineFeed(auth, project) };
 }

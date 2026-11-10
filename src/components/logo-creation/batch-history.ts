@@ -1,4 +1,4 @@
-import type { LogoConceptBatch, LogoConceptBatchPage, LogoRequestState } from "../../domain/logo-jobs";
+import type { LogoConceptBatchPage } from "../../domain/logo-jobs";
 import type { AccountLogoClient } from "../identity/account-logo-client";
 import { AccountRequestError } from "../workspace/account-api";
 
@@ -38,35 +38,3 @@ export function createLogoBatchHistory(input: { client: AccountLogoClient; owner
   };
 }
 export type LogoBatchHistoryController = ReturnType<typeof createLogoBatchHistory>;
-
-/** Batch creation identity is not the identity of a later failed-only retry.
- * Inspect every retained attempt, including uncertain historical observations. */
-export function logoBatchRecoveryRequestKeys(batch: LogoConceptBatch | null): string[] {
-  return [...new Set((batch?.slots ?? []).flatMap(slot => slot.attempts
-    .filter(attempt => ["queued", "running", "needs_reconciliation"].includes(attempt.state) || attempt.billing.status === "unknown")
-    .map(attempt => attempt.requestKey)))];
-}
-export type LogoBatchRequestCheck = { requestKey: string; state: LogoRequestState | null; error: string | null };
-/** Checking a set of original attempt identities never admits or retries jobs.
- * Each failed/absent read remains separate and never erases a successful preview. */
-export async function checkLogoBatchRequests(input: { client: AccountLogoClient; requestKeys: readonly string[]; signal: AbortSignal; isCurrent(): boolean }): Promise<LogoBatchRequestCheck[]> {
-  const results: LogoBatchRequestCheck[] = [], current = () => !input.signal.aborted && input.isCurrent();
-  for (const requestKey of new Set(input.requestKeys)) {
-    if (!current()) return [];
-    let state: LogoRequestState | null = null;
-    try {
-      state = await input.client.readLogoRequest(requestKey, input.signal);
-      if (!current()) return [];
-      if (state?.status === "needs_reconciliation") {
-        const reconciled = await input.client.reconcileLogoRequest(requestKey, input.signal);
-        if (!current()) return [];
-        if (reconciled && reconciled.status !== "not_found") state = reconciled;
-      }
-      results.push({ requestKey, state, error: !state || state.status === "not_found" ? "This request is still unconfirmed. No new generation was started." : null });
-    } catch {
-      if (!current()) return [];
-      results.push({ requestKey, state, error: "This request could not be checked. Its original identity and saved previews are kept." });
-    }
-  }
-  return results;
-}

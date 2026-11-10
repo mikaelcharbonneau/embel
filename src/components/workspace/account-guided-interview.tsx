@@ -15,7 +15,7 @@ import { EmbelIdentity, guidedStageLabel } from "./embel-identity";
 import { JOURNEY_SECTION_EVENT, journeySectionId, journeySectionOfHash, useConversationSteps } from "@/components/journey/project-header";
 import { journeyPartLabel, type JourneyStepId } from "@/domain/journey";
 import { accountDraftChanged, type AccountWorkspace, type GuidedInterviewInput } from "./account-draft-memory";
-import { strategyAvailabilityMessage, strategyCanRetryDelivery, strategyJobActive } from "./account-strategy-client";
+import { strategyAvailabilityMessage, strategyJobActive } from "./account-strategy-client";
 import type { VerifiedAccount } from "./account-session";
 import { ConversationComposer } from "./conversation-composer";
 import { FloatingComposer } from "./floating-composer";
@@ -349,9 +349,6 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
   const failed = bound && !strategyJobActive(bound.job) && !reply && bound.job.state !== "succeeded";
   const unverified = bound?.job.state === "succeeded" && !reply;
   const stale = currentTurn && !reply && !workspace.pendingGuidedContext && currentTurn.inputRevision !== saved.current_revision;
-  const deliveryPending = bound && strategyCanRetryDelivery(bound.job, saved.current_revision);
-  const workerDelayed = bound?.job.billingMode !== "chatgpt_subscription" && bound?.job.state === "queued"
-    && bound.job.input_revision === saved.current_revision && bound.job.workerDelivery === "worker_delayed";
   const unavailable = !turnStarting && !(active && availability?.reason === "request_active")
     && (currentTurn && !bound && strategy.overview && !allowance || !state && saved.scope === "complete_brand" && strategy.overview && !guidedAllowance(availability, "strategy.competitors"));
   const legacyJobs = [...jobs].filter(job => job.state === "succeeded" && !job.results.some(result => result.output.guidance)).sort((a, b) => a.created_at.localeCompare(b.created_at));
@@ -531,17 +528,6 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
     : strategy.pending ? currentTurn?.purpose === "research" ? "Starting research…" : "Starting response…" : "Checking research status…";
   const hasComposer = saved.scope === "complete_brand" || Boolean(state);
   const notices = <div className="conversation-compose-notices" role="region" aria-label="Conversation notices" tabIndex={0}>
-    {workerDelayed && <div className="guided-delivery-notice" role="status">
-      <p>Your request is still queued. The worker will pick it up when available.</p>
-      <button type="button" className="text-link" disabled={busy || working || strategy.pending} onClick={strategy.refresh}>Check status</button>
-    </div>}
-    {deliveryPending && <div className="guided-delivery-notice" role="status">
-      <p>Your request is saved, but delivery to the worker is not confirmed. Retry delivery sends the same request, not a new research request.</p>
-      <div className="guided-delivery-actions" role="group" aria-label="Delivery recovery">
-        <button type="button" className="text-link" disabled={busy || working || strategy.pending} onClick={strategy.refresh}>Check status</button>
-        <button type="button" className="text-link" disabled={busy || working || strategy.pending || dirty || workspace.conflict || Boolean(strategy.readError)} onClick={() => void strategy.retryDelivery(bound.job)}>Retry delivery</button>
-      </div>
-    </div>}
     {(error || strategy.actionError || strategy.readError || failed || unverified || unavailable || stale) && <div className="guided-conversation-error" role="alert">
       <p>{error || strategy.actionError || statusReadError || (stale ? "The project changed after this response was requested. Your conversation is kept. Send a new message to continue from the current version." : bound?.job.state === "needs_reconciliation" ? "This research outcome needs verification before another request can start. Your prompt is saved." : requestBlocked ? strategyAvailabilityMessage(availability, "project") : failed ? bound?.job.state === "cancelled" ? "Research was cancelled. Your prompt is saved." : currentTurn?.stage === "competitors" && currentTurn.purpose !== "message" ? "Research could not produce verified suggestions. Your prompt is saved. You can retry research." : "This response did not finish. Your prompt is saved." : unverified ? "This response could not be matched to your question. Your conversation is kept." : strategyAvailabilityMessage(availability ?? null, "project"))}</p>
       <button type="button" className="text-link" disabled={busy || working || strategy.pending} onClick={strategy.refresh}>Check status</button>

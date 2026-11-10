@@ -1,6 +1,5 @@
 import { getAuthenticatedContext } from "@/server/auth/context";
 import { ApiError, errorResponse, privateJson } from "@/server/http/errors";
-import { isSharedWorkerRuntime } from "@/server/shared-account/routing";
 import { SESSION_STATE_HEADER } from "@/components/auth/session-state";
 
 export const dynamic = "force-dynamic";
@@ -8,9 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   try {
     const { userId } = await getAuthenticatedContext();
-    // Shared signup is a data-only Auth trigger, not a browser-driven service
-    // provisioning loop or a claim that all integrations are currently ready.
-    return privateJson({ user: { id: userId }, ...(process.env.EMBEL_ACCOUNT_ENROLLMENT_ENABLED === "true" && !isSharedWorkerRuntime() ? { enrollmentEnabled: true } : {}) });
+    return privateJson({ user: { id: userId } });
   } catch (error) {
     // The app shell only asks whether someone is signed in. It opts in to an
     // ordinary signed-out answer, so a visitor's page load doesn't log a failed

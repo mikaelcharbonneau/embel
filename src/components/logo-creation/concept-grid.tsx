@@ -84,7 +84,8 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
       {generationActions && (batch || !savedBatchLoading && !savedBatchUnavailable) && <div className={styles.generationActions}>{generationActions}</div>}
       <p className={styles.progress} role="status" aria-live="polite">{progressMessage}</p>
     </>}
-    {uncertain && <p className={styles.warning}>Outcome uncertain. Check the existing request before trying again. Completed concepts stay available.</p>}
+    {uncertain && <p className={styles.warning}>{onCheckRequest ? "Outcome uncertain. Check the existing request before trying again. Completed concepts stay available."
+      : "An earlier concept's outcome was never confirmed. Completed concepts stay available."}</p>}
     {(!gallery || batch || savedBatchLoading || savedBatchUnavailable) && <ol className={styles.concepts}>
       {CONCEPT_ORDINALS.map(ordinal => {
         const slot = batch?.slots.find(item => item.ordinal === ordinal);
