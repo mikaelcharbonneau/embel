@@ -101,6 +101,7 @@
   "src/server/logo-creation/openai-logo-provider.ts",
   "src/server/logo-creation/operation-routing.ts",
   "src/server/logo-creation/reference-inputs.ts",
+  "src/server/logo-creation/style-note-request.ts",
   "src/server/preview-origin.mjs",
   "src/server/runtime/hosted-application.ts",
   "src/server/runtime/private-asset-storage.ts",
