@@ -22,7 +22,8 @@ export type LogoEngine = {
   error: string | null;
   active(kind: LogoEngineKind): GenerationRun | null;
   latest(kind: LogoEngineKind): GenerationRun | null;
-  start(kind: LogoEngineKind, input: Record<string, unknown>): Promise<GenerationRun | null>;
+  /** `quiet` keeps a refusal off the screen, for work the person didn't click (style notes). */
+  start(kind: LogoEngineKind, input: Record<string, unknown>, options?: { quiet?: boolean }): Promise<GenerationRun | null>;
   cancel(runId: string): Promise<void>;
   clearError(): void;
   refresh(): void;
@@ -78,10 +79,10 @@ export function useLogoEngine(account: VerifiedAccount, projectId: string): Logo
   }, [account.userId, current, identity, projectId, version]);
 
   const refresh = useCallback(() => setVersion(value => value + 1), []);
-  const start = useCallback(async (kind: LogoEngineKind, input: Record<string, unknown>) => {
+  const start = useCallback(async (kind: LogoEngineKind, input: Record<string, unknown>, options: { quiet?: boolean } = {}) => {
     if (!current()) return null;
     const controller = new AbortController();
-    setAction({ identity, starting: true, error: null });
+    setAction(previous => ({ identity, starting: true, error: options.quiet && previous.identity === identity ? previous.error : null }));
     try {
       const { run } = await boundedAccountRequest(`/api/projects/${projectId}/generations`, generationRunResponseSchema, { method: "POST", signal: controller.signal,
         expectedOwnerId: account.userId, body: { kind, idempotencyKey: `logo:${kind}:${crypto.randomUUID()}`, input } });
@@ -98,7 +99,7 @@ export function useLogoEngine(account: VerifiedAccount, projectId: string): Logo
         try { periodEnd = (await boundedAccountRequest("/api/credits", creditSummaryResponseSchema, { signal: controller.signal })).credits.periodEnd; }
         catch { /* The message stands without a date. */ }
       }
-      if (current()) setAction({ identity, starting: false, error: logoEngineErrorMessage(error, periodEnd) });
+      if (current()) setAction(previous => ({ identity, starting: false, error: options.quiet ? previous.identity === identity ? previous.error : null : logoEngineErrorMessage(error, periodEnd) }));
       refresh();
       return null;
     }

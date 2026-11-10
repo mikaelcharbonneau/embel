@@ -29,6 +29,11 @@ export function logoDrawingSlotIds(run: GenerationRun | null, batch: LogoConcept
   return new Set(batch.slots.filter(slot => !done.has(slot.ordinal)
     && (batch.requestKey === run.id ? slot.attempts.every(attempt => attempt.requestKey !== run.id) : slot.attempts.at(-1)?.state === "failed")).map(slot => slot.id));
 }
+/** Slots of a round's own batch that the round ended without drawing (Stop, a timeout). */
+export function logoUndrawnSlotIds(run: GenerationRun | null, batch: LogoConceptBatch | null): Set<string> {
+  if (!run || !batch || isActiveLogoRun(run) || run.kind !== LOGO_ENGINE_KINDS.concepts || batch.requestKey !== run.id) return new Set();
+  return new Set(batch.slots.filter(slot => slot.attempts.length === 0).map(slot => slot.id));
+}
 /** The browser's state of an engine refinement, in the old request vocabulary the screen reads. */
 export function logoRefineRequestStatus(run: GenerationRun): "admitted" | "running" | "succeeded" | "failed" {
   if (run.status === "queued") return "admitted";

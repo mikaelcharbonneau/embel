@@ -31,6 +31,8 @@ export async function logoImagesGeneration(runId: string) {
     const { targets } = await beginLogoImages(run);
     let settled = false;
     const work = Promise.all(targets.map(target => drawUntilSettled(run, target))).then(ends => { settled = true; return ends; });
+    // After Stop the round returns early; images still being drawn finish on their own.
+    work.catch(() => undefined);
     while (!settled) {
       await Promise.race([work, sleep(`${WATCH_SECONDS}s`)]);
       if (settled) break;
@@ -101,7 +103,12 @@ async function writeNote(run: ClaimedRun, referenceId: string) {
   if (state.status !== "running" || state.cancelRequested || state.paused) return { referenceId, state: "stopped", code: "cancelled" };
   let responseId: string;
   try { ({ responseId } = await createStyleNote(prepared)); }
-  catch (error) { return failStyleNote(run, referenceId, errorCode(error) === "provider_request_rejected" ? "provider_rejected" : "send_interrupted"); }
+  catch (error) {
+    // Nothing was sent after three tries, or OpenAI refused it: both can be asked again
+    // later. Any other failure may have sent it, so it is never sent again.
+    const code = errorCode(error);
+    return failStyleNote(run, referenceId, code === "provider_request_rejected" ? "provider_rejected" : code === "provider_unavailable" ? "provider_unavailable" : "send_interrupted");
+  }
   for (const seconds of NOTE_POLL_DELAYS) {
     await sleep(`${seconds}s`);
     const polled = await pollStyleNote(run.id, responseId);

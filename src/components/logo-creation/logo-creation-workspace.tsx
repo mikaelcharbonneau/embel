@@ -13,7 +13,7 @@ import { useLogoDraftMemory } from "@/components/identity/logo-draft-memory-cont
 import { useLogoCreation } from "./use-logo-creation";
 import { useGenerationEstimate, type LogoEngineStarter } from "./use-generation-estimate";
 import { useLogoEngine } from "./use-logo-engine";
-import { LOGO_ENGINE_KINDS, logoDrawingSlotIds, logoRefineRequestStatus, logoRunBatchId } from "@/domain/logo-engine";
+import { LOGO_ENGINE_KINDS, logoDrawingSlotIds, logoRefineRequestStatus, logoRunBatchId, logoUndrawnSlotIds } from "@/domain/logo-engine";
 import { LogoGenerationAction } from "./generation-action";
 import { acceptedConceptAttempt } from "./presentation";
 import type { LogoCreationState } from "./creation-controller";
@@ -138,6 +138,7 @@ function OwnedLogoCreation({ account, projectId, onContinue, continueHidden }: {
   const recoveryKeys = [...new Set([...(pendingIntentKey ? [pendingIntentKey] : []), ...logoBatchRecoveryRequestKeys(activeBatch)])];
   const activeRequest = generationState.request ?? recoveryKeys.map(key => requestReadouts[key]?.state).find(state => state !== null && state !== undefined) ?? null;
   const drawingSlotIds = logoDrawingSlotIds(activeConceptRun, activeBatch);
+  const undrawnSlotIds = logoUndrawnSlotIds(latestConceptRun && logoRunBatchId(latestConceptRun) === activeBatch?.id ? latestConceptRun : null, activeBatch);
   const engineDrawing = useRef(false);
   const activeConceptRunId = activeConceptRun?.id ?? null;
   useLayoutEffect(() => { engineDrawing.current = activeConceptRunId !== null; }, [activeConceptRunId]);
@@ -323,7 +324,7 @@ function OwnedLogoCreation({ account, projectId, onContinue, continueHidden }: {
         // One note request per liked upload without a note, as part of this click; the
         // engine writes all missing notes in one run.
         ...(engineOn ? { requestStyleNotes: async (referenceIds: readonly string[]) => {
-          if (!await logoEngine.start(LOGO_ENGINE_KINDS.styleNote, { referenceIds })) throw new Error("Style notes not started");
+          if (!await logoEngine.start(LOGO_ENGINE_KINDS.styleNote, { referenceIds }, { quiet: true })) throw new Error("Style notes not started");
         } } : {}),
         requestStyleNote: engineOn ? undefined : async (referenceId, expected, signal) => {
           const quote = await client.quoteLogoOperation({ operation: "style_note", expected, referenceId }, signal);
@@ -539,7 +540,7 @@ function OwnedLogoCreation({ account, projectId, onContinue, continueHidden }: {
       selected={selectedLogo?.kind === "concept" ? selectedLogo : null}
       onSelect={batchReady && saved?.capabilities.save.status === "available" && !workspace.pending && !workspace.dirty && editing ? source => void selectCandidate(source) : undefined}
       generation={canConcept ? { status: "available" } : { status: "unavailable", reason: "Concept generation is currently unavailable." }}
-      refinement={canRefine ? { status: "available" } : { status: "unavailable", reason: "Image refinement is currently unavailable." }} drawingSlotIds={drawingSlotIds} plan={conceptEstimate.quote?.conceptPlan}
+      refinement={canRefine ? { status: "available" } : { status: "unavailable", reason: "Image refinement is currently unavailable." }} drawingSlotIds={drawingSlotIds} undrawnSlotIds={undrawnSlotIds} plan={conceptEstimate.quote?.conceptPlan}
       renderPreview={client ? receipt => <LogoVerifiedPreview client={client} receipt={receipt} /> : undefined}
       generationActions={<>
         {!nameReadiness.supported && <p role="status">{nameReadiness.message}</p>}

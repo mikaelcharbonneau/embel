@@ -4,7 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useGenerationEstimate, type LogoEngineStarter } from "@/components/logo-creation/use-generation-estimate";
 import type { LogoCreationController, LogoCreationState } from "@/components/logo-creation/creation-controller";
-import { logoDrawingSlotIds, logoRefineRequestStatus, logoRunBatchId } from "@/domain/logo-engine";
+import { logoDrawingSlotIds, logoRefineRequestStatus, logoRunBatchId, logoUndrawnSlotIds } from "@/domain/logo-engine";
 import type { GenerationRun } from "@/domain/generations";
 import type { LogoConceptBatch, LogoQuoteRequest } from "@/domain/logo-jobs";
 
@@ -68,6 +68,11 @@ describe("following an engine round", () => {
     const own = batch(runId, [0, 1, 2, 3, 4, 5].map(ordinal => slot(ordinal, ordinal === 2 ? [{ state: "succeeded", requestKey: runId }] : [])));
     expect([...logoDrawingSlotIds(working, own)].map(id => Number(id.at(-1)))).toEqual([0, 1, 3, 4, 5]);
     expect(logoDrawingSlotIds(run("succeeded", working.outputs), own).size).toBe(0);
+  });
+  it("marks the slots a stopped round never drew, and nothing while it still draws", () => {
+    const own = batch(runId, [slot(0, [{ state: "succeeded", requestKey: runId }]), slot(1, [])]);
+    expect([...logoUndrawnSlotIds(run("cancelled", []), own)]).toEqual(["55555555-8888-4888-8888-000000000001"]);
+    expect(logoUndrawnSlotIds(run("running", []), own).size).toBe(0);
   });
   it("retrying draws again only the slots whose last image failed", () => {
     const earlier = batch("dddddddd-4444-4444-8444-444444444444", [slot(0, [{ state: "succeeded", requestKey: "x" }]), slot(1, [{ state: "failed", requestKey: "x" }])]);
