@@ -45,3 +45,9 @@
 /* Cloudflare Turnstile (shown only when a site key is configured). */
 .auth-captcha { margin-top: 20px; min-height: 65px; }
 .auth-captcha + .auth-submit { margin-top: 16px; }
+
+/* Delete account confirmation. */
+.account-delete-dialog { width: min(480px, calc(100vw - 40px)); }
+.account-delete-field { margin-top: 20px; }
+.account-delete-field input { border-radius: var(--radius-control); }
+.auth-signout-dialog p.account-delete-error { color: var(--danger); }

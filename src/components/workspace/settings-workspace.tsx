@@ -5,6 +5,7 @@ import { useAccountSession } from "./account-session";
 import { AccountAccess } from "./account-access";
 import { RecordedUsageSection } from "./recorded-usage";
 import { AccountProfileEditor } from "./account-profile-editor";
+import { AccountDataControls } from "./account-data-controls";
 
 // Settings always opens on Account, so links to removed categories
 // (for example ?category=security) land there.
@@ -46,6 +47,7 @@ function AccountSettings() {
     <section className="sg-card sg-session" aria-label={signedIn ? "Sign out" : "Sign in"}>
       <div className="sg-row"><div className="sg-row-copy"><strong>{signedIn ? "Sign out" : "Sign in"}</strong><p>{signedIn ? "Sign out of Embel on this device. Your work stays saved in your account." : "Sign in to save your work and settings to your account."}</p></div><AccountAccess /></div>
     </section>
+    <AccountDataControls />
     {/* Only on a local development server; hosted Embel never renders it. */}
   </>;
 }
