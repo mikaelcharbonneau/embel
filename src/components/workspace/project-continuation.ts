@@ -14,11 +14,17 @@ import { readProjectLogoProgress, type ProjectLogoProgress } from "./project-car
 export type ProjectAction = { label: string; href: string };
 type Clients = { logo: AccountLogoClient | null; identity: AccountIdentityClient | null };
 
-async function directionAction(project: AccountProject, source: LogoRasterSource, client: AccountIdentityClient, signal: AbortSignal): Promise<ProjectAction> {
+async function directionAction(
+  project: AccountProject,
+  source: LogoRasterSource,
+  client: AccountIdentityClient,
+  signal: AbortSignal,
+): Promise<ProjectAction> {
   const href = `/brands/account/${project.id}/logo/directions`;
   const overview = await client.overview({ limit: 1 }, signal);
   if (!overview || overview.project.current_revision !== project.current_revision) throw new AccountRequestError(409);
-  const matches = (candidate?: { source: LogoRasterSource }) => candidate && logoCandidateKey(candidate.source) === logoCandidateKey(source);
+  const matches = (candidate?: { source: LogoRasterSource }) =>
+    candidate && logoCandidateKey(candidate.source) === logoCandidateKey(source);
   if (hasCurrentBrandAssets(overview.currentSelection, source)) {
     return { label: "View brand kit", href: `/brands/account/${project.id}/logo/deliverables` };
   }
@@ -27,7 +33,9 @@ async function directionAction(project: AccountProject, source: LogoRasterSource
   if (!generation) throw new AccountRequestError(502);
   const batch = generation.latest;
   if (batch?.sourceLogoCurrent && matches(batch.sourceLogo)) {
-    const count = batch.systems.filter(system => getIdentityFreshness(system.input.basis, overview.currentBasis).status === "current").length;
+    const count = batch.systems.filter(
+      (system) => getIdentityFreshness(system.input.basis, overview.currentBasis).status === "current",
+    ).length;
     if (count > 1) return { label: `Compare ${count} directions`, href };
     if (count === 1) return { label: "Review visual direction", href };
     if (identityBatchUnresolved(batch)) return { label: "Check direction progress", href };
@@ -35,14 +43,23 @@ async function directionAction(project: AccountProject, source: LogoRasterSource
   return { label: "Explore creative directions", href };
 }
 
-export async function readProjectVisualState(project: AccountProject, client: AccountLogoClient | null, signal: AbortSignal) {
+export async function readProjectVisualState(
+  project: AccountProject,
+  client: AccountLogoClient | null,
+  signal: AbortSignal,
+) {
   if (!client) throw new AccountRequestError(502);
   const logo = await readProjectLogoProgress(client, project.owner_id, project.id, signal);
   if (!logo || logo.workspace.heads.projectRevision !== project.current_revision) throw new AccountRequestError(409);
   return logo;
 }
 
-export async function nextProjectAction(project: AccountProject, clients: Clients, logo: ProjectLogoProgress | null, signal: AbortSignal): Promise<ProjectAction> {
+export async function nextProjectAction(
+  project: AccountProject,
+  clients: Clients,
+  logo: ProjectLogoProgress | null,
+  signal: AbortSignal,
+): Promise<ProjectAction> {
   const base = `/brands/account/${project.id}`;
   if (!logo || !clients.logo) throw new AccountRequestError(502);
   if (logo.selected) {
@@ -64,7 +81,7 @@ export async function nextProjectAction(project: AccountProject, clients: Client
     if (latest) {
       const batch = await clients.logo.readLogoConceptBatch(latest.id, signal);
       if (!batch) throw new AccountRequestError(502);
-      const label = batch.slots.some(slot => acceptedConceptAttempt(slot)) ? "Choose a logo" : "Review logo progress";
+      const label = batch.slots.some((slot) => acceptedConceptAttempt(slot)) ? "Choose a logo" : "Review logo progress";
       return { label, href };
     }
   }

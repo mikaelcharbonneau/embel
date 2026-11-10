@@ -8,7 +8,16 @@ export const contentType = "image/png";
 export default async function AppleIcon() {
   const mark = await brandMarkDataUri();
   return new ImageResponse(
-    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: brandColors.canvas }}>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: brandColors.canvas,
+      }}
+    >
       <img src={mark} width={112} height={112} alt="" />
     </div>,
     size,

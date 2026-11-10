@@ -19,7 +19,9 @@ export async function GET(_request: Request, context: RouteContext) {
     const auth = await getAuthenticatedContext();
     const id = await getId(context);
     return privateJson({ project: await getProject(auth, id) });
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
@@ -29,5 +31,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     const id = await getId(context);
     const input = await readJson(request, updateProjectInputSchema, PROJECT_MUTATION_MAX_BYTES);
     return privateJson({ revision: await appendProjectRevision(auth, { ...input, projectId: id }) });
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

@@ -14,10 +14,21 @@ import { GenerationActivity } from "./generation-activity";
 import { SignedOutActions } from "@/components/auth/signed-out-actions";
 
 // Library is the existing /assets page under the redesign's name.
-const primary: NavItem[] = [{ href: "/", label: "Home" }, { href: "/brands", label: "Projects" }, { href: "/assets", label: "Library" }];
+const primary: NavItem[] = [
+  { href: "/", label: "Home" },
+  { href: "/brands", label: "Projects" },
+  { href: "/assets", label: "Library" },
+];
 
 export function AppShell({ children, auth }: { children: React.ReactNode; auth: React.ReactNode }) {
-  return <AccountSessionProvider><AccountProfileProvider><WorkspaceShell>{children}</WorkspaceShell>{auth}</AccountProfileProvider></AccountSessionProvider>;
+  return (
+    <AccountSessionProvider>
+      <AccountProfileProvider>
+        <WorkspaceShell>{children}</WorkspaceShell>
+        {auth}
+      </AccountProfileProvider>
+    </AccountSessionProvider>
+  );
 }
 
 /** One floating pill for every page: brand, main pages and the account
@@ -31,7 +42,9 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const backgroundSegments = useSelectedLayoutSegments();
   const intercepted = ["(.)sign-in", "sign-in", "(.)sign-up", "sign-up"].includes(authSegment ?? "");
   // The children slot retains the underlying route during intercepted navigation.
-  const pathname = intercepted ? `/${backgroundSegments.filter(segment => !segment.startsWith("(")).join("/")}` : currentPathname;
+  const pathname = intercepted
+    ? `/${backgroundSegments.filter((segment) => !segment.startsWith("(")).join("/")}`
+    : currentPathname;
   const [moreBelow, setMoreBelow] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const isHome = pathname === "/";
@@ -40,14 +53,27 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const accountProjectId = /^\/brands\/account\/([0-9a-f-]{36})(?:\/|$)/i.exec(pathname)?.[1]?.toLowerCase();
   // Until the project page reports its header, show the bar in its loading state
   // rather than flashing the global navigation.
-  const header = accountProjectId && session.status === "ready"
-    ? projectHeader?.projectId === accountProjectId ? projectHeader : { projectId: accountProjectId, projectName: "", steps: [], saveState: null }
-    : null;
+  const header =
+    accountProjectId && session.status === "ready"
+      ? projectHeader?.projectId === accountProjectId
+        ? projectHeader
+        : { projectId: accountProjectId, projectName: "", steps: [], saveState: null }
+      : null;
   const account = <WorkspaceAccount pathname={currentPathname} />;
   // Page classes scope each route's existing layout rules.
-  const pageClass = projectWorkspace ? "concept-project-workspace" : (pathname === "/sign-in" || pathname === "/sign-up") ? "concept-sign-in"
-    : isHome ? "concept-home" : pathname === "/settings" ? "concept-settings" : pathname === "/assets" ? "concept-assets"
-    : pathname === "/brands" ? "concept-projects" : "";
+  const pageClass = projectWorkspace
+    ? "concept-project-workspace"
+    : pathname === "/sign-in" || pathname === "/sign-up"
+      ? "concept-sign-in"
+      : isHome
+        ? "concept-home"
+        : pathname === "/settings"
+          ? "concept-settings"
+          : pathname === "/assets"
+            ? "concept-assets"
+            : pathname === "/brands"
+              ? "concept-projects"
+              : "";
 
   useEffect(() => {
     const main = mainRef.current;
@@ -58,25 +84,40 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
     if (main.firstElementChild) observer.observe(main.firstElementChild);
     main.addEventListener("scroll", measure, { passive: true });
     measure();
-    return () => { observer.disconnect(); main.removeEventListener("scroll", measure); };
+    return () => {
+      observer.disconnect();
+      main.removeEventListener("scroll", measure);
+    };
   }, [usesBottomFade, pathname]);
 
-  return <div className={`app-shell concept-shell ${pageClass}`}>
-    <a className="skip-link" href="#main-content">Skip to content</a>
-    <div className="workspace-main">
-      <NavFrame variant={header ? "project" : "main"} account={account}>
-        {header
-          ? <ProjectBarContent projectName={header.projectName} projectControl={header.projectName ? <ProjectMenu projectName={header.projectName} /> : undefined}
-            steps={header.steps} saveState={header.saveState} />
-          : <MainNavContent pathname={pathname} items={primary} />}
-      </NavFrame>
-      <AccountAccessNotice />
-      <ProjectHeaderContext.Provider value={setProjectHeader}>
-        <main id="main-content" ref={mainRef} tabIndex={-1}>{children}</main>
-      </ProjectHeaderContext.Provider>
-      {isHome && moreBelow && <div className="home-bottom-fade" aria-hidden="true" />}
+  return (
+    <div className={`app-shell concept-shell ${pageClass}`}>
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
+      <div className="workspace-main">
+        <NavFrame variant={header ? "project" : "main"} account={account}>
+          {header ? (
+            <ProjectBarContent
+              projectName={header.projectName}
+              projectControl={header.projectName ? <ProjectMenu projectName={header.projectName} /> : undefined}
+              steps={header.steps}
+              saveState={header.saveState}
+            />
+          ) : (
+            <MainNavContent pathname={pathname} items={primary} />
+          )}
+        </NavFrame>
+        <AccountAccessNotice />
+        <ProjectHeaderContext.Provider value={setProjectHeader}>
+          <main id="main-content" ref={mainRef} tabIndex={-1}>
+            {children}
+          </main>
+        </ProjectHeaderContext.Provider>
+        {isHome && moreBelow && <div className="home-bottom-fade" aria-hidden="true" />}
+      </div>
     </div>
-  </div>;
+  );
 }
 
 function initials(name: string) {
@@ -88,7 +129,11 @@ function initials(name: string) {
  * menu, which also covers checking, signing in and sign-out recovery. */
 function WorkspaceAccount({ pathname }: { pathname: string }) {
   const { session } = useAccountSession();
-  return session.status === "signed_out" ? <SignedOutActions placement="nav" /> : <WorkspaceAccountMenu pathname={pathname} />;
+  return session.status === "signed_out" ? (
+    <SignedOutActions placement="nav" />
+  ) : (
+    <WorkspaceAccountMenu pathname={pathname} />
+  );
 }
 
 function WorkspaceAccountMenu({ pathname }: { pathname: string }) {
@@ -106,7 +151,9 @@ function WorkspaceAccountMenu({ pathname }: { pathname: string }) {
     };
     const escape = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || event.defaultPrevented || !node.open || modalOpen()) return;
-      event.preventDefault(); node.open = false; node.querySelector("summary")?.focus();
+      event.preventDefault();
+      node.open = false;
+      node.querySelector("summary")?.focus();
     };
     document.addEventListener("pointerdown", outsidePointer);
     document.addEventListener("keydown", escape);
@@ -115,18 +162,58 @@ function WorkspaceAccountMenu({ pathname }: { pathname: string }) {
       document.removeEventListener("keydown", escape);
     };
   }, []);
-  useEffect(() => { if (menu.current) menu.current.open = false; }, [pathname]);
+  useEffect(() => {
+    if (menu.current) menu.current.open = false;
+  }, [pathname]);
   const ready = session.status === "ready";
   const checking = session.status === "checking" || (ready && Boolean(profile?.busy) && !profile?.workspace);
-  const name = ready ? profile?.workspace?.saved.values.fullName.trim() ?? "" : "";
-  const email = ready ? profile?.workspace?.saved.email ?? "" : "";
+  const name = ready ? (profile?.workspace?.saved.values.fullName.trim() ?? "") : "";
+  const email = ready ? (profile?.workspace?.saved.email ?? "") : "";
   const label = ready ? name || email || "My account" : "Account";
-  const monogram = ready && !checking ? initials(name) ?? (email ? email[0]!.toUpperCase() : null) : null;
+  const monogram = ready && !checking ? (initials(name) ?? (email ? email[0]!.toUpperCase() : null)) : null;
   // The pill shows only the avatar; the name stays available to assistive
   // technology and at the top of the open panel.
-  return <details className="workspace-account-menu" ref={menu}><summary aria-label="Account menu" aria-busy={checking}><span className="workspace-account-label sr-only" aria-busy={checking}>{checking ? <span role="status">Checking account…</span> : label}</span><span className="workspace-account-avatar" aria-hidden="true">{monogram ?? <Icon name="user" size={16} />}</span></summary><div className="workspace-account-panel" role="group" aria-label="Account actions">
-      <div className="workspace-account-identity">{checking ? <strong>Checking your account…</strong> : ready ? <><strong>{label}</strong>{name && email && <span>{email}</span>}</> : <><strong>Account</strong><span>{signOutError ? "Sign-out didn’t finish. Try again, or check your account." : "Your account couldn’t be checked. Check your connection and try again."}</span></>}</div>
-      {ready && <div className="workspace-account-links"><Link href="/settings"><Icon name="settings" size={18} /><span>Account settings</span></Link><GenerationActivity labeled /></div>}
-      <AccountAccess menu />
-    </div></details>;
+  return (
+    <details className="workspace-account-menu" ref={menu}>
+      <summary aria-label="Account menu" aria-busy={checking}>
+        <span className="workspace-account-label sr-only" aria-busy={checking}>
+          {checking ? <span role="status">Checking account…</span> : label}
+        </span>
+        <span className="workspace-account-avatar" aria-hidden="true">
+          {monogram ?? <Icon name="user" size={16} />}
+        </span>
+      </summary>
+      <div className="workspace-account-panel" role="group" aria-label="Account actions">
+        <div className="workspace-account-identity">
+          {checking ? (
+            <strong>Checking your account…</strong>
+          ) : ready ? (
+            <>
+              <strong>{label}</strong>
+              {name && email && <span>{email}</span>}
+            </>
+          ) : (
+            <>
+              <strong>Account</strong>
+              <span>
+                {signOutError
+                  ? "Sign-out didn’t finish. Try again, or check your account."
+                  : "Your account couldn’t be checked. Check your connection and try again."}
+              </span>
+            </>
+          )}
+        </div>
+        {ready && (
+          <div className="workspace-account-links">
+            <Link href="/settings">
+              <Icon name="settings" size={18} />
+              <span>Account settings</span>
+            </Link>
+            <GenerationActivity labeled />
+          </div>
+        )}
+        <AccountAccess menu />
+      </div>
+    </details>
+  );
 }

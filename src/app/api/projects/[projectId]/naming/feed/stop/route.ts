@@ -8,8 +8,12 @@ export const dynamic = "force-dynamic";
 type RouteContext = { params: Promise<{ projectId: string }> };
 export async function POST(request: Request, context: RouteContext) {
   try {
-    assertMutationOrigin(request); const auth = await getAuthenticatedContext(); assertExpectedAccount(request, auth.userId);
+    assertMutationOrigin(request);
+    const auth = await getAuthenticatedContext();
+    assertExpectedAccount(request, auth.userId);
     await readJson(request, z.strictObject({}), 4096);
     return privateJson(await stopNamingEngineRun(auth, (await context.params).projectId));
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

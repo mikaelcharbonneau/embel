@@ -21,7 +21,22 @@ type ConversationComposerProps = {
   sendLabel?: string;
 };
 
-export function ConversationComposer({ value, onChange, onSend, label, placeholder, error, hint, disabled, readOnly = false, initial = false, home = false, project = false, inputControls, sendLabel = "Send prompt" }: ConversationComposerProps) {
+export function ConversationComposer({
+  value,
+  onChange,
+  onSend,
+  label,
+  placeholder,
+  error,
+  hint,
+  disabled,
+  readOnly = false,
+  initial = false,
+  home = false,
+  project = false,
+  inputControls,
+  sendLabel = "Send prompt",
+}: ConversationComposerProps) {
   const id = useId();
   const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -37,9 +52,12 @@ export function ConversationComposer({ value, onChange, onSend, label, placehold
       width = input.clientWidth;
     };
     resize();
-    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => {
-      if (input.clientWidth !== width) resize();
-    });
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(() => {
+            if (input.clientWidth !== width) resize();
+          });
     observer?.observe(input);
     window.addEventListener("resize", resize);
     document.fonts?.addEventListener("loadingdone", resize);
@@ -56,15 +74,59 @@ export function ConversationComposer({ value, onChange, onSend, label, placehold
     if (!disabled) onSend();
   }
 
-  return <form ref={formRef} className={`conversation-composer ${initial ? "is-initial" : ""} ${home ? "home-composer" : ""} ${error ? "has-error" : ""}`} onSubmit={submit} noValidate>
-    <label className="sr-only" htmlFor={id}>{label}</label>
-    <textarea ref={inputRef} id={id} value={value} readOnly={readOnly} maxLength={12000} placeholder={placeholder} aria-invalid={Boolean(error)} aria-describedby={hint === null ? (error ? `${id}-error` : undefined) : `${id}-hint${error ? ` ${id}-error` : ""}`} onChange={(event) => { if (!readOnly) onChange(event.target.value); }} onKeyDown={(event) => {
-      if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.keyCode !== 229) {
-        event.preventDefault();
-        if (!disabled) formRef.current?.requestSubmit();
-      }
-    }} />
-    <div className="conversation-composer-footer">{inputControls}{hint !== null && <span className={initial ? "sr-only" : undefined} id={`${id}-hint`}>{hint ?? "Shift + Enter for a new line"}</span>}<button className={`button primary ${(project || home || sendLabel === "Send prompt") ? "composer-send-icon" : ""}`} type="submit" disabled={disabled} title={sendLabel}><span className={(project || home || sendLabel === "Send prompt") ? "sr-only" : undefined}>{sendLabel}</span>{project ? <ProjectArtwork name="send" /> : <Icon name="arrow-up" size={home ? 16 : 18} />}</button></div>
-    {error && <p className="form-error" id={`${id}-error`} role="alert">{error}</p>}
-  </form>;
+  return (
+    <form
+      ref={formRef}
+      className={`conversation-composer ${initial ? "is-initial" : ""} ${home ? "home-composer" : ""} ${error ? "has-error" : ""}`}
+      onSubmit={submit}
+      noValidate
+    >
+      <label className="sr-only" htmlFor={id}>
+        {label}
+      </label>
+      <textarea
+        ref={inputRef}
+        id={id}
+        value={value}
+        readOnly={readOnly}
+        maxLength={12000}
+        placeholder={placeholder}
+        aria-invalid={Boolean(error)}
+        aria-describedby={
+          hint === null ? (error ? `${id}-error` : undefined) : `${id}-hint${error ? ` ${id}-error` : ""}`
+        }
+        onChange={(event) => {
+          if (!readOnly) onChange(event.target.value);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.keyCode !== 229) {
+            event.preventDefault();
+            if (!disabled) formRef.current?.requestSubmit();
+          }
+        }}
+      />
+      <div className="conversation-composer-footer">
+        {inputControls}
+        {hint !== null && (
+          <span className={initial ? "sr-only" : undefined} id={`${id}-hint`}>
+            {hint ?? "Shift + Enter for a new line"}
+          </span>
+        )}
+        <button
+          className={`button primary ${project || home || sendLabel === "Send prompt" ? "composer-send-icon" : ""}`}
+          type="submit"
+          disabled={disabled}
+          title={sendLabel}
+        >
+          <span className={project || home || sendLabel === "Send prompt" ? "sr-only" : undefined}>{sendLabel}</span>
+          {project ? <ProjectArtwork name="send" /> : <Icon name="arrow-up" size={home ? 16 : 18} />}
+        </button>
+      </div>
+      {error && (
+        <p className="form-error" id={`${id}-error`} role="alert">
+          {error}
+        </p>
+      )}
+    </form>
+  );
 }

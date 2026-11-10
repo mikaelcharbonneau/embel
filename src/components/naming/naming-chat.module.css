@@ -1,171 +1,787 @@
 /* Naming moves from a conversation to a results canvas with one floating composer. */
-.workspace.workspace { position: relative; isolation: isolate; display: grid; grid-template-columns: minmax(0, 1fr); height: 100%; min-height: 0; overflow: hidden; background: var(--paper); }
-.chatFirst.workspace { grid-template-columns: minmax(0, 1fr); --fc-max-width: var(--conversation-max); }
-.chatPanel { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--paper); border-right: 0; }
-.chatFirst .chatPanel { border-right: 0; }
-.openingTitle { flex-shrink: 0; width: 100%; max-width: 808px; padding: 28px 24px 0; margin: 0 auto; font-size: 24px; line-height: 32px; font-weight: 500; letter-spacing: -.5px; }
-.chatUnavailable { padding: 24px 16px; font-size: 13px; line-height: 20px; color: var(--secondary); }
-.conversation :global(.conversation-composer-footer > button[type=submit]) { margin-inline-start: auto; }
-.conversation.conversation { display: flex; flex: 1; flex-direction: column; min-height: 0; min-width: 0; gap: 0; overflow: hidden; }
-.transcript.transcript { padding: 24px 16px; gap: 22px; overscroll-behavior: contain; scrollbar-width: thin; }
-.chatFirst .transcript { padding-inline: max(24px, calc((100% - var(--conversation-max)) / 2)); }
-.transcript > * { flex-shrink: 0; }
-.context { color: var(--secondary); font-size: 12px; line-height: 20px; }
-.context p { padding-top: 10px; overflow-wrap: anywhere; }
-.active { min-width: 0; scroll-margin-block: 20px; }
-.active h2 { font-size: 18px; font-weight: 500; line-height: 26px; letter-spacing: -.2px; margin-bottom: 14px; }
-.active :global(.guided-choice-widget) { border: 0; padding: 0; gap: 14px; }
-.active :global(.naming-approach-options) { grid-template-columns: 1fr; gap: 8px; }
-.chatFirst .active :global(.naming-approach-options) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.active :global(.naming-approach-option) { padding: 12px 14px; gap: 4px; min-height: 80px; border-radius: 8px; }
-.active :global(.naming-approach-option[aria-pressed=true]), .active :global(.naming-directness [aria-checked=true]) { background: var(--paper); border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
-.active :global(.naming-approach-option[aria-pressed=true] strong), .active :global(.naming-directness [aria-checked=true] strong) { color: var(--text); }
-.answer.answer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px; padding: 12px; }
-.answer > button { margin-left: auto; align-self: start; font-size: 12px; min-height: 32px; }
-.answer p { white-space: pre-wrap; }
-.stepActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; }
-.save { display: inline-flex; align-items: center; gap: 6px; }
-.field { display: grid; gap: 12px; }
-.field p, .hint { font-size: 13px; line-height: 20px; color: var(--secondary); }
-.field small, .guidance small { font-size: 12px; line-height: 18px; color: var(--secondary); font-weight: 400; }
-.guidance { display: grid; gap: 8px; padding: 12px; background: var(--surface); border-radius: 10px; }
-.guidance > div { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; }
-.guidance strong { font-weight: 500; }
-.guidance textarea { min-height: 64px; }
-.seedSummary { display: flex; align-items: center; gap: 8px; justify-content: space-between; margin-bottom: 10px; color: var(--secondary); font-size: 12px; line-height: 18px; }
-.seedSummary button { flex-shrink: 0; font-size: 12px; }
-.canvas.canvas { min-width: 0; min-height: 0; height: 100%; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: thin; padding: 24px; background: var(--canvas); }
-.canvas :global(.project-naming-header) { margin-bottom: 22px; }
-.canvas :global(.project-naming-header h1) { margin-top: 0; font-weight: 400; }
-.canvas > :global(.project-naming-muted) { margin-bottom: 18px; }
-.canvas :global(.project-naming-header .project-naming-eyebrow) { display: none; }
-.canvas :global(.project-naming-header-actions a) { display: none; }
-.canvas :global(.project-naming-section-heading) { align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
-.canvas :global(.project-naming-section-heading h2) { font-size: 13px; font-weight: 500; letter-spacing: 0; }
-.canvas :global(.project-naming-section-heading p) { margin-top: 5px; font-size: 12px; }
-.workspace .canvas :global(.project-naming-grid) { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-.workspace .canvas :global(.project-naming-card).compactCard, .inlineNames :global(.project-naming-card).compactCard { position: relative; min-width: 0; height: 76px; min-height: 76px; flex: none; display: block; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--paper); overflow: hidden; }
+.workspace.workspace {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--paper);
+}
+.chatFirst.workspace {
+  grid-template-columns: minmax(0, 1fr);
+  --fc-max-width: var(--conversation-max);
+}
+.chatPanel {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--paper);
+  border-right: 0;
+}
+.chatFirst .chatPanel {
+  border-right: 0;
+}
+.openingTitle {
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 808px;
+  padding: 28px 24px 0;
+  margin: 0 auto;
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+}
+.chatUnavailable {
+  padding: 24px 16px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--secondary);
+}
+.conversation :global(.conversation-composer-footer > button[type="submit"]) {
+  margin-inline-start: auto;
+}
+.conversation.conversation {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  gap: 0;
+  overflow: hidden;
+}
+.transcript.transcript {
+  padding: 24px 16px;
+  gap: 22px;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.chatFirst .transcript {
+  padding-inline: max(24px, calc((100% - var(--conversation-max)) / 2));
+}
+.transcript > * {
+  flex-shrink: 0;
+}
+.context {
+  color: var(--secondary);
+  font-size: 12px;
+  line-height: 20px;
+}
+.context p {
+  padding-top: 10px;
+  overflow-wrap: anywhere;
+}
+.active {
+  min-width: 0;
+  scroll-margin-block: 20px;
+}
+.active h2 {
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 26px;
+  letter-spacing: -0.2px;
+  margin-bottom: 14px;
+}
+.active :global(.guided-choice-widget) {
+  border: 0;
+  padding: 0;
+  gap: 14px;
+}
+.active :global(.naming-approach-options) {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.chatFirst .active :global(.naming-approach-options) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.active :global(.naming-approach-option) {
+  padding: 12px 14px;
+  gap: 4px;
+  min-height: 80px;
+  border-radius: 8px;
+}
+.active :global(.naming-approach-option[aria-pressed="true"]),
+.active :global(.naming-directness [aria-checked="true"]) {
+  background: var(--paper);
+  border-color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--text);
+}
+.active :global(.naming-approach-option[aria-pressed="true"] strong),
+.active :global(.naming-directness [aria-checked="true"] strong) {
+  color: var(--text);
+}
+.answer.answer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+  padding: 12px;
+}
+.answer > button {
+  margin-left: auto;
+  align-self: start;
+  font-size: 12px;
+  min-height: 32px;
+}
+.answer p {
+  white-space: pre-wrap;
+}
+.stepActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+}
+.save {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.field {
+  display: grid;
+  gap: 12px;
+}
+.field p,
+.hint {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--secondary);
+}
+.field small,
+.guidance small {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--secondary);
+  font-weight: 400;
+}
+.guidance {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  background: var(--surface);
+  border-radius: 10px;
+}
+.guidance > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.guidance strong {
+  font-weight: 500;
+}
+.guidance textarea {
+  min-height: 64px;
+}
+.seedSummary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  color: var(--secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+.seedSummary button {
+  flex-shrink: 0;
+  font-size: 12px;
+}
+.canvas.canvas {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 24px;
+  background: var(--canvas);
+}
+.canvas :global(.project-naming-header) {
+  margin-bottom: 22px;
+}
+.canvas :global(.project-naming-header h1) {
+  margin-top: 0;
+  font-weight: 400;
+}
+.canvas > :global(.project-naming-muted) {
+  margin-bottom: 18px;
+}
+.canvas :global(.project-naming-header .project-naming-eyebrow) {
+  display: none;
+}
+.canvas :global(.project-naming-header-actions a) {
+  display: none;
+}
+.canvas :global(.project-naming-section-heading) {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.canvas :global(.project-naming-section-heading h2) {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.canvas :global(.project-naming-section-heading p) {
+  margin-top: 5px;
+  font-size: 12px;
+}
+.workspace .canvas :global(.project-naming-grid) {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.workspace .canvas :global(.project-naming-card).compactCard,
+.inlineNames :global(.project-naming-card).compactCard {
+  position: relative;
+  min-width: 0;
+  height: 76px;
+  min-height: 76px;
+  flex: none;
+  display: block;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--paper);
+  overflow: hidden;
+}
 /* Hover is a light hint; only the chosen name gets the dark border. */
-.workspace .canvas :global(.project-naming-card).compactCard:not(:global(.is-selected)):has(.openName:hover), .inlineNames :global(.project-naming-card).compactCard:not(:global(.is-selected)):has(.openName:hover) { border-color: var(--border-strong); }
-.workspace .canvas :global(.project-naming-card).compactCard:focus-within, .inlineNames :global(.project-naming-card).compactCard:focus-within { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
-.workspace .canvas :global(.project-naming-card).compactCard:global(.is-selected), .inlineNames :global(.project-naming-card).compactCard:global(.is-selected) { border-color: var(--text); }
-.workspace .canvas .compactCard h3, .inlineNames .compactCard h3 { padding-right: 24px; margin: 0 0 4px; font-size: 20px; line-height: 26px; font-weight: 400; letter-spacing: -.2px; }
-.openName { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 0; background: transparent; padding: 0; color: inherit; font: inherit; text-align: left; }
-.openName::after { content: ""; position: absolute; inset: 0; }
-.workspace .canvas .openName:focus-visible, .inlineNames .openName:focus-visible { outline: none; }
-.workspace .canvas .compactCard > p, .inlineNames .compactCard > p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin: 0; color: var(--secondary); font-size: 13px; line-height: 20px; }
-.workspace .canvas .heart, .inlineNames .heart { position: absolute; z-index: 1; top: 3px; right: 3px; width: 38px; height: 38px; min-width: 38px; min-height: 38px; display: grid; place-items: center; padding: 11px; border: 0; border-radius: 7px; background: transparent; }
-.heart img { display: block; flex-shrink: 0; }
-.heart[aria-pressed=true] { background: var(--accent-soft) !important; }
+.workspace .canvas :global(.project-naming-card).compactCard:not(:global(.is-selected)):has(.openName:hover),
+.inlineNames :global(.project-naming-card).compactCard:not(:global(.is-selected)):has(.openName:hover) {
+  border-color: var(--border-strong);
+}
+.workspace .canvas :global(.project-naming-card).compactCard:focus-within,
+.inlineNames :global(.project-naming-card).compactCard:focus-within {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
+}
+.workspace .canvas :global(.project-naming-card).compactCard:global(.is-selected),
+.inlineNames :global(.project-naming-card).compactCard:global(.is-selected) {
+  border-color: var(--text);
+}
+.workspace .canvas .compactCard h3,
+.inlineNames .compactCard h3 {
+  padding-right: 24px;
+  margin: 0 0 4px;
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 400;
+  letter-spacing: -0.2px;
+}
+.openName {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.openName::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.workspace .canvas .openName:focus-visible,
+.inlineNames .openName:focus-visible {
+  outline: none;
+}
+.workspace .canvas .compactCard > p,
+.inlineNames .compactCard > p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin: 0;
+  color: var(--secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+.workspace .canvas .heart,
+.inlineNames .heart {
+  position: absolute;
+  z-index: 1;
+  top: 3px;
+  right: 3px;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  display: grid;
+  place-items: center;
+  padding: 11px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+}
+.heart img {
+  display: block;
+  flex-shrink: 0;
+}
+.heart[aria-pressed="true"] {
+  background: var(--accent-soft) !important;
+}
 @media (max-width: 1150px) and (min-width: 761px) {
-  .chatFirst.workspace { grid-template-columns: minmax(0, 1fr); }
-  .workspace .canvas :global(.project-naming-grid) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .chatFirst.workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .workspace .canvas :global(.project-naming-grid) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
-@media (max-width: 900px) and (min-width: 761px) { .workspace .canvas :global(.project-naming-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px) and (min-width: 761px) {
+  .workspace .canvas :global(.project-naming-grid) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 @media (max-width: 760px) {
-  .workspace.workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
-  .chatFirst.workspace { grid-template-rows: minmax(0, 1fr); }
-  .chatFirst .chatPanel { grid-row: 1; }
-  .chatPanel { border-right: 0; }
-  .openingTitle { padding: 20px 16px 0; font-size: 22px; line-height: 30px; }
-  .chatFirst .transcript, .transcript.transcript { padding: 22px 16px; }
-  .chatFirst .active :global(.naming-approach-options) { grid-template-columns: 1fr; }
-  .answer > button { min-height: 44px; }
-  .active :global(.button) { min-height: 44px; }
-  .canvas.canvas { padding: 20px 16px; }
-  .canvas :global(.project-naming-header h1) { font-size: 22px; line-height: 30px; }
-  .workspace .canvas :global(.project-naming-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .workspace .canvas :global(.project-naming-card).compactCard { height: 102px; min-height: 102px; padding: 12px; }
-  .workspace .canvas .compactCard h3 { font-size: 18px; }
-  .workspace .canvas .compactCard > p { font-size: 12px; line-height: 18px; -webkit-line-clamp: 3; }
-  .workspace .canvas .heart { top: 0; right: 0; width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 14px; }
+  .workspace.workspace {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .chatFirst.workspace {
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .chatFirst .chatPanel {
+    grid-row: 1;
+  }
+  .chatPanel {
+    border-right: 0;
+  }
+  .openingTitle {
+    padding: 20px 16px 0;
+    font-size: 22px;
+    line-height: 30px;
+  }
+  .chatFirst .transcript,
+  .transcript.transcript {
+    padding: 22px 16px;
+  }
+  .chatFirst .active :global(.naming-approach-options) {
+    grid-template-columns: 1fr;
+  }
+  .answer > button {
+    min-height: 44px;
+  }
+  .active :global(.button) {
+    min-height: 44px;
+  }
+  .canvas.canvas {
+    padding: 20px 16px;
+  }
+  .canvas :global(.project-naming-header h1) {
+    font-size: 22px;
+    line-height: 30px;
+  }
+  .workspace .canvas :global(.project-naming-grid) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .workspace .canvas :global(.project-naming-card).compactCard {
+    height: 102px;
+    min-height: 102px;
+    padding: 12px;
+  }
+  .workspace .canvas .compactCard h3 {
+    font-size: 18px;
+  }
+  .workspace .canvas .compactCard > p {
+    font-size: 12px;
+    line-height: 18px;
+    -webkit-line-clamp: 3;
+  }
+  .workspace .canvas .heart {
+    top: 0;
+    right: 0;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 14px;
+  }
 }
-@media (max-width: 340px) { .workspace .canvas :global(.project-naming-grid) { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 340px) {
+  .workspace .canvas :global(.project-naming-grid) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 
 /* The results pane keeps its full viewport. Only the floating panel intercepts input. */
-.workspace.exploring { grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
-.exploring .canvas, .exploring .chatPanel { grid-area: 1 / 1; }
-.exploring .chatPanel { z-index: 1; pointer-events: none; background: transparent; border: 0; --fc-backing: var(--canvas); }
-.exploring .conversation { background: transparent; }
-.exploring .transcript { max-height: 38dvh; overflow-y: auto; padding: 8px 4px 12px; }
-.exploring .canvas { z-index: 0; padding-bottom: calc(var(--floating-composer-clearance, 96px) + 16px); scroll-padding-bottom: var(--floating-composer-clearance, 96px); }
-.chatFirst .transcript { padding-bottom: calc(var(--floating-composer-clearance, 96px) + 20px); scroll-padding-bottom: var(--floating-composer-clearance, 96px); }
-.manualEntry { flex: 0 1 auto; min-height: 0; max-height: 32%; overflow-y: auto; padding: 12px max(24px, calc((100% - var(--conversation-max)) / 2)) 0; }
-@media (max-width: 760px) { .manualEntry { padding-inline: 16px; } }
+.workspace.exploring {
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+}
+.exploring .canvas,
+.exploring .chatPanel {
+  grid-area: 1 / 1;
+}
+.exploring .chatPanel {
+  z-index: 1;
+  pointer-events: none;
+  background: transparent;
+  border: 0;
+  --fc-backing: var(--canvas);
+}
+.exploring .conversation {
+  background: transparent;
+}
+.exploring .transcript {
+  max-height: 38dvh;
+  overflow-y: auto;
+  padding: 8px 4px 12px;
+}
+.exploring .canvas {
+  z-index: 0;
+  padding-bottom: calc(var(--floating-composer-clearance, 96px) + 16px);
+  scroll-padding-bottom: var(--floating-composer-clearance, 96px);
+}
+.chatFirst .transcript {
+  padding-bottom: calc(var(--floating-composer-clearance, 96px) + 20px);
+  scroll-padding-bottom: var(--floating-composer-clearance, 96px);
+}
+.manualEntry {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 32%;
+  overflow-y: auto;
+  padding: 12px max(24px, calc((100% - var(--conversation-max)) / 2)) 0;
+}
+@media (max-width: 760px) {
+  .manualEntry {
+    padding-inline: 16px;
+  }
+}
 
-.chatFirst:has(> :global(.project-naming-notice)) { grid-template-rows: auto minmax(0, 1fr); }
-.chatFirst:has(> :global(.project-naming-notice)) .chatPanel { grid-row: 2; }
+.chatFirst:has(> :global(.project-naming-notice)) {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.chatFirst:has(> :global(.project-naming-notice)) .chatPanel {
+  grid-row: 2;
+}
 
 /* The transcript owns its scrolling even when Strategy hands off inside this view. */
-.chatFirst.workspace { grid-template-rows: minmax(0, 1fr); }
-.transcript.transcript { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; overflow-y: auto; }
-.loading.loading { min-height: 0; height: 100%; overflow-y: auto; padding: 24px; }
-.manualName { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin-bottom: 20px; }
-.manualName label { display: grid; gap: 6px; flex: 1 1 220px; min-width: 0; }
-.manualName input { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--paper); color: var(--text); font: inherit; font-size: 14px; line-height: 22px; }
-.manualName input::placeholder { color: var(--secondary); }
-.workspace .manualName > button { min-height: 44px; }
-.manualName > :global([role=alert]) { flex-basis: 100%; margin: 0; }
-.customNames { margin-block: 8px 28px; }
-.customNames > h2 { margin: 0 0 14px; font-size: 18px; line-height: 26px; font-weight: 500; }
-.workspace .canvas .customNames :global(.project-naming-grid) { grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
-@media (max-width: 760px) { .manualName input { font-size: 16px; } }
+.chatFirst.workspace {
+  grid-template-rows: minmax(0, 1fr);
+}
+.transcript.transcript {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+.loading.loading {
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+  padding: 24px;
+}
+.manualName {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 20px;
+}
+.manualName label {
+  display: grid;
+  gap: 6px;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.manualName input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  line-height: 22px;
+}
+.manualName input::placeholder {
+  color: var(--secondary);
+}
+.workspace .manualName > button {
+  min-height: 44px;
+}
+.manualName > :global([role="alert"]) {
+  flex-basis: 100%;
+  margin: 0;
+}
+.customNames {
+  margin-block: 8px 28px;
+}
+.customNames > h2 {
+  margin: 0 0 14px;
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 500;
+}
+.workspace .canvas .customNames :global(.project-naming-grid) {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+}
+@media (max-width: 760px) {
+  .manualName input {
+    font-size: 16px;
+  }
+}
 
-.inlineTurn { min-width: 0; flex-shrink: 0; }
+.inlineTurn {
+  min-width: 0;
+  flex-shrink: 0;
+}
 .questionCard {
   padding: 18px;
   border: 1px solid var(--border);
   border-radius: var(--panel-radius);
   background: var(--paper);
 }
-.questionCard h2 { font-size: 16px; line-height: 24px; margin: 0 0 4px; }
-.inlineTurn :global(.naming-approach-options) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.inlineManual { font-size: 13px; color: var(--secondary); }
-.inlineManual > summary { width: fit-content; cursor: pointer; }
+.questionCard h2 {
+  font-size: 16px;
+  line-height: 24px;
+  margin: 0 0 4px;
+}
+.inlineTurn :global(.naming-approach-options) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.inlineManual {
+  font-size: 13px;
+  color: var(--secondary);
+}
+.inlineManual > summary {
+  width: fit-content;
+  cursor: pointer;
+}
 @media (max-width: 700px) {
-  .questionCard { padding: 14px; }
-  .inlineTurn :global(.naming-approach-options) { grid-template-columns: 1fr; }
+  .questionCard {
+    padding: 14px;
+  }
+  .inlineTurn :global(.naming-approach-options) {
+    grid-template-columns: 1fr;
+  }
 }
 
-.lengthForm { display: grid; gap: 20px; min-width: 0; margin-top: 16px; }
-.fragmentFields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr)); gap: 16px; }
-.lengthForm .fragmentFields label { display: block; min-width: 0; font-size: 14px; font-weight: 550; line-height: 1.5; }
-.fragmentFields label span { font-size: 12px; font-weight: 400; color: var(--secondary); }
-.fragmentFields label textarea { display: block; width: 100%; min-height: 76px; margin-top: 7px; padding: 10px 12px; resize: vertical; border: 1px solid var(--border); border-radius: 7px; color: var(--text); background: var(--paper); font: inherit; font-weight: 400; }
-.lengthForm > p:last-child { margin-top: -10px; font-size: 12px; }
+.lengthForm {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+  margin-top: 16px;
+}
+.fragmentFields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr));
+  gap: 16px;
+}
+.lengthForm .fragmentFields label {
+  display: block;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 550;
+  line-height: 1.5;
+}
+.fragmentFields label span {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--secondary);
+}
+.fragmentFields label textarea {
+  display: block;
+  width: 100%;
+  min-height: 76px;
+  margin-top: 7px;
+  padding: 10px 12px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--text);
+  background: var(--paper);
+  font: inherit;
+  font-weight: 400;
+}
+.lengthForm > p:last-child {
+  margin-top: -10px;
+  font-size: 12px;
+}
 @media (max-width: 760px) {
-  .fragmentFields label textarea { font-size: 16px; }
+  .fragmentFields label textarea {
+    font-size: 16px;
+  }
 }
 
-.coverage { margin: 0 0 16px; }
-.coverage table { width: 100%; margin-top: 12px; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
-.coverage caption { text-align: start; font-weight: 500; margin-bottom: 10px; }
-.coverage :is(th,td) { padding: 9px 4px; border-bottom: 1px solid var(--border); text-align: start; }
-.coverage :is(th,td):last-child { text-align: end; }
-.coverage thead th { color: var(--secondary); font-size: 12px; font-weight: 500; }
-.coverage tbody th { font-weight: 400; }
+.coverage {
+  margin: 0 0 16px;
+}
+.coverage table {
+  width: 100%;
+  margin-top: 12px;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.coverage caption {
+  text-align: start;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+.coverage :is(th, td) {
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+}
+.coverage :is(th, td):last-child {
+  text-align: end;
+}
+.coverage thead th {
+  color: var(--secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+.coverage tbody th {
+  font-weight: 400;
+}
 
 /* Click-to-choose name cards (redesign, Voice · Name). */
-.openName { display: flex !important; flex-direction: column; align-items: flex-start; gap: 4px; width: 100%; padding: 0 40px 0 30px !important; cursor: pointer; white-space: normal !important; position: static; }
-.openName:disabled { cursor: default; }
-.nameRadio { position: absolute; left: 12px; top: 16px; width: 18px; height: 18px; box-sizing: border-box; border: 1.5px solid #c9c8c2; border-radius: 50%; background: var(--paper); }
-.openName[aria-pressed=true] .nameRadio { border: 5px solid var(--text); }
-.nameValue { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 18px; line-height: 24px; letter-spacing: -.2px; }
-.nameDetails { position: absolute; z-index: 1; right: 8px; bottom: 6px; padding: 2px 6px; border: 0; border-radius: 6px; background: transparent; color: var(--secondary); font: inherit; font-size: 12px; cursor: pointer; }
-.nameDetails:hover { color: var(--text); text-decoration: underline; }
-.workspace .canvas :global(.project-naming-card).compactCard:global(.is-selected), .inlineNames :global(.project-naming-card).compactCard:global(.is-selected) { box-shadow: inset 0 0 0 .5px var(--text), 0 10px 24px -16px rgb(25 25 25 / 35%); }
-.workspace .canvas .nameDetails:focus-visible, .inlineNames .nameDetails:focus-visible { outline: none; }
-.nameNote { font-size: 12px; line-height: 16px; color: var(--secondary); }
+.openName {
+  display: flex !important;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  padding: 0 40px 0 30px !important;
+  cursor: pointer;
+  white-space: normal !important;
+  position: static;
+}
+.openName:disabled {
+  cursor: default;
+}
+.nameRadio {
+  position: absolute;
+  left: 12px;
+  top: 16px;
+  width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  border: 1.5px solid #c9c8c2;
+  border-radius: 50%;
+  background: var(--paper);
+}
+.openName[aria-pressed="true"] .nameRadio {
+  border: 5px solid var(--text);
+}
+.nameValue {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 18px;
+  line-height: 24px;
+  letter-spacing: -0.2px;
+}
+.nameDetails {
+  position: absolute;
+  z-index: 1;
+  right: 8px;
+  bottom: 6px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--secondary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.nameDetails:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+.workspace .canvas :global(.project-naming-card).compactCard:global(.is-selected),
+.inlineNames :global(.project-naming-card).compactCard:global(.is-selected) {
+  box-shadow:
+    inset 0 0 0 0.5px var(--text),
+    0 10px 24px -16px rgb(25 25 25 / 35%);
+}
+.workspace .canvas .nameDetails:focus-visible,
+.inlineNames .nameDetails:focus-visible {
+  outline: none;
+}
+.nameNote {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--secondary);
+}
 
 /* Voice · Name in the conversation (design: FlowName): 64px cards with the
    choice mark and name on the left and the heart on the right. Domain checks
    live in Details, so the cards carry no domain status.
    Details stays available on hover and keyboard focus. */
-.inlineNames :global(.project-naming-card).compactCard { height: auto; min-height: 64px; padding: 0; border-radius: 14px; }
-.inlineNames .openName { min-height: 62px; justify-content: center; gap: 1px !important; padding: 0 48px 0 38px !important; }
-.inlineNames .nameRadio { left: 12px; top: 50%; width: 16px; height: 16px; margin-top: -8px; }
-.inlineNames .nameValue { font-size: 15px; line-height: 20px; font-weight: 500; letter-spacing: 0; }
-.inlineNames .heart { top: 50%; right: 6px; width: 40px; height: 40px; min-width: 40px; min-height: 40px; margin-top: -20px; padding: 12px; border-radius: 50%; }
-.inlineNames .nameDetails { right: 46px; bottom: auto; top: 50%; transform: translateY(-50%); padding: 3px 8px; background: var(--paper); opacity: 0; }
-.inlineNames :global(.project-naming-card).compactCard:hover .nameDetails, .inlineNames .nameDetails:focus-visible { opacity: 1; }
-.inlineNames .nameDetails:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 1px; }
+.inlineNames :global(.project-naming-card).compactCard {
+  height: auto;
+  min-height: 64px;
+  padding: 0;
+  border-radius: 14px;
+}
+.inlineNames .openName {
+  min-height: 62px;
+  justify-content: center;
+  gap: 1px !important;
+  padding: 0 48px 0 38px !important;
+}
+.inlineNames .nameRadio {
+  left: 12px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  margin-top: -8px;
+}
+.inlineNames .nameValue {
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.inlineNames .heart {
+  top: 50%;
+  right: 6px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  margin-top: -20px;
+  padding: 12px;
+  border-radius: 50%;
+}
+.inlineNames .nameDetails {
+  right: 46px;
+  bottom: auto;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 3px 8px;
+  background: var(--paper);
+  opacity: 0;
+}
+.inlineNames :global(.project-naming-card).compactCard:hover .nameDetails,
+.inlineNames .nameDetails:focus-visible {
+  opacity: 1;
+}
+.inlineNames .nameDetails:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 1px;
+}

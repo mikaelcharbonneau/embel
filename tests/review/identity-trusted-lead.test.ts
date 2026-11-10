@@ -1,5 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { createIdentityTrustedDatabase, bindIdentityFixturePrincipals, asIdentityFixture } from "../database/identity-trusted-database";
+import {
+  createIdentityTrustedDatabase,
+  bindIdentityFixturePrincipals,
+  asIdentityFixture,
+} from "../database/identity-trusted-database";
 import { OWNER_A, resetFixture, seedProject } from "../database/local-supabase";
 import { seedIdentityRoot } from "../database/identity-system-database";
 
@@ -7,37 +11,64 @@ import { seedIdentityRoot } from "../database/identity-system-database";
 // login. No helper-call interception, passwords, network or live claims.
 describe("trusted Identity preparation capability: independent lead probes", () => {
   let db: Awaited<ReturnType<typeof createIdentityTrustedDatabase>>;
-  beforeAll(async () => { db = await createIdentityTrustedDatabase(); }, 30_000);
-  afterAll(async () => { await db?.close(); });
-  beforeEach(async () => { await resetFixture(db); await bindIdentityFixturePrincipals(db); });
+  beforeAll(async () => {
+    db = await createIdentityTrustedDatabase();
+  }, 30_000);
+  afterAll(async () => {
+    await db?.close();
+  });
+  beforeEach(async () => {
+    await resetFixture(db);
+    await bindIdentityFixturePrincipals(db);
+  });
 
   async function source() {
     const project = await seedProject(db);
     const seeded = await seedIdentityRoot(db, project.id);
-    return { project, request: { systemVersionId: seeded.system.id,
-      expectedProjectRevision: seeded.input.projectRevision,
-      expectedReferenceRevision: seeded.input.referenceSnapshot.referenceRevision,
-      expectedPreferencesRevision: 0, expectedIdentityRevision: 0, acceptEarlierBasis: false } };
+    return {
+      project,
+      request: {
+        systemVersionId: seeded.system.id,
+        expectedProjectRevision: seeded.input.projectRevision,
+        expectedReferenceRevision: seeded.input.referenceSnapshot.referenceRevision,
+        expectedPreferencesRevision: 0,
+        expectedIdentityRevision: 0,
+        acceptEarlierBasis: false,
+      },
+    };
   }
-  const prepare = (project: string, request: unknown) => db.query(
-    "select fluid_private.prepare_identity_transaction($1::uuid,$2::jsonb,false) value", [project, JSON.stringify(request)]);
-  const commit = (project: string, request: unknown) => db.query(
-    "select fluid_private.commit_identity_transaction($1::uuid,$2::jsonb,'{}'::jsonb) value", [project, JSON.stringify(request)]);
-  async function ownerClaim() { await db.query("select set_config('request.jwt.claim.sub',$1,false)", [OWNER_A]); }
+  const prepare = (project: string, request: unknown) =>
+    db.query("select fluid_private.prepare_identity_transaction($1::uuid,$2::jsonb,false) value", [
+      project,
+      JSON.stringify(request),
+    ]);
+  const commit = (project: string, request: unknown) =>
+    db.query("select fluid_private.commit_identity_transaction($1::uuid,$2::jsonb,'{}'::jsonb) value", [
+      project,
+      JSON.stringify(request),
+    ]);
+  async function ownerClaim() {
+    await db.query("select set_config('request.jwt.claim.sub',$1,false)", [OWNER_A]);
+  }
   async function transaction(run: () => Promise<void>) {
     await db.exec("begin");
-    try { await run(); }
-    finally { await db.exec("rollback"); }
+    try {
+      await run();
+    } finally {
+      await db.exec("rollback");
+    }
   }
 
-  it.each(["table", "view"])("rejects a caller-created temporary %s before owned preparation", async kind => {
+  it.each(["table", "view"])("rejects a caller-created temporary %s before owned preparation", async (kind) => {
     const { project, request } = await source();
     await asIdentityFixture(db, OWNER_A, async () => {
       await ownerClaim();
       await transaction(async () => {
-        await db.exec(kind === "table"
-          ? "create temporary table identity_transaction_preparation(project_id uuid,request jsonb,payload jsonb)"
-          : "create temporary view identity_transaction_preparation as select null::uuid project_id");
+        await db.exec(
+          kind === "table"
+            ? "create temporary table identity_transaction_preparation(project_id uuid,request jsonb,payload jsonb)"
+            : "create temporary view identity_transaction_preparation as select null::uuid project_id",
+        );
         await expect(prepare(project.id, request)).rejects.toMatchObject({ code: "42501" });
       });
     });
@@ -78,7 +109,9 @@ describe("trusted Identity preparation capability: independent lead probes", () 
       await ownerClaim();
       await transaction(async () => {
         await prepare(project.id, request);
-        await expect(db.query("select * from pg_temp.identity_transaction_preparation")).rejects.toMatchObject({ code: "42501" });
+        await expect(db.query("select * from pg_temp.identity_transaction_preparation")).rejects.toMatchObject({
+          code: "42501",
+        });
       });
     });
   });

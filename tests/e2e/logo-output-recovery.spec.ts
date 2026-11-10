@@ -7,7 +7,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { assetsUrl, createVisualJourneyFixture, directionsUrl } from "../fixtures/visual-identity-journey";
 
 async function selectDirection(page: Page) {
-  const fixture = createVisualJourneyFixture(), health = await fixture.setup(page);
+  const fixture = createVisualJourneyFixture(),
+    health = await fixture.setup(page);
   await page.goto(directionsUrl);
   await page.getByRole("button", { name: "Create three directions", exact: true }).click();
   await expect.poll(() => fixture.admissions.length).toBe(1);
@@ -19,13 +20,17 @@ async function selectDirection(page: Page) {
 }
 
 for (const source of ["font", "logo"] as const) {
-  test(`a temporary ${source} download failure retries asset preparation without generating again`, async ({ page }) => {
+  test(`a temporary ${source} download failure retries asset preparation without generating again`, async ({
+    page,
+  }) => {
     test.setTimeout(90_000);
     const { fixture, health } = await selectDirection(page);
     let reads = 0;
-    const path = source === "font" ? "/fonts/brand/lora-variable.ttf"
-      : `/api/assets/${fixture.sourceLogo.preview.reference.versionId}/preview`;
-    await page.route(`**${path}`, async route => {
+    const path =
+      source === "font"
+        ? "/fonts/brand/lora-variable.ttf"
+        : `/api/assets/${fixture.sourceLogo.preview.reference.versionId}/preview`;
+    await page.route(`**${path}`, async (route) => {
       // The guidelines also show the chosen font on the page; only the kit's own read fails.
       if (route.request().resourceType() === "font") return route.fallback();
       reads++;
@@ -45,10 +50,13 @@ for (const source of ["font", "logo"] as const) {
     const download = await received;
     expect(await download.failure()).toBeNull();
     const files = unzipSync(await readFile((await download.path())!));
-    expect(createHash("sha256").update(files["direction/selected-direction.png"]!).digest("hex")).toBe(fixture.systems[0]!.board.asset.contentHash);
+    expect(createHash("sha256").update(files["direction/selected-direction.png"]!).digest("hex")).toBe(
+      fixture.systems[0]!.board.asset.contentHash,
+    );
     expect(Buffer.from(files["logo/logo-original.png"]!)).toEqual(fixture.logoBytes);
     expect(reads).toBe(2);
-    expect(fixture.admissions).toHaveLength(1); expect(fixture.selections).toHaveLength(1);
+    expect(fixture.admissions).toHaveLength(1);
+    expect(fixture.selections).toHaveLength(1);
     expect(health.pageErrors).toEqual([]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });

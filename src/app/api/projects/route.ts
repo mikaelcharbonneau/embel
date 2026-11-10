@@ -12,7 +12,9 @@ export async function GET() {
   try {
     const auth = await getAuthenticatedContext();
     return privateJson({ projects: await listProjects(auth) });
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }
 
 export async function POST(request: Request) {
@@ -22,5 +24,7 @@ export async function POST(request: Request) {
     assertExpectedAccount(request, auth.userId);
     const input = await readJson(request, createProjectInputSchema, PROJECT_MUTATION_MAX_BYTES);
     return privateJson({ project: await createProject(auth, input) }, 201);
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

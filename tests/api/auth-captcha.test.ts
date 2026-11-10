@@ -1,7 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-const doubles = vi.hoisted(() => ({ transition: vi.fn(), signIn: vi.fn(), signUp: vi.fn(), reset: vi.fn(), resend: vi.fn(), signOut: vi.fn(), commit: vi.fn() }));
+const doubles = vi.hoisted(() => ({
+  transition: vi.fn(),
+  signIn: vi.fn(),
+  signUp: vi.fn(),
+  reset: vi.fn(),
+  resend: vi.fn(),
+  signOut: vi.fn(),
+  commit: vi.fn(),
+}));
 vi.mock("../../src/server/auth/client", () => ({ createAuthTransitionClient: doubles.transition }));
 import { POST as signIn } from "../../src/app/api/auth/sign-in/route";
 import { POST as signUp } from "../../src/app/api/auth/sign-up/route";
@@ -14,23 +22,49 @@ const email = "captcha-fixture@example.invalid";
 const password = "inert fixture password";
 const longPassword = "a long enough password";
 const token = "inert-turnstile-token";
-const user = { id: "aaaaaaaa-1111-4111-8111-111111111111", is_anonymous: false, email, email_confirmed_at: "2026-10-13T10:00:00Z" };
-const captchaError = { name: "AuthApiError", status: 400, code: "captcha_failed", message: "captcha verification process failed" };
+const user = {
+  id: "aaaaaaaa-1111-4111-8111-111111111111",
+  is_anonymous: false,
+  email,
+  email_confirmed_at: "2026-10-13T10:00:00Z",
+};
+const captchaError = {
+  name: "AuthApiError",
+  status: 400,
+  code: "captcha_failed",
+  message: "captcha verification process failed",
+};
 const redirect = `${origin}/auth/callback`;
 
-const call = (handler: typeof signIn, action: string, body: unknown) => handler(new Request(`${origin}/api/auth/${action}`, {
-  method: "POST", headers: { origin, "content-type": "application/json" }, body: JSON.stringify(body),
-}));
+const call = (handler: typeof signIn, action: string, body: unknown) =>
+  handler(
+    new Request(`${origin}/api/auth/${action}`, {
+      method: "POST",
+      headers: { origin, "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  );
 
 beforeEach(() => {
   vi.resetAllMocks();
   vi.stubEnv("APP_ORIGIN", origin);
   doubles.transition.mockResolvedValue({
-    client: { auth: { signInWithPassword: doubles.signIn, signUp: doubles.signUp, resetPasswordForEmail: doubles.reset, resend: doubles.resend, signOut: doubles.signOut } },
+    client: {
+      auth: {
+        signInWithPassword: doubles.signIn,
+        signUp: doubles.signUp,
+        resetPasswordForEmail: doubles.reset,
+        resend: doubles.resend,
+        signOut: doubles.signOut,
+      },
+    },
     commitCookies: doubles.commit,
   });
   doubles.signIn.mockResolvedValue({ data: { user, session: { user } }, error: null });
-  doubles.signUp.mockResolvedValue({ data: { user: { ...user, email_confirmed_at: null }, session: null }, error: null });
+  doubles.signUp.mockResolvedValue({
+    data: { user: { ...user, email_confirmed_at: null }, session: null },
+    error: null,
+  });
   doubles.reset.mockResolvedValue({ data: {}, error: null });
   doubles.resend.mockResolvedValue({ data: {}, error: null });
   doubles.signOut.mockResolvedValue({ error: null });
@@ -43,24 +77,40 @@ describe("Turnstile token forwarding", () => {
     expect(doubles.signIn).toHaveBeenCalledExactlyOnceWith({ email, password, options: { captchaToken: token } });
 
     expect((await call(signUp, "sign-up", { email, password: longPassword, captchaToken: token })).status).toBe(200);
-    expect(doubles.signUp).toHaveBeenCalledExactlyOnceWith({ email, password: longPassword, options: { emailRedirectTo: redirect, captchaToken: token } });
+    expect(doubles.signUp).toHaveBeenCalledExactlyOnceWith({
+      email,
+      password: longPassword,
+      options: { emailRedirectTo: redirect, captchaToken: token },
+    });
 
     expect((await call(passwordReset, "password-reset", { email, captchaToken: token })).status).toBe(200);
     expect(doubles.reset).toHaveBeenCalledExactlyOnceWith(email, { redirectTo: redirect, captchaToken: token });
 
     expect((await call(resend, "resend-confirmation", { email, captchaToken: token })).status).toBe(200);
-    expect(doubles.resend).toHaveBeenCalledExactlyOnceWith({ type: "signup", email, options: { emailRedirectTo: redirect, captchaToken: token } });
+    expect(doubles.resend).toHaveBeenCalledExactlyOnceWith({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: redirect, captchaToken: token },
+    });
   });
 
   it("changes nothing when no token is sent (site key unset)", async () => {
     await call(signIn, "sign-in", { email, password });
     expect(doubles.signIn).toHaveBeenCalledExactlyOnceWith({ email, password });
     await call(signUp, "sign-up", { email, password: longPassword });
-    expect(doubles.signUp).toHaveBeenCalledExactlyOnceWith({ email, password: longPassword, options: { emailRedirectTo: redirect } });
+    expect(doubles.signUp).toHaveBeenCalledExactlyOnceWith({
+      email,
+      password: longPassword,
+      options: { emailRedirectTo: redirect },
+    });
     await call(passwordReset, "password-reset", { email });
     expect(doubles.reset).toHaveBeenCalledExactlyOnceWith(email, { redirectTo: redirect });
     await call(resend, "resend-confirmation", { email });
-    expect(doubles.resend).toHaveBeenCalledExactlyOnceWith({ type: "signup", email, options: { emailRedirectTo: redirect } });
+    expect(doubles.resend).toHaveBeenCalledExactlyOnceWith({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: redirect },
+    });
   });
 
   it("rejects an empty or oversized token before reaching Supabase", async () => {

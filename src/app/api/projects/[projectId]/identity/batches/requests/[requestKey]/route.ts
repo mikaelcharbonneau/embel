@@ -7,7 +7,10 @@ export async function GET(request: Request, context: { params: Promise<{ project
   try {
     const auth = await getAuthenticatedContext();
     if (new URL(request.url).search) throw new ApiError("invalid_input");
-    const { projectId, requestKey } = await context.params, batch = await readIdentityBatchRequest(auth, projectId, requestKey);
+    const { projectId, requestKey } = await context.params,
+      batch = await readIdentityBatchRequest(auth, projectId, requestKey);
     return privateJson(batch ? { status: "found", batch } : { status: "not_found" });
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

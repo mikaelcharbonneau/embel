@@ -11,9 +11,12 @@ export async function POST(request: Request) {
     assertMutationOrigin(request);
     await readJson(request, z.strictObject({}), 1024);
     const client = await createRouteAuthClient(request.signal);
-    const { error } = await client.auth.signOut({ scope: "local" })
-      .catch(() => { throw new ApiError("integration_unavailable"); });
+    const { error } = await client.auth.signOut({ scope: "local" }).catch(() => {
+      throw new ApiError("integration_unavailable");
+    });
     if (error) throw authFailure(error);
     return privateJson({ authenticated: false });
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

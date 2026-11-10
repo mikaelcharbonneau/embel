@@ -24,7 +24,12 @@ export function passwordUpdateFailure(error: { status?: number; name?: string; c
   if (error.status === 429) return new ApiError("auth_rate_limited");
   if (error.code === "weak_password" || error.name === "AuthWeakPasswordError") return new ApiError("weak_password");
   if (error.code === "same_password") return new ApiError("same_password");
-  if (error.code === "reauthentication_needed" || error.code === "session_not_found" || error.status === 401 || error.status === 403) {
+  if (
+    error.code === "reauthentication_needed" ||
+    error.code === "session_not_found" ||
+    error.status === 401 ||
+    error.status === 403
+  ) {
     return new ApiError("recovery_required");
   }
   return new ApiError("integration_unavailable");
@@ -32,7 +37,10 @@ export function passwordUpdateFailure(error: { status?: number; name?: string; c
 
 export function signUpFailure(error: { status?: number; name?: string; code?: string }): ApiError {
   const failure = authFailure(error);
-  if (failure.code === "invalid_credentials" && ["email_address_not_authorized", "signup_disabled", "email_provider_disabled"].includes(error.code ?? "")) {
+  if (
+    failure.code === "invalid_credentials" &&
+    ["email_address_not_authorized", "signup_disabled", "email_provider_disabled"].includes(error.code ?? "")
+  ) {
     return new ApiError("integration_unavailable");
   }
   return failure.code === "invalid_credentials" ? new ApiError("signup_failed") : failure;

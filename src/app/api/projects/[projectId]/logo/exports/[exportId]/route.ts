@@ -8,5 +8,7 @@ export async function GET(request: Request, context: { params: Promise<{ project
     const auth = await getAuthenticatedContext();
     const { projectId, exportId } = await context.params;
     return privateJson(await getLogoExport(auth, projectId, exportId, request.signal));
-  } catch (error) { return logoErrorResponse(error); }
+  } catch (error) {
+    return logoErrorResponse(error);
+  }
 }

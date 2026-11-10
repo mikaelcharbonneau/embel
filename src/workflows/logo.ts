@@ -1,7 +1,17 @@
 import { getWorkflowMetadata, sleep } from "workflow";
 import { checkRun, claimRun, finishRun, type ClaimedRun } from "./engine-steps";
 import type { LogoImageTarget } from "@/server/engine/logo-run";
-import { beginLogoImages, createStyleNote, drawLogoImage, failStyleNote, pollStyleNote, prepareStyleNote, recordLogoImageFailure, settleStyleNote, stopStyleNote } from "./logo-steps";
+import {
+  beginLogoImages,
+  createStyleNote,
+  drawLogoImage,
+  failStyleNote,
+  pollStyleNote,
+  prepareStyleNote,
+  recordLogoImageFailure,
+  settleStyleNote,
+  stopStyleNote,
+} from "./logo-steps";
 
 /** Tries per image when nothing was drawn (429, 5xx, no connection). */
 const IMAGE_TRIES = 3;
@@ -30,7 +40,10 @@ export async function logoImagesGeneration(runId: string) {
   try {
     const { targets } = await beginLogoImages(run);
     let settled = false;
-    const work = Promise.all(targets.map(target => drawUntilSettled(run, target))).then(ends => { settled = true; return ends; });
+    const work = Promise.all(targets.map((target) => drawUntilSettled(run, target))).then((ends) => {
+      settled = true;
+      return ends;
+    });
     // After Stop the round returns early; images still being drawn finish on their own.
     work.catch(() => undefined);
     while (!settled) {
@@ -38,14 +51,16 @@ export async function logoImagesGeneration(runId: string) {
       if (settled) break;
       const state = await checkRun(runId);
       if (state.status !== "running") return { status: state.status };
-      if (state.cancelRequested || state.paused) return await finishRun(runId, "cancelled", state.paused ? "generation_paused" : "cancelled");
+      if (state.cancelRequested || state.paused)
+        return await finishRun(runId, "cancelled", state.paused ? "generation_paused" : "cancelled");
     }
     const ends = await work;
     const state = await checkRun(runId);
     if (state.status !== "running") return { status: state.status };
-    if (state.cancelRequested || state.paused) return await finishRun(runId, "cancelled", state.paused ? "generation_paused" : "cancelled");
+    if (state.cancelRequested || state.paused)
+      return await finishRun(runId, "cancelled", state.paused ? "generation_paused" : "cancelled");
     // The database keeps a credit per delivered image; a round with none fails with its first reason.
-    const reason = ends.find(end => end.state !== "succeeded")?.code ?? null;
+    const reason = ends.find((end) => end.state !== "succeeded")?.code ?? null;
     return await finishRun(runId, "succeeded", reason && /^[a-z_]{1,64}$/u.test(reason) ? reason : null);
   } catch (error) {
     await finishRun(runId, "failed", errorCode(error));
@@ -58,15 +73,18 @@ async function drawUntilSettled(run: ClaimedRun, target: LogoImageTarget): Promi
   for (let attempt = 1; attempt <= IMAGE_TRIES; attempt++) {
     // No paid call starts after a Stop or while the engine is paused.
     const state = await checkRun(run.id);
-    if (state.status !== "running" || state.cancelRequested || state.paused) return { state: "stopped", code: "cancelled" };
+    if (state.status !== "running" || state.cancelRequested || state.paused)
+      return { state: "stopped", code: "cancelled" };
     let result;
-    try { result = await drawLogoImage(run, target, attempt); }
-    catch {
+    try {
+      result = await drawLogoImage(run, target, attempt);
+    } catch {
       // The step stopped answering after it may have sent the image.
       return recordLogoImageFailure(run, target.key, "provider_outcome_unknown");
     }
     if (result.state !== "retry") return result;
-    if (attempt < IMAGE_TRIES) await sleep(`${Math.ceil(Math.max(1000, Math.min(result.retryAfterMs ?? 2 ** attempt * 2000, 60_000)) / 1000)}s`);
+    if (attempt < IMAGE_TRIES)
+      await sleep(`${Math.ceil(Math.max(1000, Math.min(result.retryAfterMs ?? 2 ** attempt * 2000, 60_000)) / 1000)}s`);
   }
   return recordLogoImageFailure(run, target.key, "provider_unavailable");
 }
@@ -83,13 +101,17 @@ export async function logoStyleNoteGeneration(runId: string) {
   if (run.status !== "running") return { status: run.status };
   try {
     const references = (run.input as { references?: { referenceId: string }[] }).references ?? [];
-    const results = await Promise.all(references.map(ref => writeNote(run, ref.referenceId)));
-    if (results.some(result => result.state === "stopped")) {
+    const results = await Promise.all(references.map((ref) => writeNote(run, ref.referenceId)));
+    if (results.some((result) => result.state === "stopped")) {
       const state = await checkRun(runId);
       return await finishRun(runId, "cancelled", state.paused ? "generation_paused" : "cancelled");
     }
-    const written = results.some(result => result.state === "written");
-    return await finishRun(runId, written ? "succeeded" : "failed", written ? null : results.find(result => result.code)?.code ?? "no_notes_written");
+    const written = results.some((result) => result.state === "written");
+    return await finishRun(
+      runId,
+      written ? "succeeded" : "failed",
+      written ? null : (results.find((result) => result.code)?.code ?? "no_notes_written"),
+    );
   } catch (error) {
     await finishRun(runId, "failed", errorCode(error));
     throw error;
@@ -100,14 +122,24 @@ async function writeNote(run: ClaimedRun, referenceId: string) {
   const prepared = await prepareStyleNote(run, referenceId);
   if ("failed" in prepared) return { referenceId, state: "failed", code: prepared.failed };
   const state = await checkRun(run.id);
-  if (state.status !== "running" || state.cancelRequested || state.paused) return { referenceId, state: "stopped", code: "cancelled" };
+  if (state.status !== "running" || state.cancelRequested || state.paused)
+    return { referenceId, state: "stopped", code: "cancelled" };
   let responseId: string;
-  try { ({ responseId } = await createStyleNote(prepared)); }
-  catch (error) {
+  try {
+    ({ responseId } = await createStyleNote(prepared));
+  } catch (error) {
     // Nothing was sent after three tries, or OpenAI refused it: both can be asked again
     // later. Any other failure may have sent it, so it is never sent again.
     const code = errorCode(error);
-    return failStyleNote(run, referenceId, code === "provider_request_rejected" ? "provider_rejected" : code === "provider_unavailable" ? "provider_unavailable" : "send_interrupted");
+    return failStyleNote(
+      run,
+      referenceId,
+      code === "provider_request_rejected"
+        ? "provider_rejected"
+        : code === "provider_unavailable"
+          ? "provider_unavailable"
+          : "send_interrupted",
+    );
   }
   for (const seconds of NOTE_POLL_DELAYS) {
     await sleep(`${seconds}s`);

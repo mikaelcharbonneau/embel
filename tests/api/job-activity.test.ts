@@ -7,7 +7,9 @@ import { GET } from "../../src/app/api/jobs/route";
 import { ApiError } from "../../src/server/http/errors";
 
 describe("owned activity HTTP boundary", () => {
-  beforeEach(() => { vi.resetAllMocks(); });
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
   it("does not query activity without a verified session", async () => {
     mocks.auth.mockRejectedValue(new ApiError("unauthenticated"));
     const response = await GET();

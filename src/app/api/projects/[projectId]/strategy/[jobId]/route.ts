@@ -11,7 +11,9 @@ export async function GET(_request: Request, context: RouteContext) {
     const auth = await getAuthenticatedContext();
     const { projectId, jobId } = await context.params;
     return privateJson({ job: await getStrategyJob(auth, projectId, jobId) });
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }
 
 export async function DELETE(request: Request, context: RouteContext) {
@@ -20,5 +22,7 @@ export async function DELETE(request: Request, context: RouteContext) {
     const auth = await getAuthenticatedContext();
     const { projectId, jobId } = await context.params;
     return privateJson({ job: await cancelStrategyJob(auth, projectId, jobId) });
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

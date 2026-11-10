@@ -12,5 +12,7 @@ export async function POST(request: Request, context: { params: Promise<{ projec
     const { projectId } = await context.params;
     const input = await readJson(request, selectLogoRasterInputSchema, LOGO_MUTATION_MAX_BYTES);
     return privateJson(await selectLogoRaster(auth, projectId, input));
-  } catch (error) { return logoErrorResponse(error); }
+  } catch (error) {
+    return logoErrorResponse(error);
+  }
 }

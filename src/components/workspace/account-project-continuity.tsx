@@ -4,8 +4,17 @@ import { ProjectContinuityPanel } from "@/features/brand-lifecycle/continuity-pa
 import { useAccountSession, type VerifiedAccount } from "./account-session";
 
 /** Mount with an owner/project/generation key after the project has been verified. */
-export function AccountProjectContinuity({ account, project, dirty, conflicted, busy }: {
-  account: VerifiedAccount; project: AccountProject; dirty: boolean; conflicted: boolean;
+export function AccountProjectContinuity({
+  account,
+  project,
+  dirty,
+  conflicted,
+  busy,
+}: {
+  account: VerifiedAccount;
+  project: AccountProject;
+  dirty: boolean;
+  conflicted: boolean;
   busy: boolean;
 }) {
   const { isCurrent } = useAccountSession();

@@ -13,5 +13,7 @@ export async function POST(request: Request, context: RouteContext) {
     const auth = await getAuthenticatedContext();
     const { projectId, runId } = await context.params;
     return privateJson({ run: await cancelGeneration(auth, projectId, runId) });
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

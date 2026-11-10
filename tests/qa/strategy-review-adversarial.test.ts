@@ -3,40 +3,114 @@ import { accountProjectSchema } from "@/domain/project-api";
 import { contextSnapshotSchema, missingStrategy, personalitySchema } from "@/domain/projects";
 import { namingSourceSchema } from "@/domain/naming";
 import {
-  accountProjectDraft, createAccountInput, draftContext, draftPersonality, draftPositioning,
-  isCompetitorReviewComplete, isPersonalityReviewComplete, isPositioningReviewComplete,
-  personalityReviewKey, positioningReviewKey,
-  personalityReviewValidationMessage, positioningReviewValidationMessage,
+  accountProjectDraft,
+  createAccountInput,
+  draftContext,
+  draftPersonality,
+  draftPositioning,
+  isCompetitorReviewComplete,
+  isPersonalityReviewComplete,
+  isPositioningReviewComplete,
+  personalityReviewKey,
+  positioningReviewKey,
+  personalityReviewValidationMessage,
+  positioningReviewValidationMessage,
 } from "@/components/workspace/project-draft-adapter";
 
 // Independent synthetic data only. No provider inference, remote identities or storage.
 const now = "2026-10-03T03:00:00Z";
 const profile = { sincerity: 0, excitement: 35, competence: 100, sophistication: 65, ruggedness: 20 };
-const citation = { url: "https://example.com/strategy-fixture", title: "Synthetic preserved research", retrievedAt: now };
+const citation = {
+  url: "https://example.com/strategy-fixture",
+  title: "Synthetic preserved research",
+  retrievedAt: now,
+};
 const nameSource = namingSourceSchema.parse({
-  id: "99999999-9999-4999-8999-999999999999", value: "Luma", origin: "workshop", createdAt: now,
-  history: [{ id: "88888888-8888-4888-8888-888888888888", createdAt: now, input: { kind: "affixes", seed: "Lum", prefixes: [], suffixes: ["a"], separator: "" }, output: "Luma" }],
+  id: "99999999-9999-4999-8999-999999999999",
+  value: "Luma",
+  origin: "workshop",
+  createdAt: now,
+  history: [
+    {
+      id: "88888888-8888-4888-8888-888888888888",
+      createdAt: now,
+      input: { kind: "affixes", seed: "Lum", prefixes: [], suffixes: ["a"], separator: "" },
+      output: "Luma",
+    },
+  ],
 });
 const project = accountProjectSchema.parse({
-  id: "aaaaaaaa-1111-4111-8111-111111111111", owner_id: "bbbbbbbb-1111-4111-8111-111111111111",
-  title: "Strategy QA fixture", scope: "complete_brand", current_revision: 4, created_at: now,
+  id: "aaaaaaaa-1111-4111-8111-111111111111",
+  owner_id: "bbbbbbbb-1111-4111-8111-111111111111",
+  title: "Strategy QA fixture",
+  scope: "complete_brand",
+  current_revision: 4,
+  created_at: now,
   context: {
-    description: "A fixture lighting studio making repairable lamps for small homes.", activity: "Lighting studio", offering: "Repairable lamps", knownAudience: "Small-home residents", reformulationConfirmed: true,
+    description: "A fixture lighting studio making repairable lamps for small homes.",
+    activity: "Lighting studio",
+    offering: "Repairable lamps",
+    knownAudience: "Small-home residents",
+    reformulationConfirmed: true,
     competitors: [
-      { id: "cccccccc-1111-4111-8111-111111111111", name: "Retained fixture", relevance: "Similar lighting need", selected: true, origin: "research", sources: [citation] },
-      { id: "dddddddd-1111-4111-8111-111111111111", name: "Unretained fixture", relevance: "Other category", selected: false, origin: "user", sources: [] },
-    ], competitorReviewComplete: true,
-    audienceSegments: [
-      { id: "eeeeeeee-1111-4111-8111-111111111111", label: "Small-home residents", needs: ["Warm light", "Easy repair"], reason: "Limited space", selected: true, origin: "proposal", sources: [citation] },
-      { id: "ffffffff-1111-4111-8111-111111111111", label: "Unselected fixture", needs: ["Different lighting"], reason: "A later option", selected: false, origin: "user", sources: [] },
+      {
+        id: "cccccccc-1111-4111-8111-111111111111",
+        name: "Retained fixture",
+        relevance: "Similar lighting need",
+        selected: true,
+        origin: "research",
+        sources: [citation],
+      },
+      {
+        id: "dddddddd-1111-4111-8111-111111111111",
+        name: "Unretained fixture",
+        relevance: "Other category",
+        selected: false,
+        origin: "user",
+        sources: [],
+      },
     ],
-    personality: profile, positioning: "Repairable lighting that makes small homes easier to live in.",
-    selectedName: "Luma", namingSource: nameSource, creativeLocale: "fr-CA",
-    intake: { step: "positioning", suppliedName: "Luma", namingNotes: "Preserve naming notes", identityNotes: "Preserve identity notes", audienceReviewedAt: now, personalityReviewedAt: now, positioningReviewedAt: now },
+    competitorReviewComplete: true,
+    audienceSegments: [
+      {
+        id: "eeeeeeee-1111-4111-8111-111111111111",
+        label: "Small-home residents",
+        needs: ["Warm light", "Easy repair"],
+        reason: "Limited space",
+        selected: true,
+        origin: "proposal",
+        sources: [citation],
+      },
+      {
+        id: "ffffffff-1111-4111-8111-111111111111",
+        label: "Unselected fixture",
+        needs: ["Different lighting"],
+        reason: "A later option",
+        selected: false,
+        origin: "user",
+        sources: [],
+      },
+    ],
+    personality: profile,
+    positioning: "Repairable lighting that makes small homes easier to live in.",
+    selectedName: "Luma",
+    namingSource: nameSource,
+    creativeLocale: "fr-CA",
+    intake: {
+      step: "positioning",
+      suppliedName: "Luma",
+      namingNotes: "Preserve naming notes",
+      identityNotes: "Preserve identity notes",
+      audienceReviewedAt: now,
+      personalityReviewedAt: now,
+      positioningReviewedAt: now,
+    },
   },
 });
 
-function reviewedDraft() { return accountProjectDraft(structuredClone(project)); }
+function reviewedDraft() {
+  return accountProjectDraft(structuredClone(project));
+}
 function confirmPersonality(draft: ReturnType<typeof reviewedDraft>) {
   draft.personalityReviewedAt = now;
   draft.personalityReviewKey = personalityReviewKey(draft);
@@ -57,8 +131,13 @@ describe("independent strategy contract attacks", () => {
 
   it("accepts all five integer boundary values, including zero", () => {
     expect(personalitySchema.parse(profile)).toEqual(profile);
-    expect(personalitySchema.parse(Object.fromEntries(Object.keys(profile).map((dimension) => [dimension, 0])))).toEqual({ sincerity: 0, excitement: 0, competence: 0, sophistication: 0, ruggedness: 0 });
-    expect(personalitySchema.safeParse(Object.fromEntries(Object.keys(profile).map((dimension) => [dimension, 100]))).success).toBe(true);
+    expect(
+      personalitySchema.parse(Object.fromEntries(Object.keys(profile).map((dimension) => [dimension, 0]))),
+    ).toEqual({ sincerity: 0, excitement: 0, competence: 0, sophistication: 0, ruggedness: 0 });
+    expect(
+      personalitySchema.safeParse(Object.fromEntries(Object.keys(profile).map((dimension) => [dimension, 100])))
+        .success,
+    ).toBe(true);
   });
 
   for (const value of [-1, 101, 0.5, NaN, Infinity, null, "50", true]) {
@@ -109,7 +188,10 @@ describe("independent review bindings and preserved strategy", () => {
     expect(isPersonalityReviewComplete(draft)).toBe(false);
     expect(isPositioningReviewComplete(draft)).toBe(false);
     expect(missingStrategy(context)).toEqual(expect.arrayContaining(["personality", "positioning"]));
-    expect(draftContext(draft, context).intake).toMatchObject({ personalityReviewedAt: null, positioningReviewedAt: null });
+    expect(draftContext(draft, context).intake).toMatchObject({
+      personalityReviewedAt: null,
+      positioningReviewedAt: null,
+    });
   });
 
   it("a manually initialized valid profile is still unreviewed until the explicit action", () => {
@@ -126,7 +208,16 @@ describe("independent review bindings and preserved strategy", () => {
   });
 
   it("explicit null and empty values clear old data rather than restoring a preserved snapshot", () => {
-    const draft = { ...reviewedDraft(), preservedContext: project.context, personality: null, positioning: "", personalityReviewedAt: null, personalityReviewKey: null, positioningReviewedAt: null, positioningReviewKey: null };
+    const draft = {
+      ...reviewedDraft(),
+      preservedContext: project.context,
+      personality: null,
+      positioning: "",
+      personalityReviewedAt: null,
+      personalityReviewKey: null,
+      positioningReviewedAt: null,
+      positioningReviewKey: null,
+    };
     const input = createAccountInput(draft);
     expect(input.context.personality).toBeNull();
     expect(input.context.positioning).toBe("");
@@ -186,7 +277,10 @@ describe("independent review bindings and preserved strategy", () => {
     draft.competitors![1]!.relevance = "An exploratory alternative";
     expect(isPersonalityReviewComplete(draft)).toBe(true);
     expect(isPositioningReviewComplete(draft)).toBe(true);
-    expect(draftContext(draft, project.context).intake).toMatchObject({ personalityReviewedAt: now, positioningReviewedAt: now });
+    expect(draftContext(draft, project.context).intake).toMatchObject({
+      personalityReviewedAt: now,
+      positioningReviewedAt: now,
+    });
   });
 
   it("adding an explored audience or competitor to the selected context invalidates strategy", () => {
@@ -241,5 +335,4 @@ describe("independent review bindings and preserved strategy", () => {
     expect(JSON.stringify(input)).not.toMatch(/(?:personality|positioning|competitor)ReviewKey/);
     expect(new TextEncoder().encode(JSON.stringify(input)).length).toBeLessThan(32_768);
   });
-
 });

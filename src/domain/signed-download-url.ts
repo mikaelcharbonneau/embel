@@ -8,6 +8,8 @@ export function isSignedDownloadUrl(value: string): boolean {
   try {
     const url = new URL(value);
     if (url.username || url.password) return false;
-    return url.protocol === "https:" || url.protocol === "http:" && LOOPBACK_HOSTS.has(url.hostname);
-  } catch { return false; }
+    return url.protocol === "https:" || (url.protocol === "http:" && LOOPBACK_HOSTS.has(url.hostname));
+  } catch {
+    return false;
+  }
 }

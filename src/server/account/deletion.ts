@@ -22,7 +22,9 @@ export function sessionSignedInAt(claims: unknown): number | null {
   if (!claims || typeof claims !== "object") return null;
   const amr = amrSchema.safeParse((claims as { amr?: unknown }).amr);
   if (!amr.success) return null;
-  const times = amr.data.flatMap(entry => typeof entry === "object" && Number.isFinite(entry.timestamp) ? [entry.timestamp] : []);
+  const times = amr.data.flatMap((entry) =>
+    typeof entry === "object" && Number.isFinite(entry.timestamp) ? [entry.timestamp] : [],
+  );
   return times.length ? Math.max(...times) : null;
 }
 
@@ -85,7 +87,7 @@ async function removeAccountFiles(ownerId: string, store: AccountDeletionStore) 
     // interrupted run resumes with whatever is still there.
     const names = await store.listFiles(ownerId);
     if (!names.length) return removed;
-    if (names.some(name => !name.startsWith(prefix))) throw new Error("account_file_outside_prefix");
+    if (names.some((name) => !name.startsWith(prefix))) throw new Error("account_file_outside_prefix");
     let removedThisPage = 0;
     for (let index = 0; index < names.length; index += REMOVE_BATCH) {
       removedThisPage += await store.removeFiles(names.slice(index, index + REMOVE_BATCH));
@@ -100,7 +102,9 @@ async function removeAccountFiles(ownerId: string, store: AccountDeletionStore) 
 
 function rpcFailure(step: string, error: { code?: string; message?: string } | null) {
   if (!error) return;
-  throw Object.assign(new Error(`account_deletion_${step}`), { code: typeof error.code === "string" ? error.code : undefined });
+  throw Object.assign(new Error(`account_deletion_${step}`), {
+    code: typeof error.code === "string" ? error.code : undefined,
+  });
 }
 
 /** The store backed by Supabase with the server's secret key. */
@@ -119,7 +123,11 @@ export function supabaseDeletionStore(admin: SupabaseClient): AccountDeletionSto
       return parsed.data.deletedRows;
     },
     async listFiles(ownerId) {
-      const { data, error } = await admin.rpc("account_storage_objects", { p_owner: ownerId, p_after: null, p_limit: LIST_PAGE });
+      const { data, error } = await admin.rpc("account_storage_objects", {
+        p_owner: ownerId,
+        p_after: null,
+        p_limit: LIST_PAGE,
+      });
       rpcFailure("list_files", error);
       return z.array(z.string()).parse(data ?? []);
     },
@@ -134,7 +142,10 @@ export function supabaseDeletionStore(admin: SupabaseClient): AccountDeletionSto
     },
     async deleteAuthUser(ownerId) {
       const { error } = await admin.auth.admin.deleteUser(ownerId, false);
-      if (error && error.status !== 404) throw Object.assign(new Error("account_deletion_auth_user"), { code: error.code ?? String(error.status ?? "") });
+      if (error && error.status !== 404)
+        throw Object.assign(new Error("account_deletion_auth_user"), {
+          code: error.code ?? String(error.status ?? ""),
+        });
     },
     async complete(ownerId) {
       const { error } = await admin.rpc("account_deletion_complete", { p_owner: ownerId });
@@ -146,10 +157,21 @@ export function supabaseDeletionStore(admin: SupabaseClient): AccountDeletionSto
 /** Asks running and queued generations to stop, with the person's own login
  * (cancel_generation). Best effort: the purge removes their records either way. */
 export async function cancelActiveGenerations(client: SupabaseClient, ownerId: string) {
-  const { data, error } = await client.from("generation_runs").select("id").eq("owner_id", ownerId).in("status", ["queued", "running"]).limit(200);
-  if (error) { logServerError("account_deletion_cancel_list", error); return 0; }
+  const { data, error } = await client
+    .from("generation_runs")
+    .select("id")
+    .eq("owner_id", ownerId)
+    .in("status", ["queued", "running"])
+    .limit(200);
+  if (error) {
+    logServerError("account_deletion_cancel_list", error);
+    return 0;
+  }
   let cancelled = 0;
-  for (const run of z.array(z.object({ id: z.uuid() })).catch([]).parse(data ?? [])) {
+  for (const run of z
+    .array(z.object({ id: z.uuid() }))
+    .catch([])
+    .parse(data ?? [])) {
     const result = await client.rpc("cancel_generation", { p_run_id: run.id });
     if (result.error) logServerError("account_deletion_cancel_run", result.error);
     else cancelled += 1;
@@ -158,7 +180,11 @@ export async function cancelActiveGenerations(client: SupabaseClient, ownerId: s
 }
 
 /** The whole request: confirmation, freshness, stopping work, deleting, signing out. */
-export async function deleteSignedInAccount(context: DeletionContext, confirmEmail: string, admin: SupabaseClient = accountAdminClient()) {
+export async function deleteSignedInAccount(
+  context: DeletionContext,
+  confirmEmail: string,
+  admin: SupabaseClient = accountAdminClient(),
+) {
   assertConfirmationEmail(context.user, confirmEmail);
   assertFreshSignIn(context.claims);
   await cancelActiveGenerations(context.client, context.user.id);

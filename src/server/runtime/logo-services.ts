@@ -1,6 +1,11 @@
 import "server-only";
 import type { IdentityConnectionFactory } from "@/server/data/identity-transaction";
-import { createIdentityAssetStore, createPostgresIdentityAssetBackend, type IdentityAssetStorage, type IdentityAssetStoreDependencies } from "@/server/data/identity-asset-store";
+import {
+  createIdentityAssetStore,
+  createPostgresIdentityAssetBackend,
+  type IdentityAssetStorage,
+  type IdentityAssetStoreDependencies,
+} from "@/server/data/identity-asset-store";
 import { createLogoTransactionService } from "@/server/data/logo-transaction";
 import { validateLogoExportAssetBytes } from "@/features/identity-deliverables/server/validate-assets";
 import { validateLogoInputBytes } from "@/features/logo-inputs/server/registration";
@@ -23,20 +28,33 @@ export type LogoServiceDependencies = {
  * create credentials, configure policies, connect pools, or report live readiness.
  * The caller must separately qualify private storage and the restricted login. */
 export function createLogoServices(dependencies: LogoServiceDependencies | null) {
-  const assets = createIdentityAssetStore(dependencies ? {
-    backend: createPostgresIdentityAssetBackend({ owned: dependencies.connections, worker: dependencies.worker ?? null }),
-    storage: dependencies.storage,
-    validateBytes: async (write, bytes, signal) => {
-      const mime = write.kind === "upload" ? write.intent.mimeType : write.publication.mimeType;
-      // Built-in formats were already inspected by the immutable asset store.
-      if (mime === "font/ttf" || mime === "font/otf") await validateLogoInputBytes(write, bytes, signal);
-      else if (mime === "application/pdf" || mime === "application/zip") await validateLogoExportAssetBytes(write, bytes, signal);
-      else if (!["image/png", "image/jpeg", "image/webp", "image/svg+xml", "application/json"].includes(mime)) throw new ApiError("integration_unavailable");
-      // Optional qualification may further restrict, never replace validation.
-      if (dependencies.validateBytes) await dependencies.validateBytes(structuredClone(write), new Uint8Array(bytes), signal);
-    },
-  } : null);
-  const readWorkspace = createLogoWorkspaceService({ assetStore: assets, verifyVectorRevision: verifyLogoVectorRevision });
+  const assets = createIdentityAssetStore(
+    dependencies
+      ? {
+          backend: createPostgresIdentityAssetBackend({
+            owned: dependencies.connections,
+            worker: dependencies.worker ?? null,
+          }),
+          storage: dependencies.storage,
+          validateBytes: async (write, bytes, signal) => {
+            const mime = write.kind === "upload" ? write.intent.mimeType : write.publication.mimeType;
+            // Built-in formats were already inspected by the immutable asset store.
+            if (mime === "font/ttf" || mime === "font/otf") await validateLogoInputBytes(write, bytes, signal);
+            else if (mime === "application/pdf" || mime === "application/zip")
+              await validateLogoExportAssetBytes(write, bytes, signal);
+            else if (!["image/png", "image/jpeg", "image/webp", "image/svg+xml", "application/json"].includes(mime))
+              throw new ApiError("integration_unavailable");
+            // Optional qualification may further restrict, never replace validation.
+            if (dependencies.validateBytes)
+              await dependencies.validateBytes(structuredClone(write), new Uint8Array(bytes), signal);
+          },
+        }
+      : null,
+  );
+  const readWorkspace = createLogoWorkspaceService({
+    assetStore: assets,
+    verifyVectorRevision: verifyLogoVectorRevision,
+  });
   const inputs = createLogoInputService(dependencies ? { assets, connections: dependencies.connections } : null);
   const deliverables = createLogoDeliverablesService({ assets });
   // Restoring a saved vector or refinement stage verifies the vector it selects.
@@ -59,6 +77,10 @@ export function createLogoServices(dependencies: LogoServiceDependencies | null)
     },
     ...createLogoDeliverableProducers({ assets, service: deliverables }),
   });
-  const workspace = createLogoWorkspaceService({ assetStore: assets, transactions, verifyVectorRevision: verifyLogoVectorRevision });
+  const workspace = createLogoWorkspaceService({
+    assetStore: assets,
+    transactions,
+    verifyVectorRevision: verifyLogoVectorRevision,
+  });
   return { configured: dependencies !== null, assets, workspace, transactions, deliverables, inputs };
 }

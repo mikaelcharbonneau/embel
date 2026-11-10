@@ -4,17 +4,58 @@ import { accountProjectSchema } from "@/domain/project-api";
 import { accountProjectDraft, createAccountInput, draftContext } from "@/components/workspace/project-draft-adapter";
 
 // Synthetic local fixtures only; no account/provider calls.
-const source = { url: "https://example.com/local-fixture", title: "Local research fixture", retrievedAt: "2026-10-02T10:00:00Z" };
+const source = {
+  url: "https://example.com/local-fixture",
+  title: "Local research fixture",
+  retrievedAt: "2026-10-02T10:00:00Z",
+};
 const project = accountProjectSchema.parse({
-  id: "aaaaaaaa-1111-4111-8111-111111111111", owner_id: "bbbbbbbb-1111-4111-8111-111111111111", scope: "complete_brand",
-  title: "Long private fixture ".repeat(7), current_revision: 4, created_at: "2026-10-02T10:00:00Z",
+  id: "aaaaaaaa-1111-4111-8111-111111111111",
+  owner_id: "bbbbbbbb-1111-4111-8111-111111111111",
+  scope: "complete_brand",
+  title: "Long private fixture ".repeat(7),
+  current_revision: 4,
+  created_at: "2026-10-02T10:00:00Z",
   context: contextSnapshotSchema.parse({
-    description: "A written fixture for a visual identity project.", activity: "A public cultural program", offering: "Workshops and a shared studio", knownAudience: "Local neighbors", reformulationConfirmed: true,
-    audienceSegments: [{ id: "cccccccc-1111-4111-8111-111111111111", label: "Local audience fixture", needs: ["One need\nwith its own line break", "x".repeat(2000), "A separate need"], reason: "They live nearby", selected: true, origin: "proposal", sources: [source] }],
-    competitors: [{ id: "dddddddd-1111-4111-8111-111111111111", name: "Research fixture", relevance: "Similar program", origin: "research", sources: [source], selected: true }],
-    competitorReviewComplete: true, positioning: "Positioning fixture", selectedName: "Common Room", creativeLocale: "fr-CA",
+    description: "A written fixture for a visual identity project.",
+    activity: "A public cultural program",
+    offering: "Workshops and a shared studio",
+    knownAudience: "Local neighbors",
+    reformulationConfirmed: true,
+    audienceSegments: [
+      {
+        id: "cccccccc-1111-4111-8111-111111111111",
+        label: "Local audience fixture",
+        needs: ["One need\nwith its own line break", "x".repeat(2000), "A separate need"],
+        reason: "They live nearby",
+        selected: true,
+        origin: "proposal",
+        sources: [source],
+      },
+    ],
+    competitors: [
+      {
+        id: "dddddddd-1111-4111-8111-111111111111",
+        name: "Research fixture",
+        relevance: "Similar program",
+        origin: "research",
+        sources: [source],
+        selected: true,
+      },
+    ],
+    competitorReviewComplete: true,
+    positioning: "Positioning fixture",
+    selectedName: "Common Room",
+    creativeLocale: "fr-CA",
     personality: { sincerity: 70, excitement: 40, competence: 80, sophistication: 20, ruggedness: 10 },
-    intake: { suppliedName: "Common Room", namingNotes: "Keep both languages", identityNotes: "Keep the poster grid", step: "audience", audienceReviewedAt: "2026-10-02T10:00:00Z", example: true },
+    intake: {
+      suppliedName: "Common Room",
+      namingNotes: "Keep both languages",
+      identityNotes: "Keep the poster grid",
+      step: "audience",
+      audienceReviewedAt: "2026-10-02T10:00:00Z",
+      example: true,
+    },
   }),
 });
 
@@ -41,9 +82,16 @@ describe("account draft adapter", () => {
   });
 
   it("preserves downstream context when an explicit browser recovery copy is saved back to an account", () => {
-    const draft = { ...accountProjectDraft(project), preservedContext: project.context, namingNotes: "An unsaved recovery note" };
+    const draft = {
+      ...accountProjectDraft(project),
+      preservedContext: project.context,
+      namingNotes: "An unsaved recovery note",
+    };
     const input = createAccountInput(draft);
-    expect(input.context).toEqual({ ...project.context, intake: { ...project.context.intake, namingNotes: "An unsaved recovery note" } });
+    expect(input.context).toEqual({
+      ...project.context,
+      intake: { ...project.context.intake, namingNotes: "An unsaved recovery note" },
+    });
     expect(input.title).toBe(project.title);
     expect(input.scope).toBe("complete_brand");
   });
@@ -57,10 +105,20 @@ describe("account draft adapter", () => {
   it("invalidates confirmed reformulation after a changed brief and labels new audiences as user supplied", () => {
     const draft = accountProjectDraft(project);
     draft.activity = "A changed activity";
-    draft.segments.push({ id: "eeeeeeee-1111-4111-8111-111111111111", name: "Added audience", needs: "One need\nA second need", reason: "A supplied reason", selected: false });
+    draft.segments.push({
+      id: "eeeeeeee-1111-4111-8111-111111111111",
+      name: "Added audience",
+      needs: "One need\nA second need",
+      reason: "A supplied reason",
+      selected: false,
+    });
     const context = draftContext(draft, project.context);
     expect(context.reformulationConfirmed).toBe(false);
-    expect(context.audienceSegments[1]).toMatchObject({ needs: ["One need", "A second need"], origin: "user", sources: [] });
+    expect(context.audienceSegments[1]).toMatchObject({
+      needs: ["One need", "A second need"],
+      origin: "user",
+      sources: [],
+    });
   });
 
   it("rejects unnamed segments instead of silently dropping unsaved work", () => {
@@ -73,7 +131,12 @@ describe("account draft adapter", () => {
     const draft = accountProjectDraft(project);
     draft.knownAudience = "A changed group";
     expect(draftContext(draft, project.context).reformulationConfirmed).toBe(false);
-    draft.confirmedBrief = { description: draft.description, activity: draft.activity, offering: draft.offering, knownAudience: draft.knownAudience };
+    draft.confirmedBrief = {
+      description: draft.description,
+      activity: draft.activity,
+      offering: draft.offering,
+      knownAudience: draft.knownAudience,
+    };
     expect(draftContext(draft, project.context).reformulationConfirmed).toBe(true);
   });
 });

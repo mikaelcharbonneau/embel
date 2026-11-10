@@ -1,16 +1,24 @@
 import { getWorkflowMetadata, sleep } from "workflow";
 import { checkRun, claimRun, finishRun } from "./engine-steps";
 import {
-  createNamingResponse, planNamingRound, pollNamingResponses, recordNamingFailure, settleNamingResponse, stopNamingResponses,
-  type NamingOpenRequest, type NamingRunState,
+  createNamingResponse,
+  planNamingRound,
+  pollNamingResponses,
+  recordNamingFailure,
+  settleNamingResponse,
+  stopNamingResponses,
+  type NamingOpenRequest,
+  type NamingRunState,
 } from "./naming-steps";
 
 /** A round of names is 100; at most three rounds fill a short first round. */
-const TARGET = 100, MAX_ROUNDS = 3;
+const TARGET = 100,
+  MAX_ROUNDS = 3;
 /** Seconds between lookups: quick at first, then every 5 s, for about 4 minutes per round. */
 const POLL_DELAYS = [2, 2, 3, 3, 4, 4, ...Array.from({ length: 44 }, () => 5)];
 const CODE = /^[a-z_]{1,64}$/u;
-const codeOf = (error: unknown, fallback: string) => error instanceof Error && CODE.test(error.message) ? error.message : fallback;
+const codeOf = (error: unknown, fallback: string) =>
+  error instanceof Error && CODE.test(error.message) ? error.message : fallback;
 
 /**
  * Runs one Naming request (kind naming.generate) on OpenAI background mode: the first names,
@@ -31,11 +39,13 @@ export async function namingGeneration(runId: string) {
       // No paid call starts after a cancel or while the engine is paused.
       const check = await checkRun(runId);
       if (check.status !== "running") return { status: check.status };
-      if (check.cancelRequested || check.paused) return await finishRun(runId, "cancelled", check.paused ? "generation_paused" : "cancelled");
+      if (check.cancelRequested || check.paused)
+        return await finishRun(runId, "cancelled", check.paused ? "generation_paused" : "cancelled");
       let open: NamingOpenRequest[] = [];
       for (const plan of await planNamingRound(run, state, round)) {
-        try { open.push({ plan, responseId: (await createNamingResponse(run, plan, state)).responseId }); }
-        catch (error) {
+        try {
+          open.push({ plan, responseId: (await createNamingResponse(run, plan, state)).responseId });
+        } catch (error) {
           const code = codeOf(error, "provider_unavailable");
           codes.push(code);
           await recordNamingFailure(runId, plan, code);
@@ -45,7 +55,10 @@ export async function namingGeneration(runId: string) {
       if (!open.length) break;
       for (const seconds of POLL_DELAYS) {
         await sleep(`${seconds}s`);
-        const polled = await pollNamingResponses(runId, open.map(item => item.responseId));
+        const polled = await pollNamingResponses(
+          runId,
+          open.map((item) => item.responseId),
+        );
         if (polled.state === "stop") {
           // Stopping always ends the run as cancelled, even if OpenAI can't be reached to cancel.
           const stopped = state;
@@ -53,12 +66,12 @@ export async function namingGeneration(runId: string) {
           return await finishRun(runId, "cancelled", polled.code);
         }
         for (const responseId of polled.finished) {
-          const item = open.find(entry => entry.responseId === responseId);
+          const item = open.find((entry) => entry.responseId === responseId);
           if (!item) continue;
           const settled = await settleNamingResponse(run, item.plan, state, responseId);
           state = settled.state;
           if (settled.code) codes.push(settled.code);
-          open = open.filter(entry => entry !== item);
+          open = open.filter((entry) => entry !== item);
         }
         if (!open.length) break;
       }

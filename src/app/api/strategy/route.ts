@@ -7,5 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     return privateJson({ availability: await getStrategyAvailability(await getAuthenticatedContext()) });
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

@@ -14,14 +14,19 @@ export async function prepareJourneyDatabase() {
     await client.query(`alter role embel_engine password '${stack.enginePassword}'`);
     await client.query("update fluid_private.generation_kinds set enabled = true");
     await client.query("update fluid_private.engine_settings set paused = false");
-  } finally { await client.end(); }
+  } finally {
+    await client.end();
+  }
 }
 
 /** A new confirmed account, created with the local stack's secret key. */
 export async function createJourneyAccount() {
   const stack = journeyStack();
-  const admin = createClient(stack.apiUrl, stack.secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
-  const email = `journey-${randomBytes(4).toString("hex")}@example.test`, password = randomBytes(18).toString("base64url");
+  const admin = createClient(stack.apiUrl, stack.secretKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const email = `journey-${randomBytes(4).toString("hex")}@example.test`,
+    password = randomBytes(18).toString("base64url");
   const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
   if (error || !data.user) throw new Error(`Could not create the journey test account: ${error?.message ?? "no user"}`);
   return { email, password, userId: data.user.id };

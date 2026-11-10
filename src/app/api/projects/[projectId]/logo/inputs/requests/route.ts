@@ -11,5 +11,7 @@ export async function GET(request: Request, context: { params: Promise<{ project
     const projectId = logoInputId((await context.params).projectId);
     const query = readLogoInputQuery(request, logoInputRequestQuerySchema);
     return privateJson(await productionLogoInputService.listLogoInputRequests(auth, projectId, query, request.signal));
-  } catch (error) { return logoErrorResponse(error); }
+  } catch (error) {
+    return logoErrorResponse(error);
+  }
 }

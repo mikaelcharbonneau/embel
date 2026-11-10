@@ -4,10 +4,17 @@ import { createOpenAIResponsesTransport, OpenAITransportError } from "../../src/
 
 describe("OpenAI HTTPS transport (mock fetch only)", () => {
   it("uses the official fixed origin, disables redirects and uses tracing without claiming external idempotency", async () => {
-    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ fixture: true }), { headers: { "x-request-id": "req_fixture" } }));
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ fixture: true }), { headers: { "x-request-id": "req_fixture" } }),
+      );
     const transport = createOpenAIResponsesTransport({ apiKey: "synthetic-test-credential", fetch: fetcher });
     const controller = new AbortController();
-    expect(await transport.createResponse({ model: "gpt-6.1-sol" }, "fixture-trace-id", controller.signal)).toEqual({ body: { fixture: true }, requestId: "req_fixture" });
+    expect(await transport.createResponse({ model: "gpt-6.1-sol" }, "fixture-trace-id", controller.signal)).toEqual({
+      body: { fixture: true },
+      requestId: "req_fixture",
+    });
     expect(fetcher).toHaveBeenCalledTimes(1);
     const [url, options] = fetcher.mock.calls[0]!;
     expect(url).toBe("https://api.openai.com/v1/responses");
@@ -19,21 +26,43 @@ describe("OpenAI HTTPS transport (mock fetch only)", () => {
   it("counts tokens with the same request components without an inference call", async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ input_tokens: 125 })));
     const transport = createOpenAIResponsesTransport({ apiKey: "synthetic-test-credential", fetch: fetcher });
-    expect(await transport.countInputTokens({ model: "gpt-6.1-sol", input: "Synthetic fixture" }, new AbortController().signal)).toBe(125);
+    expect(
+      await transport.countInputTokens(
+        { model: "gpt-6.1-sol", input: "Synthetic fixture" },
+        new AbortController().signal,
+      ),
+    ).toBe(125);
     expect(fetcher.mock.calls[0]![0]).toBe("https://api.openai.com/v1/responses/input_tokens");
   });
 
   it("counts every supported prompt field without forwarding generation controls or mutating the create request", async () => {
     const prompt = {
-      conversation: "conv_fixture", input: [{ role: "user", content: "Return a JSON object." }],
-      instructions: "Synthetic instructions", model: "gpt-6.1-sol", parallel_tool_calls: false,
-      personality: "pragmatic", previous_response_id: null, reasoning: { effort: "medium" },
-      text: { format: { type: "json_object" } }, tool_choice: "none", tools: [], truncation: "disabled",
+      conversation: "conv_fixture",
+      input: [{ role: "user", content: "Return a JSON object." }],
+      instructions: "Synthetic instructions",
+      model: "gpt-6.1-sol",
+      parallel_tool_calls: false,
+      personality: "pragmatic",
+      previous_response_id: null,
+      reasoning: { effort: "medium" },
+      text: { format: { type: "json_object" } },
+      tool_choice: "none",
+      tools: [],
+      truncation: "disabled",
     };
-    const request = { ...prompt, service_tier: "default", max_output_tokens: 8192,
-      store: false, background: false, stream: false, metadata: { fixture: "generation-only" } };
+    const request = {
+      ...prompt,
+      service_tier: "default",
+      max_output_tokens: 8192,
+      store: false,
+      background: false,
+      stream: false,
+      metadata: { fixture: "generation-only" },
+    };
     const original = JSON.stringify(request);
-    const fetcher = vi.fn<typeof fetch>().mockImplementation(async () => new Response(JSON.stringify({ input_tokens: 125 })));
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockImplementation(async () => new Response(JSON.stringify({ input_tokens: 125 })));
     const transport = createOpenAIResponsesTransport({ apiKey: "synthetic-test-credential", fetch: fetcher });
     const signal = new AbortController().signal;
 
@@ -46,23 +75,33 @@ describe("OpenAI HTTPS transport (mock fetch only)", () => {
   });
 
   it.each([400, 401, 403, 404, 413, 422, 429])("sanitizes definite rejection %s without retrying", async (status) => {
-    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response("synthetic private provider error", { status, headers: { "x-request-id": "req_fixture" } }));
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        new Response("synthetic private provider error", { status, headers: { "x-request-id": "req_fixture" } }),
+      );
     const transport = createOpenAIResponsesTransport({ apiKey: "synthetic-test-credential", fetch: fetcher });
-    await expect(transport.createResponse({}, "trace", new AbortController().signal)).rejects.toMatchObject({ code: "request_rejected", message: "request_rejected", requestId: "req_fixture" });
+    await expect(transport.createResponse({}, "trace", new AbortController().signal)).rejects.toMatchObject({
+      code: "request_rejected",
+      message: "request_rejected",
+      requestId: "req_fixture",
+    });
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
   it.each([408, 409, 500, 502, 503, 504])("quarantines ambiguous HTTP %s", async (status) => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response("private error", { status }));
     const transport = createOpenAIResponsesTransport({ apiKey: "synthetic-test-credential", fetch: fetcher });
-    await expect(transport.createResponse({}, "trace", new AbortController().signal)).rejects.toMatchObject({ code: "outcome_unknown" });
+    await expect(transport.createResponse({}, "trace", new AbortController().signal)).rejects.toMatchObject({
+      code: "outcome_unknown",
+    });
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
   it("never exposes a transport failure's private error message or repeats its request", async () => {
     const fetcher = vi.fn<typeof fetch>().mockRejectedValue(new Error("synthetic-private-credential"));
     const transport = createOpenAIResponsesTransport({ apiKey: "synthetic-test-credential", fetch: fetcher });
-    const error = await transport.createResponse({}, "trace", new AbortController().signal).catch(error => error);
+    const error = await transport.createResponse({}, "trace", new AbortController().signal).catch((error) => error);
     expect(error).toBeInstanceOf(OpenAITransportError);
     expect(String(error)).not.toContain("synthetic-private-credential");
     expect(fetcher).toHaveBeenCalledTimes(1);
@@ -72,27 +111,48 @@ describe("OpenAI HTTPS transport (mock fetch only)", () => {
     for (const body of ["not-json", JSON.stringify({ text: "x".repeat(1_048_576) })]) {
       const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(body));
       const transport = createOpenAIResponsesTransport({ apiKey: "synthetic-test-credential", fetch: fetcher });
-      await expect(transport.createResponse({}, "trace", new AbortController().signal)).rejects.toMatchObject({ code: "outcome_unknown" });
+      await expect(transport.createResponse({}, "trace", new AbortController().signal)).rejects.toMatchObject({
+        code: "outcome_unknown",
+      });
     }
   });
 });
 
 describe("background response observation boundaries", () => {
   it("retrieves a saved response without a create payload and cancels only that response", async () => {
-    const fetcher = vi.fn<typeof fetch>().mockImplementation(async () => new Response(JSON.stringify({id:"resp_fixture",status:"completed"})));
-    const transport = createOpenAIResponsesTransport({apiKey:"synthetic-test-credential",fetch:fetcher});
-    const signal=new AbortController().signal;
-    await transport.retrieveResponse!("resp_fixture",signal);
-    await transport.cancelResponse!("resp_fixture",signal);
-    expect(fetcher.mock.calls[0]).toEqual(["https://api.openai.com/v1/responses/resp_fixture?include%5B%5D=web_search_call.action.sources",expect.objectContaining({method:"GET",redirect:"error",signal})]);
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockImplementation(async () => new Response(JSON.stringify({ id: "resp_fixture", status: "completed" })));
+    const transport = createOpenAIResponsesTransport({ apiKey: "synthetic-test-credential", fetch: fetcher });
+    const signal = new AbortController().signal;
+    await transport.retrieveResponse!("resp_fixture", signal);
+    await transport.cancelResponse!("resp_fixture", signal);
+    expect(fetcher.mock.calls[0]).toEqual([
+      "https://api.openai.com/v1/responses/resp_fixture?include%5B%5D=web_search_call.action.sources",
+      expect.objectContaining({ method: "GET", redirect: "error", signal }),
+    ]);
     expect(fetcher.mock.calls[0]![1]).not.toHaveProperty("body");
-    expect(fetcher.mock.calls[1]).toEqual(["https://api.openai.com/v1/responses/resp_fixture/cancel",expect.objectContaining({method:"POST",body:"{}",redirect:"error",signal})]);
+    expect(fetcher.mock.calls[1]).toEqual([
+      "https://api.openai.com/v1/responses/resp_fixture/cancel",
+      expect.objectContaining({ method: "POST", body: "{}", redirect: "error", signal }),
+    ]);
   });
-  it.each(["https://example.test/resp_x","resp_x/../other","resp_x?key=secret","resp_x#fragment","resp_",`resp_${"x".repeat(195)}`])("rejects invalid saved identities before HTTP: %s", async id=>{
-    const fetcher=vi.fn<typeof fetch>();
-    const transport=createOpenAIResponsesTransport({apiKey:"synthetic-test-credential",fetch:fetcher});
-    await expect(async()=>transport.retrieveResponse!(id,new AbortController().signal)).rejects.toThrow("Invalid response identity");
-    await expect(async()=>transport.cancelResponse!(id,new AbortController().signal)).rejects.toThrow("Invalid response identity");
+  it.each([
+    "https://example.test/resp_x",
+    "resp_x/../other",
+    "resp_x?key=secret",
+    "resp_x#fragment",
+    "resp_",
+    `resp_${"x".repeat(195)}`,
+  ])("rejects invalid saved identities before HTTP: %s", async (id) => {
+    const fetcher = vi.fn<typeof fetch>();
+    const transport = createOpenAIResponsesTransport({ apiKey: "synthetic-test-credential", fetch: fetcher });
+    await expect(async () => transport.retrieveResponse!(id, new AbortController().signal)).rejects.toThrow(
+      "Invalid response identity",
+    );
+    await expect(async () => transport.cancelResponse!(id, new AbortController().signal)).rejects.toThrow(
+      "Invalid response identity",
+    );
     expect(fetcher).not.toHaveBeenCalled();
   });
 });

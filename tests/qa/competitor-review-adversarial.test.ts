@@ -2,27 +2,73 @@ import { describe, expect, it } from "vitest";
 import { accountProjectSchema } from "@/domain/project-api";
 import { competitorSchema, contextSnapshotSchema } from "@/domain/projects";
 import {
-  accountProjectDraft, competitorReviewKey, competitorReviewValidationMessage,
-  createAccountInput, draftCompetitors, draftContext, isCompetitorReviewComplete,
+  accountProjectDraft,
+  competitorReviewKey,
+  competitorReviewValidationMessage,
+  createAccountInput,
+  draftCompetitors,
+  draftContext,
+  isCompetitorReviewComplete,
 } from "@/components/workspace/project-draft-adapter";
 
 // Independent synthetic fixtures. No provider, identity, storage or network calls.
 const now = "2026-10-03T03:00:00Z";
 const source = { url: "https://example.com/qa-source", title: "Synthetic source fixture", retrievedAt: now };
 const project = accountProjectSchema.parse({
-  id: "aaaaaaaa-1111-4111-8111-111111111111", owner_id: "bbbbbbbb-1111-4111-8111-111111111111",
-  scope: "complete_brand", title: "Independent competitor fixture", current_revision: 7, created_at: now,
+  id: "aaaaaaaa-1111-4111-8111-111111111111",
+  owner_id: "bbbbbbbb-1111-4111-8111-111111111111",
+  scope: "complete_brand",
+  title: "Independent competitor fixture",
+  current_revision: 7,
+  created_at: now,
   context: {
     description: "An independent local fixture for a neighborhood kitchen serving weekday lunches.",
-    activity: "Neighborhood kitchen", offering: "Seasonal weekday lunches", knownAudience: "Nearby workers", reformulationConfirmed: true,
-    audienceSegments: [{ id: "cccccccc-1111-4111-8111-111111111111", label: "Nearby workers", needs: ["A predictable lunch break"], reason: "They work nearby", selected: true, origin: "proposal", sources: [source] }],
-    competitors: [
-      { id: "dddddddd-1111-4111-8111-111111111111", name: "Fixture Lunch", relevance: "Similar lunch format", url: "https://example.com/fixture-lunch", selected: true, origin: "research", sources: [source] },
-      { id: "eeeeeeee-1111-4111-8111-111111111111", name: "Fixture Pantry", relevance: "Another customer alternative", selected: false, origin: "user", sources: [] },
+    activity: "Neighborhood kitchen",
+    offering: "Seasonal weekday lunches",
+    knownAudience: "Nearby workers",
+    reformulationConfirmed: true,
+    audienceSegments: [
+      {
+        id: "cccccccc-1111-4111-8111-111111111111",
+        label: "Nearby workers",
+        needs: ["A predictable lunch break"],
+        reason: "They work nearby",
+        selected: true,
+        origin: "proposal",
+        sources: [source],
+      },
     ],
-    competitorReviewComplete: true, positioning: "A calm, reliable fixture", selectedName: "Fixture Table", creativeLocale: "fr-CA",
+    competitors: [
+      {
+        id: "dddddddd-1111-4111-8111-111111111111",
+        name: "Fixture Lunch",
+        relevance: "Similar lunch format",
+        url: "https://example.com/fixture-lunch",
+        selected: true,
+        origin: "research",
+        sources: [source],
+      },
+      {
+        id: "eeeeeeee-1111-4111-8111-111111111111",
+        name: "Fixture Pantry",
+        relevance: "Another customer alternative",
+        selected: false,
+        origin: "user",
+        sources: [],
+      },
+    ],
+    competitorReviewComplete: true,
+    positioning: "A calm, reliable fixture",
+    selectedName: "Fixture Table",
+    creativeLocale: "fr-CA",
     personality: { sincerity: 70, excitement: 20, competence: 80, sophistication: 10, ruggedness: 0 },
-    intake: { step: "audience", audienceReviewedAt: now, suppliedName: "Fixture Table", namingNotes: "Keep the current notes", identityNotes: "Retain the visual system" },
+    intake: {
+      step: "audience",
+      audienceReviewedAt: now,
+      suppliedName: "Fixture Table",
+      namingNotes: "Keep the current notes",
+      identityNotes: "Retain the visual system",
+    },
   },
 });
 
@@ -83,8 +129,12 @@ describe("independent competitor review invariants", () => {
     draft.competitors![0]!.url = "";
     const saved = draftContext(draft, project.context);
     expect(saved.competitors[0]).toEqual({
-      id: project.context.competitors[0]!.id, name: "My corrected fixture", relevance: "My revised assessment",
-      selected: true, origin: "user", sources: [source],
+      id: project.context.competitors[0]!.id,
+      name: "My corrected fixture",
+      relevance: "My revised assessment",
+      selected: true,
+      origin: "user",
+      sources: [source],
     });
     expect(saved.competitorReviewComplete).toBe(false);
     expect(project.context.competitors[0]!.url).toBe("https://example.com/fixture-lunch");
@@ -132,8 +182,11 @@ describe("independent competitor review invariants", () => {
   it("a supplied URL never fabricates a research source or a retrieved timestamp", () => {
     const draft = reviewedDraft();
     draft.competitors!.push({
-      id: "ffffffff-1111-4111-8111-111111111111", name: "My supplied competitor", relevance: "Similar customers",
-      url: "https://example.org/supplied", selected: true,
+      id: "ffffffff-1111-4111-8111-111111111111",
+      name: "My supplied competitor",
+      relevance: "Similar customers",
+      url: "https://example.org/supplied",
+      selected: true,
     });
     const value = draftContext(draft, project.context).competitors.at(-1)!;
     expect(value).toMatchObject({ origin: "user", sources: [], url: "https://example.org/supplied" });
@@ -153,7 +206,10 @@ describe("independent competitor review invariants", () => {
     const draft = { ...reviewedDraft(), preservedContext: project.context };
     draft.competitors = Array.from({ length: 10 }, (_, index) => ({
       id: `12345678-1234-4234-8234-${String(index).padStart(12, "0")}`,
-      name: `École ${index} — synthetic competitor`, relevance: "Contextual relevance. ".repeat(40), url: "", selected: index < 3,
+      name: `École ${index} — synthetic competitor`,
+      relevance: "Contextual relevance. ".repeat(40),
+      url: "",
+      selected: index < 3,
     }));
     draft.competitorReviewKey = competitorReviewKey(draft);
     const body = createAccountInput(draft);
@@ -163,14 +219,26 @@ describe("independent competitor review invariants", () => {
   });
 
   it("rejects repeated competitor IDs at the shared snapshot boundary", () => {
-    expect(contextSnapshotSchema.safeParse({ ...project.context, competitors: [project.context.competitors[0], project.context.competitors[0]] }).success).toBe(false);
+    expect(
+      contextSnapshotSchema.safeParse({
+        ...project.context,
+        competitors: [project.context.competitors[0], project.context.competitors[0]],
+      }).success,
+    ).toBe(false);
   });
 
   it("cannot promote a sourceless competitor into a research result", () => {
     expect(competitorSchema.safeParse({ ...project.context.competitors[0], sources: [] }).success).toBe(false);
   });
 
-  for (const url of ["javascript:alert(1)", "data:text/html,fixture", "file:///tmp/fixture", "//example.com/fixture", "https://user:password@example.com/", "https://example.com/\nfixture"]) {
+  for (const url of [
+    "javascript:alert(1)",
+    "data:text/html,fixture",
+    "file:///tmp/fixture",
+    "//example.com/fixture",
+    "https://user:password@example.com/",
+    "https://example.com/\nfixture",
+  ]) {
     it(`rejects unsafe supplied link ${JSON.stringify(url)}`, () => {
       const draft = reviewedDraft();
       draft.competitors![0]!.url = url;

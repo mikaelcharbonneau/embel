@@ -14,7 +14,9 @@ export async function GET(request: Request, context: RouteContext) {
     const params = new URL(request.url).searchParams;
     const filter = { kind: params.get("kind") ?? undefined, step: params.get("step") ?? undefined };
     return privateJson({ runs: await listGenerations(auth, (await context.params).projectId, filter) });
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }
 
 export async function POST(request: Request, context: RouteContext) {
@@ -25,5 +27,7 @@ export async function POST(request: Request, context: RouteContext) {
     const body = await readJson(request, startGenerationSchema, 32_768);
     const { run } = await startGeneration(auth, (await context.params).projectId, body);
     return privateJson({ run: publicRun(run) }, 202);
-  } catch (error) { return errorResponse(error instanceof WorkflowStartError ? new ApiError("generation_unavailable") : error); }
+  } catch (error) {
+    return errorResponse(error instanceof WorkflowStartError ? new ApiError("generation_unavailable") : error);
+  }
 }

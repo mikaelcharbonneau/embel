@@ -24,16 +24,20 @@ export async function POST(request: Request) {
       throw error instanceof ApiError && error.code === "unauthenticated" ? new ApiError("recovery_required") : error;
     });
     // A stolen everyday session must not be enough to replace the password without the old one.
-    const { data, error: claimsError } = await client.auth.getClaims()
-      .catch(() => { throw new ApiError("integration_unavailable"); });
+    const { data, error: claimsError } = await client.auth.getClaims().catch(() => {
+      throw new ApiError("integration_unavailable");
+    });
     if (claimsError && (claimsError.name === "AuthRetryableFetchError" || (claimsError.status ?? 0) >= 500)) {
       throw new ApiError("integration_unavailable");
     }
     if (claimsError || !isRecentRecovery(data?.claims)) throw new ApiError("recovery_required");
-    const { error } = await client.auth.updateUser({ password })
-      .catch(() => { throw new ApiError("integration_unavailable"); });
+    const { error } = await client.auth.updateUser({ password }).catch(() => {
+      throw new ApiError("integration_unavailable");
+    });
     if (error) throw passwordUpdateFailure(error);
     await afterPasswordChanged(client);
     return privateJson({ updated: true });
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

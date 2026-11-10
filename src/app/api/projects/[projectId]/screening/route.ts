@@ -7,13 +7,24 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 type Context = { params: Promise<{ projectId: string }> };
 export async function GET(request: Request, context: Context) {
-  try { const cursor = readScreeningCursor(request); return privateJson(await getProjectScreening(await getAuthenticatedContext(), (await context.params).projectId, cursor)); }
-  catch (error) { return errorResponse(error); }
+  try {
+    const cursor = readScreeningCursor(request);
+    return privateJson(
+      await getProjectScreening(await getAuthenticatedContext(), (await context.params).projectId, cursor),
+    );
+  } catch (error) {
+    return errorResponse(error);
+  }
 }
 export async function POST(request: Request, context: Context) {
   try {
-    assertMutationOrigin(request); if (new URL(request.url).search) throw new ApiError("invalid_input");
+    assertMutationOrigin(request);
+    if (new URL(request.url).search) throw new ApiError("invalid_input");
     const body = await readJson(request, screeningRecordInputSchema, 32768);
-    return privateJson(await recordProjectScreening(await getAuthenticatedContext(), (await context.params).projectId, body));
-  } catch (error) { return errorResponse(error); }
+    return privateJson(
+      await recordProjectScreening(await getAuthenticatedContext(), (await context.params).projectId, body),
+    );
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

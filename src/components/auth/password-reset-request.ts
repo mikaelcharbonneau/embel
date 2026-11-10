@@ -1,11 +1,23 @@
 import { z } from "zod";
 
-const knownCodes = ["weak_password", "same_password", "recovery_required", "auth_rate_limited", "integration_unavailable", "invalid_input", "forbidden_origin", "captcha_failed"] as const;
+const knownCodes = [
+  "weak_password",
+  "same_password",
+  "recovery_required",
+  "auth_rate_limited",
+  "integration_unavailable",
+  "invalid_input",
+  "forbidden_origin",
+  "captcha_failed",
+] as const;
 type KnownCode = (typeof knownCodes)[number];
 const errorBodySchema = z.object({ error: z.object({ code: z.string() }) });
 
 export class PasswordResetRequestError extends Error {
-  constructor(readonly status: number, readonly code: KnownCode | null = null) {
+  constructor(
+    readonly status: number,
+    readonly code: KnownCode | null = null,
+  ) {
     super("The password request could not be completed.");
     this.name = "PasswordResetRequestError";
   }
@@ -14,20 +26,33 @@ export class PasswordResetRequestError extends Error {
 /** Only an allowlisted error code is read from a failure; provider text never enters state. */
 async function post(path: string, body: string, success: z.ZodType): Promise<void> {
   const response = await fetch(path, {
-    method: "POST", credentials: "same-origin", mode: "same-origin", redirect: "error", cache: "no-store",
-    headers: { Accept: "application/json", "Content-Type": "application/json" }, body,
+    method: "POST",
+    credentials: "same-origin",
+    mode: "same-origin",
+    redirect: "error",
+    cache: "no-store",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body,
   });
   let value: unknown;
-  try { value = await response.json(); } catch { throw new PasswordResetRequestError(response.ok ? 502 : response.status); }
+  try {
+    value = await response.json();
+  } catch {
+    throw new PasswordResetRequestError(response.ok ? 502 : response.status);
+  }
   if (!response.ok) {
     const code = errorBodySchema.safeParse(value).data?.error.code;
-    throw new PasswordResetRequestError(response.status, knownCodes.find(known => known === code) ?? null);
+    throw new PasswordResetRequestError(response.status, knownCodes.find((known) => known === code) ?? null);
   }
   if (!success.safeParse(value).success) throw new PasswordResetRequestError(502);
 }
 
 export function requestPasswordResetEmail(email: string, captchaToken?: string): Promise<void> {
-  return post("/api/auth/password-reset", JSON.stringify({ email, ...(captchaToken ? { captchaToken } : {}) }), z.strictObject({ requested: z.literal(true) }));
+  return post(
+    "/api/auth/password-reset",
+    JSON.stringify({ email, ...(captchaToken ? { captchaToken } : {}) }),
+    z.strictObject({ requested: z.literal(true) }),
+  );
 }
 
 export function saveNewPassword(password: string): Promise<void> {
@@ -47,8 +72,10 @@ export function resetEmailErrorMessage(error: unknown): string {
 
 export function newPasswordErrorMessage(error: unknown): string {
   if (error instanceof PasswordResetRequestError) {
-    if (error.code === "recovery_required") return "This reset link has expired or was already used. Request a new link to continue.";
-    if (error.code === "weak_password") return "Choose a stronger password. Avoid common passwords and ones exposed in data breaches.";
+    if (error.code === "recovery_required")
+      return "This reset link has expired or was already used. Request a new link to continue.";
+    if (error.code === "weak_password")
+      return "Choose a stronger password. Avoid common passwords and ones exposed in data breaches.";
     if (error.code === "same_password") return "Choose a password you haven't used for this account.";
     if (error.status === 429) return "Too many attempts. Wait a few minutes before trying again.";
     if (error.status === 503) return "Password changes are unavailable right now. Please try again shortly.";

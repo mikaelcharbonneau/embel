@@ -17,8 +17,21 @@ export function engineOpenAIOrigin(env: Readonly<Record<string, string | undefin
   const override = env.EMBEL_OPENAI_BASE_URL;
   if (env.VERCEL_ENV === "production" || override === undefined || override === "") return OPENAI_ORIGIN;
   let url: URL;
-  try { url = new URL(override); } catch { throw new Error("provider_unconfigured"); }
-  if (!["http:", "https:"].includes(url.protocol) || !LOOPBACK.has(url.hostname) || url.username || url.password
-    || url.pathname !== "/" || url.search || url.hash || override.replace(/\/$/u, "") !== url.origin) throw new Error("provider_unconfigured");
+  try {
+    url = new URL(override);
+  } catch {
+    throw new Error("provider_unconfigured");
+  }
+  if (
+    !["http:", "https:"].includes(url.protocol) ||
+    !LOOPBACK.has(url.hostname) ||
+    url.username ||
+    url.password ||
+    url.pathname !== "/" ||
+    url.search ||
+    url.hash ||
+    override.replace(/\/$/u, "") !== url.origin
+  )
+    throw new Error("provider_unconfigured");
   return url.origin;
 }

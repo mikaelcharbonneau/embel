@@ -1,19 +1,45 @@
 import "server-only";
 
 export type ApiErrorCode =
-  | "unauthenticated" | "not_found" | "conflict" | "invalid_input"
-  | "forbidden_origin" | "body_too_large" | "integration_unavailable" | "internal_error"
-  | "invalid_credentials" | "signup_failed" | "auth_rate_limited" | "naming_history_capacity"
-  | "naming_active" | "project_revision_changed" | "preferences_changed" | "preferences_incomplete"
-  | "invalid_naming_request" | "naming_unavailable"
-  | "captcha_failed" | "weak_password" | "same_password" | "recovery_required"
-  | "generation_unavailable" | "generation_active" | "daily_limit" | "insufficient_credits" | "bot_detected"
-  | "reauthentication_required" | "confirmation_mismatch" | "deletion_incomplete" | "export_rate_limited";
+  | "unauthenticated"
+  | "not_found"
+  | "conflict"
+  | "invalid_input"
+  | "forbidden_origin"
+  | "body_too_large"
+  | "integration_unavailable"
+  | "internal_error"
+  | "invalid_credentials"
+  | "signup_failed"
+  | "auth_rate_limited"
+  | "naming_history_capacity"
+  | "naming_active"
+  | "project_revision_changed"
+  | "preferences_changed"
+  | "preferences_incomplete"
+  | "invalid_naming_request"
+  | "naming_unavailable"
+  | "captcha_failed"
+  | "weak_password"
+  | "same_password"
+  | "recovery_required"
+  | "generation_unavailable"
+  | "generation_active"
+  | "daily_limit"
+  | "insufficient_credits"
+  | "bot_detected"
+  | "reauthentication_required"
+  | "confirmation_mismatch"
+  | "deletion_incomplete"
+  | "export_rate_limited";
 
 const failures = {
   unauthenticated: [401, "Sign in to continue."],
   not_found: [404, "This resource is unavailable."],
-  naming_history_capacity: [409, "This project's naming history has reached the generation limit. Your saved names are preserved."],
+  naming_history_capacity: [
+    409,
+    "This project's naming history has reached the generation limit. Your saved names are preserved.",
+  ],
   naming_active: [409, "Names are already being generated for this project."],
   project_revision_changed: [409, "The project changed. Check the latest version before generating names."],
   preferences_changed: [409, "Your naming choices changed. Check them before generating names."],
@@ -40,7 +66,10 @@ const failures = {
   bot_detected: [403, "This request looks automated and was blocked. Reload the page and try again."],
   reauthentication_required: [403, "For your security, sign in again before deleting your account."],
   confirmation_mismatch: [422, "The email doesn't match this account."],
-  deletion_incomplete: [503, "Account deletion didn't finish. Some of your data may already be deleted. Try again to finish it."],
+  deletion_incomplete: [
+    503,
+    "Account deletion didn't finish. Some of your data may already be deleted. Try again to finish it.",
+  ],
   export_rate_limited: [429, "You can download your data 3 times a day. Try again tomorrow."],
 } as const;
 
@@ -57,7 +86,7 @@ export class ApiError extends Error {
 export function privateJson(value: unknown, status = 200): Response {
   return Response.json(value, {
     status,
-    headers: { "Cache-Control": "private, no-store", "Vary": "Cookie", "X-Content-Type-Options": "nosniff" },
+    headers: { "Cache-Control": "private, no-store", Vary: "Cookie", "X-Content-Type-Options": "nosniff" },
   });
 }
 
@@ -83,11 +112,19 @@ const MAX_FRAMES = 6;
 export function logServerError(event: string, error: unknown, details: Record<string, string | undefined> = {}): void {
   try {
     const name = error instanceof Error ? error.name : typeof error;
-    const rawCode = typeof error === "object" && error !== null && "code" in error ? (error as { code?: unknown }).code : undefined;
+    const rawCode =
+      typeof error === "object" && error !== null && "code" in error ? (error as { code?: unknown }).code : undefined;
     const code = typeof rawCode === "string" && SAFE_CODE.test(rawCode) ? rawCode : undefined;
-    const frames = error instanceof Error && typeof error.stack === "string"
-      ? error.stack.split("\n").map(line => line.trim()).filter(line => line.startsWith("at ")).slice(0, MAX_FRAMES)
-      : [];
+    const frames =
+      error instanceof Error && typeof error.stack === "string"
+        ? error.stack
+            .split("\n")
+            .map((line) => line.trim())
+            .filter((line) => line.startsWith("at "))
+            .slice(0, MAX_FRAMES)
+        : [];
     console.error(JSON.stringify({ event, name, code, ...details, frames }));
-  } catch { /* A broken logger must never change the response. */ }
+  } catch {
+    /* A broken logger must never change the response. */
+  }
 }

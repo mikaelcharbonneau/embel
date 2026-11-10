@@ -19,8 +19,11 @@ export async function POST(request: Request) {
     assertMutationOrigin(request);
     const { captchaToken, ...credentials } = await readJson(request, credentialsSchema, 8192);
     const { client, commitCookies } = await createAuthTransitionClient(request.signal);
-    const result = await client.auth.signInWithPassword({ ...credentials, ...(captchaToken ? { options: captchaOptions(captchaToken) } : {}) })
-      .catch(() => { throw new ApiError("integration_unavailable"); });
+    const result = await client.auth
+      .signInWithPassword({ ...credentials, ...(captchaToken ? { options: captchaOptions(captchaToken) } : {}) })
+      .catch(() => {
+        throw new ApiError("integration_unavailable");
+      });
     if (result.error) throw authFailure(result.error);
     if (!isConfirmedAuthResult(result.data)) {
       await client.auth.signOut({ scope: "local" }).catch(() => undefined);
@@ -28,5 +31,7 @@ export async function POST(request: Request) {
     }
     commitCookies();
     return privateJson({ authenticated: true });
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

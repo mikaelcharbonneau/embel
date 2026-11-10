@@ -15,10 +15,20 @@ export function getSupabaseConfiguration(env: Environment = process.env) {
     throw new ApiError("integration_unavailable");
   }
   let url: URL;
-  try { url = new URL(rawUrl); } catch { throw new ApiError("integration_unavailable"); }
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    throw new ApiError("integration_unavailable");
+  }
   const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
-  if (url.username || url.password || url.search || url.hash || url.pathname !== "/" ||
-      (url.protocol !== "https:" && !(local && url.protocol === "http:" && env.NODE_ENV !== "production"))) {
+  if (
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash ||
+    url.pathname !== "/" ||
+    (url.protocol !== "https:" && !(local && url.protocol === "http:" && env.NODE_ENV !== "production"))
+  ) {
     throw new ApiError("integration_unavailable");
   }
   return { url: url.origin, publishableKey };
@@ -30,10 +40,18 @@ export function getApplicationOrigin(env: Environment = process.env): string {
     if (env.VERCEL_ENV === "production") return getVercelProductionOrigin(env);
     const origin = new URL(env.APP_ORIGIN ?? "");
     const local = ["localhost", "127.0.0.1", "[::1]"].includes(origin.hostname);
-    if (origin.username || origin.password || origin.pathname !== "/" || origin.search || origin.hash ||
-        (origin.protocol !== "https:" && !(local && origin.protocol === "http:" && env.NODE_ENV !== "production"))) {
+    if (
+      origin.username ||
+      origin.password ||
+      origin.pathname !== "/" ||
+      origin.search ||
+      origin.hash ||
+      (origin.protocol !== "https:" && !(local && origin.protocol === "http:" && env.NODE_ENV !== "production"))
+    ) {
       throw new Error("invalid");
     }
     return origin.origin;
-  } catch { throw new ApiError("integration_unavailable"); }
+  } catch {
+    throw new ApiError("integration_unavailable");
+  }
 }

@@ -12,6 +12,10 @@ export async function POST(request: Request, context: { params: Promise<{ projec
     const { projectId } = await context.params;
     const input = await readJson(request, selectIdentityDirectionComponentsInputSchema, LOGO_MUTATION_MAX_BYTES);
     const services = await resolveLogoRequestServices(auth, projectId, request.signal);
-    return privateJson(await services.workspace.selectIdentityDirectionComponents(auth, projectId, input, request.signal));
-  } catch (error) { return logoErrorResponse(error); }
+    return privateJson(
+      await services.workspace.selectIdentityDirectionComponents(auth, projectId, input, request.signal),
+    );
+  } catch (error) {
+    return logoErrorResponse(error);
+  }
 }

@@ -8,5 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     return privateJson({ credits: await getCreditSummary(await getAuthenticatedContext()) });
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

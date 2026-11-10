@@ -8,7 +8,10 @@ type RouteContext = { params: Promise<{ projectId: string }> };
 export async function GET(request: Request, context: RouteContext) {
   try {
     const auth = await getAuthenticatedContext();
-    const query = readNamingFeedQuery(request), projectId = (await context.params).projectId;
+    const query = readNamingFeedQuery(request),
+      projectId = (await context.params).projectId;
     return privateJson({ feed: await getNamingEngineFeed(auth, projectId, query.cursor, query.limit) });
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

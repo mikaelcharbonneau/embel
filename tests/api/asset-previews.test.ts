@@ -10,7 +10,9 @@ const request = () => new Request(`https://fluid.example/api/assets/${versionId}
 const params = () => ({ params: Promise.resolve({ versionId }) });
 
 describe("private preview response", () => {
-  beforeEach(() => { vi.resetAllMocks(); });
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
   it("requires verified authentication before reading an object", async () => {
     mocks.auth.mockRejectedValue(new ApiError("unauthenticated"));
     const response = await GET(request(), params());

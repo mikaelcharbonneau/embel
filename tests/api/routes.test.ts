@@ -9,17 +9,39 @@ import { ApiError } from "../../src/server/http/errors";
 
 const ownerId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const projectId = "11111111-1111-4111-8111-111111111111";
-const input = { title: "Local test fixture", scope: "complete_brand", context: { description: "A local fixture, not model output." } };
-const request = (body: unknown = input, origin = "https://fluid.example") => new Request("https://fluid.example/api/projects", { method: "POST", headers: { origin, "content-type": "application/json", "X-Embel-Account": ownerId }, body: JSON.stringify(body) });
+const input = {
+  title: "Local test fixture",
+  scope: "complete_brand",
+  context: { description: "A local fixture, not model output." },
+};
+const request = (body: unknown = input, origin = "https://fluid.example") =>
+  new Request("https://fluid.example/api/projects", {
+    method: "POST",
+    headers: { origin, "content-type": "application/json", "X-Embel-Account": ownerId },
+    body: JSON.stringify(body),
+  });
 
 describe("web mutation security boundaries", () => {
   beforeEach(() => {
     vi.stubEnv("APP_ORIGIN", "https://fluid.example");
     doubles.auth.mockResolvedValue({ userId: ownerId, client: { rpc: doubles.rpc } });
     doubles.rpc.mockReturnValue({ single: doubles.single });
-    doubles.single.mockResolvedValue({ data: { id: projectId, owner_id: ownerId, scope: "complete_brand", title: input.title, current_revision: 1, created_at: "2026-10-02T00:00:00Z" }, error: null });
+    doubles.single.mockResolvedValue({
+      data: {
+        id: projectId,
+        owner_id: ownerId,
+        scope: "complete_brand",
+        title: input.title,
+        current_revision: 1,
+        created_at: "2026-10-02T00:00:00Z",
+      },
+      error: null,
+    });
   });
-  afterEach(() => { vi.unstubAllEnvs(); vi.clearAllMocks(); });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.clearAllMocks();
+  });
 
   it("rejects a cross-origin mutation before database access", async () => {
     expect((await createProject(request(input, "https://untrusted.example"))).status).toBe(403);
@@ -40,7 +62,10 @@ describe("web mutation security boundaries", () => {
     const response = await createProject(request());
     expect(response.status).toBe(201);
     expect(response.headers.get("cache-control")).toBe("private, no-store");
-    expect(doubles.rpc).toHaveBeenCalledWith("create_project", expect.objectContaining({ p_scope: "complete_brand", p_title: input.title }));
+    expect(doubles.rpc).toHaveBeenCalledWith(
+      "create_project",
+      expect.objectContaining({ p_scope: "complete_brand", p_title: input.title }),
+    );
     expect(doubles.rpc.mock.calls[0]?.[1]).not.toHaveProperty("p_owner_id");
     expect(doubles.single).toHaveBeenCalledOnce();
   });
@@ -51,8 +76,23 @@ describe("web mutation security boundaries", () => {
     expect(await response.text()).not.toContain("fixture-secret");
   });
   it("never returns a lease token from the cancellation endpoint", async () => {
-    doubles.rpc.mockResolvedValue({ data: { id: projectId, state: "cancel_requested", progress: 40, lease_token: "sensitive-worker-fence", worker_id: "internal-worker" }, error: null });
-    const response = await cancelJob(new Request(`https://fluid.example/api/jobs/${projectId}`, { method: "DELETE", headers: { origin: "https://fluid.example" } }), { params: Promise.resolve({ jobId: projectId }) });
+    doubles.rpc.mockResolvedValue({
+      data: {
+        id: projectId,
+        state: "cancel_requested",
+        progress: 40,
+        lease_token: "sensitive-worker-fence",
+        worker_id: "internal-worker",
+      },
+      error: null,
+    });
+    const response = await cancelJob(
+      new Request(`https://fluid.example/api/jobs/${projectId}`, {
+        method: "DELETE",
+        headers: { origin: "https://fluid.example" },
+      }),
+      { params: Promise.resolve({ jobId: projectId }) },
+    );
     expect(response.status).toBe(200);
     const value = await response.json();
     expect(value.job.state).toBe("cancel_requested");

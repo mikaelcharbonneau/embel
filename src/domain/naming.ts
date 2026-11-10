@@ -15,31 +15,40 @@ const wordSegmenter = new Intl.Segmenter("en", { granularity: "word" });
 function normalizedText(trim: boolean) {
   // Zod's string max counts code points in the installed version. The project
   // naming limit intentionally uses UTF-16 units, so check .length explicitly.
-  return z.string().refine(value => value.length <= MAX_RAW_LENGTH, "Text exceeds the input limit")
-    .refine(value => !forbiddenText.test(value), "Remove control characters or invalid Unicode")
-    .transform(value => trim ? value.normalize("NFC").trim() : value.normalize("NFC"))
-    .pipe(z.string().refine(value => value.length <= MAX_NAME_LENGTH, "Use at most 160 UTF-16 code units"));
+  return z
+    .string()
+    .refine((value) => value.length <= MAX_RAW_LENGTH, "Text exceeds the input limit")
+    .refine((value) => !forbiddenText.test(value), "Remove control characters or invalid Unicode")
+    .transform((value) => (trim ? value.normalize("NFC").trim() : value.normalize("NFC")))
+    .pipe(z.string().refine((value) => value.length <= MAX_NAME_LENGTH, "Use at most 160 UTF-16 code units"));
 }
 
 /** NFC and outer whitespace normalization; the saved value is at most 160 UTF-16 units. */
-export const nameValueSchema = normalizedText(true)
-  .refine(value => !invisibleOnly.test(value), "Enter a nonempty, visible name");
-const affixSchema = normalizedText(true)
-  .refine(value => value === "" || !invisibleOnly.test(value), "Use a visible affix or leave it empty");
+export const nameValueSchema = normalizedText(true).refine(
+  (value) => !invisibleOnly.test(value),
+  "Enter a nonempty, visible name",
+);
+const affixSchema = normalizedText(true).refine(
+  (value) => value === "" || !invisibleOnly.test(value),
+  "Use a visible affix or leave it empty",
+);
 
 function graphemes(value: string): string[] {
-  return Array.from(graphemeSegmenter.segment(value), item => item.segment);
+  return Array.from(graphemeSegmenter.segment(value), (item) => item.segment);
 }
 
-const affixesInputSchema = z.strictObject({
-  kind: z.literal("affixes"),
-  seed: nameValueSchema,
-  prefixes: z.array(affixSchema).max(12),
-  suffixes: z.array(affixSchema).max(12),
-  separator: z.enum(["", " ", "-"]),
-}).refine(input => [...input.prefixes, ...input.suffixes].some(value => value !== ""), {
-  message: "Add at least one prefix or suffix", path: ["prefixes"],
-});
+const affixesInputSchema = z
+  .strictObject({
+    kind: z.literal("affixes"),
+    seed: nameValueSchema,
+    prefixes: z.array(affixSchema).max(12),
+    suffixes: z.array(affixSchema).max(12),
+    separator: z.enum(["", " ", "-"]),
+  })
+  .refine((input) => [...input.prefixes, ...input.suffixes].some((value) => value !== ""), {
+    message: "Add at least one prefix or suffix",
+    path: ["prefixes"],
+  });
 
 const tweakOperationSchema = z.enum(["lowercase", "uppercase", "titlecase", "remove_spaces", "hyphenate"]);
 const tweaksInputSchema = z.strictObject({
@@ -48,31 +57,42 @@ const tweaksInputSchema = z.strictObject({
   operations: z.array(tweakOperationSchema).min(1).max(5),
 });
 
-const blendInputSchema = z.strictObject({
-  kind: z.literal("blend"),
-  left: nameValueSchema,
-  right: nameValueSchema,
-  leftTake: z.number().int().min(1).max(MAX_NAME_LENGTH),
-  rightDrop: z.number().int().min(0).max(MAX_NAME_LENGTH),
-}).superRefine((input, ctx) => {
-  if (input.leftTake > graphemes(input.left).length) {
-    ctx.addIssue({ code: "custom", path: ["leftTake"], message: "Keep no more than the left name's grapheme count" });
-  }
-  if (input.rightDrop > graphemes(input.right).length) {
-    ctx.addIssue({ code: "custom", path: ["rightDrop"], message: "Drop no more than the right name's grapheme count" });
-  }
-});
+const blendInputSchema = z
+  .strictObject({
+    kind: z.literal("blend"),
+    left: nameValueSchema,
+    right: nameValueSchema,
+    leftTake: z.number().int().min(1).max(MAX_NAME_LENGTH),
+    rightDrop: z.number().int().min(0).max(MAX_NAME_LENGTH),
+  })
+  .superRefine((input, ctx) => {
+    if (input.leftTake > graphemes(input.left).length) {
+      ctx.addIssue({ code: "custom", path: ["leftTake"], message: "Keep no more than the left name's grapheme count" });
+    }
+    if (input.rightDrop > graphemes(input.right).length) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["rightDrop"],
+        message: "Drop no more than the right name's grapheme count",
+      });
+    }
+  });
 
 const swapInputSchema = z.strictObject({
   kind: z.literal("swap"),
   seed: nameValueSchema,
   // Spaces are significant in literal search/replacement, unlike name edges.
-  find: normalizedText(false).refine(value => value.length > 0, "Enter text to find"),
+  find: normalizedText(false).refine((value) => value.length > 0, "Enter text to find"),
   replacement: normalizedText(false),
   match: z.enum(["first", "all"]),
 });
 
-export const nameTransformInputSchema = z.discriminatedUnion("kind", [affixesInputSchema, tweaksInputSchema, blendInputSchema, swapInputSchema]);
+export const nameTransformInputSchema = z.discriminatedUnion("kind", [
+  affixesInputSchema,
+  tweaksInputSchema,
+  blendInputSchema,
+  swapInputSchema,
+]);
 export type NameTransformInput = z.infer<typeof nameTransformInputSchema>;
 
 type NameTransformResult = {
@@ -84,23 +104,34 @@ type NameTransformResult = {
 function titlecase(value: string): string {
   // Fixed English word segmentation; Unicode default case mapping, not a
   // language-specific spelling correction. Uppercase the first letter cluster.
-  return Array.from(wordSegmenter.segment(value), word => {
+  return Array.from(wordSegmenter.segment(value), (word) => {
     if (!word.isWordLike) return word.segment;
     let firstLetter = true;
-    return graphemes(word.segment.toLowerCase()).map(cluster => {
-      if (!firstLetter || !/\p{L}/u.test(cluster)) return cluster;
-      firstLetter = false;
-      return cluster.toUpperCase();
-    }).join("");
+    return graphemes(word.segment.toLowerCase())
+      .map((cluster) => {
+        if (!firstLetter || !/\p{L}/u.test(cluster)) return cluster;
+        firstLetter = false;
+        return cluster.toUpperCase();
+      })
+      .join("");
   }).join("");
 }
 
-const tweakOperations: Record<z.infer<typeof tweakOperationSchema>, { apply: (value: string) => string; explanation: string }> = {
-  lowercase: { apply: value => value.toLowerCase(), explanation: "Applied Unicode lowercase mapping." },
-  uppercase: { apply: value => value.toUpperCase(), explanation: "Applied Unicode uppercase mapping." },
-  titlecase: { apply: titlecase, explanation: "Lowercased each word and uppercased its first letter cluster using English word boundaries." },
-  remove_spaces: { apply: value => value.replace(/\s+/gu, ""), explanation: "Removed whitespace." },
-  hyphenate: { apply: value => value.replace(/\s+/gu, "-"), explanation: "Replaced each run of whitespace with a hyphen." },
+const tweakOperations: Record<
+  z.infer<typeof tweakOperationSchema>,
+  { apply: (value: string) => string; explanation: string }
+> = {
+  lowercase: { apply: (value) => value.toLowerCase(), explanation: "Applied Unicode lowercase mapping." },
+  uppercase: { apply: (value) => value.toUpperCase(), explanation: "Applied Unicode uppercase mapping." },
+  titlecase: {
+    apply: titlecase,
+    explanation: "Lowercased each word and uppercased its first letter cluster using English word boundaries.",
+  },
+  remove_spaces: { apply: (value) => value.replace(/\s+/gu, ""), explanation: "Removed whitespace." },
+  hyphenate: {
+    apply: (value) => value.replace(/\s+/gu, "-"),
+    explanation: "Replaced each run of whitespace with a hyphen.",
+  },
 };
 
 /**
@@ -159,8 +190,13 @@ function transformParsedNames(input: NameTransformInput): NameTransformResult {
       const suffixes = input.suffixes.length ? input.suffixes : [""];
       for (const prefix of prefixes) {
         for (const suffix of suffixes) {
-          const details = [prefix ? `prefix “${prefix}”` : "", suffix ? `suffix “${suffix}”` : ""].filter(Boolean).join(" and ");
-          add([prefix, input.seed, suffix].filter(value => value !== "").join(input.separator), `Added ${details || "no affix"}.`);
+          const details = [prefix ? `prefix “${prefix}”` : "", suffix ? `suffix “${suffix}”` : ""]
+            .filter(Boolean)
+            .join(" and ");
+          add(
+            [prefix, input.seed, suffix].filter((value) => value !== "").join(input.separator),
+            `Added ${details || "no affix"}.`,
+          );
         }
       }
       break;
@@ -173,8 +209,11 @@ function transformParsedNames(input: NameTransformInput): NameTransformResult {
       break;
     }
     case "blend": {
-      add(graphemes(input.left).slice(0, input.leftTake).join("") + graphemes(input.right).slice(input.rightDrop).join(""),
-        `Kept ${input.leftTake} grapheme${input.leftTake === 1 ? "" : "s"} from the left and dropped ${input.rightDrop} from the right.`);
+      add(
+        graphemes(input.left).slice(0, input.leftTake).join("") +
+          graphemes(input.right).slice(input.rightDrop).join(""),
+        `Kept ${input.leftTake} grapheme${input.leftTake === 1 ? "" : "s"} from the left and dropped ${input.rightDrop} from the right.`,
+      );
       break;
     }
     case "swap": {
@@ -218,44 +257,54 @@ const namingHistoryStepSchema = z.strictObject({
 });
 
 /** Immutable local provenance of a chosen name, not evidence of provider work or ownership. */
-export const namingSourceSchema = z.strictObject({
-  id: z.uuid(),
-  value: nameValueSchema,
-  createdAt: z.iso.datetime({ offset: true }),
-  origin: z.enum(["manual", "workshop"]),
-  history: z.array(namingHistoryStepSchema).max(MAX_HISTORY),
-}).superRefine((source, ctx) => {
-  if (source.origin === "manual" && source.history.length) {
-    ctx.addIssue({ code: "custom", path: ["history"], message: "Manual names cannot have workshop history" });
-  }
-  if (source.origin === "workshop" && !source.history.length) {
-    ctx.addIssue({ code: "custom", path: ["history"], message: "Workshop names require a chosen transformation" });
-  }
-  // Bound replay even for an already-invalid oversized history.
-  if (source.history.length > MAX_HISTORY) return;
-  const ids = new Set<string>();
-  for (let index = 0; index < source.history.length; index += 1) {
-    const step = source.history[index]!;
-    if (ids.has(step.id)) {
-      ctx.addIssue({ code: "custom", path: ["history", index, "id"], message: "History identifiers must be unique" });
+export const namingSourceSchema = z
+  .strictObject({
+    id: z.uuid(),
+    value: nameValueSchema,
+    createdAt: z.iso.datetime({ offset: true }),
+    origin: z.enum(["manual", "workshop"]),
+    history: z.array(namingHistoryStepSchema).max(MAX_HISTORY),
+  })
+  .superRefine((source, ctx) => {
+    if (source.origin === "manual" && source.history.length) {
+      ctx.addIssue({ code: "custom", path: ["history"], message: "Manual names cannot have workshop history" });
     }
-    ids.add(step.id);
-    // Zod's continuable nested refinements can leave invalid work here. Never
-    // replay it; the nested schema has already recorded the validation issues.
-    const validInput = nameTransformInputSchema.safeParse(step.input);
-    if (!validInput.success) continue;
-    const previous = source.history[index - 1];
-    const seed = validInput.data.kind === "blend" ? validInput.data.left : validInput.data.seed;
-    if (previous && seed !== previous.output) {
-      ctx.addIssue({ code: "custom", path: ["history", index, "input"], message: "Continue from the preceding chosen name" });
+    if (source.origin === "workshop" && !source.history.length) {
+      ctx.addIssue({ code: "custom", path: ["history"], message: "Workshop names require a chosen transformation" });
     }
-    if (!transformParsedNames(validInput.data).candidates.some(candidate => candidate.value === step.output)) {
-      ctx.addIssue({ code: "custom", path: ["history", index, "output"], message: "Output must be a result of the recorded transformation" });
+    // Bound replay even for an already-invalid oversized history.
+    if (source.history.length > MAX_HISTORY) return;
+    const ids = new Set<string>();
+    for (let index = 0; index < source.history.length; index += 1) {
+      const step = source.history[index]!;
+      if (ids.has(step.id)) {
+        ctx.addIssue({ code: "custom", path: ["history", index, "id"], message: "History identifiers must be unique" });
+      }
+      ids.add(step.id);
+      // Zod's continuable nested refinements can leave invalid work here. Never
+      // replay it; the nested schema has already recorded the validation issues.
+      const validInput = nameTransformInputSchema.safeParse(step.input);
+      if (!validInput.success) continue;
+      const previous = source.history[index - 1];
+      const seed = validInput.data.kind === "blend" ? validInput.data.left : validInput.data.seed;
+      if (previous && seed !== previous.output) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["history", index, "input"],
+          message: "Continue from the preceding chosen name",
+        });
+      }
+      if (!transformParsedNames(validInput.data).candidates.some((candidate) => candidate.value === step.output)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["history", index, "output"],
+          message: "Output must be a result of the recorded transformation",
+        });
+      }
     }
-  }
-  const last = source.history.at(-1);
-  if (last && last.output !== source.value) {
-    ctx.addIssue({ code: "custom", path: ["value"], message: "Name must match the last chosen history output" });
-  }
-});
+    const last = source.history.at(-1);
+    if (last && last.output !== source.value) {
+      ctx.addIssue({ code: "custom", path: ["value"], message: "Name must match the last chosen history output" });
+    }
+  });
 export type NamingSource = z.infer<typeof namingSourceSchema>;

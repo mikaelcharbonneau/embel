@@ -23,21 +23,34 @@ async function mutate(request: Request, context: RouteContext, deleted: boolean)
     const project = await setProjectDeleted(auth, id, input, deleted);
     return privateJson({ project }, deleted && project.deletion_state !== "deleted" ? 202 : 200);
   } catch (error) {
-    if (error instanceof ProjectDeletionRetryError) return privateJson({ error: {
-      code: "project_deletion_retry", message: "This project is saving or finishing work. Retry the same deletion request shortly.",
-    } }, 409);
+    if (error instanceof ProjectDeletionRetryError)
+      return privateJson(
+        {
+          error: {
+            code: "project_deletion_retry",
+            message: "This project is saving or finishing work. Retry the same deletion request shortly.",
+          },
+        },
+        409,
+      );
     return errorResponse(error);
   }
 }
 /** One confirmation durably requests cancellation and reversible deletion. */
-export async function POST(request: Request, context: RouteContext) { return mutate(request, context, true); }
+export async function POST(request: Request, context: RouteContext) {
+  return mutate(request, context, true);
+}
 /** Withdrawal/Restore never restarts a cancelled job. */
-export async function DELETE(request: Request, context: RouteContext) { return mutate(request, context, false); }
+export async function DELETE(request: Request, context: RouteContext) {
+  return mutate(request, context, false);
+}
 /** Read-only derived completion keeps polling independent of worker deployment. */
 export async function GET(request: Request, context: RouteContext) {
   try {
     const auth = await getAuthenticatedContext();
     assertExpectedAccount(request, auth.userId);
     return privateJson({ project: await getProjectDeletion(auth, await projectId(context)) });
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

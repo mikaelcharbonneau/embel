@@ -22,7 +22,11 @@ interface TurnstileApi {
   reset(widgetId: string): void;
   remove(widgetId: string): void;
 }
-declare global { interface Window { turnstile?: TurnstileApi } }
+declare global {
+  interface Window {
+    turnstile?: TurnstileApi;
+  }
+}
 
 // The official script has a fixed, unversioned address; Cloudflare serves the current v0 build.
 const scriptUrl = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
@@ -35,20 +39,29 @@ function loadScript(): Promise<TurnstileApi> {
     script.src = scriptUrl;
     script.async = true;
     script.onload = () => (window.turnstile ? resolve(window.turnstile) : reject(new Error("turnstile_missing")));
-    script.onerror = () => { script.remove(); scriptLoading = null; reject(new Error("turnstile_blocked")); };
+    script.onerror = () => {
+      script.remove();
+      scriptLoading = null;
+      reject(new Error("turnstile_blocked"));
+    };
     document.head.append(script);
   });
   return scriptLoading;
 }
 
 /** Returns the token to send, nothing when the check is off, or a message explaining why to wait. */
-export function readCaptcha(handle: TurnstileHandle | null): { ok: true; token?: string } | { ok: false; message: string } {
+export function readCaptcha(
+  handle: TurnstileHandle | null,
+): { ok: true; token?: string } | { ok: false; message: string } {
   if (!turnstileSiteKey()) return { ok: true };
   const token = handle?.token();
   if (token) return { ok: true, token };
-  return { ok: false, message: handle?.failed()
-    ? "The security check couldn't load. Refresh the page or check your connection, then try again."
-    : "Please wait for the security check to finish, then try again." };
+  return {
+    ok: false,
+    message: handle?.failed()
+      ? "The security check couldn't load. Refresh the page or check your connection, then try again."
+      : "Please wait for the security check to finish, then try again.",
+  };
 }
 
 export function TurnstileWidget({ handleRef }: { handleRef: Ref<TurnstileHandle> }) {
@@ -58,31 +71,49 @@ export function TurnstileWidget({ handleRef }: { handleRef: Ref<TurnstileHandle>
   const token = useRef<string | null>(null);
   const failed = useRef(false);
 
-  useImperativeHandle(handleRef, () => ({
-    token: () => token.current,
-    failed: () => failed.current,
-    reset() {
-      token.current = null;
-      if (widgetId.current !== null) window.turnstile?.reset(widgetId.current);
-    },
-  }), []);
+  useImperativeHandle(
+    handleRef,
+    () => ({
+      token: () => token.current,
+      failed: () => failed.current,
+      reset() {
+        token.current = null;
+        if (widgetId.current !== null) window.turnstile?.reset(widgetId.current);
+      },
+    }),
+    [],
+  );
 
   useEffect(() => {
     if (!siteKey || !container.current) return;
     let cancelled = false;
     const element = container.current;
-    loadScript().then(api => {
-      if (cancelled) return;
-      widgetId.current = api.render(element, {
-        sitekey: siteKey,
-        theme: "auto",
-        size: "flexible",
-        callback: (value: string) => { token.current = value; failed.current = false; },
-        "expired-callback": () => { token.current = null; },
-        "timeout-callback": () => { token.current = null; },
-        "error-callback": () => { token.current = null; failed.current = true; },
+    loadScript()
+      .then((api) => {
+        if (cancelled) return;
+        widgetId.current = api.render(element, {
+          sitekey: siteKey,
+          theme: "auto",
+          size: "flexible",
+          callback: (value: string) => {
+            token.current = value;
+            failed.current = false;
+          },
+          "expired-callback": () => {
+            token.current = null;
+          },
+          "timeout-callback": () => {
+            token.current = null;
+          },
+          "error-callback": () => {
+            token.current = null;
+            failed.current = true;
+          },
+        });
+      })
+      .catch(() => {
+        failed.current = true;
       });
-    }).catch(() => { failed.current = true; });
     return () => {
       cancelled = true;
       if (widgetId.current !== null) window.turnstile?.remove(widgetId.current);

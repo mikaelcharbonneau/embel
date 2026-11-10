@@ -7,7 +7,7 @@ describe("signed download links", () => {
     "http://127.0.0.1:54321/storage/v1/object/sign/fluid-assets/file?token=t",
     "http://localhost:54321/storage/v1/object/sign/fluid-assets/file",
     "http://[::1]:54321/storage/v1/object/sign/fluid-assets/file",
-  ])("accepts https, and plain http only to this computer: %s", url => {
+  ])("accepts https, and plain http only to this computer: %s", (url) => {
     expect(isSignedDownloadUrl(url)).toBe(true);
   });
   it.each([
@@ -19,7 +19,7 @@ describe("signed download links", () => {
     "ftp://127.0.0.1/file",
     "javascript:alert(1)",
     "not a url",
-  ])("refuses other links: %s", url => {
+  ])("refuses other links: %s", (url) => {
     expect(isSignedDownloadUrl(url)).toBe(false);
   });
 });

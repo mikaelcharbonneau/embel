@@ -5,6 +5,8 @@ declare module "pg/lib/client.js" {
   export default Client;
 }
 declare module "pg-pool" {
-  const Pool: new (configuration: import("pg").PoolConfig & { Client: typeof import("pg").Client }) => import("pg").Pool;
+  const Pool: new (
+    configuration: import("pg").PoolConfig & { Client: typeof import("pg").Client },
+  ) => import("pg").Pool;
   export default Pool;
 }

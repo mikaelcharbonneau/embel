@@ -2,12 +2,21 @@ import { test, expect, type Page } from "@playwright/test";
 
 // Synthetic same-origin responses only. No provider authentication or account creation.
 async function signedOut(page: Page) {
-  await page.route("**/api/**", route => route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ error: { code: "unauthenticated" } }) }));
+  await page.route("**/api/**", (route) =>
+    route.fulfill({
+      status: 401,
+      contentType: "application/json",
+      body: JSON.stringify({ error: { code: "unauthenticated" } }),
+    }),
+  );
 }
 async function openOverlay(page: Page) {
   // Signed out, the pill offers Sign in and Create account directly.
   const trigger = page.getByRole("banner").getByRole("link", { name: "Sign in", exact: true });
-  await expect(page.getByRole("banner").getByRole("link", { name: "Create account", exact: true })).toHaveAttribute("href", "/sign-up");
+  await expect(page.getByRole("banner").getByRole("link", { name: "Create account", exact: true })).toHaveAttribute(
+    "href",
+    "/sign-up",
+  );
   await expect(page.locator(".workspace-account-menu")).toHaveCount(0);
   await trigger.click();
   const dialog = page.getByRole("dialog", { name: "Sign in to Embel", exact: true });
@@ -27,7 +36,7 @@ test("auth overlay: keyboard, history and backdrop preserve the underlying works
   await expect(dialog.getByRole("link", { name: "Create account", exact: true })).toHaveAttribute("href", "/sign-up");
   for (let i = 0; i < 7; i++) {
     await page.keyboard.press("Tab");
-    expect(await dialog.evaluate(element => element.contains(document.activeElement))).toBe(true);
+    expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true);
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
   await page.screenshot({ path: testInfo.outputPath("sign-in-overlay.png"), scale: "css" });
@@ -44,27 +53,37 @@ test("auth overlay: keyboard, history and backdrop preserve the underlying works
 });
 
 test("auth overlay: closing returns focus to a visible Home opener without changing the prompt", async ({ page }) => {
-  await signedOut(page); await page.goto("/");
+  await signedOut(page);
+  await page.goto("/");
   const prompt = page.getByRole("textbox", { name: "Your prompt", exact: true });
   await prompt.fill("A neighborhood workshop for learning practical repair skills.");
   const trigger = page.locator(".conversation-start-notice").getByRole("link", { name: "Sign in", exact: true });
   await trigger.click();
   const dialog = page.getByRole("dialog", { name: "Sign in to Embel", exact: true });
-  await expect(dialog).toBeVisible(); await page.keyboard.press("Escape");
-  await expect(dialog).toHaveCount(0); await expect(trigger).toBeVisible(); await expect(trigger).toBeFocused();
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(trigger).toBeVisible();
+  await expect(trigger).toBeFocused();
   await expect(prompt).toHaveValue("A neighborhood workshop for learning practical repair skills.");
 });
 
 test("auth overlay: focus restoration to the pill's Sign in works without checkVisibility", async ({ page }) => {
-  await page.addInitScript(() => { Object.defineProperty(Element.prototype, "checkVisibility", { configurable: true, value: undefined }); });
-  await signedOut(page); await page.goto("/settings");
+  await page.addInitScript(() => {
+    Object.defineProperty(Element.prototype, "checkVisibility", { configurable: true, value: undefined });
+  });
+  await signedOut(page);
+  await page.goto("/settings");
   const { dialog, trigger } = await openOverlay(page);
-  await page.keyboard.press("Escape"); await expect(dialog).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
   await expect(trigger).toBeVisible();
   await expect(trigger).toBeFocused();
 });
 
-test("auth overlay: continuation clears the slot; direct visits and reloads use the standalone card", async ({ page }, testInfo) => {
+test("auth overlay: continuation clears the slot; direct visits and reloads use the standalone card", async ({
+  page,
+}, testInfo) => {
   if (testInfo.project.name === "desktop") await page.setViewportSize({ width: 1440, height: 900 });
   await signedOut(page);
   await page.goto("/settings");
@@ -91,20 +110,36 @@ test("auth overlay: continuation clears the slot; direct visits and reloads use 
   await page.screenshot({ path: testInfo.outputPath("sign-in-page.png"), scale: "css" });
 });
 
-test("auth overlay: pending dismissal retains the global cookie-mutation fence and clears passwords", async ({ page }) => {
+test("auth overlay: pending dismissal retains the global cookie-mutation fence and clears passwords", async ({
+  page,
+}) => {
   test.skip(process.env.FLUID_TEST_CONFIGURED_AUTH !== "1", "Inert configured server with every API intercepted.");
   let authed = false;
   let submissions = 0;
   let sessionReads = 0;
   let release!: () => void;
-  const pending = new Promise<void>(resolve => { release = resolve; });
-  await page.route("**/api/**", async route => {
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/api/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/session") { sessionReads++; return route.fulfill({ status: authed ? 200 : 401, json: authed ? { user: { id: "aaaaaaaa-2222-4222-8222-222222222222" } } : { error: { code: "unauthenticated" } } }); }
+    if (path === "/api/session") {
+      sessionReads++;
+      return route.fulfill({
+        status: authed ? 200 : 401,
+        json: authed
+          ? { user: { id: "aaaaaaaa-2222-4222-8222-222222222222" } }
+          : { error: { code: "unauthenticated" } },
+      });
+    }
     if (path === "/api/auth/sign-in") {
       submissions++;
-      expect(route.request().postDataJSON()).toEqual({ email: "overlay@example.invalid", password: "  inert overlay fixture  " });
-      await pending; authed = true;
+      expect(route.request().postDataJSON()).toEqual({
+        email: "overlay@example.invalid",
+        password: "  inert overlay fixture  ",
+      });
+      await pending;
+      authed = true;
       return route.fulfill({ json: { authenticated: true } });
     }
     return route.fulfill({ status: 503, json: { error: { code: "integration_unavailable" } } });
@@ -121,20 +156,26 @@ test("auth overlay: pending dismissal retains the global cookie-mutation fence a
   const before = sessionReads;
   await dialog.getByRole("button", { name: "Close sign-in" }).click();
   await expect(dialog).toHaveCount(0);
-  expect(await detachedPassword?.evaluate(element => (element as HTMLInputElement).value)).toBe("");
+  expect(await detachedPassword?.evaluate((element) => (element as HTMLInputElement).value)).toBe("");
   await expect(page).toHaveURL(/\/settings$/);
   const accountSummary = page.locator(".workspace-account-menu > summary");
   await expect(accountSummary).toBeVisible();
   await expect(accountSummary).toBeFocused();
   await accountSummary.click();
-  await expect(page.locator(".workspace-account-menu").getByRole("button", { name: "Signing in…", exact: true })).toBeDisabled();
+  await expect(
+    page.locator(".workspace-account-menu").getByRole("button", { name: "Signing in…", exact: true }),
+  ).toBeDisabled();
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   expect(sessionReads).toBe(before);
-  const storage = await page.evaluate(() => JSON.stringify({ local: { ...localStorage }, session: { ...sessionStorage } }));
+  const storage = await page.evaluate(() =>
+    JSON.stringify({ local: { ...localStorage }, session: { ...sessionStorage } }),
+  );
   expect(storage).not.toContain("overlay@example.invalid");
   expect(storage).not.toContain("inert overlay fixture");
   release();
-  await expect(page.locator(".workspace-account-menu").getByRole("button", { name: "Sign out", exact: true })).toBeVisible();
+  await expect(
+    page.locator(".workspace-account-menu").getByRole("button", { name: "Sign out", exact: true }),
+  ).toBeVisible();
   await expect(page).toHaveURL(/\/settings$/);
   expect(submissions).toBe(1);
 });

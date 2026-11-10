@@ -9,8 +9,13 @@ it("requests consulted sources again when polling, preserving strict research ve
   const full = guidedResearchResponse();
   const withoutSources = structuredClone(full);
   withoutSources.output[0]!.action = { type: "search" };
-  const interpret = (body: unknown) => evaluateStrategyResponse({ job, input: job.input,
-    operation: "strategy.competitors", raw: { body, requestId: "req_synthetic" } });
+  const interpret = (body: unknown) =>
+    evaluateStrategyResponse({
+      job,
+      input: job.input,
+      operation: "strategy.competitors",
+      raw: { body, requestId: "req_synthetic" },
+    });
   expect(interpret(withoutSources)).toMatchObject({ status: "failed", code: "provider_research_unusable" });
   const fetcher = vi.fn<typeof fetch>().mockImplementation(async (url, init) => {
     expect(init?.method).toBe("GET");

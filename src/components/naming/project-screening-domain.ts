@@ -2,7 +2,8 @@ import { domainSyntaxError, normalizeDomain } from "@/features/domain-workspace/
 
 /** Reject non-ASCII before normalization, including Unicode that lowercases to ASCII. */
 export function projectScreeningDomainError(input: string): string | null {
-  if (!/^[A-Za-z0-9.-]*$/.test(input.trim())) return "Use an ASCII domain without a URL, path, port or email address. Internationalized names are not supported yet.";
+  if (!/^[A-Za-z0-9.-]*$/.test(input.trim()))
+    return "Use an ASCII domain without a URL, path, port or email address. Internationalized names are not supported yet.";
   return domainSyntaxError(input);
 }
 

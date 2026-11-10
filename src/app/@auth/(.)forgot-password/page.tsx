@@ -6,6 +6,15 @@ export const dynamic = "force-dynamic";
 
 export default function Page() {
   let configured = false;
-  try { getSupabaseConfiguration(); configured = true; } catch { /* An unavailable integration never sends reset links. */ }
-  return <SignInDialog><ForgotPasswordForm configured={configured} overlay /></SignInDialog>;
+  try {
+    getSupabaseConfiguration();
+    configured = true;
+  } catch {
+    /* An unavailable integration never sends reset links. */
+  }
+  return (
+    <SignInDialog>
+      <ForgotPasswordForm configured={configured} overlay />
+    </SignInDialog>
+  );
 }

@@ -7,5 +7,7 @@ export async function GET(_request: Request, context: { params: Promise<{ projec
   try {
     const auth = await getAuthenticatedContext();
     return privateJson(await getSavedLogoInputs(auth, (await context.params).projectId));
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

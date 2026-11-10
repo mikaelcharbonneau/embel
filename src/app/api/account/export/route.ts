@@ -25,9 +25,11 @@ export async function POST(request: Request) {
         "Content-Type": "application/zip",
         "Content-Disposition": `attachment; filename="embel-data-${day}.zip"`,
         "Cache-Control": "private, no-store",
-        "Vary": "Cookie",
+        Vary: "Cookie",
         "X-Content-Type-Options": "nosniff",
       },
     });
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

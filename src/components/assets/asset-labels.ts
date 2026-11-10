@@ -22,7 +22,8 @@ const labels: Readonly<Record<string, string>> = {
 };
 
 export function assetTitle(kind: string | undefined) {
-  const value = (kind ?? "").trim(), key = value.toLowerCase();
+  const value = (kind ?? "").trim(),
+    key = value.toLowerCase();
   if (Object.hasOwn(labels, key)) return labels[key]!;
   // Older records may already hold a written title, such as "Primary mark".
   if (!/^[a-z0-9_-]+$/.test(value)) return value || "Saved file";

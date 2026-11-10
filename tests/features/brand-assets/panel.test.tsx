@@ -30,46 +30,115 @@ afterEach(async () => {
 
 function pending<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>(finish => { resolve = finish; });
+  const promise = new Promise<T>((finish) => {
+    resolve = finish;
+  });
   return { promise, resolve };
 }
 
 function setup() {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
-  const f = brandAssetFixture(), downloads: string[] = [], urls: string[] = [], revoke = vi.fn();
+  const f = brandAssetFixture(),
+    downloads: string[] = [],
+    urls: string[] = [],
+    revoke = vi.fn();
   let current = true;
   const logoClient = createAccountLogoClient(f.account, f.projectId, () => current, vi.fn(), vi.fn());
   const identityClient = { current: () => current } as AccountIdentityClient;
   const getArchive = vi.fn(() => new Uint8Array([1, 2, 3]));
-  const pack: PreparedBrandAssets = { files: [
-    { name: "brand-board.png", label: "Brand board", category: "board", mimeType: "image/png", bytes: logoBytes, width: 1600, height: 2200 },
-    { name: "logo/logo-original.png", label: "Logo", category: "logo", mimeType: "image/png", bytes: logoBytes },
-    { name: "social/profile.png", label: "Profile image", category: "social", mimeType: "image/png", bytes: logoBytes, width: 1024, height: 1024 },
-    { name: "guides/brand-guide.html", label: "Guide", category: "guide", mimeType: "text/html", bytes: new TextEncoder().encode("guide") },
-  ], getArchive, vectorIncluded: false };
+  const pack: PreparedBrandAssets = {
+    files: [
+      {
+        name: "brand-board.png",
+        label: "Brand board",
+        category: "board",
+        mimeType: "image/png",
+        bytes: logoBytes,
+        width: 1600,
+        height: 2200,
+      },
+      { name: "logo/logo-original.png", label: "Logo", category: "logo", mimeType: "image/png", bytes: logoBytes },
+      {
+        name: "social/profile.png",
+        label: "Profile image",
+        category: "social",
+        mimeType: "image/png",
+        bytes: logoBytes,
+        width: 1024,
+        height: 1024,
+      },
+      {
+        name: "guides/brand-guide.html",
+        label: "Guide",
+        category: "guide",
+        mimeType: "text/html",
+        bytes: new TextEncoder().encode("guide"),
+      },
+    ],
+    getArchive,
+    vectorIncluded: false,
+  };
   mocks.build.mockResolvedValue(pack);
-  vi.stubGlobal("URL", class extends URL {
-    static createObjectURL() { const url = `blob:output-${urls.length + 1}`; urls.push(url); return url; }
-    static revokeObjectURL = revoke;
+  vi.stubGlobal(
+    "URL",
+    class extends URL {
+      static createObjectURL() {
+        const url = `blob:output-${urls.length + 1}`;
+        urls.push(url);
+        return url;
+      }
+      static revokeObjectURL = revoke;
+    },
+  );
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+    downloads.push(this.download);
   });
-  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) { downloads.push(this.download); });
   const revalidate = vi.fn<(signal: AbortSignal) => Promise<boolean>>().mockResolvedValue(true);
   const refreshSelection = vi.fn();
   const container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
-  const button = (label: string) => [...container.querySelectorAll("button")].find(node => (node.getAttribute("aria-label") ?? node.textContent)?.trim() === label);
+  const button = (label: string) =>
+    [...container.querySelectorAll("button")].find(
+      (node) => (node.getAttribute("aria-label") ?? node.textContent)?.trim() === label,
+    );
   const alert = () => container.querySelector("[role=alert]")?.textContent;
   async function render(account: VerifiedAccount = f.account, strict = false) {
-    const panel = createElement(BrandAssetsPanel, { ...f, account, logoClient, identityClient, revalidate, onRefreshSelection: refreshSelection });
+    const panel = createElement(BrandAssetsPanel, {
+      ...f,
+      account,
+      logoClient,
+      identityClient,
+      revalidate,
+      onRefreshSelection: refreshSelection,
+    });
     await act(async () => root!.render(strict ? createElement(StrictMode, null, panel) : panel));
   }
   async function download(clicks = 1) {
     const action = button("Download brand kit");
     expect(action?.disabled).toBe(false);
-    await act(async () => { for (let i = 0; i < clicks; i++) action!.click(); });
+    await act(async () => {
+      for (let i = 0; i < clicks; i++) action!.click();
+    });
   }
-  return { ...f, container, pack, getArchive, render, download, revalidate, refreshSelection, downloads, urls, revoke, button, alert, setCurrent(value: boolean) { current = value; } };
+  return {
+    ...f,
+    container,
+    pack,
+    getArchive,
+    render,
+    download,
+    revalidate,
+    refreshSelection,
+    downloads,
+    urls,
+    revoke,
+    button,
+    alert,
+    setCurrent(value: boolean) {
+      current = value;
+    },
+  };
 }
 
 describe("brand kit palette", () => {
@@ -78,7 +147,8 @@ describe("brand kit palette", () => {
     const write = pending<void>();
     const writeText = vi.fn(() => write.promise);
     vi.stubGlobal("navigator", { clipboard: { writeText } });
-    const f = setup(); await f.render();
+    const f = setup();
+    await f.render();
     const color = f.snapshot.colors[0]!;
     const swatch = f.button(`Copy ${color.name} ${color.hex}`)!;
     await act(async () => swatch.click());
@@ -93,7 +163,8 @@ describe("brand kit palette", () => {
   it("offers the exported CSS for manual copying when clipboard access is denied", async () => {
     const writeText = vi.fn().mockRejectedValue(new Error("Permission denied"));
     vi.stubGlobal("navigator", { clipboard: { writeText } });
-    const f = setup(); await f.render();
+    const f = setup();
+    await f.render();
     await act(async () => f.button("Copy CSS palette")!.click());
     const expected = new TextDecoder().decode(brandPaletteFiles(f.snapshot).css);
     expect(writeText).toHaveBeenCalledExactlyOnceWith(expected);
@@ -104,7 +175,9 @@ describe("brand kit palette", () => {
 
 describe("one-click brand kit and selection ownership", () => {
   it("automatically prepares only after checking the saved selection, checks again before publishing previews, and waits for a download click", async () => {
-    const f = setup(), before = pending<boolean>(), after = pending<boolean>();
+    const f = setup(),
+      before = pending<boolean>(),
+      after = pending<boolean>();
     f.revalidate.mockReturnValueOnce(before.promise).mockReturnValueOnce(after.promise);
     await f.render();
     expect(f.button("Create brand assets")).toBeUndefined();
@@ -129,7 +202,8 @@ describe("one-click brand kit and selection ownership", () => {
   });
 
   it("joins an in-flight automatic build and emits one archive for two quick clicks", async () => {
-    const f = setup(), building = pending<PreparedBrandAssets>();
+    const f = setup(),
+      building = pending<PreparedBrandAssets>();
     mocks.build.mockReturnValueOnce(building.promise);
     await f.render();
     expect(mocks.build).toHaveBeenCalledTimes(1);
@@ -162,7 +236,8 @@ describe("one-click brand kit and selection ownership", () => {
   });
 
   it("rejects the queued download if the chosen source changes before the build finishes", async () => {
-    const f = setup(), building = pending<PreparedBrandAssets>();
+    const f = setup(),
+      building = pending<PreparedBrandAssets>();
     mocks.build.mockReturnValueOnce(building.promise);
     f.revalidate.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
     await f.render();
@@ -191,7 +266,8 @@ describe("one-click brand kit and selection ownership", () => {
   });
 
   it("revalidates an individual guide download without compressing the archive", async () => {
-    const f = setup(), check = pending<boolean>();
+    const f = setup(),
+      check = pending<boolean>();
     await f.render();
     f.revalidate.mockReturnValueOnce(check.promise);
     await act(async () => f.button("Download guidelines")!.click());
@@ -230,7 +306,8 @@ describe("one-click brand kit and selection ownership", () => {
 
   it("times out a stalled download check, retains previews, and rejects a changed selection on retry", async () => {
     vi.useFakeTimers();
-    const f = setup(), stalled = pending<boolean>();
+    const f = setup(),
+      stalled = pending<boolean>();
     await f.render();
     const previews = [...f.urls];
     f.revalidate.mockReturnValueOnce(stalled.promise);
@@ -247,30 +324,37 @@ describe("one-click brand kit and selection ownership", () => {
     expect(mocks.build).toHaveBeenCalledTimes(1);
   });
 
-  it.each(["unmount", "account change"] as const)("cancels a queued download and revokes its previews on %s", async interruption => {
-    const f = setup(), building = pending<PreparedBrandAssets>(), lastCheck = pending<boolean>();
-    mocks.build.mockReturnValueOnce(building.promise);
-    f.revalidate.mockResolvedValueOnce(true).mockResolvedValueOnce(true).mockReturnValueOnce(lastCheck.promise);
-    await f.render();
-    await f.download();
-    await act(async () => building.resolve(f.pack));
-    const previews = [...f.urls], lastSignal = f.revalidate.mock.calls[2]?.[0];
-    expect(lastSignal?.aborted).toBe(false);
-    expect(previews.length).toBeGreaterThan(0);
-    if (interruption === "unmount") await unmount();
-    else {
-      f.setCurrent(false);
-      await f.render({ ...f.account, generation: f.account.generation + 1 });
-    }
-    expect(lastSignal?.aborted).toBe(true);
-    await act(async () => lastCheck.resolve(true));
-    expect(f.urls).toEqual(previews);
-    for (const url of previews) expect(f.revoke).toHaveBeenCalledWith(url);
-    expect(f.downloads).toEqual([]);
-  });
+  it.each(["unmount", "account change"] as const)(
+    "cancels a queued download and revokes its previews on %s",
+    async (interruption) => {
+      const f = setup(),
+        building = pending<PreparedBrandAssets>(),
+        lastCheck = pending<boolean>();
+      mocks.build.mockReturnValueOnce(building.promise);
+      f.revalidate.mockResolvedValueOnce(true).mockResolvedValueOnce(true).mockReturnValueOnce(lastCheck.promise);
+      await f.render();
+      await f.download();
+      await act(async () => building.resolve(f.pack));
+      const previews = [...f.urls],
+        lastSignal = f.revalidate.mock.calls[2]?.[0];
+      expect(lastSignal?.aborted).toBe(false);
+      expect(previews.length).toBeGreaterThan(0);
+      if (interruption === "unmount") await unmount();
+      else {
+        f.setCurrent(false);
+        await f.render({ ...f.account, generation: f.account.generation + 1 });
+      }
+      expect(lastSignal?.aborted).toBe(true);
+      await act(async () => lastCheck.resolve(true));
+      expect(f.urls).toEqual(previews);
+      for (const url of previews) expect(f.revoke).toHaveBeenCalledWith(url);
+      expect(f.downloads).toEqual([]);
+    },
+  );
 
   it("never exposes a pack after its account stops being current during preparation", async () => {
-    const f = setup(), building = pending<PreparedBrandAssets>();
+    const f = setup(),
+      building = pending<PreparedBrandAssets>();
     mocks.build.mockReturnValueOnce(building.promise);
     await f.render();
     await f.download();

@@ -8,44 +8,82 @@ import { LogoVectorError } from "../model/errors";
 import { runIdentityRasterProcess, runLogoConceptGrayscaleProcess } from "../../../server/image-process/process";
 import { IMAGE_INPUT_LIMITS } from "../../../domain/logo-image-limits";
 
-export const LOGO_RASTER_LIMITS = Object.freeze({ bytes: 33_554_432, pixels: 16_777_216, edge: 8192, timeoutMs: 60_000, teardownMs: 5_000 });
+export const LOGO_RASTER_LIMITS = Object.freeze({
+  bytes: 33_554_432,
+  pixels: 16_777_216,
+  edge: 8192,
+  timeoutMs: 60_000,
+  teardownMs: 5_000,
+});
 export type LogoVectorWorkInput = { source: VerifiedAssetBytes; logoType: LogoType; settings: LogoTraceSettings };
 export type LogoRasterObservation = {
-  inputFormat: "png" | "jpeg" | "webp"; inputWidth: number; inputHeight: number;
-  width: number; height: number; originalOrientation: number; autoOriented: boolean;
-  inputColorSpace: string; outputColorSpace: "srgb"; rgbaContentHash: string;
-  alphaStrategy: "exact-alpha-layers"; alphaLevels: number[];
+  inputFormat: "png" | "jpeg" | "webp";
+  inputWidth: number;
+  inputHeight: number;
+  width: number;
+  height: number;
+  originalOrientation: number;
+  autoOriented: boolean;
+  inputColorSpace: string;
+  outputColorSpace: "srgb";
+  rgbaContentHash: string;
+  alphaStrategy: "exact-alpha-layers";
+  alphaLevels: number[];
 };
 export type LogoVectorConversionResult = {
-  source: AssetVersionReference; sourceContentHash: string; logoType: LogoType;
-  document: LogoVectorDocument; svg: Uint8Array;
-  engine: { name: "@visioncortex/vtracer"; version: "1.0.0-alpha.4"; artifactHash: string; settings: LogoTraceSettings };
+  source: AssetVersionReference;
+  sourceContentHash: string;
+  logoType: LogoType;
+  document: LogoVectorDocument;
+  svg: Uint8Array;
+  engine: {
+    name: "@visioncortex/vtracer";
+    version: "1.0.0-alpha.4";
+    artifactHash: string;
+    settings: LogoTraceSettings;
+  };
   raster: LogoRasterObservation;
 };
 export function assertLogoConversionNotAborted(signal: AbortSignal): void {
-  if (signal.aborted) throw new LogoVectorError("cancelled", "Logo conversion was cancelled. The original preview is unchanged.");
+  if (signal.aborted)
+    throw new LogoVectorError("cancelled", "Logo conversion was cancelled. The original preview is unchanged.");
 }
 /** Recheck actual bytes; a VerifiedAssetBytes-shaped object is not verification. */
 export function verifyLogoRasterSource(source: VerifiedAssetBytes): void {
   if (!(source?.bytes instanceof Uint8Array) || source.bytes.byteLength > LOGO_RASTER_LIMITS.bytes) {
     throw new LogoVectorError("limit_exceeded", "Raster input exceeds the 32 MiB conversion limit.");
   }
-  if (!verifiedAssetBytesSchema.safeParse(source).success || createHash("sha256").update(source.bytes).digest("hex") !== source.reference.contentHash) {
+  if (
+    !verifiedAssetBytesSchema.safeParse(source).success ||
+    createHash("sha256").update(source.bytes).digest("hex") !== source.reference.contentHash
+  ) {
     throw new LogoVectorError("source_mismatch", "Raster bytes do not match the exact verified source.");
   }
   assertIdentityRasterFormat(source.bytes, source.mimeType);
 }
 export function assertIdentityRasterFormat(bytes: Uint8Array, mimeType: string): void {
-  if (!(bytes instanceof Uint8Array) || !bytes.length || bytes.byteLength > LOGO_RASTER_LIMITS.bytes) throw new LogoVectorError("limit_exceeded", "Raster input exceeds the 32 MiB conversion limit.");
-  const png = bytes.length >= 8 && [137,80,78,71,13,10,26,10].every((b, i) => bytes[i] === b);
+  if (!(bytes instanceof Uint8Array) || !bytes.length || bytes.byteLength > LOGO_RASTER_LIMITS.bytes)
+    throw new LogoVectorError("limit_exceeded", "Raster input exceeds the 32 MiB conversion limit.");
+  const png = bytes.length >= 8 && [137, 80, 78, 71, 13, 10, 26, 10].every((b, i) => bytes[i] === b);
   const jpeg = bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-  const webp = bytes.length >= 12 && Buffer.from(bytes.subarray(0, 4)).toString("ascii") === "RIFF" && Buffer.from(bytes.subarray(8, 12)).toString("ascii") === "WEBP";
-  if (!((mimeType === "image/png" && png) || (mimeType === "image/jpeg" && jpeg) || (mimeType === "image/webp" && webp))) {
+  const webp =
+    bytes.length >= 12 &&
+    Buffer.from(bytes.subarray(0, 4)).toString("ascii") === "RIFF" &&
+    Buffer.from(bytes.subarray(8, 12)).toString("ascii") === "WEBP";
+  if (!(
+    (mimeType === "image/png" && png) ||
+    (mimeType === "image/jpeg" && jpeg) ||
+    (mimeType === "image/webp" && webp)
+  )) {
     throw new LogoVectorError("source_mismatch", "Raster MIME must match actual PNG, JPEG or WebP bytes.");
   }
 }
 /** Shared pre-publication inspector; no asset/provenance is invented from decoded pixels. */
-export async function inspectIdentityRaster(bytes: Uint8Array, mimeType: string, signal = new AbortController().signal) {
+export async function inspectIdentityRaster(
+  bytes: Uint8Array,
+  mimeType: string,
+  signal = new AbortController().signal,
+) {
   assertLogoConversionNotAborted(signal);
   assertIdentityRasterFormat(bytes, mimeType);
   const result = await runIdentityRasterProcess({ bytes: Uint8Array.from(bytes), mimeType }, signal);
@@ -57,7 +95,8 @@ export async function inspectIdentityRaster(bytes: Uint8Array, mimeType: string,
  * Reference inputs, retained sources and vector/color producers are unchanged. */
 export async function normalizeLogoConceptRaster(bytes: Uint8Array, signal: AbortSignal): Promise<Uint8Array> {
   assertLogoConversionNotAborted(signal);
-  if (!(bytes instanceof Uint8Array) || bytes.byteLength > IMAGE_INPUT_LIMITS.outputBytes) throw new LogoVectorError("limit_exceeded", "Concept preview exceeds its PNG byte limit.");
+  if (!(bytes instanceof Uint8Array) || bytes.byteLength > IMAGE_INPUT_LIMITS.outputBytes)
+    throw new LogoVectorError("limit_exceeded", "Concept preview exceeds its PNG byte limit.");
   assertIdentityRasterFormat(bytes, "image/png");
   const result = await runLogoConceptGrayscaleProcess({ bytes: Uint8Array.from(bytes), mimeType: "image/png" }, signal);
   assertLogoConversionNotAborted(signal);

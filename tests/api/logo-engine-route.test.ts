@@ -5,9 +5,16 @@ const doubles = vi.hoisted(() => ({ auth: vi.fn(), rpc: vi.fn(), from: vi.fn() }
 vi.mock("../../src/server/auth/context", () => ({ getAuthenticatedContext: doubles.auth }));
 import { GET } from "../../src/app/api/projects/[projectId]/logo/engine/route";
 
-const owner = "aaaaaaaa-1111-4111-8111-111111111111", project = "bbbbbbbb-2222-4222-8222-222222222222";
+const owner = "aaaaaaaa-1111-4111-8111-111111111111",
+  project = "bbbbbbbb-2222-4222-8222-222222222222";
 const params = () => ({ params: Promise.resolve({ projectId: project }) });
-const catalog = (enabled: boolean) => ({ data: { plans: [], kinds: ["logo.concepts", "logo.refine", "logo.style_note"].map(kind => ({ kind, credits: 1, enabled })) }, error: null });
+const catalog = (enabled: boolean) => ({
+  data: {
+    plans: [],
+    kinds: ["logo.concepts", "logo.refine", "logo.style_note"].map((kind) => ({ kind, credits: 1, enabled })),
+  },
+  error: null,
+});
 function query(rows: unknown) {
   const builder: Record<string, unknown> = {};
   for (const method of ["select", "eq", "in", "like", "not", "order", "limit"]) builder[method] = () => builder;
@@ -30,8 +37,25 @@ describe("GET /api/projects/[id]/logo/engine", () => {
   });
   it("reports the engine and the latest Logo runs once all three are enabled", async () => {
     doubles.rpc.mockResolvedValue(catalog(true));
-    doubles.from.mockReturnValueOnce(query([{ id: "cccccccc-3333-4333-8333-333333333333", owner_id: owner, project_id: project, kind: "logo.concepts", status: "running", credits: 6,
-      workflow_run_id: "wrun_1", error_code: null, cancel_requested_at: null, created_at: "2026-11-09T20:00:00Z", finished_at: null, input_revision: 1 }]))
+    doubles.from
+      .mockReturnValueOnce(
+        query([
+          {
+            id: "cccccccc-3333-4333-8333-333333333333",
+            owner_id: owner,
+            project_id: project,
+            kind: "logo.concepts",
+            status: "running",
+            credits: 6,
+            workflow_run_id: "wrun_1",
+            error_code: null,
+            cancel_requested_at: null,
+            created_at: "2026-11-09T20:00:00Z",
+            finished_at: null,
+            input_revision: 1,
+          },
+        ]),
+      )
       .mockReturnValueOnce(query([]));
     const response = await GET(new Request(`https://fluid.example/api/projects/${project}/logo/engine`), params());
     const body = await response.json();

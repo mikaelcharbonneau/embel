@@ -6,7 +6,12 @@ export async function loadProfile(signal: AbortSignal) {
   return (await boundedAccountRequest("/api/account/profile", accountProfileReplySchema, { signal })).profile;
 }
 export async function saveProfile(account: VerifiedAccount, input: SaveAccountProfile, signal: AbortSignal) {
-  return (await boundedAccountRequest("/api/account/profile", accountProfileReplySchema, {
-    method: "PATCH", body: saveAccountProfileSchema.parse(input), signal, expectedOwnerId: account.userId,
-  })).profile;
+  return (
+    await boundedAccountRequest("/api/account/profile", accountProfileReplySchema, {
+      method: "PATCH",
+      body: saveAccountProfileSchema.parse(input),
+      signal,
+      expectedOwnerId: account.userId,
+    })
+  ).profile;
 }

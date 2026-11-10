@@ -25,11 +25,13 @@ export interface OrphanStore {
 /** Removes Storage objects whose account or project no longer exists (see
  * public.orphaned_storage_objects). Objects of soft-deleted projects are kept. */
 export async function purgeOrphanedFiles(store: OrphanStore) {
-  let removed = 0, after: string | null = null;
+  let removed = 0,
+    after: string | null = null;
   for (let page = 0; page < ORPHAN_PAGES; page++) {
     const names = await store.listOrphans(after);
     if (!names.length) break;
-    for (let index = 0; index < names.length; index += REMOVE_BATCH) removed += await store.removeFiles(names.slice(index, index + REMOVE_BATCH));
+    for (let index = 0; index < names.length; index += REMOVE_BATCH)
+      removed += await store.removeFiles(names.slice(index, index + REMOVE_BATCH));
     after = names.at(-1)!;
   }
   return removed;
@@ -38,10 +40,16 @@ export async function purgeOrphanedFiles(store: OrphanStore) {
 /** Finishes deletions that stopped part-way (the person closed the page, a
  * service was briefly unavailable). The person already confirmed them. */
 export async function resumePendingDeletions(listPending: () => Promise<string[]>, store: AccountDeletionStore) {
-  let finished = 0, failed = 0;
+  let finished = 0,
+    failed = 0;
   for (const ownerId of await listPending()) {
-    try { await runAccountDeletion(ownerId, store); finished += 1; }
-    catch (error) { failed += 1; logServerError("account_deletion_resume_failed", error); }
+    try {
+      await runAccountDeletion(ownerId, store);
+      finished += 1;
+    } catch (error) {
+      failed += 1;
+      logServerError("account_deletion_resume_failed", error);
+    }
   }
   return { finished, failed };
 }
@@ -50,7 +58,10 @@ export async function runAccountCleanup(admin: SupabaseClient) {
   const deletions = await resumePendingDeletions(async () => {
     const { data, error } = await admin.rpc("account_deletions_pending", { p_min_age: "15 minutes", p_limit: 20 });
     if (error) throw Object.assign(new Error("account_deletions_pending"), { code: error.code });
-    return z.array(z.object({ owner_id: z.uuid() })).parse(data ?? []).map(row => row.owner_id);
+    return z
+      .array(z.object({ owner_id: z.uuid() }))
+      .parse(data ?? [])
+      .map((row) => row.owner_id);
   }, supabaseDeletionStore(admin));
   const orphanedFilesRemoved = await purgeOrphanedFiles({
     async listOrphans(after) {

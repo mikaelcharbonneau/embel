@@ -12,11 +12,15 @@ describe("manual Handles tools", () => {
     expect(() => handleProfileUrl({ platform: "x", handle: "../logout?next=https://evil.test" })).toThrow();
   });
   it("exports unknown availability and separates user declarations from provider evidence", () => {
-    const entry = { ...createEntry("instagram", "cedar"), accountCreated: { declaredAt: new Date().toISOString(), url: "https://www.instagram.com/cedar/" } };
+    const entry = {
+      ...createEntry("instagram", "cedar"),
+      accountCreated: { declaredAt: new Date().toISOString(), url: "https://www.instagram.com/cedar/" },
+    };
     const csv = handlesCsv([{ name: "Cedar", entries: [entry] }]);
     expect(csv).toContain('"Cedar","Instagram","cedar","Unknown",""');
     expect(csv).toContain('"User-declared account URL"');
-    expect(csv).not.toContain("Confirmed available"); expect(entry.evidence).toEqual([]);
+    expect(csv).not.toContain("Confirmed available");
+    expect(entry.evidence).toEqual([]);
   });
   it("quotes multiline text and neutralizes spreadsheet formulas", () => {
     const csv = handlesCsv([{ name: ' \t=HYPERLINK("evil")\nsecond line', entries: [createEntry("x", "cedar")] }]);

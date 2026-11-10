@@ -123,9 +123,7 @@ export const publicFunctions = new Set([
 // 20261007022000 grants only this exact private RLS predicate to the
 // authenticated role. It is not a public RPC: private-schema USAGE remains
 // absent, and direct invocation is denied below even for an authenticated UID.
-export const authenticatedPolicyFunctions = new Set([
-  "fluid_private.owner_staging_object_allowed(text, text)",
-]);
+export const authenticatedPolicyFunctions = new Set(["fluid_private.owner_staging_object_allowed(text, text)"]);
 export const userFunctions = new Set([
   ...publicFunctions,
   ...reviewedLogoAndHomeFunctions,

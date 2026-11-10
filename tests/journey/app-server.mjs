@@ -14,9 +14,25 @@ const env = { ...process.env, ...stack.appEnvironment };
 for (const key of Object.keys(env)) if (/^VERCEL(?:_|$)/u.test(key)) delete env[key];
 mkdirSync(path.join(root, "test-results"), { recursive: true });
 const log = createWriteStream(path.join(root, "test-results/journey-app.log"));
-const child = spawn(process.execPath, [path.join(root, "node_modules/next/dist/bin/next"), "dev", "--hostname", "127.0.0.1", "--port", String(stack.settings.webPort)],
-  { cwd: root, env, stdio: ["ignore", "pipe", "pipe"] });
+const child = spawn(
+  process.execPath,
+  [
+    path.join(root, "node_modules/next/dist/bin/next"),
+    "dev",
+    "--hostname",
+    "127.0.0.1",
+    "--port",
+    String(stack.settings.webPort),
+  ],
+  { cwd: root, env, stdio: ["ignore", "pipe", "pipe"] },
+);
 child.stdout.pipe(log, { end: false });
-child.stderr.on("data", chunk => { log.write(chunk); process.stderr.write(chunk); });
+child.stderr.on("data", (chunk) => {
+  log.write(chunk);
+  process.stderr.write(chunk);
+});
 for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => child.kill(signal));
-child.on("exit", code => { log.end(); process.exitCode = code ?? 1; });
+child.on("exit", (code) => {
+  log.end();
+  process.exitCode = code ?? 1;
+});

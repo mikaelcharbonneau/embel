@@ -3,8 +3,12 @@ import { expect } from "vitest";
 
 // jsdom does not implement the native dialog methods or top-layer hit testing.
 export function installNamePreviewDialog() {
-  HTMLDialogElement.prototype.showModal ??= function () { this.open = true; };
-  HTMLDialogElement.prototype.close ??= function () { this.open = false; };
+  HTMLDialogElement.prototype.showModal ??= function () {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close ??= function () {
+    this.open = false;
+  };
 }
 export function namePreview(host: HTMLElement) {
   return host.querySelector<HTMLDialogElement>("dialog[open]");

@@ -1,43 +1,376 @@
 import { describe, expect, it } from "vitest";
 const id = (n: number) => `50000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-const ownerId=id(1), projectId=id(2), at="2026-10-06T12:00:00Z", hash="a".repeat(64);
-const heads={projectRevision:1,referenceRevision:0,preferencesRevision:0,workspaceRevision:0,stageRevisions:{brief_references:0,concepts:0,vector:0,refinements:0,directions:0,deliverables:0}};
-const asset=(n=10)=>({ownerId,projectId,assetId:id(n),versionId:id(n+1),contentHash:hash});
-const receipt=(n=20)=>({id:id(n),reference:asset(n+1),verification:{status:"verified",checkedAt:at,contentHash:hash,mimeType:"image/png",byteLength:100},purpose:"brand_asset",sourceReceiptId:id(n+3),rightsEvidenceId:null,publicationState:"committed"});
-import { identityAssetReceiptSchema, logoExportManifestSchema, logoExportIntentSchema, logoVariantSchema, resolvedLogoVariantSetSchema } from "../../src/domain/logo-deliverables";
-describe("verified asset and deliverable shapes",()=>{
- it("requires matching verified content and rejects metadata-only receipts",()=>{expect(identityAssetReceiptSchema.safeParse(receipt()).success).toBe(true);expect(identityAssetReceiptSchema.safeParse({...receipt(),verification:{status:"missing_or_invalid",checkedAt:at}}).success).toBe(false);expect(identityAssetReceiptSchema.safeParse({...receipt(),reference:{...asset(),contentHash:"b".repeat(64)}}).success).toBe(false);});
- it("allows only committed owned files in an export manifest",()=>{const m={id:id(3),ownerId,projectId,requestKey:id(4),approvedLogoId:id(5),directionApprovalId:id(6),variantSetId:id(7),variantReviewId:id(8),sourceSnapshotHash:hash,files:[{role:"primary",format:"png",variantId:id(9),asset:receipt()}],licenseOmissions:[],inputRevisions:[],createdAt:at};expect(logoExportManifestSchema.safeParse(m).success).toBe(true);expect(logoExportManifestSchema.safeParse({...m,files:[{...m.files[0],asset:{...receipt(),publicationState:"staged"}}]}).success).toBe(false);expect(logoExportManifestSchema.safeParse({...m,files:[{...m.files[0],asset:{...receipt(),reference:{...asset(),ownerId:id(99)}}}]}).success).toBe(false);});
- it("freezes explicit PNG/social options without browser proof fields",()=>{const input={requestKey:id(3),expected:heads,approvedLogoId:id(4),directionApprovalId:id(5),variantSetId:id(6),pngLongEdge:2048,socialSelections:[]};expect(logoExportIntentSchema.safeParse(input).success).toBe(true);expect(logoExportIntentSchema.safeParse({...input,pngLongEdge:3000}).success).toBe(false);expect(logoExportIntentSchema.safeParse({...input,sourceSnapshotHash:hash}).success).toBe(false);});
- it("requires actual file references for applicable variants and keeps candidates unapproved",()=>{const v={id:id(3),role:"symbol_only",colorway:"black",documentAsset:null,renderHash:null,preview:null,clearSpace:1,minimumDigitalSize:null,applicability:{status:"not_applicable",reason:"no_symbol"},reviewStatus:"review_required"};expect(logoVariantSchema.safeParse(v).success).toBe(true);expect(logoVariantSchema.safeParse({...v,applicability:{status:"applicable"}}).success).toBe(false);const set={id:id(4),ownerId,projectId,approvedLogoId:id(5),directionApprovalId:id(6),items:[v],createdAt:at};expect(resolvedLogoVariantSetSchema.safeParse({set,items:[{variant:v,document:null}]}).success).toBe(true);expect(resolvedLogoVariantSetSchema.safeParse({set,items:[]}).success).toBe(false);});
+const ownerId = id(1),
+  projectId = id(2),
+  at = "2026-10-06T12:00:00Z",
+  hash = "a".repeat(64);
+const heads = {
+  projectRevision: 1,
+  referenceRevision: 0,
+  preferencesRevision: 0,
+  workspaceRevision: 0,
+  stageRevisions: { brief_references: 0, concepts: 0, vector: 0, refinements: 0, directions: 0, deliverables: 0 },
+};
+const asset = (n = 10) => ({ ownerId, projectId, assetId: id(n), versionId: id(n + 1), contentHash: hash });
+const receipt = (n = 20) => ({
+  id: id(n),
+  reference: asset(n + 1),
+  verification: { status: "verified", checkedAt: at, contentHash: hash, mimeType: "image/png", byteLength: 100 },
+  purpose: "brand_asset",
+  sourceReceiptId: id(n + 3),
+  rightsEvidenceId: null,
+  publicationState: "committed",
+});
+import {
+  identityAssetReceiptSchema,
+  logoExportManifestSchema,
+  logoExportIntentSchema,
+  logoVariantSchema,
+  resolvedLogoVariantSetSchema,
+} from "../../src/domain/logo-deliverables";
+describe("verified asset and deliverable shapes", () => {
+  it("requires matching verified content and rejects metadata-only receipts", () => {
+    expect(identityAssetReceiptSchema.safeParse(receipt()).success).toBe(true);
+    expect(
+      identityAssetReceiptSchema.safeParse({
+        ...receipt(),
+        verification: { status: "missing_or_invalid", checkedAt: at },
+      }).success,
+    ).toBe(false);
+    expect(
+      identityAssetReceiptSchema.safeParse({ ...receipt(), reference: { ...asset(), contentHash: "b".repeat(64) } })
+        .success,
+    ).toBe(false);
+  });
+  it("allows only committed owned files in an export manifest", () => {
+    const m = {
+      id: id(3),
+      ownerId,
+      projectId,
+      requestKey: id(4),
+      approvedLogoId: id(5),
+      directionApprovalId: id(6),
+      variantSetId: id(7),
+      variantReviewId: id(8),
+      sourceSnapshotHash: hash,
+      files: [{ role: "primary", format: "png", variantId: id(9), asset: receipt() }],
+      licenseOmissions: [],
+      inputRevisions: [],
+      createdAt: at,
+    };
+    expect(logoExportManifestSchema.safeParse(m).success).toBe(true);
+    expect(
+      logoExportManifestSchema.safeParse({
+        ...m,
+        files: [{ ...m.files[0], asset: { ...receipt(), publicationState: "staged" } }],
+      }).success,
+    ).toBe(false);
+    expect(
+      logoExportManifestSchema.safeParse({
+        ...m,
+        files: [{ ...m.files[0], asset: { ...receipt(), reference: { ...asset(), ownerId: id(99) } } }],
+      }).success,
+    ).toBe(false);
+  });
+  it("freezes explicit PNG/social options without browser proof fields", () => {
+    const input = {
+      requestKey: id(3),
+      expected: heads,
+      approvedLogoId: id(4),
+      directionApprovalId: id(5),
+      variantSetId: id(6),
+      pngLongEdge: 2048,
+      socialSelections: [],
+    };
+    expect(logoExportIntentSchema.safeParse(input).success).toBe(true);
+    expect(logoExportIntentSchema.safeParse({ ...input, pngLongEdge: 3000 }).success).toBe(false);
+    expect(logoExportIntentSchema.safeParse({ ...input, sourceSnapshotHash: hash }).success).toBe(false);
+  });
+  it("requires actual file references for applicable variants and keeps candidates unapproved", () => {
+    const v = {
+      id: id(3),
+      role: "symbol_only",
+      colorway: "black",
+      documentAsset: null,
+      renderHash: null,
+      preview: null,
+      clearSpace: 1,
+      minimumDigitalSize: null,
+      applicability: { status: "not_applicable", reason: "no_symbol" },
+      reviewStatus: "review_required",
+    };
+    expect(logoVariantSchema.safeParse(v).success).toBe(true);
+    expect(logoVariantSchema.safeParse({ ...v, applicability: { status: "applicable" } }).success).toBe(false);
+    const set = {
+      id: id(4),
+      ownerId,
+      projectId,
+      approvedLogoId: id(5),
+      directionApprovalId: id(6),
+      items: [v],
+      createdAt: at,
+    };
+    expect(resolvedLogoVariantSetSchema.safeParse({ set, items: [{ variant: v, document: null }] }).success).toBe(true);
+    expect(resolvedLogoVariantSetSchema.safeParse({ set, items: [] }).success).toBe(false);
+  });
 });
 
-import { logoExportRequestSummarySchema, identityAssetPublicationSchema, verifiedAssetBytesSchema, logoVectorDetailSchema } from "../../src/domain/logo-deliverables";
-describe("export recovery and publication seams",()=>{
- it("retains exact request key and immutable PNG/social selection during recovery",()=>{const input={requestKey:id(3),expected:heads,approvedLogoId:id(4),directionApprovalId:id(5),variantSetId:id(6),pngLongEdge:1024,socialSelections:[{kind:"avatar",presetId:"square"}]};const r={requestKey:id(3),input,state:{status:"needs_reconciliation",requestKey:id(3),receipt:null,outputs:[],billing:{status:"unknown",confirmedMicrousd:null},reason:"commit_unknown"},exportManifestId:null,createdAt:at};expect(logoExportRequestSummarySchema.safeParse(r).success).toBe(true);expect(logoExportRequestSummarySchema.safeParse({...r,input:{...input,requestKey:id(99)}}).success).toBe(false);expect(logoExportRequestSummarySchema.safeParse({...r,state:{status:"not_found"}}).success).toBe(false);});
- it("bounds binary publication separately from stage pointer JSON",()=>{const p={requestKey:id(3),inputRevisions:[],mimeType:"image/png",contentHash:hash,byteLength:52428800,source:{kind:"concept",sourceId:id(4)}};expect(identityAssetPublicationSchema.safeParse(p).success).toBe(true);expect(identityAssetPublicationSchema.safeParse({...p,byteLength:52428801}).success).toBe(false);expect(identityAssetPublicationSchema.safeParse({...p,rightsEvidenceId:id(5)}).success).toBe(false);});
- it("requires an actual binary buffer and matching byte observation",()=>{const r=receipt();const p={reference:r.reference,mimeType:"image/png",bytes:new Uint8Array(100),verification:r.verification};expect(verifiedAssetBytesSchema.safeParse(p).success).toBe(true);expect(verifiedAssetBytesSchema.safeParse({...p,bytes:"base64"}).success).toBe(false);expect(verifiedAssetBytesSchema.safeParse({...p,bytes:new Uint8Array(99)}).success).toBe(false);});
- it("does not expose a vector detail with a contradictory proof count",()=>{const doc={version:1,viewBox:[0,0,100,100],components:[{id:"symbol",role:"symbol",editingKind:"geometry",paths:[{id:"p1",d:"M 0 0 L 10 0 L 10 10 Z",fill:{color:"#000000",opacity:1},stroke:null,fillRule:"nonzero"}],transform:{x:0,y:0,scale:1,rotation:0}}]};const preview=receipt();const revision={id:id(3),ownerId,projectId,parentRevisionId:null,source:{kind:"refinement",rasterRevisionId:id(5)},sourcePreview:preview.reference,documentAsset:asset(30),svgAsset:asset(40),documentHash:hash,proof:{version:1,svgContentHash:hash,documentHash:hash,validator:{id:"p3",version:"1"},viewBox:[0,0,100,100],pathCount:2,componentCount:1,externalFontDependencies:[]},locks:[],inputRevisions:[],reviewStatus:"review_required",createdAt:at};expect(logoVectorDetailSchema.safeParse({revision,document:doc,sourcePreview:preview}).success).toBe(false);});
+import {
+  logoExportRequestSummarySchema,
+  identityAssetPublicationSchema,
+  verifiedAssetBytesSchema,
+  logoVectorDetailSchema,
+} from "../../src/domain/logo-deliverables";
+describe("export recovery and publication seams", () => {
+  it("retains exact request key and immutable PNG/social selection during recovery", () => {
+    const input = {
+      requestKey: id(3),
+      expected: heads,
+      approvedLogoId: id(4),
+      directionApprovalId: id(5),
+      variantSetId: id(6),
+      pngLongEdge: 1024,
+      socialSelections: [{ kind: "avatar", presetId: "square" }],
+    };
+    const r = {
+      requestKey: id(3),
+      input,
+      state: {
+        status: "needs_reconciliation",
+        requestKey: id(3),
+        receipt: null,
+        outputs: [],
+        billing: { status: "unknown", confirmedMicrousd: null },
+        reason: "commit_unknown",
+      },
+      exportManifestId: null,
+      createdAt: at,
+    };
+    expect(logoExportRequestSummarySchema.safeParse(r).success).toBe(true);
+    expect(logoExportRequestSummarySchema.safeParse({ ...r, input: { ...input, requestKey: id(99) } }).success).toBe(
+      false,
+    );
+    expect(logoExportRequestSummarySchema.safeParse({ ...r, state: { status: "not_found" } }).success).toBe(false);
+  });
+  it("bounds binary publication separately from stage pointer JSON", () => {
+    const p = {
+      requestKey: id(3),
+      inputRevisions: [],
+      mimeType: "image/png",
+      contentHash: hash,
+      byteLength: 52428800,
+      source: { kind: "concept", sourceId: id(4) },
+    };
+    expect(identityAssetPublicationSchema.safeParse(p).success).toBe(true);
+    expect(identityAssetPublicationSchema.safeParse({ ...p, byteLength: 52428801 }).success).toBe(false);
+    expect(identityAssetPublicationSchema.safeParse({ ...p, rightsEvidenceId: id(5) }).success).toBe(false);
+  });
+  it("requires an actual binary buffer and matching byte observation", () => {
+    const r = receipt();
+    const p = {
+      reference: r.reference,
+      mimeType: "image/png",
+      bytes: new Uint8Array(100),
+      verification: r.verification,
+    };
+    expect(verifiedAssetBytesSchema.safeParse(p).success).toBe(true);
+    expect(verifiedAssetBytesSchema.safeParse({ ...p, bytes: "base64" }).success).toBe(false);
+    expect(verifiedAssetBytesSchema.safeParse({ ...p, bytes: new Uint8Array(99) }).success).toBe(false);
+  });
+  it("does not expose a vector detail with a contradictory proof count", () => {
+    const doc = {
+      version: 1,
+      viewBox: [0, 0, 100, 100],
+      components: [
+        {
+          id: "symbol",
+          role: "symbol",
+          editingKind: "geometry",
+          paths: [
+            {
+              id: "p1",
+              d: "M 0 0 L 10 0 L 10 10 Z",
+              fill: { color: "#000000", opacity: 1 },
+              stroke: null,
+              fillRule: "nonzero",
+            },
+          ],
+          transform: { x: 0, y: 0, scale: 1, rotation: 0 },
+        },
+      ],
+    };
+    const preview = receipt();
+    const revision = {
+      id: id(3),
+      ownerId,
+      projectId,
+      parentRevisionId: null,
+      source: { kind: "refinement", rasterRevisionId: id(5) },
+      sourcePreview: preview.reference,
+      documentAsset: asset(30),
+      svgAsset: asset(40),
+      documentHash: hash,
+      proof: {
+        version: 1,
+        svgContentHash: hash,
+        documentHash: hash,
+        validator: { id: "p3", version: "1" },
+        viewBox: [0, 0, 100, 100],
+        pathCount: 2,
+        componentCount: 1,
+        externalFontDependencies: [],
+      },
+      locks: [],
+      inputRevisions: [],
+      reviewStatus: "review_required",
+      createdAt: at,
+    };
+    expect(logoVectorDetailSchema.safeParse({ revision, document: doc, sourcePreview: preview }).success).toBe(false);
+  });
 });
 
 import { logoJsonBytes, logoVectorRevisionSchema } from "../../src/domain/logo-vector";
-it("bounds vector details to geometry plus the 32768-byte envelope",()=>{
- const document={version:1,viewBox:[0,0,100,100],components:[{id:"symbol",role:"symbol",editingKind:"geometry",paths:[{id:"p1",d:"M 0 0 L 10 0 L 10 10 Z",fill:{color:"#000000",opacity:1},stroke:null,fillRule:"nonzero"}],transform:{x:0,y:0,scale:1,rotation:0}}]};
- const preview=receipt();const revision={id:id(3),ownerId,projectId,parentRevisionId:null,source:{kind:"refinement",rasterRevisionId:id(5)},sourcePreview:preview.reference,documentAsset:asset(30),svgAsset:asset(40),documentHash:hash,proof:{version:1,svgContentHash:hash,documentHash:hash,validator:{id:"p3",version:"1"},viewBox:[0,0,100,100],pathCount:1,componentCount:1,externalFontDependencies:[]},locks:Array.from({length:45},(_,i)=>({componentId:`component-${i}`,geometryHash:hash,appearanceHash:hash,transformHash:hash,textHash:hash,zOrderHash:hash,effectiveHash:hash})),inputRevisions:[] as {stage:string;id:string;revision:number}[],reviewStatus:"review_required",createdAt:at};
- for(let i=0;i<100;i++){const next={stage:"concepts",id:id(100+i),revision:1};if(logoJsonBytes({...revision,inputRevisions:[...revision.inputRevisions,next]})>32700)break;revision.inputRevisions.push(next);}
- expect(logoVectorRevisionSchema.safeParse(revision).success).toBe(true);
- document.components[0]!.paths[0]!.d += " ".repeat(8388608-logoJsonBytes(document));
- expect(logoJsonBytes({revision,document,sourcePreview:preview})).toBeGreaterThan(8421376);
- expect(logoVectorDetailSchema.safeParse({revision,document,sourcePreview:preview}).success).toBe(false);
+it("bounds vector details to geometry plus the 32768-byte envelope", () => {
+  const document = {
+    version: 1,
+    viewBox: [0, 0, 100, 100],
+    components: [
+      {
+        id: "symbol",
+        role: "symbol",
+        editingKind: "geometry",
+        paths: [
+          {
+            id: "p1",
+            d: "M 0 0 L 10 0 L 10 10 Z",
+            fill: { color: "#000000", opacity: 1 },
+            stroke: null,
+            fillRule: "nonzero",
+          },
+        ],
+        transform: { x: 0, y: 0, scale: 1, rotation: 0 },
+      },
+    ],
+  };
+  const preview = receipt();
+  const revision = {
+    id: id(3),
+    ownerId,
+    projectId,
+    parentRevisionId: null,
+    source: { kind: "refinement", rasterRevisionId: id(5) },
+    sourcePreview: preview.reference,
+    documentAsset: asset(30),
+    svgAsset: asset(40),
+    documentHash: hash,
+    proof: {
+      version: 1,
+      svgContentHash: hash,
+      documentHash: hash,
+      validator: { id: "p3", version: "1" },
+      viewBox: [0, 0, 100, 100],
+      pathCount: 1,
+      componentCount: 1,
+      externalFontDependencies: [],
+    },
+    locks: Array.from({ length: 45 }, (_, i) => ({
+      componentId: `component-${i}`,
+      geometryHash: hash,
+      appearanceHash: hash,
+      transformHash: hash,
+      textHash: hash,
+      zOrderHash: hash,
+      effectiveHash: hash,
+    })),
+    inputRevisions: [] as { stage: string; id: string; revision: number }[],
+    reviewStatus: "review_required",
+    createdAt: at,
+  };
+  for (let i = 0; i < 100; i++) {
+    const next = { stage: "concepts", id: id(100 + i), revision: 1 };
+    if (logoJsonBytes({ ...revision, inputRevisions: [...revision.inputRevisions, next] }) > 32700) break;
+    revision.inputRevisions.push(next);
+  }
+  expect(logoVectorRevisionSchema.safeParse(revision).success).toBe(true);
+  document.components[0]!.paths[0]!.d += " ".repeat(8388608 - logoJsonBytes(document));
+  expect(logoJsonBytes({ revision, document, sourcePreview: preview })).toBeGreaterThan(8421376);
+  expect(logoVectorDetailSchema.safeParse({ revision, document, sourcePreview: preview }).success).toBe(false);
 });
 
-describe("F3: full locks through the joint vector detail boundary",()=>{
- const fullDetail=()=>{
-  const components=Array.from({length:64},(_,i)=>({id:`c${i}`,role:"symbol",editingKind:"geometry",paths:[{id:`p${i}`,d:"M 0 0 L 10 0 L 10 10 Z",fill:{color:"#000000",opacity:1},stroke:null,fillRule:"nonzero"}],transform:{x:0,y:0,scale:1,rotation:0}}));
-  const document={version:1,viewBox:[0,0,100,100],components};const preview=receipt();
-  const revision={id:id(3),ownerId,projectId,parentRevisionId:null,source:{kind:"refinement",rasterRevisionId:id(5)},sourcePreview:preview.reference,documentAsset:asset(30),svgAsset:asset(40),documentHash:hash,proof:{version:1,svgContentHash:hash,documentHash:hash,validator:{id:"p3",version:"1"},viewBox:[0,0,100,100],pathCount:64,componentCount:64,externalFontDependencies:[]},locks:components.map(c=>({componentId:c.id,geometryHash:hash,appearanceHash:hash,transformHash:hash,textHash:hash,zOrderHash:hash,effectiveHash:hash})),inputRevisions:[],reviewStatus:"review_required",createdAt:at};return {revision,document,sourcePreview:preview};
- };
- it("reads a small 64-component document with all 64 complete locks",()=>{const detail=fullDetail();expect(logoJsonBytes(detail.revision.locks)).toBe(33654);expect(logoVectorRevisionSchema.safeParse(detail.revision).success).toBe(true);const parsed=logoVectorDetailSchema.safeParse(detail);expect(parsed.success).toBe(true);if(parsed.success)expect(parsed.data.revision.locks).toEqual(detail.revision.locks);});
- it("keeps the 8421376 joint limit when a full locked revision accompanies maximum geometry",()=>{const detail=fullDetail();detail.document.components[0]!.paths[0]!.d+=" ".repeat(8388608-logoJsonBytes(detail.document));expect(logoJsonBytes(detail.document)).toBe(8388608);expect(logoJsonBytes(detail)).toBeGreaterThan(8421376);expect(logoVectorDetailSchema.safeParse(detail).success).toBe(false);});
- it("rejects an oversized standalone record instead of removing locks",()=>{const r=fullDetail().revision;const oversized={...r,untrusted:""};oversized.untrusted="x".repeat(65537-logoJsonBytes(oversized));expect(logoJsonBytes(oversized)).toBe(65537);expect(logoVectorRevisionSchema.safeParse(oversized).success).toBe(false);});
+describe("F3: full locks through the joint vector detail boundary", () => {
+  const fullDetail = () => {
+    const components = Array.from({ length: 64 }, (_, i) => ({
+      id: `c${i}`,
+      role: "symbol",
+      editingKind: "geometry",
+      paths: [
+        {
+          id: `p${i}`,
+          d: "M 0 0 L 10 0 L 10 10 Z",
+          fill: { color: "#000000", opacity: 1 },
+          stroke: null,
+          fillRule: "nonzero",
+        },
+      ],
+      transform: { x: 0, y: 0, scale: 1, rotation: 0 },
+    }));
+    const document = { version: 1, viewBox: [0, 0, 100, 100], components };
+    const preview = receipt();
+    const revision = {
+      id: id(3),
+      ownerId,
+      projectId,
+      parentRevisionId: null,
+      source: { kind: "refinement", rasterRevisionId: id(5) },
+      sourcePreview: preview.reference,
+      documentAsset: asset(30),
+      svgAsset: asset(40),
+      documentHash: hash,
+      proof: {
+        version: 1,
+        svgContentHash: hash,
+        documentHash: hash,
+        validator: { id: "p3", version: "1" },
+        viewBox: [0, 0, 100, 100],
+        pathCount: 64,
+        componentCount: 64,
+        externalFontDependencies: [],
+      },
+      locks: components.map((c) => ({
+        componentId: c.id,
+        geometryHash: hash,
+        appearanceHash: hash,
+        transformHash: hash,
+        textHash: hash,
+        zOrderHash: hash,
+        effectiveHash: hash,
+      })),
+      inputRevisions: [],
+      reviewStatus: "review_required",
+      createdAt: at,
+    };
+    return { revision, document, sourcePreview: preview };
+  };
+  it("reads a small 64-component document with all 64 complete locks", () => {
+    const detail = fullDetail();
+    expect(logoJsonBytes(detail.revision.locks)).toBe(33654);
+    expect(logoVectorRevisionSchema.safeParse(detail.revision).success).toBe(true);
+    const parsed = logoVectorDetailSchema.safeParse(detail);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data.revision.locks).toEqual(detail.revision.locks);
+  });
+  it("keeps the 8421376 joint limit when a full locked revision accompanies maximum geometry", () => {
+    const detail = fullDetail();
+    detail.document.components[0]!.paths[0]!.d += " ".repeat(8388608 - logoJsonBytes(detail.document));
+    expect(logoJsonBytes(detail.document)).toBe(8388608);
+    expect(logoJsonBytes(detail)).toBeGreaterThan(8421376);
+    expect(logoVectorDetailSchema.safeParse(detail).success).toBe(false);
+  });
+  it("rejects an oversized standalone record instead of removing locks", () => {
+    const r = fullDetail().revision;
+    const oversized = { ...r, untrusted: "" };
+    oversized.untrusted = "x".repeat(65537 - logoJsonBytes(oversized));
+    expect(logoJsonBytes(oversized)).toBe(65537);
+    expect(logoVectorRevisionSchema.safeParse(oversized).success).toBe(false);
+  });
 });

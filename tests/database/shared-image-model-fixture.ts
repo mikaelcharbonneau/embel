@@ -9,11 +9,21 @@ const EDITS: readonly (readonly [name: string, needle: string, replacement: stri
   ["shared_logo_raster_policy_valid", "'gpt-image-2.5-sunburst-2026-09-08'", "'gpt-image-2.6-sunburst'"],
   ["shared_identity_policy_valid", "'gpt-image-2.5-sunburst-2026-09-08'", "'gpt-image-2.6-sunburst'"],
   ["get_shared_identity_availability", "'gpt-image-2.5-sunburst-2026-09-08'", "'gpt-image-2.6-sunburst'"],
-  ["shared_logo_raster_observation_valid", "o->>'model' is distinct from 'gpt-image-2.5-sunburst-2026-09-08'",
-    "(o->>'model' in('gpt-image-2.6-sunburst','gpt-image-2.5-sunburst-2026-09-08')) is not true"],
-  ["shared_logo_record_response", "fluid_private.shared_logo_raster_observation_valid(o)",
-    `(fluid_private.shared_logo_raster_observation_valid(o) and o->>'model' is not distinct from ${admitted})`],
-  ["shared_identity_receipt_complete", "o->>'model'<>'gpt-image-2.5-sunburst-2026-09-08'", `o->>'model' is distinct from ${admitted}`],
+  [
+    "shared_logo_raster_observation_valid",
+    "o->>'model' is distinct from 'gpt-image-2.5-sunburst-2026-09-08'",
+    "(o->>'model' in('gpt-image-2.6-sunburst','gpt-image-2.5-sunburst-2026-09-08')) is not true",
+  ],
+  [
+    "shared_logo_record_response",
+    "fluid_private.shared_logo_raster_observation_valid(o)",
+    `(fluid_private.shared_logo_raster_observation_valid(o) and o->>'model' is not distinct from ${admitted})`,
+  ],
+  [
+    "shared_identity_receipt_complete",
+    "o->>'model'<>'gpt-image-2.5-sunburst-2026-09-08'",
+    `o->>'model' is distinct from ${admitted}`,
+  ],
 ];
 const literal = (value: string) => `'${value.replaceAll("'", "''")}'`;
 

@@ -11,7 +11,13 @@ export function LogoCreationPage({ projectId }: { projectId: string }) {
   // A complete brand shows its Logo step in the project conversation, right
   // after Inspiration; this page stays for projects without that conversation.
   const inConversation = progress?.projectId === projectId;
-  useEffect(() => { if (inConversation) router.replace(`/brands/account/${projectId}?view=strategy#journey-logo`); }, [inConversation, projectId, router]);
+  useEffect(() => {
+    if (inConversation) router.replace(`/brands/account/${projectId}?view=strategy#journey-logo`);
+  }, [inConversation, projectId, router]);
   if (inConversation) return null;
-  return <div className={stage.frame}><LogoCreationWorkspace projectId={projectId} /></div>;
+  return (
+    <div className={stage.frame}>
+      <LogoCreationWorkspace projectId={projectId} />
+    </div>
+  );
 }

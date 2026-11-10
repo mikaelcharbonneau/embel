@@ -11,7 +11,9 @@ export async function GET(request: Request) {
     if (new URL(request.url).search) throw new ApiError("invalid_input");
     const auth = await getProfileContext(request.signal);
     return privateJson({ profile: await readAccountProfile(auth) });
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }
 
 export async function PATCH(request: Request) {
@@ -22,5 +24,7 @@ export async function PATCH(request: Request) {
     const auth = await getProfileContext(request.signal);
     assertExpectedAccount(request, auth.userId);
     return privateJson({ profile: await saveAccountProfile(auth, input) });
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

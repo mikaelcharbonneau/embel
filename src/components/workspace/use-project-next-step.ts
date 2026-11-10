@@ -26,10 +26,19 @@ export function useProjectNextStep(account: VerifiedAccount, project: AccountPro
     };
     const deadline = setTimeout(() => controller.abort(), 15_000);
     readProjectContinuation(project, clients, controller.signal)
-      .then(action => { if (!controller.signal.aborted && isCurrent(captured)) setState({ key, href: action.href }); })
-      .catch(error => { if (error instanceof AccountRequestError && error.status === 401 && isCurrent(captured)) expire(captured); })
+      .then((action) => {
+        if (!controller.signal.aborted && isCurrent(captured)) setState({ key, href: action.href });
+      })
+      .catch((error) => {
+        if (error instanceof AccountRequestError && error.status === 401 && isCurrent(captured)) expire(captured);
+      })
       .finally(() => clearTimeout(deadline));
-    return () => { clearTimeout(deadline); controller.abort(); clients.logo?.dispose(); clients.identity?.dispose(); };
+    return () => {
+      clearTimeout(deadline);
+      controller.abort();
+      clients.logo?.dispose();
+      clients.identity?.dispose();
+    };
   }, [expire, generation, isCurrent, key, project, userId]);
 
   return state?.key === key ? state.href : null;

@@ -21,7 +21,9 @@ export type LogoRequestServiceResolver = (
 ) => Promise<LogoRequestServiceResolution | null>;
 
 const unavailable = () => new ApiError("integration_unavailable");
-const active = (signal?: AbortSignal) => { if (signal?.aborted) throw unavailable(); };
+const active = (signal?: AbortSignal) => {
+  if (signal?.aborted) throw unavailable();
+};
 
 /** Resolve fresh capabilities for this verified account and exact owned project.
  * Never use a privileged dependency to establish ordinary account ownership. */
@@ -37,21 +39,40 @@ export async function resolveLogoRequestServices(auth: AuthenticatedContext, pro
   // A resolver must honor the signal for its own work. Independently fence the
   // HTTP wait and consume late settlement without composing or caching it.
   let rejectAborted!: (error: ApiError) => void;
-  const aborted = new Promise<never>((_resolve, reject) => { rejectAborted = reject; });
+  const aborted = new Promise<never>((_resolve, reject) => {
+    rejectAborted = reject;
+  });
   const stop = () => rejectAborted(unavailable());
   signal?.addEventListener("abort", stop, { once: true });
   let resolved: LogoRequestServiceResolution | null;
   try {
     active(signal);
-    resolved = await Promise.race([Promise.resolve().then(() => { active(signal); return resolve(auth, projectId, signal); }), aborted]);
-  } finally { signal?.removeEventListener("abort", stop); }
+    resolved = await Promise.race([
+      Promise.resolve().then(() => {
+        active(signal);
+        return resolve(auth, projectId, signal);
+      }),
+      aborted,
+    ]);
+  } finally {
+    signal?.removeEventListener("abort", stop);
+  }
   active(signal);
   if (resolved === null) return createLogoServices(null);
   if (!resolved || resolved.ownerId !== ownerId || resolved.projectId !== projectId) throw new ApiError("not_found");
   const dependencies = resolved.dependencies;
-  if (!dependencies || typeof dependencies.connections?.acquire !== "function" || typeof dependencies.storage?.read !== "function"
-    || typeof dependencies.storage?.putIfAbsent !== "function" || dependencies.validateBytes !== undefined && typeof dependencies.validateBytes !== "function") throw unavailable();
+  if (
+    !dependencies ||
+    typeof dependencies.connections?.acquire !== "function" ||
+    typeof dependencies.storage?.read !== "function" ||
+    typeof dependencies.storage?.putIfAbsent !== "function" ||
+    (dependencies.validateBytes !== undefined && typeof dependencies.validateBytes !== "function")
+  )
+    throw unavailable();
   // Explicit projection excludes worker capabilities even from a wider JS value.
-  return createLogoServices({ connections: dependencies.connections, storage: dependencies.storage,
-    ...(dependencies.validateBytes ? { validateBytes: dependencies.validateBytes } : {}) });
+  return createLogoServices({
+    connections: dependencies.connections,
+    storage: dependencies.storage,
+    ...(dependencies.validateBytes ? { validateBytes: dependencies.validateBytes } : {}),
+  });
 }

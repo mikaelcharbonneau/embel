@@ -14,19 +14,20 @@ async function createClient(requestSignal: AbortSignal | undefined, staged: bool
     // Pinned SDK support: each email link selects its own HttpOnly PKCE verifier.
     auth: { experimental: { appendPkceFlowIdToRedirects: true } },
     global: {
-      fetch: (input, init) => fetch(input, {
-        ...init,
-        redirect: "error",
-        signal: AbortSignal.any([
-          ...(requestSignal ? [requestSignal] : []),
-          ...(init?.signal ? [init.signal] : []),
-          AbortSignal.timeout(10_000),
-        ]),
-      }),
+      fetch: (input, init) =>
+        fetch(input, {
+          ...init,
+          redirect: "error",
+          signal: AbortSignal.any([
+            ...(requestSignal ? [requestSignal] : []),
+            ...(init?.signal ? [init.signal] : []),
+            AbortSignal.timeout(10_000),
+          ]),
+        }),
     },
     cookies: {
       getAll: () => {
-        const values = new Map(cookieStore.getAll().map(cookie => [cookie.name, cookie]));
+        const values = new Map(cookieStore.getAll().map((cookie) => [cookie.name, cookie]));
         for (const cookie of pending.values()) {
           if (cookie.options.maxAge === 0) values.delete(cookie.name);
           else values.set(cookie.name, { name: cookie.name, value: cookie.value });
@@ -41,10 +42,13 @@ async function createClient(requestSignal: AbortSignal | undefined, staged: bool
       },
     },
   });
-  return { client, commitCookies: () => {
-    for (const { name, value, options } of pending.values()) cookieStore.set(name, value, options);
-    pending.clear();
-  } };
+  return {
+    client,
+    commitCookies: () => {
+      for (const { name, value, options } of pending.values()) cookieStore.set(name, value, options);
+      pending.clear();
+    },
+  };
 }
 
 export async function createRouteAuthClient(requestSignal?: AbortSignal) {

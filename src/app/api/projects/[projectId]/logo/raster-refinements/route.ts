@@ -9,5 +9,7 @@ export async function GET(request: Request, context: { params: Promise<{ project
     const auth = await getAuthenticatedContext();
     const { projectId } = await context.params;
     return privateJson(await listLogoRasterRefinements(auth, projectId, readLogoPageQuery(request)));
-  } catch (error) { return logoErrorResponse(error); }
+  } catch (error) {
+    return logoErrorResponse(error);
+  }
 }

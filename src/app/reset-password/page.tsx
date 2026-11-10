@@ -8,6 +8,11 @@ export const dynamic = "force-dynamic";
 /** Reached from the email link through /auth/callback, which signs the browser in for the reset. */
 export default function ResetPasswordPage() {
   let configured = false;
-  try { getSupabaseConfiguration(); configured = true; } catch { /* The form shows the unavailable state. */ }
+  try {
+    getSupabaseConfiguration();
+    configured = true;
+  } catch {
+    /* The form shows the unavailable state. */
+  }
   return <ResetPasswordForm configured={configured} />;
 }

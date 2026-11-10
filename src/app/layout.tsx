@@ -32,5 +32,11 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: "#F7F7F5" };
 
 export default function RootLayout({ children, auth }: { children: React.ReactNode; auth: React.ReactNode }) {
-  return <html lang="en" className={GeistSans.variable}><body><AppShell auth={auth}>{children}</AppShell></body></html>;
+  return (
+    <html lang="en" className={GeistSans.variable}>
+      <body>
+        <AppShell auth={auth}>{children}</AppShell>
+      </body>
+    </html>
+  );
 }

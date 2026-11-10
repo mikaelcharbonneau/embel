@@ -5,7 +5,11 @@ import { useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 const FOLLOW_DISTANCE = 96;
 
 /** Follow new conversation content only while the reader remains near its end. */
-export function useConversationFollow({ conversationKey, contentKey, responseIds }: {
+export function useConversationFollow({
+  conversationKey,
+  contentKey,
+  responseIds,
+}: {
   conversationKey: string;
   contentKey: string;
   responseIds: readonly string[];
@@ -27,7 +31,9 @@ export function useConversationFollow({ conversationKey, contentKey, responseIds
   }
 
   function scrollToResponse(area: HTMLDivElement, target: HTMLElement | null, behavior: ScrollBehavior) {
-    const top = target ? area.scrollTop + target.getBoundingClientRect().top - area.getBoundingClientRect().top - 24 : area.scrollHeight;
+    const top = target
+      ? area.scrollTop + target.getBoundingClientRect().top - area.getBoundingClientRect().top - 24
+      : area.scrollHeight;
     area.scrollTo?.({ top: Math.max(0, top), behavior });
   }
 
@@ -36,7 +42,7 @@ export function useConversationFollow({ conversationKey, contentKey, responseIds
     if (!area) return;
     const prior = previous.current;
     const initial = !prior || prior.conversationKey !== conversationKey;
-    const added = initial ? [] : responseIds.filter(id => !prior.responseIds.includes(id));
+    const added = initial ? [] : responseIds.filter((id) => !prior.responseIds.includes(id));
     previous.current = { conversationKey, responseIds };
 
     if (initial || following.current) {
@@ -52,7 +58,9 @@ export function useConversationFollow({ conversationKey, contentKey, responseIds
     }
   });
 
-  useLayoutEffect(() => { updateContent(); }, [conversationKey, contentKey, responseKey]);
+  useLayoutEffect(() => {
+    updateContent();
+  }, [conversationKey, contentKey, responseKey]);
 
   function onScroll() {
     const area = transcript.current;
@@ -71,13 +79,17 @@ export function useConversationFollow({ conversationKey, contentKey, responseIds
     if (!area || !area.contains(target)) return;
     scrollToResponse(area, target, "auto");
     following.current = nearBottom(area);
-    if (following.current) { unread.current = []; setHasNewResponse(false); }
+    if (following.current) {
+      unread.current = [];
+      setHasNewResponse(false);
+    }
   }
 
   function revealNewResponse() {
     const area = transcript.current;
     if (!area) return;
-    const target = unread.current.map(id => responseElement(area, id)).find(Boolean) ?? responseElement(area, responseIds.at(-1));
+    const target =
+      unread.current.map((id) => responseElement(area, id)).find(Boolean) ?? responseElement(area, responseIds.at(-1));
     const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
     // Only this explicit action moves keyboard focus. Background replies never do.
     (target ?? area).focus({ preventScroll: true });

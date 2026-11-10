@@ -9,5 +9,7 @@ export async function GET(_request: Request, context: { params: Promise<{ versio
     const auth = await getAuthenticatedContext();
     const { versionId } = await context.params;
     return privateJson(await getPrivateAssetDownload(auth, versionId));
-  } catch (error) { return errorResponse(error); }
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

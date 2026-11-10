@@ -7,7 +7,7 @@ import { ApiError } from "@/server/http/errors";
 import { readLogoPageQuery } from "@/server/http/logo-query";
 
 export const dynamic = "force-dynamic";
-export async function GET(request: Request, context: {params: Promise<{projectId: string; stage: string}>}) {
+export async function GET(request: Request, context: { params: Promise<{ projectId: string; stage: string }> }) {
   try {
     const auth = await getAuthenticatedContext();
     const { projectId, stage } = await context.params;
@@ -15,5 +15,7 @@ export async function GET(request: Request, context: {params: Promise<{projectId
     if (!parsedStage.success) throw new ApiError("invalid_input");
     const query = readLogoPageQuery(request, true);
     return privateJson(await listLogoStageHistory(auth, projectId, parsedStage.data, query));
-  } catch (error) { return logoErrorResponse(error); }
+  } catch (error) {
+    return logoErrorResponse(error);
+  }
 }

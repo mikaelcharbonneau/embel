@@ -1,6 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { asRole, createTestDatabase, HASH, OWNER_A, OWNER_B, resetFixture, seedProject, type TestDatabase } from "../database/local-supabase";
+import {
+  asRole,
+  createTestDatabase,
+  HASH,
+  OWNER_A,
+  OWNER_B,
+  resetFixture,
+  seedProject,
+  type TestDatabase,
+} from "../database/local-supabase";
 
 const signatures = [
   "public.request_project_deletion(uuid,integer,integer)",
@@ -15,18 +24,45 @@ const signatures = [
 /** Independent synthetic PostgreSQL review. No hosted database/provider access. */
 describe("independent project deletion safety review", () => {
   let db: TestDatabase;
-  beforeAll(async () => { db = await createTestDatabase(); }, 60_000);
-  afterAll(async () => { await db?.close(); });
-  beforeEach(async () => { await resetFixture(db); });
+  beforeAll(async () => {
+    db = await createTestDatabase();
+  }, 60_000);
+  afterAll(async () => {
+    await db?.close();
+  });
+  beforeEach(async () => {
+    await resetFixture(db);
+  });
   async function transition(projectId: string, version: number, deleted: boolean, owner = OWNER_A) {
-    return asRole(db, "authenticated", owner, async () => (await db.query<{ result: { id: string; deleted_at: string | null; lifecycle_version: number; deletion_state: string } }>(
-      `select public.${deleted ? "request" : "restore"}_project_deletion($1,1,$2) result`, [projectId, version],
-    )).rows[0]!.result);
+    return asRole(
+      db,
+      "authenticated",
+      owner,
+      async () =>
+        (
+          await db.query<{
+            result: { id: string; deleted_at: string | null; lifecycle_version: number; deletion_state: string };
+          }>(`select public.${deleted ? "request" : "restore"}_project_deletion($1,1,$2) result`, [projectId, version])
+        ).rows[0]!.result,
+    );
   }
 
-  it.each(signatures)("gives an unrelated login no EXECUTE on %s", async signature => {
-    expect((await db.query<{ allowed: boolean }>("select has_function_privilege('fixture_subscription_worker_a',$1,'EXECUTE') as allowed", [signature])).rows).toEqual([{ allowed: false }]);
-    expect((await db.query<{ allowed: boolean }>("select has_function_privilege('authenticated',$1,'EXECUTE') as allowed", [signature])).rows).toEqual([{ allowed: /_project_deletion\(/.test(signature) }]);
+  it.each(signatures)("gives an unrelated login no EXECUTE on %s", async (signature) => {
+    expect(
+      (
+        await db.query<{ allowed: boolean }>(
+          "select has_function_privilege('fixture_subscription_worker_a',$1,'EXECUTE') as allowed",
+          [signature],
+        )
+      ).rows,
+    ).toEqual([{ allowed: false }]);
+    expect(
+      (
+        await db.query<{ allowed: boolean }>("select has_function_privilege('authenticated',$1,'EXECUTE') as allowed", [
+          signature,
+        ])
+      ).rows,
+    ).toEqual([{ allowed: /_project_deletion\(/.test(signature) }]);
   });
 
   it("rejects stale delete/restore requests across repeated lifecycle cycles", async () => {
@@ -40,14 +76,25 @@ describe("independent project deletion safety review", () => {
   });
 
   it("preserves owned asset/history reads but fences content mutations until restoration", async () => {
-    const project = await seedProject(db), assetId = randomUUID();
-    await db.query("insert into public.assets(id,owner_id,project_id,kind) values($1,$2,$3,'fixture')", [assetId, OWNER_A, project.id]);
+    const project = await seedProject(db),
+      assetId = randomUUID();
+    await db.query("insert into public.assets(id,owner_id,project_id,kind) values($1,$2,$3,'fixture')", [
+      assetId,
+      OWNER_A,
+      project.id,
+    ]);
     await transition(project.id, 0, true);
     await asRole(db, "authenticated", OWNER_A, async () => {
-      expect((await db.query("select * from public.project_revisions where project_id=$1", [project.id])).rows).toHaveLength(1);
+      expect(
+        (await db.query("select * from public.project_revisions where project_id=$1", [project.id])).rows,
+      ).toHaveLength(1);
       expect((await db.query("select * from public.assets where id=$1", [assetId])).rows).toHaveLength(1);
-      await expect(db.query("select public.set_asset_retention($1,0,false,true)", [assetId])).rejects.toMatchObject({ code: "PT409" });
-      await expect(db.query("select public.append_project_revision($1,1,'{}',$2)", [project.id, HASH])).rejects.toMatchObject({ code: "PT409" });
+      await expect(db.query("select public.set_asset_retention($1,0,false,true)", [assetId])).rejects.toMatchObject({
+        code: "PT409",
+      });
+      await expect(
+        db.query("select public.append_project_revision($1,1,'{}',$2)", [project.id, HASH]),
+      ).rejects.toMatchObject({ code: "PT409" });
     });
     await transition(project.id, 1, false);
     await asRole(db, "authenticated", OWNER_A, async () => {
@@ -56,34 +103,73 @@ describe("independent project deletion safety review", () => {
     expect((await db.query("select saved from public.assets where id=$1", [assetId])).rows).toEqual([{ saved: true }]);
   });
   it("fences post-deletion storage INSERT against an already-created immutable manifest", async () => {
-    const project = await seedProject(db), assetId = randomUUID(), versionId = randomUUID();
+    const project = await seedProject(db),
+      assetId = randomUUID(),
+      versionId = randomUUID();
     const path = `${OWNER_A}/${project.id}/${assetId}/${versionId}`;
-    await db.query("insert into public.assets(id,owner_id,project_id,kind) values($1,$2,$3,'fixture')", [assetId, OWNER_A, project.id]);
-    await db.query("insert into public.asset_versions(id,owner_id,project_id,asset_id,version,input_revision,input_hash,content_hash,mime_type,provenance,storage_path) values($1,$2,$3,$4,1,1,$5,$5,'image/png','{}',$6)", [versionId, OWNER_A, project.id, assetId, HASH, path]);
+    await db.query("insert into public.assets(id,owner_id,project_id,kind) values($1,$2,$3,'fixture')", [
+      assetId,
+      OWNER_A,
+      project.id,
+    ]);
+    await db.query(
+      "insert into public.asset_versions(id,owner_id,project_id,asset_id,version,input_revision,input_hash,content_hash,mime_type,provenance,storage_path) values($1,$2,$3,$4,1,1,$5,$5,'image/png','{}',$6)",
+      [versionId, OWNER_A, project.id, assetId, HASH, path],
+    );
     await transition(project.id, 0, true);
-    await expect(asRole(db, "authenticated", OWNER_A, async () => {
-      await db.query("insert into storage.objects(bucket_id,name,owner_id) values('fluid-assets',$1,$2)", [path, OWNER_A]);
-    })).rejects.toThrow();
+    await expect(
+      asRole(db, "authenticated", OWNER_A, async () => {
+        await db.query("insert into storage.objects(bucket_id,name,owner_id) values('fluid-assets',$1,$2)", [
+          path,
+          OWNER_A,
+        ]);
+      }),
+    ).rejects.toThrow();
     await transition(project.id, 1, false);
     await asRole(db, "authenticated", OWNER_A, async () => {
-      await db.query("insert into storage.objects(bucket_id,name,owner_id) values('fluid-assets',$1,$2)", [path, OWNER_A]);
+      await db.query("insert into storage.objects(bucket_id,name,owner_id) values('fluid-assets',$1,$2)", [
+        path,
+        OWNER_A,
+      ]);
     });
     await transition(project.id, 2, true);
-    const reads = await asRole(db, "authenticated", OWNER_A, () => db.query("select name from storage.objects where name=$1", [path]));
+    const reads = await asRole(db, "authenticated", OWNER_A, () =>
+      db.query("select name from storage.objects where name=$1", [path]),
+    );
     expect(reads.rows).toEqual([{ name: path }]);
   });
 
   it("keeps unlinked Home uploads available but fences linked deleted-project uploads", async () => {
     const project = await seedProject(db);
-    const unlinked = randomUUID(), linked = randomUUID(), blobA = randomUUID(), blobB = randomUUID();
-    await db.query(`insert into public.home_attachments(id,owner_id,request_key,input,blob_version_id,name,mime_type,content_hash,byte_length,verified,project_id,project_revision)
+    const unlinked = randomUUID(),
+      linked = randomUUID(),
+      blobA = randomUUID(),
+      blobB = randomUUID();
+    await db.query(
+      `insert into public.home_attachments(id,owner_id,request_key,input,blob_version_id,name,mime_type,content_hash,byte_length,verified,project_id,project_revision)
       values($1,$2,gen_random_uuid(),'{}',$3,'unlinked.txt','text/plain',$4,12,false,null,null),
-      ($5,$2,gen_random_uuid(),'{}',$6,'linked.txt','text/plain',$4,12,true,$7,1)`, [unlinked, OWNER_A, blobA, HASH, linked, blobB, project.id]);
+      ($5,$2,gen_random_uuid(),'{}',$6,'linked.txt','text/plain',$4,12,true,$7,1)`,
+      [unlinked, OWNER_A, blobA, HASH, linked, blobB, project.id],
+    );
     await transition(project.id, 0, true);
     await db.query("select set_config('storage.operation','object.upload',false)");
     try {
-      await asRole(db, "authenticated", OWNER_A, () => db.query("insert into storage.objects(bucket_id,name,owner_id) values('fluid-assets',$1,$2)", [`${OWNER_A}/home/${unlinked}/${blobA}`, OWNER_A]));
-      await expect(asRole(db, "authenticated", OWNER_A, () => db.query("insert into storage.objects(bucket_id,name,owner_id) values('fluid-assets',$1,$2)", [`${OWNER_A}/home/${linked}/${blobB}`, OWNER_A]))).rejects.toThrow();
-    } finally { await db.query("select set_config('storage.operation','',false)"); }
+      await asRole(db, "authenticated", OWNER_A, () =>
+        db.query("insert into storage.objects(bucket_id,name,owner_id) values('fluid-assets',$1,$2)", [
+          `${OWNER_A}/home/${unlinked}/${blobA}`,
+          OWNER_A,
+        ]),
+      );
+      await expect(
+        asRole(db, "authenticated", OWNER_A, () =>
+          db.query("insert into storage.objects(bucket_id,name,owner_id) values('fluid-assets',$1,$2)", [
+            `${OWNER_A}/home/${linked}/${blobB}`,
+            OWNER_A,
+          ]),
+        ),
+      ).rejects.toThrow();
+    } finally {
+      await db.query("select set_config('storage.operation','',false)");
+    }
   });
 });

@@ -34,7 +34,9 @@ const awaiting: LifecycleProject = { ...stopping, deletion_state: "awaiting_reso
 const response = (project: LifecycleProject) => Response.json({ project });
 const deferred = <T,>() => {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>(yes => { resolve = yes; });
+  const promise = new Promise<T>((yes) => {
+    resolve = yes;
+  });
   return { promise, resolve };
 };
 
@@ -46,13 +48,19 @@ let visibility: DocumentVisibilityState;
 
 async function render(project: LifecycleProject = stopping, compact = false) {
   await act(async () => {
-    root!.render(mock.session?.status === "ready"
-      ? <ProjectDeletionStatus account={mock.session} project={project} onUpdated={updated} compact={compact} />
-      : <p>Checking account</p>);
+    root!.render(
+      mock.session?.status === "ready" ? (
+        <ProjectDeletionStatus account={mock.session} project={project} onUpdated={updated} compact={compact} />
+      ) : (
+        <p>Checking account</p>
+      ),
+    );
   });
 }
 async function advance(milliseconds: number) {
-  await act(async () => { await vi.advanceTimersByTimeAsync(milliseconds); });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(milliseconds);
+  });
 }
 async function setVisibility(next: DocumentVisibilityState) {
   await act(async () => {
@@ -71,8 +79,14 @@ beforeEach(() => {
   visibility = "visible";
   vi.spyOn(document, "visibilityState", "get").mockImplementation(() => visibility);
   mock.session = { status: "ready", userId: owner, generation: 1 };
-  mock.current.mockReset().mockImplementation((account: VerifiedAccount) =>
-    mock.session?.status === "ready" && account.userId === mock.session.userId && account.generation === mock.session.generation);
+  mock.current
+    .mockReset()
+    .mockImplementation(
+      (account: VerifiedAccount) =>
+        mock.session?.status === "ready" &&
+        account.userId === mock.session.userId &&
+        account.generation === mock.session.generation,
+    );
   mock.expire.mockReset();
   updated = vi.fn<(project: LifecycleProject) => void>();
   fetcher = vi.fn(async () => response(stopping));
@@ -91,16 +105,19 @@ afterEach(async () => {
 });
 
 describe("deleted project presentation and read-only work status", () => {
-  it.each([stopping, awaiting, completed])("shows $deletion_state as Deleted before any status read", async project => {
-    await render(project);
-    expect(host.querySelector(".project-deletion-state")?.textContent).toBe("Deleted");
-    expect(host.querySelector(".project-deletion-state--deleted")).not.toBeNull();
-    expect(host.textContent).not.toMatch(/Stopping|Awaiting resolution|updates automatically|stopped automatically/);
-    expect(host.textContent?.includes("Cancellation requested")).toBe(project.deletion_state === "stopping");
-    expect(fetcher).not.toHaveBeenCalled();
-    expect(updated).not.toHaveBeenCalled();
-    expect(project.deleted_at).toBeNull();
-  });
+  it.each([stopping, awaiting, completed])(
+    "shows $deletion_state as Deleted before any status read",
+    async (project) => {
+      await render(project);
+      expect(host.querySelector(".project-deletion-state")?.textContent).toBe("Deleted");
+      expect(host.querySelector(".project-deletion-state--deleted")).not.toBeNull();
+      expect(host.textContent).not.toMatch(/Stopping|Awaiting resolution|updates automatically|stopped automatically/);
+      expect(host.textContent?.includes("Cancellation requested")).toBe(project.deletion_state === "stopping");
+      expect(fetcher).not.toHaveBeenCalled();
+      expect(updated).not.toHaveBeenCalled();
+      expect(project.deleted_at).toBeNull();
+    },
+  );
 
   it("checks every five seconds with the owner fence and observes same-version completion", async () => {
     fetcher.mockResolvedValueOnce(response(stopping)).mockResolvedValueOnce(response(completed));
@@ -113,7 +130,10 @@ describe("deleted project presentation and read-only work status", () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(fetcher.mock.calls[0]![0]).toBe(`/api/projects/${stopping.id}/deletion`);
     expect(fetcher.mock.calls[0]![1]).toMatchObject({
-      method: "GET", credentials: "same-origin", mode: "same-origin", cache: "no-store",
+      method: "GET",
+      credentials: "same-origin",
+      mode: "same-origin",
+      cache: "no-store",
       headers: { Accept: "application/json", "X-Embel-Account": owner },
     });
     expect(fetcher.mock.calls[0]![1]).not.toHaveProperty("body");
@@ -158,21 +178,30 @@ describe("deleted project presentation and read-only work status", () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
-  it.each(["active", "deleted"] as const)("does not poll a %s project", async deletion_state => {
-    await render({ ...stopping, deletion_state, deletion_requested_at: deletion_state === "active" ? null : stopping.deletion_requested_at });
+  it.each(["active", "deleted"] as const)("does not poll a %s project", async (deletion_state) => {
+    await render({
+      ...stopping,
+      deletion_state,
+      deletion_requested_at: deletion_state === "active" ? null : stopping.deletion_requested_at,
+    });
     await advance(120_000);
     expect(fetcher).not.toHaveBeenCalled();
     expect(updated).not.toHaveBeenCalled();
     expect(host.textContent).toBe(deletion_state === "active" ? "" : "Deleted");
   });
 
-  it.each([stopping, awaiting, completed])("keeps compact $deletion_state acknowledgment without a second live status region", async project => {
-    await render(project, true);
-    expect(host.querySelector(".project-deletion-state")?.textContent).toBe("Deleted");
-    expect(host.textContent).toBe(project.deletion_state === "stopping" ? "DeletedCancellation requested" : "Deleted");
-    expect(host.querySelector('[role="status"]')).toBeNull();
-    expect(host.querySelector(".project-deletion-status--compact")).not.toBeNull();
-  });
+  it.each([stopping, awaiting, completed])(
+    "keeps compact $deletion_state acknowledgment without a second live status region",
+    async (project) => {
+      await render(project, true);
+      expect(host.querySelector(".project-deletion-state")?.textContent).toBe("Deleted");
+      expect(host.textContent).toBe(
+        project.deletion_state === "stopping" ? "DeletedCancellation requested" : "Deleted",
+      );
+      expect(host.querySelector('[role="status"]')).toBeNull();
+      expect(host.querySelector(".project-deletion-status--compact")).not.toBeNull();
+    },
+  );
 
   it("waits while initially hidden, aborts on hiding, and rejects a superseded hidden-tab response", async () => {
     const stale = deferred<Response>();
@@ -292,18 +321,23 @@ describe("deleted project presentation and read-only work status", () => {
     expect(mock.expire).not.toHaveBeenCalled();
   });
 
-  it.each(["unauthorized", "wrong owner"])("expires the captured account and stops polling for %s reads", async mode => {
-    fetcher.mockResolvedValueOnce(mode === "unauthorized"
-      ? new Response(null, { status: 401 })
-      : response({ ...completed, owner_id: otherOwner }));
-    const captured = mock.session;
-    await render();
-    await advance(5_000);
-    expect(mock.expire).toHaveBeenCalledExactlyOnceWith(captured);
-    expect(updated).not.toHaveBeenCalled();
-    await advance(120_000);
-    expect(fetcher).toHaveBeenCalledTimes(1);
-  });
+  it.each(["unauthorized", "wrong owner"])(
+    "expires the captured account and stops polling for %s reads",
+    async (mode) => {
+      fetcher.mockResolvedValueOnce(
+        mode === "unauthorized"
+          ? new Response(null, { status: 401 })
+          : response({ ...completed, owner_id: otherOwner }),
+      );
+      const captured = mock.session;
+      await render();
+      await advance(5_000);
+      expect(mock.expire).toHaveBeenCalledExactlyOnceWith(captured);
+      expect(updated).not.toHaveBeenCalled();
+      await advance(120_000);
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it("rejects an older lifecycle response instead of replacing a newer deletion request", async () => {
     const newer = { ...stopping, lifecycle_version: 3 };

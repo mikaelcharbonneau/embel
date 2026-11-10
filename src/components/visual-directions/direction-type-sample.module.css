@@ -5,7 +5,8 @@
   min-width: 0;
 }
 
-.caption, .note {
+.caption,
+.note {
   color: var(--secondary, #696965);
   font-size: 12px;
   line-height: 1.5;

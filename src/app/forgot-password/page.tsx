@@ -7,6 +7,11 @@ export const dynamic = "force-dynamic";
 
 export default function ForgotPasswordPage() {
   let configured = false;
-  try { getSupabaseConfiguration(); configured = true; } catch { /* The form shows the unavailable state. */ }
+  try {
+    getSupabaseConfiguration();
+    configured = true;
+  } catch {
+    /* The form shows the unavailable state. */
+  }
   return <ForgotPasswordForm configured={configured} />;
 }

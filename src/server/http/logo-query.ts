@@ -3,7 +3,10 @@ import { z } from "zod";
 import { logoHistoryCursorSchema, logoPageQuerySchema } from "@/domain/logo-workspace";
 import { ApiError } from "./errors";
 
-export function readLogoPageQuery(request: Request, history: true): {cursor?: z.infer<typeof logoHistoryCursorSchema>; limit: number};
+export function readLogoPageQuery(
+  request: Request,
+  history: true,
+): { cursor?: z.infer<typeof logoHistoryCursorSchema>; limit: number };
 export function readLogoPageQuery(request: Request, history?: false): z.infer<typeof logoPageQuerySchema>;
 export function readLogoPageQuery(request: Request, history = false) {
   const search = new URL(request.url).search;
@@ -22,11 +25,15 @@ export function readLogoPageQuery(request: Request, history = false) {
   if (cursor !== null) {
     if (cursor.length > 2048) throw new ApiError("invalid_input");
     if (history) {
-      try { input.cursor = JSON.parse(cursor); } catch { throw new ApiError("invalid_input"); }
+      try {
+        input.cursor = JSON.parse(cursor);
+      } catch {
+        throw new ApiError("invalid_input");
+      }
     } else input.cursor = cursor;
   }
   const schema = history
-    ? z.strictObject({cursor: logoHistoryCursorSchema.optional(), limit: z.number().int().min(1).max(50).default(20)})
+    ? z.strictObject({ cursor: logoHistoryCursorSchema.optional(), limit: z.number().int().min(1).max(50).default(20) })
     : logoPageQuerySchema;
   const result = schema.safeParse(input);
   if (!result.success) throw new ApiError("invalid_input");
