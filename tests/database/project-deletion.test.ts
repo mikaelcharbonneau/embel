@@ -125,10 +125,10 @@ describe("reversible project lifecycle on complete migrated PGlite schema (synth
     await insertJob("queued", own.id); await insertJob("needs_reconciliation", foreign.id, OWNER_B);
     expect(await change()).toMatchObject({ id: project.id, lifecycle_version: 1 });
   });
-  it("blocks stale scope expansion, mutable preferences and asset-retention writes", async () => {
+  it("blocks context appends, mutable preferences and asset-retention writes", async () => {
     const narrow = await run(async () => (await db.query<{ id: string }>("select * from public.create_project('naming_only','Narrow','{}',$1)", [HASH])).rows[0]!);
     await change(true, 0, 1, OWNER_A, narrow.id);
-    await expect(run(() => db.query("select public.expand_project_scope($1,1)", [narrow.id]))).rejects.toMatchObject({ code: "PT409", message: "project_deleted" });
+    await expect(run(() => db.query("select * from public.append_project_revision($1,1,'{}',$2)", [narrow.id, HASH]))).rejects.toMatchObject({ code: "PT409", message: "project_deleted" });
     const asset = (await db.query<{ id: string }>("insert into public.assets(owner_id,project_id,kind) values($1,$2,'fixture') returning id", [OWNER_A, project.id])).rows[0]!;
     await db.query("insert into public.project_inspiration_heads(project_id,owner_id) values($1,$2)", [project.id, OWNER_A]);
     await change();

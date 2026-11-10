@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { asRole, claim, createTestDatabase, enqueue, HASH, OWNER_A, OWNER_B, registerPlan, resetFixture, seedProject, type TestDatabase } from "./local-supabase";
+import { beginStep, completeStep, finishJob } from "./retired-worker-fixture";
 
 describe("atomic stop-and-delete intent with derived settlement (complete migrated PGlite, synthetic accounts)", () => {
   let db: TestDatabase;
   let project: { id: string; current_revision: number };
   const owner = <T>(run: () => Promise<T>, id: string | null = OWNER_A) => asRole(db, "authenticated", id, run);
-  const service = <T>(run: () => Promise<T>) => asRole(db, "service_role", null, run);
   const request = (epoch = 0, revision = 1, user: string | null = OWNER_A) => owner(async () =>
     (await db.query<{ result: Record<string, unknown> }>("select public.request_project_deletion($1,$2,$3) result", [project.id, revision, epoch])).rows[0]!.result, user);
   const restore = (epoch = 1) => owner(async () =>
@@ -17,9 +17,10 @@ describe("atomic stop-and-delete intent with derived settlement (complete migrat
   const lease = async () => {
     const job = await claim(db); await registerPlan(db, job, [{ key: "first", maximumCostMicrousd: 100 }]); return job;
   };
-  const begin = (job: { id: string; lease_token: string }) => service(() => db.query("select public.begin_job_step($1,$2,'first','fixture-provider',100)", [job.id, job.lease_token]));
-  const complete = (job: { id: string; lease_token: string }, outcome = "succeeded") => service(() => db.query("select public.complete_job_step($1,$2,'first',$3,40,'{\"retained\":true}','fixture-request')", [job.id, job.lease_token, outcome]));
-  const finish = (job: { id: string; lease_token: string }, outcome = "cancelled") => service(() => db.query("select public.finish_job($1,$2,$3)", [job.id, job.lease_token, outcome]));
+  // Worker progress is written directly; the old worker functions are retired.
+  const begin = (job: { id: string; lease_token: string }) => beginStep(db, job, "first", "fixture-provider", 100);
+  const complete = (job: { id: string; lease_token: string }, outcome: "succeeded" | "ambiguous" = "succeeded") => completeStep(db, job, "first", outcome, 40, { retained: true }, "fixture-request");
+  const finish = (job: { id: string; lease_token: string }, outcome: "partial" | "cancelled" = "cancelled") => finishJob(db, job, outcome);
   beforeAll(async () => { db = await createTestDatabase(); }, 60_000);
   afterAll(async () => { await db?.close(); });
   beforeEach(async () => { await resetFixture(db); project = await seedProject(db); });
@@ -46,8 +47,8 @@ describe("atomic stop-and-delete intent with derived settlement (complete migrat
   });
   it("safely cancels a retried but never-dispatched queued job despite a prior claim attempt", async () => {
     const job = await enqueue(db, project.id); const running = await claim(db);
-    await db.query("update public.jobs set lease_expires_at=clock_timestamp()-interval '1 second' where id=$1", [running.id]);
-    await service(() => db.query("select public.expire_job_leases()"));
+    // The lease expired before any step began, so the job went back to the queue.
+    await db.query("update public.jobs set state='queued',lease_token=null,lease_expires_at=null,error_code='lease_expired' where id=$1", [running.id]);
     expect((await db.query("select state,attempts from public.jobs where id=$1", [job.id])).rows[0]).toMatchObject({ state: "queued", attempts: 1 });
     expect((await request()).deletion_state).toBe("deleted"); expect((await jobState(job.id))?.state).toBe("cancelled");
   });
@@ -65,7 +66,6 @@ describe("atomic stop-and-delete intent with derived settlement (complete migrat
     await enqueue(db, project.id); const job = await lease(); await begin(job);
     expect((await request()).deletion_state).toBe("stopping");
     expect(await jobState(job.id)).toMatchObject({ state: "cancel_requested", cancel_requested_at: expect.any(Date) });
-    await expect(begin(job)).rejects.toThrow(/cancel_requested/);
     await complete(job); expect((await status()).deletion_state).toBe("stopping");
     await finish(job);
     expect(await status()).toMatchObject({ deletion_state: "deleted", lifecycle_version: 1, deleted_at: null });
@@ -124,7 +124,6 @@ describe("atomic stop-and-delete intent with derived settlement (complete migrat
       await expect(owner(() => db.query("update public.jobs set project_deletion_requested_at=$1 where id=$2", [value, job.id]))).rejects.toMatchObject({ code: "42501" });
     }
     expect((await jobState(job.id))?.state).toBe("cancel_requested");
-    await expect(begin(job)).rejects.toThrow(/cancel_requested/);
   });
   it("requires owner identity, preserves CAS, and bounds the read-only batch", async () => {
     await expect(request(0, 1, OWNER_B)).rejects.toMatchObject({ code: "P0002" });

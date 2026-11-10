@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
@@ -23,7 +23,9 @@ function command(binary, args, env, input) {
  });
 }
 
-export async function developmentDatabase(root=repositoryRoot) {
+/** `migrationsBefore` (a version) checks only the migrations before it: the shared packets
+ * are installed at that point of a new database's history. */
+export async function developmentDatabase(root=repositoryRoot,{migrationsBefore}={}) {
  if(Object.keys(process.env).some(key=>key==='VERCEL'||key.startsWith('VERCEL_')))throw new DevelopmentError('Use a development shell without hosted Vercel markers.');
  const settings=await settingsFor(root),state=path.join(root,'.embel-dev');
  if(!await readOptional(path.join(state,'settings.json')))throw new DevelopmentError('Run npm run dev:up first.');
@@ -34,19 +36,19 @@ export async function developmentDatabase(root=repositoryRoot) {
  if(!inspect['5432/tcp']?.length||inspect['5432/tcp'].some(p=>!['127.0.0.1','::1'].includes(p.HostIp)||p.HostPort!==String(settings.dbPort)))throw new DevelopmentError('Provisioning requires this checkout’s loopback-only database.');
  const sql=source=>command('docker',['exec','-i',container,'psql','-X','-qAt','-v','ON_ERROR_STOP=1','-U','postgres','-d','postgres'],environment,"set search_path='';\n"+source);
  const installed=(await sql('select version from supabase_migrations.schema_migrations order by version;')).split(/\r?\n/);
- const migrations=await migrationSources(root);
+ const migrations=(await migrationSources(root)).filter(m=>!migrationsBefore||m.staged.slice(0,14)<migrationsBefore);
  if(JSON.stringify(installed)!==JSON.stringify(migrations.map(m=>m.staged.slice(0,14))))throw new DevelopmentError('Local baseline migration history differs from this checkout.');
  const status=async()=>JSON.parse(await command(process.execPath,[path.join(root,'node_modules/supabase/dist/supabase.js'),'status','--output','json','--workdir',state],{...environment,SUPABASE_HOME:path.join(state,'cli-home'),SUPABASE_TELEMETRY_DISABLED:'1'}));
  return {settings,state,sql,status};
 }
 
-export async function installDevelopmentSchema(root=repositoryRoot) {
- const db=await developmentDatabase(root),bundle=await composeDevelopmentSchema(db.settings,root);
+export async function installDevelopmentSchema(root=repositoryRoot,options={}) {
+ const db=await developmentDatabase(root,options),bundle=await composeDevelopmentSchema(db.settings,root);
  const present=await db.sql("select to_regclass('fluid_private.portable_development_installation') is not null;");
  if(present==='f')await db.sql(bundle.sql);
  const marker=JSON.parse(await db.sql('select row_to_json(t) from fluid_private.portable_development_installation t;'));
  if(marker.project_id!==db.settings.projectId||marker.origin!=='http://127.0.0.1:'+db.settings.apiPort||marker.manifest_sha256!==bundle.manifestHash)throw new DevelopmentError('Shared development schema differs from its recorded source or target. Use a separate checkout to install a changed schema.');
- if(await db.sql(`select (select count(*)=1 and bool_and(mode='development' and origin=${q(marker.origin)}) from fluid_private.shared_http_target) and (select count(*)=1 and bool_and(origin=${q(marker.origin)}) from fluid_private.shared_storage_target);`)!=='t')throw new DevelopmentError('Shared development service targets changed.');
+ if(await db.sql(`select count(*)=1 and bool_and(mode='development' and origin=${q(marker.origin)}) from fluid_private.shared_http_target;`)!=='t')throw new DevelopmentError('Shared development service target changed.');
  await verifyDevelopmentAuthority(db,root);
  const directory=path.join(db.state,'shared'); await privateDirectory(directory);
  await writeState(path.join(directory,'schema-manifest.json'),JSON.stringify({version:1,cliVersion,manifestHash:bundle.manifestHash,packets:bundle.manifest,upgrades:[]},null,2)+'\n');
@@ -71,128 +73,63 @@ export async function verifyDevelopmentAuthority(db,root=repositoryRoot) {
  return manifest.functions.length;
 }
 
-const workerFunctions=lane=>['shared_worker_pool_configuration()','claim_shared_worker_slot(uuid,uuid,text,integer)','renew_shared_worker_slot(jsonb,integer)','release_shared_worker_slot(jsonb)','fence_shared_worker_slot(jsonb)','read_shared_worker_executions(jsonb)','read_shared_worker_execution_page(jsonb,uuid,integer)',`shared_${lane}_worker_action(jsonb,jsonb,text,jsonb)`,...(lane==='strategy'?['list_shared_strategy_dispatches(jsonb,integer)']:[])];
 const httpFunctions=lane=>lane==='logo'?['shared_logo_http_principal()','execute_shared_logo_request(text,text,jsonb,jsonb)']:['shared_account_http_principal()',...(lane==='home'?['execute_shared_home_request(text,text,jsonb,jsonb)']:['prepare_shared_identity_request(text,uuid,jsonb,boolean)','commit_shared_identity_request(uuid,jsonb,jsonb)','finish_shared_identity_request()'])];
 const password=()=>randomBytes(36).toString('base64url');
-/** Like production: Logo slots 1-6 so one six-concept batch runs at once, and a
- * per-person limit of six jobs per lane, uniform across slots as the pool requires. */
-export const DEVELOPMENT_LOGO_SLOTS=6,DEVELOPMENT_TENANT_LIMIT=6;
-const slotRole=(lane,suffix,index)=>index===1?`embel_shared_${lane}_${suffix}`:`embel_shared_${lane}_${suffix}_s${index}`;
 
+/** The web lanes' three restricted logins (Home attachments, Creative direction
+ * writes, Logo uploads), like production. Version 1 files also listed the old
+ * worker slots and their Storage account; those were retired with the workers. */
 export async function provisionDevelopmentSchema(root=repositoryRoot) {
  const db=await installDevelopmentSchema(root),file=path.join(db.directory,'provisioning.json');
  const existing=await readOptional(file),suffix=db.settings.projectId.slice(-12);
  const databaseUrl=(role,secret)=>`postgresql://${role}:${secret}@127.0.0.1:${db.settings.dbPort}/postgres?sslmode=disable`;
  const target={deploymentId:db.settings.projectId,applicationOrigin:'http://127.0.0.1:'+db.settings.webPort,supabaseOrigin:'http://127.0.0.1:'+db.settings.apiPort,databaseHost:'127.0.0.1',databasePort:db.settings.dbPort};
- const data=existing?JSON.parse(existing):{version:1,target,
-  slots:['strategy','naming','logo'].map(lane=>{const roleName=`embel_shared_${lane}_${suffix}`;return {slotId:randomUUID(),lane,slotIndex:1,roleName,roleOid:null,databaseUrl:databaseUrl(roleName,password())};}),
-  httpPrincipals:['identity','home','logo'].map(lane=>{const roleName=`embel_shared_http_${lane}_${suffix}`;return {lane,roleName,roleOid:null,databaseUrl:databaseUrl(roleName,password())};}),
-  storage:{authUserId:randomUUID(),email:`embel-logo-${suffix}@development.invalid`,password:password(),publishableKey:''}};
- if(data.version!==1||JSON.stringify(data.target)!==JSON.stringify(target)||![3,2+DEVELOPMENT_LOGO_SLOTS].includes(data.slots?.length)||data.httpPrincipals?.length!==3)throw new DevelopmentError('Stored local principal configuration belongs to a different target.');
- for(let index=2;index<=DEVELOPMENT_LOGO_SLOTS;index++)if(!data.slots.some(s=>s.lane==='logo'&&s.slotIndex===index)){
-  const roleName=slotRole('logo',suffix,index);
-  data.slots.push({slotId:randomUUID(),lane:'logo',slotIndex:index,roleName,roleOid:null,databaseUrl:databaseUrl(roleName,password()),
-   storage:{authUserId:randomUUID(),email:`embel-logo-${suffix}-s${index}@development.invalid`,password:password(),publishableKey:''}});
- }
- const storageFor=slot=>slot.slotIndex===1?data.storage:slot.storage;
- const logoSlots=data.slots.filter(s=>s.lane==='logo');
- if(logoSlots.length!==DEVELOPMENT_LOGO_SLOTS||data.slots.some(s=>s.lane!=='logo'&&s.slotIndex!==1)||logoSlots.some(s=>!storageFor(s)?.authUserId))throw new DevelopmentError('Stored local principal configuration is invalid.');
+ const stored=existing?JSON.parse(existing):null;
+ const data=stored?{version:2,target:stored.target,httpPrincipals:stored.httpPrincipals}:{version:2,target,
+  httpPrincipals:['identity','home','logo'].map(lane=>{const roleName=`embel_shared_http_${lane}_${suffix}`;return {lane,roleName,roleOid:null,databaseUrl:databaseUrl(roleName,password())};})};
+ if(stored&&![1,2].includes(stored.version)||JSON.stringify(data.target)!==JSON.stringify(target)||data.httpPrincipals?.length!==3)throw new DevelopmentError('Stored local principal configuration belongs to a different target.');
  // Persist before creation, so an interruption can resume the same identities.
  await writeState(file,JSON.stringify(data,null,2)+'\n');
  const statements=['begin; select pg_advisory_xact_lock(743182914);'];
- for(const principal of [...data.slots,...data.httpPrincipals]){
-  const worker='slotId' in principal,lane=principal.lane,expected=worker?slotRole(lane,suffix,principal.slotIndex):`embel_shared_http_${lane}_${suffix}`;
-  if(!['strategy','naming','logo','identity','home'].includes(lane)||principal.roleName!==expected)throw new DevelopmentError('Stored local principal identity is invalid.');
+ for(const principal of data.httpPrincipals){
+  const lane=principal.lane,expected=`embel_shared_http_${lane}_${suffix}`;
+  if(!['identity','home','logo'].includes(lane)||principal.roleName!==expected)throw new DevelopmentError('Stored local principal identity is invalid.');
   const url=new URL(principal.databaseUrl);
   if(url.hostname!=='127.0.0.1'||url.port!==String(target.databasePort)||decodeURIComponent(url.username)!==expected||url.pathname!=='/postgres'||!/^[A-Za-z0-9_-]{48}$/.test(url.password))throw new DevelopmentError('Stored local principal credential is invalid.');
-  const binding=worker?`select 1 from fluid_private.shared_worker_slots where slot_id=${q(principal.slotId)}::uuid and role_name=${q(expected)} and role_oid=(select oid from pg_roles where rolname=${q(expected)}) and lane=${q(lane)} and deployment_id=${q(target.deploymentId)}`
-   :`select 1 from fluid_private.${lane==='logo'?'shared_logo_http_principals':'shared_http_principals'} where lane=${q(lane)} and role_name=${q(expected)} and role_oid=(select oid from pg_roles where rolname=${q(expected)})`;
+  const registry=lane==='logo'?'shared_logo_http_principals':'shared_http_principals';
+  const binding=`select 1 from fluid_private.${registry} where lane=${q(lane)} and role_name=${q(expected)} and role_oid=(select oid from pg_roles where rolname=${q(expected)})`;
   statements.push(`do $$ begin
    if not exists(select 1 from pg_roles where rolname=${q(expected)}) then
     create role ${expected} login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls connection limit 4 password ${q(url.password)};
    elsif not exists(${binding}) or ${principal.roleOid===null?'false':`(select oid from pg_roles where rolname=${q(expected)})<>${Number(principal.roleOid)}`} then raise exception 'portable_principal_changed'; end if;
   end $$; grant usage on schema public to ${expected};
-  grant execute on function ${(worker?workerFunctions(lane):httpFunctions(lane)).map(f=>'public.'+f).join(',')} to ${expected};`);
-  if(worker)statements.push(`insert into fluid_private.shared_worker_slots(slot_id,lane,slot_index,role_name,role_oid,deployment_id,enabled,tenant_active_limit)
-   select ${q(principal.slotId)}::uuid,${q(lane)},${Number(principal.slotIndex)},rolname,oid,${q(target.deploymentId)},true,${DEVELOPMENT_TENANT_LIMIT} from pg_roles where rolname=${q(expected)} on conflict(slot_id) do nothing;`);
-  else statements.push(`insert into fluid_private.${lane==='logo'?'shared_logo_http_principals':'shared_http_principals'}(lane,role_name,role_oid,enabled)
+  grant execute on function ${httpFunctions(lane).map(f=>'public.'+f).join(',')} to ${expected};`);
+  statements.push(`insert into fluid_private.${registry}(lane,role_name,role_oid,enabled)
    select ${q(lane)},rolname,oid,true from pg_roles where rolname=${q(expected)} on conflict(lane) do nothing;`);
  }
- statements.push(`update fluid_private.shared_worker_slots set tenant_active_limit=${DEVELOPMENT_TENANT_LIMIT} where deployment_id=${q(target.deploymentId)} and tenant_active_limit<>${DEVELOPMENT_TENANT_LIMIT};`);
- // Registered before the Auth account is created and confirmed, as the shared schema requires.
- for(const slot of logoSlots){const actor=q(storageFor(slot).authUserId);
-  statements.push(`insert into fluid_private.shared_service_actors(auth_user_id,purpose) values(${actor}::uuid,'logo_storage') on conflict do nothing;
- insert into fluid_private.shared_storage_actors(auth_user_id,slot_id,enabled) values(${actor}::uuid,${q(slot.slotId)}::uuid,true) on conflict do nothing;
- do $$ begin if not exists(select 1 from fluid_private.shared_service_actors a join fluid_private.shared_storage_actors s using(auth_user_id)
- where a.auth_user_id=${actor}::uuid and a.purpose='logo_storage' and s.enabled and s.slot_id=${q(slot.slotId)}::uuid)
- then raise exception 'portable_storage_actor_changed'; end if; end $$;`);}
  statements.push('commit;');
  await db.sql(statements.join('\n'));
- const roles=JSON.parse(await db.sql(`select json_object_agg(rolname,oid) from pg_roles where rolname in(${[...data.slots,...data.httpPrincipals].map(p=>q(p.roleName)).join(',')});`));
- for(const principal of [...data.slots,...data.httpPrincipals])principal.roleOid=Number(roles[principal.roleName]);
- await writeState(file,JSON.stringify(data,null,2)+'\n');
- const status=await db.status();
- if(status.API_URL!==target.supabaseOrigin||!status.SERVICE_ROLE_KEY||!status.PUBLISHABLE_KEY)throw new DevelopmentError('Local Auth administration status is unavailable.');
- const headers={apikey:status.SERVICE_ROLE_KEY,Authorization:'Bearer '+status.SERVICE_ROLE_KEY,'Content-Type':'application/json'};
- for(const slot of logoSlots){
-  const storage=storageFor(slot);
-  let response=await fetch(target.supabaseOrigin+'/auth/v1/admin/users/'+storage.authUserId,{headers,signal:AbortSignal.timeout(10_000),redirect:'error'});
-  if(response.status===404||response.status===422){
-   response=await fetch(target.supabaseOrigin+'/auth/v1/admin/users',{method:'POST',headers,body:JSON.stringify({id:storage.authUserId,email:storage.email,password:storage.password,email_confirm:true,app_metadata:{purpose:'embel_development_logo_storage'}}),signal:AbortSignal.timeout(10_000),redirect:'error'});
-  }
-  if(!response.ok)throw new DevelopmentError('Local Logo service account could not be provisioned.');
-  const actor=await response.json();if(actor.id!==storage.authUserId||actor.email!==storage.email||!actor.email_confirmed_at)throw new DevelopmentError('Local Logo service account differs from its expected identity.');
-  storage.publishableKey=status.PUBLISHABLE_KEY;
- }
+ const roles=JSON.parse(await db.sql(`select json_object_agg(rolname,oid) from pg_roles where rolname in(${data.httpPrincipals.map(p=>q(p.roleName)).join(',')});`));
+ for(const principal of data.httpPrincipals)principal.roleOid=Number(roles[principal.roleName]);
  await writeState(file,JSON.stringify(data,null,2)+'\n');
  await verifyDevelopmentPrincipals(data);
  return data;
 }
 
 export async function verifyDevelopmentPrincipals(data) {
- for(const principal of [...data.slots,...data.httpPrincipals]){
+ for(const principal of data.httpPrincipals){
   const client=new pg.Client({connectionString:principal.databaseUrl,connectionTimeoutMillis:10_000});
   try{
    await client.connect();
-   const worker='slotId' in principal;
-   const response=await client.query('select public.'+(worker?'shared_worker_pool_configuration()':principal.lane==='logo'?'shared_logo_http_principal()':'shared_account_http_principal()')+' as value');
+   const response=await client.query('select public.'+(principal.lane==='logo'?'shared_logo_http_principal()':'shared_account_http_principal()')+' as value');
    const value=response.rows[0]?.value;
-   if(worker){if(value?.globalConcurrency!==data.slots.length||JSON.stringify([...value.slotIds].sort())!==JSON.stringify(data.slots.map(s=>s.slotId).sort()))throw new Error('pool differs');}
-   else if(value?.lane!==principal.lane||value.roleName!==principal.roleName||value.roleOid!==principal.roleOid||value.origin!==data.target.supabaseOrigin)throw new Error('principal differs');
+   if(value?.lane!==principal.lane||value.roleName!==principal.roleName||value.roleOid!==principal.roleOid||value.origin!==data.target.supabaseOrigin)throw new Error('principal differs');
   }catch{throw new DevelopmentError('A local restricted principal failed real database login or authority verification.');}
   finally{await client.end().catch(()=>{});}
  }
 }
 
-// Root's model-policy composer calls this only after generating a validated
-// SharedPoolConfiguration. This never creates model receipts or paid requests.
-export async function installDevelopmentPolicies(configuration,root,namingFingerprint) {
- const db=await installDevelopmentSchema(root),data=JSON.parse(await readOptional(path.join(db.directory,'provisioning.json')));
- if(configuration.target.kind!=='development'||Object.entries(data.target).some(([key,value])=>configuration.target[key]!==value))throw new DevelopmentError('Development policy target differs from local provisioning.');
- if(configuration.slots.length!==data.slots.length||new Set(configuration.slots.map(s=>s.slotId)).size!==data.slots.length)throw new DevelopmentError('Development policy requires every provisioned slot exactly once.');
- const statements=['begin; select pg_advisory_xact_lock(743182914);'];
- for(const slot of configuration.slots){
-  const own=data.slots.find(s=>s.slotId===slot.slotId&&s.lane===slot.lane&&s.roleOid===slot.roleOid&&s.roleName===slot.roleName);
-  if(!own)throw new DevelopmentError('Development policy slot is not provisioned locally.');
-  if(slot.lane==='naming'){
-   const expected=q(JSON.stringify(namingFingerprint))+'::jsonb';
-   statements.push(`insert into fluid_private.shared_naming_slot_configuration as cfg(slot_id,readiness_fingerprint) values(${q(slot.slotId)}::uuid,${expected})
-    on conflict(slot_id) do update set readiness_fingerprint=excluded.readiness_fingerprint,ready_until=null
-    where cfg.readiness_fingerprint is distinct from excluded.readiness_fingerprint;`);
-  }
-  for(const [operation,policy] of Object.entries(slot.policies)){
-   const body=q(JSON.stringify(policy))+'::jsonb';
-   const identity=slot.lane==='logo'?q(policy.policyIdentity):`encode(sha256(convert_to((${body})::text,'UTF8')),'hex')`;
-   const valid=slot.lane==='strategy'?`fluid_private.api_text_guided_policy(${q(operation)},${body})`:slot.lane==='naming'?`fluid_private.naming_generation_policy_valid(${body})`
-    :operation==='identity.image'?`fluid_private.shared_identity_policy_valid(${body})`:`fluid_private.shared_logo_policy_valid(${q(operation)},${body})`;
-   statements.push(`do $$ begin if not coalesce(${valid},false) then raise exception 'portable_policy_unqualified'; end if; end $$;`);
-   statements.push(`insert into fluid_private.shared_worker_policies(slot_id,operation,policy_identity,policy) values(${q(slot.slotId)}::uuid,${q(operation)},${identity},${body}) on conflict(slot_id,operation) do update set policy_identity=excluded.policy_identity,policy=excluded.policy;`);
-  }
- }
- statements.push('commit;');await db.sql(statements.join('\n'));
-}
-
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
- try{const data=await provisionDevelopmentSchema();console.log(JSON.stringify({schema:'installed and verified',workers:data.slots.map(s=>s.lane),web:data.httpPrincipals.map(s=>s.lane),storage:'real local service account provisioned'}));}
+ try{const data=await provisionDevelopmentSchema();console.log(JSON.stringify({schema:'installed and verified',web:data.httpPrincipals.map(s=>s.lane)}));}
  catch(error){console.error(error instanceof DevelopmentError?error.message:'Local schema provisioning failed; private diagnostics withheld.');process.exitCode=1;}
 }

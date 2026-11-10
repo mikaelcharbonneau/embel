@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { identityBatchStateSchema, logoBoardAvailabilitySchema, type IdentitySystemSpecification } from "../../src/domain/identity-jobs";
@@ -12,11 +11,10 @@ import { specification } from "../fixtures/identity-generation";
 import { asRole, createTestDatabase, OWNER_A as MIGRATIONS_OWNER, resetFixture, seedProject, type TestDatabase } from "./local-supabase";
 import { sharedHttpRoles } from "./shared-account-fixture";
 import { createSharedIdentityFixture, hash, OWNER_A, OWNER_B, type SharedIdentityFixture } from "./shared-identity-generation-fixture";
-import { applySharedImageModel } from "./shared-image-model-fixture";
 
 // Migration 20261110170000_identity_directions_engine: Creative directions on the
-// generation engine. Rounds are written into the shared worker's Creative direction
-// tables, so the same readers, evidence check and selection accept them.
+// generation engine. Rounds are written into the Creative direction tables of the
+// shared packets, so the same readers, evidence check and selection accept them.
 
 const PUBLIC_FUNCTIONS = ["public.get_identity_directions_availability(uuid)", "public.start_identity_directions(uuid,jsonb)",
   "public.cancel_identity_directions(uuid,uuid)", "public.close_identity_directions_intent(uuid,jsonb)"];
@@ -80,10 +78,6 @@ describe("identity directions engine with the selected-logo board packet", () =>
   let f: SharedIdentityFixture;
   beforeAll(async () => {
     f = await createSharedIdentityFixture();
-    await f.db.exec(await readFile(new URL("../../supabase/candidates/shared_identity_selected_logo_boards.sql", import.meta.url), "utf8"));
-    await f.db.exec(await readFile(new URL("../../supabase/candidates/shared_identity_http_writer_permissions.sql", import.meta.url), "utf8"));
-    await f.db.exec(await readFile(new URL("../../supabase/migrations/20261110150000_logo_types_keep_concepts.sql", import.meta.url), "utf8"));
-    await applySharedImageModel(f.db);
   }, 120_000);
   afterAll(async () => { await f?.db.close(); });
   beforeEach(async () => {
@@ -164,31 +158,28 @@ describe("identity directions engine with the selected-logo board packet", () =>
       image: { assetId, versionId, mimeType: "image/png", byteLength: bytes.byteLength, contentHash: hash(bytes) } };
   }
 
-  it("offers a round under the engine's policy without a shared worker slot, and starts it once per request", async () => {
-    await f.db.exec("update fluid_private.shared_worker_slots set enabled = false");
-    try {
-      const p = await prepared();
-      expect(p.availability).toMatchObject({ status: "available", version: 3, policyIdentity: ENGINE_IDENTITY_POLICY_IDENTITY, estimatedCostMicrousd: null, requestedModel: "gpt-image-2.6-sunburst" });
-      const before = await balance(OWNER_A);
-      const first = await start(p);
-      expect(first.run).toMatchObject({ credits: 3, status: "queued", input: { version: 1, batchId: first.batch.batchId } });
-      expect(first.batch).toMatchObject({ status: "running", terminal: false, fulfillment: { status: "pending", acceptedCount: 0 }, sourceLogoCurrent: true });
-      expect(await balance(OWNER_A)).toBe(before - 3);
-      // A replay returns the same round and charges nothing.
-      const replay = await start(p);
-      expect(replay.run.id).toBe(first.run.id);
-      expect([first.replayed, replay.replayed]).toEqual([false, true]);
-      expect(replay.batch.batchId).toBe(first.batch.batchId);
-      expect(await balance(OWNER_A)).toBe(before - 3);
-      // The batch's job is the engine's: running under the run's lease, no shared admission.
-      const job = (await f.db.query<{ state: string; lease_token: string; input: unknown; admitted: boolean }>(
-        "select j.state, j.lease_token, j.input, exists(select 1 from fluid_private.shared_job_admissions a where a.job_id=j.id) admitted from public.jobs j where j.id=$1", [first.run.input.jobId])).rows[0]!;
-      expect(job).toMatchObject({ state: "running", lease_token: first.run.id, admitted: false });
-      expect(engineIdentityJobInputSchema.safeParse(job.input).success).toBe(true);
-      // One round at a time: a second request, or the shared worker's own admission, waits.
-      expect(await failure(() => start(p, { ...p.intent, idempotencyKey: `directions-${randomUUID()}` }))).toMatchObject({ code: "PT409" });
-      await f.rpc(OWNER_A, "cancel_identity_directions", [p.projectId, first.batch.batchId]);
-    } finally { await f.db.exec("update fluid_private.shared_worker_slots set enabled = true"); }
+  it("offers a round under the engine's policy and starts it once per request", async () => {
+    const p = await prepared();
+    expect(p.availability).toMatchObject({ status: "available", version: 3, policyIdentity: ENGINE_IDENTITY_POLICY_IDENTITY, estimatedCostMicrousd: null, requestedModel: "gpt-image-2.6-sunburst" });
+    const before = await balance(OWNER_A);
+    const first = await start(p);
+    expect(first.run).toMatchObject({ credits: 3, status: "queued", input: { version: 1, batchId: first.batch.batchId } });
+    expect(first.batch).toMatchObject({ status: "running", terminal: false, fulfillment: { status: "pending", acceptedCount: 0 }, sourceLogoCurrent: true });
+    expect(await balance(OWNER_A)).toBe(before - 3);
+    // A replay returns the same round and charges nothing.
+    const replay = await start(p);
+    expect(replay.run.id).toBe(first.run.id);
+    expect([first.replayed, replay.replayed]).toEqual([false, true]);
+    expect(replay.batch.batchId).toBe(first.batch.batchId);
+    expect(await balance(OWNER_A)).toBe(before - 3);
+    // The batch's job is the engine's: running under the run's lease, no shared admission.
+    const job = (await f.db.query<{ state: string; lease_token: string; input: unknown; admitted: boolean }>(
+      "select j.state, j.lease_token, j.input, exists(select 1 from fluid_private.shared_job_admissions a where a.job_id=j.id) admitted from public.jobs j where j.id=$1", [first.run.input.jobId])).rows[0]!;
+    expect(job).toMatchObject({ state: "running", lease_token: first.run.id, admitted: false });
+    expect(engineIdentityJobInputSchema.safeParse(job.input).success).toBe(true);
+    // One round at a time: a second request waits.
+    expect(await failure(() => start(p, { ...p.intent, idempotencyKey: `directions-${randomUUID()}` }))).toMatchObject({ code: "PT409" });
+    await f.rpc(OWNER_A, "cancel_identity_directions", [p.projectId, first.batch.batchId]);
   });
 
   it("refuses a request whose inputs or policy changed, another person's project, and a disabled kind", async () => {
@@ -201,7 +192,7 @@ describe("identity directions engine with the selected-logo board packet", () =>
     expect((await f.db.query("select count(*)::int n from public.identity_batches b join public.identity_input_snapshots i on i.id=b.input_id where b.project_id=$1", [p.projectId])).rows).toEqual([{ n: 0 }]);
   });
 
-  it("records delivered and failed boards as the shared worker's records, readable and selectable unchanged", async () => {
+  it("records delivered and failed boards as Creative direction records, readable and selectable unchanged", async () => {
     const p = await prepared(), before = await balance(OWNER_A), { run, batch } = await claimed(p);
     const begun = await engine<{ pending: number[]; prior: unknown[]; job: unknown }>("engine_identity_begin", [run.id]);
     expect(begun).toMatchObject({ pending: [1, 2, 3], prior: [], batchId: batch.batchId, jobId: run.input.jobId });

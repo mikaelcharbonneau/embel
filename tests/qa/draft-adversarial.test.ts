@@ -36,7 +36,7 @@ describe("independent draft database attacks (local PostgreSQL only)", () => {
   }
 
   it("copies the authoritative opaque JSON and hash without reinterpreting newer context fields", async () => {
-    // Storage deliberately accepts versioned context as opaque JSON. Expansion must
+    // Storage deliberately accepts versioned context as opaque JSON. A saved revision must
     // preserve it even if an older application client cannot render every field.
     const context = {
       description: "Local forward compatibility fixture",
@@ -47,8 +47,8 @@ describe("independent draft database attacks (local PostgreSQL only)", () => {
     const project = await create(context, hash);
     const original = (await db.query("select * from public.project_revisions where project_id=$1", [project.id])).rows;
     await asRole(db, "authenticated", OWNER_A, async () => {
-      const result = await db.query<{ context: unknown; current_revision: number }>("select * from public.expand_project_scope($1,1)", [project.id]);
-      expect(result.rows[0]).toMatchObject({ context, current_revision: 2 });
+      const result = await db.query<{ context: unknown; revision: number }>("select * from public.append_project_revision($1,1,$2::jsonb,$3)", [project.id, context, hash]);
+      expect(result.rows[0]).toMatchObject({ context, revision: 2 });
     });
     const history = (await db.query<{ revision: number; context: unknown; input_hash: string }>(
       "select revision,context,input_hash from public.project_revisions where project_id=$1 order by revision", [project.id],
@@ -64,7 +64,6 @@ describe("independent draft database attacks (local PostgreSQL only)", () => {
     await asRole(db, "authenticated", OWNER_B, async () => {
       for (const id of [project.id, randomUUID()]) {
         for (const revision of [null, -1, 1, 99]) {
-          await expect(db.query("select * from public.expand_project_scope($1,$2)", [id, revision])).rejects.toMatchObject({ code: "P0002" });
           await expect(db.query("select * from public.append_project_revision($1,$2,'{}','invalid','   ')", [id, revision])).rejects.toMatchObject({ code: "P0002" });
         }
       }

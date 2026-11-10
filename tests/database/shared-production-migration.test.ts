@@ -42,6 +42,8 @@ const imageCached = (() => { try { docker(["image", "inspect", image, "--format"
 // CI always provides the engine and pulls the image, so it never skips. Elsewhere
 // a stopped engine or unpulled image skips with this reason instead of failing.
 const nativeSkipped = !imageCached && process.env.CI !== "true";
+const RETIREMENT = "20261110180000";
+const migrations = readdirSync("supabase/migrations").filter(n => n.endsWith(".sql")).sort((a, b) => a.replace(/^local/, "").localeCompare(b.replace(/^local/, "")));
 describe.skipIf(nativeSkipped)("atomic shared production composition on native PostgreSQL" + (nativeSkipped ? " (skipped: start Docker and pull the pinned image)" : ""), () => {
  const name = "embel-shared-composer-" + randomBytes(6).toString("hex");
  let created = false, catalog: Record<string, unknown>, input: Record<string, unknown>;
@@ -64,8 +66,9 @@ describe.skipIf(nativeSkipped)("atomic shared production composition on native P
    create function storage.allow_only_operation(expected_operation text) returns boolean language sql stable as $$select coalesce(regexp_replace(storage.operation(),'^storage\\.','')=regexp_replace(expected_operation,'^storage\\.',''),false)$$;`);
   // Pre-existing production baseline is reconstructed ONLY in this fixture.
   // The prepared production bundle contains none of these migrations/incidents.
-  const names = readdirSync("supabase/migrations").filter(n => n.endsWith(".sql")).sort((a, b) => a.replace(/^local/, "").localeCompare(b.replace(/^local/, "")));
-  for (const migration of names) sql(readFileSync("supabase/migrations/" + migration, "utf8"));
+  // Production ran this composition before the migration that retires the old worker
+  // objects; the last test applies that migration and the ones after it.
+  for (const migration of migrations.filter(n => n.replace(/^local/, "") < RETIREMENT)) sql(readFileSync("supabase/migrations/" + migration, "utf8"));
   for (const packet of ["candidates/logo_worker_storage.sql", "candidates/logo_generative_storage.sql", "candidates/logo_local_concepts.sql", "activation/logo_concepts_50_publication_adjudication.sql", "candidates/logo_local_refinements.sql"]) sql(readFileSync("supabase/" + packet, "utf8"));
   sql(`insert into auth.users(id,email_confirmed_at) values('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',clock_timestamp()),('cccccccc-cccc-4ccc-8ccc-cccccccccccc',clock_timestamp());
    create role fixture_legacy_logo login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
@@ -137,5 +140,31 @@ describe.skipIf(nativeSkipped)("atomic shared production composition on native P
   for (const fn of ["logo_brief_same_except_types", "logo_workspace_base_json", "shared_identity_selected_logo"]) {
    expect(sql(`select encode(sha256(convert_to(prosrc,'UTF8')),'hex') from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='fluid_private' and p.proname='${fn}'`)).toBe(manifest.functions.find(row => row.name === fn)!.sha256);
   }
+ }, 90_000);
+ it("then retires the old worker objects, keeping the web lanes' reviewed functions and logins", () => {
+  // A worker slot login and a web-lane login, both created by postgres as production's were.
+  sql(`create role embel_shared_logo_fixture login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls connection limit 4;
+   grant usage on schema public to embel_shared_logo_fixture; grant execute on function public.shared_worker_pool_configuration() to embel_shared_logo_fixture;
+   insert into fluid_private.shared_worker_slots(slot_id,lane,slot_index,role_name,role_oid,deployment_id,enabled) select gen_random_uuid(),'logo',1,rolname,oid,'dpl_fixture',true from pg_roles where rolname='embel_shared_logo_fixture';
+   create role embel_shared_http_logo_fixture login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls connection limit 4;
+   grant usage on schema public to embel_shared_http_logo_fixture; grant execute on function public.shared_logo_http_principal(),public.execute_shared_logo_request(text,text,jsonb,jsonb) to embel_shared_http_logo_fixture;
+   insert into fluid_private.shared_logo_http_principals(lane,role_name,role_oid,enabled) select 'logo',rolname,oid,true from pg_roles where rolname='embel_shared_http_logo_fixture';`);
+  // Every function the development stack's authority manifest reviews keeps its body.
+  const manifest = JSON.parse(readFileSync("scripts/development/shared-authority-manifest.json", "utf8")) as { functions: { schema: string; name: string; argumentTypes: string }[] };
+  const bodies = () => sql(`select jsonb_agg(jsonb_build_array(e->>'schema',e->>'name',e->>'argumentTypes',encode(sha256(convert_to(p.prosrc,'UTF8')),'hex')) order by e->>'schema',e->>'name',e->>'argumentTypes')
+   from jsonb_array_elements('${JSON.stringify(manifest.functions).replaceAll("'", "''")}'::jsonb) e
+   left join pg_namespace n on n.nspname=e->>'schema' left join pg_proc p on p.pronamespace=n.oid and p.proname=e->>'name' and oidvectortypes(p.proargtypes)=e->>'argumentTypes'`);
+  // (This composition predates a few later packets, so some manifest functions are absent here.)
+  const before = bodies();
+  expect(JSON.parse(before).filter((row: unknown[]) => row[3] !== null).length).toBeGreaterThan(70);
+  for (const migration of migrations.filter(n => n.replace(/^local/, "") >= RETIREMENT)) sql(readFileSync("supabase/migrations/" + migration, "utf8"));
+  expect(bodies()).toBe(before);
+  expect(sql("select string_agg(rolname,',' order by rolname) from pg_roles where rolname like 'embel_shared_%fixture'")).toBe("embel_shared_http_logo_fixture");
+  // The retired objects are gone; the kept customer Storage fences stay.
+  const retired = JSON.parse(readFileSync("supabase/retired-objects-20261110.json", "utf8")) as { objects: { kind: string; schema: string | null; name: string }[] };
+  const names = retired.objects.filter(o => o.kind === "function" || o.kind === "table").map(o => `${o.schema}.${o.name}`);
+  expect(sql(`select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname||'.'||p.proname=any(array[${names.map(n => `'${n}'`).join(",")}])`)).toBe("0");
+  expect(sql(`select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where c.relkind in ('r','p','v') and n.nspname||'.'||c.relname=any(array[${names.map(n => `'${n}'`).join(",")}])`)).toBe("0");
+  expect(sql("select string_agg(polname,',' order by polname) from pg_policy where polrelid='storage.objects'::regclass and polname like 'embel_shared_%'")).toBe("embel_shared_customer_storage_live,embel_shared_legacy_storage_registry_fence");
  }, 90_000);
 });

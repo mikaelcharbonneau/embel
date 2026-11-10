@@ -1,53 +1,75 @@
+import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-import { asRole } from "./local-supabase";
-import { createSharedWorkerFixture, OWNER_A, OWNER_B } from "./shared-worker-fixture";
+import { applyPacket, asRole, createTestDatabase, OWNER_A, OWNER_B, type TestDatabase } from "./local-supabase";
 import { brainPreferences, brainReadinessFingerprint, brainRpc } from "./naming-brain-fixture";
 import { sharedSlotLeaseSchema, type SharedExecution } from "../fixtures/shared-worker-contracts";
-import { namingClaimSchema, namingGenerationFeedSchema } from "../../src/domain/naming-generation";
+import { namingGenerationFeedSchema } from "../../src/domain/naming-generation";
 import { namingStrategyBasis, namingStrategyBasisSchema, namingStrategyKeyFromBasis } from "../../src/domain/project-naming";
 import { contextSnapshotSchema } from "../../src/domain/projects";
 
 // Naming on the generation engine (migration 20261110140000) in disposable PostgreSQL, installed
-// the way production has it: every migration, then the live Naming packets, then this migration
-// again (it widens the name origin only once the brainstorm origin exists). No provider is called.
+// the way production has it: the migrations, the live Naming packets, this migration again (it
+// widens the name origin only once the brainstorm origin exists), one finished old-path run,
+// then the retirement of the old worker. No provider is called.
 const migration = () => readFile(new URL("../../supabase/migrations/20261110140000_naming_engine.sql", import.meta.url), "utf8");
-const candidates = (name: string) => readFile(new URL(`../../supabase/candidates/${name}`, import.meta.url), "utf8");
 const policy = { version: 2, operation: "naming.generate", model: "gpt-6-luna", reasoningEffort: "low" };
 const name = (value: string, approach = "real_words") => ({ value, rationale: `Why ${value} works.`, primaryApproach: approach, identityKey: value.toLowerCase().replace(/[\p{P}\s]/gu, "") });
 const output = (names: unknown[], extra: Record<string, unknown> = {}) => ({ state: "saved", round: 1, request: 1, model: "gpt-6-luna", usage: { inputTokens: 900, outputTokens: 2400, totalTokens: 3300 }, proposed: names.length, names, ...extra });
 
-type Fixture = Awaited<ReturnType<typeof fixture>>;
-async function fixture() {
-  const f = await createSharedWorkerFixture({ probe: false }), db = f.db;
-  await f.seedUser(OWNER_A); await f.seedUser(OWNER_B);
-  for (const packet of ["shared_worker_naming.sql", "shared_naming_brainstorm.sql", "shared_naming_generation.sql"]) await db.exec(await candidates(packet));
+async function project(db: TestDatabase, owner = OWNER_A) {
+  const id = (await brainRpc<{ id: string }>(db, "create_project", ["complete_brand", "Naming engine fixture", { description: "A neighborhood kitchen" }, "a".repeat(64)], owner)).id;
+  await brainRpc(db, "save_naming_preferences", [id, 0, brainPreferences], owner);
+  return id;
+}
+
+/** Installs the Naming packets and saves one finished old-path run with the given names, before
+ * the old worker is retired. Returns that run's project. */
+async function installOldNaming(db: TestDatabase, names: unknown[]) {
+  await db.exec(`alter table auth.users add column email_confirmed_at timestamptz;
+    alter table auth.users add column is_anonymous boolean not null default false;
+    alter table auth.users add column banned_until timestamptz;
+    alter table auth.users add column deleted_at timestamptz;`);
+  await applyPacket(db, "candidates/shared_worker_pool.sql");
+  await db.query("insert into auth.users(id, email_confirmed_at) values ($1, clock_timestamp()), ($2, clock_timestamp())", [OWNER_A, OWNER_B]);
+  for (const packet of ["shared_worker_naming.sql", "shared_naming_brainstorm.sql", "shared_naming_generation.sql"]) await applyPacket(db, `candidates/${packet}`);
   await db.exec(await migration());
+
+  // One old Naming slot, as the retired worker pool ran it.
   const policyIdentity = (await db.query<{ h: string }>("select encode(sha256(convert_to($1::jsonb::text,'UTF8')),'hex') h", [JSON.stringify(policy)])).rows[0]!.h;
-  const slot = await f.seedSlot({ lane: "naming", policies: [{ operation: "naming.generate", policyIdentity, policy }] });
-  await db.exec(`grant execute on function public.shared_naming_worker_action(jsonb,jsonb,text,jsonb) to ${slot.roleName}`);
+  const slot = { slotId: randomUUID(), roleName: "embel_shared_naming_fixture_1", deploymentId: "fixture-shared-deployment" };
+  await db.exec(`create role ${slot.roleName} login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls connection limit 4;
+    grant usage on schema public to ${slot.roleName};
+    grant execute on function public.claim_shared_worker_slot(uuid,uuid,text,integer), public.shared_naming_worker_action(jsonb,jsonb,text,jsonb) to ${slot.roleName};`);
+  await db.query(`insert into fluid_private.shared_worker_slots(slot_id,lane,slot_index,role_name,role_oid,deployment_id,enabled,tenant_active_limit)
+    select $1,'naming',1,rolname,oid,$2,true,1 from pg_roles where rolname=$3`, [slot.slotId, slot.deploymentId, slot.roleName]);
+  await db.query("insert into fluid_private.shared_worker_policies(slot_id,operation,policy_identity,policy) values($1,'naming.generate',$2,$3)", [slot.slotId, policyIdentity, policy]);
   await db.query("insert into fluid_private.shared_naming_slot_configuration(slot_id,readiness_fingerprint) values($1,$2)", [slot.slotId, JSON.stringify(brainReadinessFingerprint)]);
-  const lease = sharedSlotLeaseSchema.parse(await f.lease(slot));
-  const action = async (actionName: string, args: unknown, execution: SharedExecution | null = null) => f.asSlot(slot, async () => (await db.query<{ v: { execution: SharedExecution | null; result: unknown } }>(
+  async function asSlot<T>(run: () => Promise<T>): Promise<T> {
+    await db.exec(`set session authorization ${slot.roleName}`);
+    try { return await run(); } finally { await db.exec("set session authorization postgres"); }
+  }
+  const lease = sharedSlotLeaseSchema.parse(await asSlot(async () => (await db.query<{ lease: unknown }>(
+    "select public.claim_shared_worker_slot($1,$2,$3,60) lease", [slot.slotId, randomUUID(), slot.deploymentId])).rows[0]!.lease));
+  const action = async (actionName: string, args: unknown, execution: SharedExecution | null = null) => asSlot(async () => (await db.query<{ v: { execution: SharedExecution | null } }>(
     "select public.shared_naming_worker_action($1,$2,$3,$4) v", [lease, execution, actionName, JSON.stringify(args)])).rows[0]!.v);
   await action("qualify", { policy });
-  async function project(owner = OWNER_A) {
-    const id = (await brainRpc<{ id: string }>(db, "create_project", ["complete_brand", "Naming engine fixture", { description: "A neighborhood kitchen" }, "a".repeat(64)], owner)).id;
-    await brainRpc(db, "save_naming_preferences", [id, 0, brainPreferences], owner);
-    return id;
-  }
-  /** One finished old-path run with the given names. */
-  async function legacyRun(projectId: string, names: unknown[]) {
-    await brainRpc(db, "start_naming_run", [projectId, { version: 2, kind: "initial", expectedProjectRevision: 1, expectedPreferencesVersion: 1, seedIds: [], instruction: null, idempotencyKey: "legacy-fixture-key-0001" }]);
-    const claimed = await action("claim", { workerId: "fixture-worker", leaseSeconds: 120 });
-    const execution = claimed.execution!, claim = namingClaimSchema.parse(claimed.result);
-    await action("round_begin", { round: 1, request: { model: "gpt-6-luna", input: "Synthetic" } }, execution);
-    await action("round_sent", { round: 1, responseId: "resp_legacy1", requestId: null }, execution);
-    await action("round_saved", { round: 1, responseId: "resp_legacy1", model: "gpt-6-luna", usage: null, candidates: names }, execution);
-    await action("finish", {}, execution);
-    return claim;
-  }
+
+  const projectId = await project(db);
+  await brainRpc(db, "start_naming_run", [projectId, { version: 2, kind: "initial", expectedProjectRevision: 1, expectedPreferencesVersion: 1, seedIds: [], instruction: null, idempotencyKey: "legacy-fixture-key-0001" }]);
+  const execution = (await action("claim", { workerId: "fixture-worker", leaseSeconds: 120 })).execution!;
+  await action("round_begin", { round: 1, request: { model: "gpt-6-luna", input: "Synthetic" } }, execution);
+  await action("round_sent", { round: 1, responseId: "resp_legacy1", requestId: null }, execution);
+  await action("round_saved", { round: 1, responseId: "resp_legacy1", model: "gpt-6-luna", usage: null, candidates: names }, execution);
+  await action("finish", {}, execution);
+  return projectId;
+}
+
+type Fixture = Awaited<ReturnType<typeof fixture>>;
+async function fixture() {
+  let legacyProject = "";
+  const db = await createTestDatabase({ beforeRetirement: async db => { legacyProject = await installOldNaming(db, [name("Lantern"), name("Hearth Row", "phrases")]); } });
   const engineInput = (kind = "initial") => ({ version: 1, kind, revision: 1, policy, exclusions: [],
     brief: { version: 1, contextRevision: 1, preferencesVersion: 1, preferences: brainPreferences, likedExamples: [], strongSeeds: [], recentExamples: [], steeringInstruction: null,
       strategyBasis: namingStrategyBasis(contextSnapshotSchema.parse({ description: "A neighborhood kitchen" })) } });
@@ -71,7 +93,7 @@ async function fixture() {
     for (const row of raw.entries) row.entry.candidate.strategyKey = namingStrategyKeyFromBasis(namingStrategyBasisSchema.parse(row.entry.candidate.strategyBasis));
     return namingGenerationFeedSchema.parse(raw);
   }
-  return { f, db, project, legacyRun, startEngine, engineInput, engine, feed, asEngine };
+  return { db, legacyProject, project: (owner = OWNER_A) => project(db, owner), startEngine, engineInput, engine, feed, asEngine };
 }
 
 let x: Fixture;
@@ -79,24 +101,24 @@ beforeAll(async () => {
   x = await fixture();
   await x.db.exec("update fluid_private.generation_kinds set enabled = true where kind = 'naming.generate'");
 }, 180_000);
-afterAll(async () => { await x?.f.close(); });
+afterAll(async () => { await x?.db.exec("set session authorization postgres"); await x?.db.close(); });
 
 describe("the naming.generate kind", () => {
   it("is added disabled at one credit per round, and the migration can run again", async () => {
-    const fresh = await createSharedWorkerFixture({ probe: false });
+    const fresh = await createTestDatabase();
     try {
-      expect((await fresh.db.query("select credits, enabled, max_per_day from fluid_private.generation_kinds where kind = 'naming.generate'")).rows)
+      expect((await fresh.query("select credits, enabled, max_per_day from fluid_private.generation_kinds where kind = 'naming.generate'")).rows)
         .toEqual([{ credits: 1, enabled: false, max_per_day: 30 }]);
-      await fresh.db.exec(await migration());
-      expect((await fresh.db.query("select count(*)::int n from fluid_private.generation_kinds where kind = 'naming.generate'")).rows[0]).toEqual({ n: 1 });
+      await fresh.exec(await migration());
+      expect((await fresh.query("select count(*)::int n from fluid_private.generation_kinds where kind = 'naming.generate'")).rows[0]).toEqual({ n: 1 });
     } finally { await fresh.close(); }
   }, 120_000);
 });
 
 describe("saving an engine run's names", () => {
   it("adds checked names once, skips names the project has, and keeps every save idempotent", async () => {
-    const p = await x.project();
-    await x.legacyRun(p, [name("Lantern"), name("Hearth Row", "phrases")]);
+    // This project has a finished old-path run with Lantern and Hearth Row.
+    const p = x.legacyProject;
     const run = await x.startEngine(p);
     expect(await x.engine.claim(run.id)).toMatchObject({ status: "running", kind: "naming.generate" });
     const first = await x.engine.save(run.id, "round.1.1", output([name("Brasa"), name("lantern"), name("Brasa"), name("Mesa Alta", "phrases")]));

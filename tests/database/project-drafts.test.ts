@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { contextSnapshotSchema, type ContextSnapshot } from "../../src/domain/projects";
-// The database still accepts the retired scopes and can expand them; the app no longer creates them.
+// The database still accepts the retired scopes; the app no longer creates them.
 type StoredScope = "complete_brand" | "naming_only" | "visual_identity_only";
 import { asRole, createTestDatabase, HASH, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from "./local-supabase";
 
@@ -20,10 +20,9 @@ const context = contextSnapshotSchema.parse({
   intake: { suppliedName: "Existing fixture name", namingNotes: "Preserve spelling", identityNotes: "Prefer simple shapes", step: "audience", audienceReviewedAt: "2026-10-02T00:00:00Z", example: true },
 });
 type StoredProject = { id: string; owner_id: string; scope: StoredScope; title: string; current_revision: number; created_at: string };
-type ExpandedProject = StoredProject & { context: ContextSnapshot };
 type StoredRevision = { project_id: string; owner_id: string; revision: number; context: ContextSnapshot; input_hash: string };
 
-describe("local PostgreSQL project drafting and expansion (not live Supabase)", () => {
+describe("local PostgreSQL project drafting (not live Supabase)", () => {
   let db: TestDatabase;
   beforeAll(async () => { db = await createTestDatabase(); }, 30_000);
   afterAll(async () => { await db?.close(); });
@@ -31,55 +30,42 @@ describe("local PostgreSQL project drafting and expansion (not live Supabase)", 
 
   async function create(scope: StoredScope = "naming_only") {
     return asRole(db, "authenticated", OWNER_A, async () => (await db.query<StoredProject>(
-      // Expansion intentionally retains its legacy seven-column RPC shape.
       "select id,owner_id,scope,title,current_revision,created_at from public.create_project($1,'Original title',$2::jsonb,$3)", [scope, context, HASH],
     )).rows[0]!);
   }
-  async function expand(id: string, revision: number, owner = OWNER_A) {
-    return asRole(db, "authenticated", owner, async () => (await db.query<ExpandedProject>(
-      "select * from public.expand_project_scope($1,$2)", [id, revision],
+  async function append(id: string, revision: number, next: ContextSnapshot, hash = HASH, owner = OWNER_A) {
+    return asRole(db, "authenticated", owner, async () => (await db.query<StoredRevision>(
+      "select * from public.append_project_revision($1,$2,$3::jsonb,$4)", [id, revision, next, hash],
     )).rows[0]!);
   }
   async function revisions(id: string) {
     return (await db.query<StoredRevision>("select * from public.project_revisions where project_id=$1 order by revision", [id])).rows;
   }
 
-  it.each(["naming_only", "visual_identity_only"] as const)("expands %s while preserving all context, hash, title, and old revisions", async scope => {
+  it.each(["naming_only", "visual_identity_only"] as const)("appends to a %s draft while preserving scope, title, assets and old revisions", async scope => {
     const project = await create(scope);
     const assetId = randomUUID(), versionId = randomUUID();
     await db.query("insert into public.assets(id,owner_id,project_id,kind) values($1,$2,$3,'logo')", [assetId, OWNER_A, project.id]);
     await db.query("insert into public.asset_versions(id,owner_id,project_id,asset_id,version,input_revision,input_hash,content_hash,mime_type,provenance) values($1,$2,$3,$4,1,1,$5,$5,'application/json','{\"source\":\"local_fixture\"}')", [versionId, OWNER_A, project.id, assetId, HASH]);
     const versionBefore = (await db.query("select * from public.asset_versions where id=$1", [versionId])).rows;
     const before = await revisions(project.id);
-    const expanded = await expand(project.id, 1);
-    expect(expanded).toEqual({ ...project, scope: "complete_brand", current_revision: 2, context });
-    expect((await db.query("select deleted_at,deletion_requested_at,lifecycle_version from public.projects where id=$1", [project.id])).rows)
-      .toEqual([{ deleted_at: null, deletion_requested_at: null, lifecycle_version: 0 }]);
+    const appended = await append(project.id, 1, context, "c".repeat(64));
+    expect(appended).toMatchObject({ project_id: project.id, owner_id: OWNER_A, revision: 2, context, input_hash: "c".repeat(64) });
+    expect((await db.query("select scope,title,current_revision,deleted_at,deletion_requested_at,lifecycle_version from public.projects where id=$1", [project.id])).rows)
+      .toEqual([{ scope, title: "Original title", current_revision: 2, deleted_at: null, deletion_requested_at: null, lifecycle_version: 0 }]);
     const after = await revisions(project.id);
     expect(after).toHaveLength(2);
     expect(after[0]).toEqual(before[0]);
-    expect(after[1]).toMatchObject({ project_id: project.id, owner_id: OWNER_A, revision: 2, context, input_hash: HASH });
     await expect(db.query("update public.project_revisions set context='{}' where project_id=$1 and revision=1", [project.id])).rejects.toThrow(/immutable_history/);
     await expect(db.query("delete from public.project_revisions where project_id=$1 and revision=1", [project.id])).rejects.toThrow(/immutable_history/);
     expect((await db.query("select * from public.asset_versions where id=$1", [versionId])).rows).toEqual(versionBefore);
     expect((await db.query("select * from public.jobs")).rows).toEqual([]);
   });
 
-  it("repeats expansion without adding a version, but rejects a stale retry", async () => {
-    const project = await create();
-    const expanded = await expand(project.id, 1);
-    expect(await expand(project.id, 2)).toEqual(expanded);
-    await expect(expand(project.id, 1)).rejects.toMatchObject({ code: "PT409" });
-    expect(await revisions(project.id)).toHaveLength(2);
-    const complete = await create("complete_brand");
-    expect(await expand(complete.id, 1)).toEqual({ ...complete, context });
-    expect(await revisions(complete.id)).toHaveLength(1);
-  });
-
   it("hides foreign and missing projects, with no scope or context mutation", async () => {
     const project = await create();
-    await expect(expand(project.id, 1, OWNER_B)).rejects.toMatchObject({ code: "P0002" });
-    await expect(expand(randomUUID(), 1)).rejects.toMatchObject({ code: "P0002" });
+    await expect(append(project.id, 1, context, HASH, OWNER_B)).rejects.toMatchObject({ code: "P0002" });
+    await expect(append(randomUUID(), 1, context)).rejects.toMatchObject({ code: "P0002" });
     await asRole(db, "authenticated", OWNER_B, async () => {
       expect((await db.query("select * from public.project_revisions where project_id=$1", [project.id])).rows).toEqual([]);
       await expect(db.query("select * from public.append_project_revision($1,1,$2::jsonb,$3,'Forged title')", [project.id, context, HASH])).rejects.toMatchObject({ code: "P0002" });
@@ -88,7 +74,7 @@ describe("local PostgreSQL project drafting and expansion (not live Supabase)", 
     expect(await revisions(project.id)).toHaveLength(1);
   });
 
-  it("saves title and full context atomically, then expands the saved revision", async () => {
+  it("saves title and full context atomically", async () => {
     const project = await create("visual_identity_only");
     const changed = { ...context, intake: { ...context.intake, namingNotes: "Changed notes" } };
     await asRole(db, "authenticated", OWNER_A, async () => {
@@ -98,11 +84,11 @@ describe("local PostgreSQL project drafting and expansion (not live Supabase)", 
       await expect(db.query("update public.projects set title='Bypass' where id=$1", [project.id])).rejects.toThrow(/permission denied/);
       await expect(db.query("update public.projects set scope='complete_brand' where id=$1", [project.id])).rejects.toThrow(/permission denied/);
     });
-    await expect(expand(project.id, 1)).rejects.toMatchObject({ code: "PT409" });
-    expect(await expand(project.id, 2)).toEqual({ ...project, title: "Updated title", scope: "complete_brand", current_revision: 3, context: changed });
+    expect((await db.query("select scope,title,current_revision from public.projects where id=$1", [project.id])).rows)
+      .toEqual([{ scope: "visual_identity_only", title: "Updated title", current_revision: 2 }]);
     const saved = await revisions(project.id);
     expect(saved[0]?.context).toEqual(context);
-    expect(saved[2]).toMatchObject({ input_hash: "b".repeat(64), context: changed });
+    expect(saved[1]).toMatchObject({ input_hash: "b".repeat(64), context: changed });
   });
 
   it("rolls back the title and revision when either context persistence or title validation fails", async () => {
@@ -114,7 +100,6 @@ describe("local PostgreSQL project drafting and expansion (not live Supabase)", 
       }
       for (const expected of [null, 0, -1]) {
         await expect(db.query("select * from public.append_project_revision($1,$2,$3::jsonb,$4,'Lost title')", [project.id, expected, context, HASH])).rejects.toMatchObject({ code: "22023" });
-        await expect(db.query("select * from public.expand_project_scope($1,$2)", [project.id, expected])).rejects.toMatchObject({ code: "22023" });
       }
     });
     expect((await db.query("select title,current_revision from public.projects where id=$1", [project.id])).rows).toEqual([{ title: "Original title", current_revision: 1 }]);
@@ -135,22 +120,16 @@ describe("local PostgreSQL project drafting and expansion (not live Supabase)", 
     const project = await create();
     for (const role of ["anon", "service_role"] as const) {
       await asRole(db, role, null, async () => {
-        await expect(db.query("select * from public.expand_project_scope($1,1)", [project.id])).rejects.toThrow(/permission denied/);
         await expect(db.query("select * from public.append_project_revision($1,1,$2::jsonb,$3)", [project.id, context, HASH])).rejects.toThrow(/permission denied/);
       });
     }
     await asRole(db, "authenticated", null, async () => {
-      await expect(db.query("select * from public.expand_project_scope($1,1)", [project.id])).rejects.toMatchObject({ code: "P0002" });
+      await expect(db.query("select * from public.append_project_revision($1,1,$2::jsonb,$3)", [project.id, context, HASH])).rejects.toMatchObject({ code: "P0002" });
     });
   });
 
   it.each([
     "append_project_revision(uuid,integer,jsonb,text,text)",
-    "expand_project_scope(uuid,integer)",
-    "enqueue_strategy_job(uuid,integer,text,text,bigint)",
-    "enqueue_subscription_strategy_job(uuid,integer,text,text,text)",
-    "apply_strategy_job_result(uuid,uuid,integer,text)",
-    "apply_strategy_job_result_v2(uuid,uuid,integer,text)",
   ])("preserves the restricted app RPC security boundary after the conflict migration: %s", async signature => {
     const name = `public.${signature}`;
     const metadata = await db.query<{ prosecdef: boolean; proconfig: string[] }>(

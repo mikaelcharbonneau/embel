@@ -1,0 +1,5259 @@
+{
+ "version": 1,
+ "migration": "20261110180000_retire_old_worker_objects.sql",
+ "description": "Every database object the B2 migration drops. Signatures use regprocedure text with schema-qualified types.",
+ "counts": {
+  "policy": 28,
+  "function": 502,
+  "table": 65,
+  "trigger": 39,
+  "role": 10
+ },
+ "objects": [
+  {
+   "kind": "policy",
+   "schema": "storage",
+   "name": "fluid_logo_generative_storage_read",
+   "signature": "on storage.objects",
+   "table": "storage.objects",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "activation/logo_concepts_20_storage.sql",
+    "activation/logo_generative_storage.sql"
+   ]
+  },
+  {
+   "kind": "policy",
+   "schema": "storage",
+   "name": "fluid_logo_generative_storage_insert",
+   "signature": "on storage.objects",
+   "table": "storage.objects",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "activation/logo_concepts_20_storage.sql",
+    "activation/logo_generative_storage.sql"
+   ]
+  },
+  {
+   "kind": "policy",
+   "schema": "storage",
+   "name": "fluid_logo_directions_storage_read",
+   "signature": "on storage.objects",
+   "table": "storage.objects",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "activation/logo_directions_storage.sql"
+   ]
+  },
+  {
+   "kind": "policy",
+   "schema": "storage",
+   "name": "fluid_logo_production_storage_read",
+   "signature": "on storage.objects",
+   "table": "storage.objects",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "activation/logo_production_storage.sql"
+   ]
+  },
+  {
+   "kind": "policy",
+   "schema": "storage",
+   "name": "fluid_logo_production_storage_insert",
+   "signature": "on storage.objects",
+   "table": "storage.objects",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "activation/logo_production_storage.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "retain_logo_vector_proposal",
+   "signature": "fluid_private.retain_logo_vector_proposal(public.jobs, fluid_private.logo_vector_proposal_prepared_results, text, text)",
+   "identityArguments": "public.jobs, fluid_private.logo_vector_proposal_prepared_results, text, text",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-completion.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_vector_proposal_materializable",
+   "signature": "fluid_private.logo_vector_proposal_materializable(fluid_private.logo_vector_proposals)",
+   "identityArguments": "fluid_private.logo_vector_proposals",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-materialization.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_vector_proposal_basis_current",
+   "signature": "fluid_private.logo_vector_proposal_basis_current(fluid_private.logo_vector_proposals)",
+   "identityArguments": "fluid_private.logo_vector_proposals",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-materialization.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_vector_proposal_quote_binding",
+   "signature": "fluid_private.logo_vector_proposal_quote_binding(public.logo_cost_quotes)",
+   "identityArguments": "public.logo_cost_quotes",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-admission.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_vector_proposal_quote_current",
+   "signature": "fluid_private.logo_vector_proposal_quote_current(public.logo_cost_quotes, fluid_private.logo_runtime_policies)",
+   "identityArguments": "public.logo_cost_quotes, fluid_private.logo_runtime_policies",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-admission.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_vector_proposal_job_quote_matches",
+   "signature": "fluid_private.logo_vector_proposal_job_quote_matches(public.jobs, public.logo_cost_quotes)",
+   "identityArguments": "public.jobs, public.logo_cost_quotes",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-admission.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_vector_proposal_payload_shape_valid",
+   "signature": "fluid_private.logo_vector_proposal_payload_shape_valid(jsonb, jsonb)",
+   "identityArguments": "jsonb, jsonb",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-completion.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_vector_proposal_payload_valid",
+   "signature": "fluid_private.logo_vector_proposal_payload_valid(jsonb, jsonb)",
+   "identityArguments": "jsonb, jsonb",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-completion.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_vector_proposal_result_valid",
+   "signature": "fluid_private.logo_vector_proposal_result_valid(jsonb, jsonb, jsonb)",
+   "identityArguments": "jsonb, jsonb, jsonb",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-completion.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_vector_proposal_pending_reason",
+   "signature": "fluid_private.logo_vector_proposal_pending_reason(public.jobs, jsonb, jsonb)",
+   "identityArguments": "public.jobs, jsonb, jsonb",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-completion.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "stage_logo_vector_proposal",
+   "signature": "fluid_private.stage_logo_vector_proposal(uuid, uuid, jsonb, uuid)",
+   "identityArguments": "uuid, uuid, jsonb, uuid",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-completion.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "complete_logo_vector_proposal_step",
+   "signature": "fluid_private.complete_logo_vector_proposal_step(uuid, uuid, text, text, bigint, jsonb, text)",
+   "identityArguments": "uuid, uuid, text, text, bigint, jsonb, text",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-completion.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_vector_proposal_application_command_valid",
+   "signature": "fluid_private.logo_vector_proposal_application_command_valid(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-materialization.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_vector_proposal_owned_asset_valid",
+   "signature": "fluid_private.logo_vector_proposal_owned_asset_valid(uuid, uuid, jsonb, text)",
+   "identityArguments": "uuid, uuid, jsonb, text",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-materialization.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "commit_logo_vector_proposal",
+   "signature": "fluid_private.commit_logo_vector_proposal(uuid, uuid, jsonb, jsonb)",
+   "identityArguments": "uuid, uuid, jsonb, jsonb",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-materialization.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "valid_logo_vector_proposal_observation",
+   "signature": "fluid_private.valid_logo_vector_proposal_observation(jsonb, jsonb)",
+   "identityArguments": "jsonb, jsonb",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-observations.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "lock_logo_vector_proposal_dispatch",
+   "signature": "fluid_private.lock_logo_vector_proposal_dispatch(uuid, uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-observations.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "record_logo_vector_proposal_response",
+   "signature": "fluid_private.record_logo_vector_proposal_response(uuid, uuid, jsonb)",
+   "identityArguments": "uuid, uuid, jsonb",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-observations.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_directions_storage_member",
+   "signature": "fluid_private.logo_directions_storage_member(public.jobs, public.logo_asset_publications)",
+   "identityArguments": "public.jobs, public.logo_asset_publications",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo_directions_storage.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_directions_storage_job",
+   "signature": "fluid_private.logo_directions_storage_job(jsonb, uuid, uuid)",
+   "identityArguments": "jsonb, uuid, uuid",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo_directions_storage.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "authorize_logo_directions_storage",
+   "signature": "public.authorize_logo_directions_storage(uuid, uuid, uuid, text)",
+   "identityArguments": "uuid, uuid, uuid, text",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo_directions_storage.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_directions_storage_object_allowed",
+   "signature": "fluid_private.logo_directions_storage_object_allowed(text, text)",
+   "identityArguments": "text, text",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo_directions_storage.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_production_storage_job",
+   "signature": "fluid_private.logo_production_storage_job(jsonb, uuid, uuid)",
+   "identityArguments": "jsonb, uuid, uuid",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo_production_storage.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "authorize_logo_production_storage",
+   "signature": "public.authorize_logo_production_storage(uuid, uuid, uuid, text)",
+   "identityArguments": "uuid, uuid, uuid, text",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo_production_storage.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_production_storage_object_allowed",
+   "signature": "fluid_private.logo_production_storage_object_allowed(text, text, text, text)",
+   "identityArguments": "text, text, text, text",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo_production_storage.sql"
+   ]
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "quote_logo_vector_proposal",
+   "signature": "fluid_private.quote_logo_vector_proposal(uuid, jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-quotes.sql"
+   ]
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "logo_vector_proposal_prepared_results",
+   "signature": null,
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-completion.sql"
+   ]
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "logo_vector_proposal_materializations",
+   "signature": null,
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-materialization.sql"
+   ]
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "logo_vector_proposal_dispatches",
+   "signature": null,
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposal-observations.sql"
+   ]
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "logo_vector_proposals",
+   "signature": null,
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo-vector-proposals.sql"
+   ]
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "logo_directions_storage_capabilities",
+   "signature": null,
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo_directions_storage.sql"
+   ]
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "logo_directions_storage_grants",
+   "signature": null,
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo_directions_storage.sql"
+   ]
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "logo_production_storage_capabilities",
+   "signature": null,
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo_production_storage.sql"
+   ]
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "logo_production_storage_grants",
+   "signature": null,
+   "source": "hand-applied packet (no-op unless applied)",
+   "definedIn": [
+    "candidates/logo_production_storage.sql"
+   ]
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "naming_brain_history_immutable",
+   "signature": "on fluid_private.naming_brain_stage_results",
+   "table": "fluid_private.naming_brain_stage_results",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "naming_brain_history_immutable",
+   "signature": "on fluid_private.naming_brain_intents",
+   "table": "fluid_private.naming_brain_intents",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "naming_brain_history_immutable",
+   "signature": "on fluid_private.naming_brain_artifacts",
+   "table": "fluid_private.naming_brain_artifacts",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "naming_brain_history_immutable",
+   "signature": "on fluid_private.naming_brain_feed_entries",
+   "table": "fluid_private.naming_brain_feed_entries",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "naming_brain_history_immutable",
+   "signature": "on fluid_private.naming_brain_identity_index",
+   "table": "fluid_private.naming_brain_identity_index",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "naming_brain_history_immutable",
+   "signature": "on fluid_private.naming_brain_provider_records",
+   "table": "fluid_private.naming_brain_provider_records",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "progressive_history_immutable",
+   "signature": "on fluid_private.naming_brain_progressive_plans",
+   "table": "fluid_private.naming_brain_progressive_plans",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "naming_observation_recovery_audit_immutable",
+   "signature": "on fluid_private.naming_observation_recovery_audit",
+   "table": "fluid_private.naming_observation_recovery_audit",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_worker_status_json",
+   "signature": "fluid_private.naming_worker_status_json(fluid_private.naming_worker_leadership,boolean,boolean,text)",
+   "identityArguments": "fluid_private.naming_worker_leadership, boolean, boolean, text",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "complete_naming_job_step",
+   "signature": "public.complete_naming_job_step(uuid,uuid,text,text,bigint,jsonb,text)",
+   "identityArguments": "uuid, uuid, text, text, bigint, jsonb, text",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_can_resume",
+   "signature": "fluid_private.naming_brain_can_resume(fluid_private.naming_brain_runs)",
+   "identityArguments": "fluid_private.naming_brain_runs",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_counter",
+   "signature": "fluid_private.naming_brain_counter(jsonb,integer)",
+   "identityArguments": "jsonb, integer",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_uuid",
+   "signature": "fluid_private.naming_brain_uuid(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_request_key",
+   "signature": "fluid_private.naming_brain_request_key(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_cursor",
+   "signature": "fluid_private.naming_brain_cursor(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_visible_text",
+   "signature": "fluid_private.naming_brain_visible_text(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_free_resume",
+   "signature": "fluid_private.naming_brain_free_resume(fluid_private.naming_brain_runs)",
+   "identityArguments": "fluid_private.naming_brain_runs",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "enqueue_subscription_naming_job",
+   "signature": "public.enqueue_subscription_naming_job(uuid,integer,integer,integer,text,text)",
+   "identityArguments": "uuid, integer, integer, integer, text, text",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_observable",
+   "signature": "fluid_private.naming_brain_observable(fluid_private.naming_brain_runs)",
+   "identityArguments": "fluid_private.naming_brain_runs",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_json_matches",
+   "signature": "fluid_private.naming_brain_json_matches(text,jsonb)",
+   "identityArguments": "text, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_call_failed",
+   "signature": "fluid_private.naming_brain_call_failed(fluid_private.naming_brain_calls)",
+   "identityArguments": "fluid_private.naming_brain_calls",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_cap",
+   "signature": "fluid_private.naming_brain_cap(text)",
+   "identityArguments": "text",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_call_completed",
+   "signature": "fluid_private.naming_brain_call_completed(fluid_private.naming_brain_calls)",
+   "identityArguments": "fluid_private.naming_brain_calls",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_run_worker",
+   "signature": "fluid_private.naming_brain_run_worker(fluid_private.naming_brain_runs)",
+   "identityArguments": "fluid_private.naming_brain_runs",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_head",
+   "signature": "fluid_private.naming_brain_head(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_accounting",
+   "signature": "fluid_private.naming_brain_accounting(fluid_private.naming_brain_runs)",
+   "identityArguments": "fluid_private.naming_brain_runs",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_ready",
+   "signature": "fluid_private.naming_brain_ready(fluid_private.naming_brain_runs,text)",
+   "identityArguments": "fluid_private.naming_brain_runs, text",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "report_naming_brain_worker_ready",
+   "signature": "public.report_naming_brain_worker_ready(jsonb,text,text,integer)",
+   "identityArguments": "jsonb, text, text, integer",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_ready_preferences",
+   "signature": "fluid_private.naming_brain_ready_preferences(uuid,uuid,integer)",
+   "identityArguments": "uuid, uuid, integer",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_naming_brain_preference_work",
+   "signature": "public.get_naming_brain_preference_work(integer)",
+   "identityArguments": "integer",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "attest_naming_brain_preferences",
+   "signature": "public.attest_naming_brain_preferences(uuid,integer,text,jsonb,jsonb)",
+   "identityArguments": "uuid, integer, text, jsonb, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_available",
+   "signature": "fluid_private.naming_brain_available(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_summary",
+   "signature": "fluid_private.naming_brain_summary(fluid_private.naming_brain_runs)",
+   "identityArguments": "fluid_private.naming_brain_runs",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_legacy_lock",
+   "signature": "fluid_private.naming_brain_legacy_lock(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_invalid_output",
+   "signature": "fluid_private.naming_brain_invalid_output(fluid_private.naming_brain_calls,jsonb)",
+   "identityArguments": "fluid_private.naming_brain_calls, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_call_terminal",
+   "signature": "fluid_private.naming_brain_call_terminal(fluid_private.naming_brain_calls)",
+   "identityArguments": "fluid_private.naming_brain_calls",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_preparation_pending",
+   "signature": "fluid_private.naming_brain_preparation_pending(fluid_private.naming_brain_runs)",
+   "identityArguments": "fluid_private.naming_brain_runs",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_preparation_recovery",
+   "signature": "fluid_private.naming_brain_preparation_recovery(fluid_private.naming_brain_runs)",
+   "identityArguments": "fluid_private.naming_brain_runs",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "claim_naming_brain_job",
+   "signature": "public.claim_naming_brain_job(text,text,integer)",
+   "identityArguments": "text, text, integer",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_ensure_response",
+   "signature": "fluid_private.naming_brain_ensure_response(fluid_private.naming_brain_runs,boolean)",
+   "identityArguments": "fluid_private.naming_brain_runs, boolean",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "expire_naming_brain_leases",
+   "signature": "public.expire_naming_brain_leases(text,text)",
+   "identityArguments": "text, text",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_valid_intent",
+   "signature": "fluid_private.naming_brain_valid_intent(text,jsonb)",
+   "identityArguments": "text, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_lock",
+   "signature": "fluid_private.naming_brain_lock(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "record_naming_brain_provider_receipt",
+   "signature": "public.record_naming_brain_provider_receipt(uuid,uuid,jsonb)",
+   "identityArguments": "uuid, uuid, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_prepare",
+   "signature": "fluid_private.naming_brain_prepare(fluid_private.naming_brain_runs,jsonb)",
+   "identityArguments": "fluid_private.naming_brain_runs, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "complete_naming_brain_stage",
+   "signature": "public.complete_naming_brain_stage(uuid,uuid,text,text,jsonb)",
+   "identityArguments": "uuid, uuid, text, text, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "naming_brain_worker_action",
+   "signature": "public.naming_brain_worker_action(uuid,uuid,text,jsonb)",
+   "identityArguments": "uuid, uuid, text, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_reconcile",
+   "signature": "fluid_private.naming_brain_reconcile(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "steer_naming_feed",
+   "signature": "public.steer_naming_feed(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "ensure_naming_brain_run",
+   "signature": "public.ensure_naming_brain_run(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_naming_feed",
+   "signature": "public.get_naming_feed(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "hosted_naming_context",
+   "signature": "fluid_private.hosted_naming_context(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "stop_naming_feed",
+   "signature": "public.stop_naming_feed(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_naming_brain_job_accounting",
+   "signature": "public.get_naming_brain_job_accounting(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_naming_brain_candidate_sources",
+   "signature": "public.get_naming_brain_candidate_sources(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_naming_brain_candidate_source",
+   "signature": "public.get_naming_brain_candidate_source(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "hosted_naming_job_enabled",
+   "signature": "fluid_private.hosted_naming_job_enabled(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_unlimited_context",
+   "signature": "fluid_private.naming_brain_unlimited_context(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_rejected_receipt",
+   "signature": "fluid_private.naming_brain_rejected_receipt(fluid_private.naming_brain_calls)",
+   "identityArguments": "fluid_private.naming_brain_calls",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_saved_usable",
+   "signature": "fluid_private.naming_brain_saved_usable(fluid_private.naming_brain_runs)",
+   "identityArguments": "fluid_private.naming_brain_runs",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "authorize_naming_brain_dispatch",
+   "signature": "public.authorize_naming_brain_dispatch(uuid,uuid,jsonb)",
+   "identityArguments": "uuid, uuid, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "append_prepared_naming_set",
+   "signature": "public.append_prepared_naming_set(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_local_not_dispatched",
+   "signature": "fluid_private.naming_brain_local_not_dispatched(fluid_private.naming_brain_calls,jsonb)",
+   "identityArguments": "fluid_private.naming_brain_calls, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_paid_paused",
+   "signature": "fluid_private.naming_brain_paid_paused(uuid,uuid,uuid)",
+   "identityArguments": "uuid, uuid, uuid",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_hosted_naming_availability",
+   "signature": "public.get_hosted_naming_availability(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_naming_brain_run",
+   "signature": "public.get_naming_brain_run(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_naming_previous_feed",
+   "signature": "fluid_private.local_naming_previous_feed(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_naming_previous_run",
+   "signature": "fluid_private.local_naming_previous_run(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_naming_previous_source",
+   "signature": "fluid_private.local_naming_previous_source(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_naming_previous_authorize",
+   "signature": "fluid_private.local_naming_previous_authorize(uuid,uuid,jsonb)",
+   "identityArguments": "uuid, uuid, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_naming_previous_complete",
+   "signature": "fluid_private.local_naming_previous_complete(uuid,uuid,text,text,jsonb)",
+   "identityArguments": "uuid, uuid, text, text, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_naming_publish_microbatch",
+   "signature": "fluid_private.local_naming_publish_microbatch(fluid_private.naming_brain_runs,jsonb)",
+   "identityArguments": "fluid_private.naming_brain_runs, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_naming_progressive_action",
+   "signature": "fluid_private.local_naming_progressive_action(uuid,uuid,text,jsonb)",
+   "identityArguments": "uuid, uuid, text, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_naming_previous_summary",
+   "signature": "fluid_private.local_naming_previous_summary(fluid_private.naming_brain_runs)",
+   "identityArguments": "fluid_private.naming_brain_runs",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_naming_previous_call_terminal",
+   "signature": "fluid_private.local_naming_previous_call_terminal(fluid_private.naming_brain_calls)",
+   "identityArguments": "fluid_private.naming_brain_calls",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_naming_previous_can_resume",
+   "signature": "fluid_private.local_naming_previous_can_resume(fluid_private.naming_brain_runs)",
+   "identityArguments": "fluid_private.naming_brain_runs",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_naming_previous_ensure_response",
+   "signature": "fluid_private.local_naming_previous_ensure_response(fluid_private.naming_brain_runs,boolean)",
+   "identityArguments": "fluid_private.naming_brain_runs, boolean",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "hosted_naming_owner_enabled",
+   "signature": "fluid_private.hosted_naming_owner_enabled(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_naming_progressive_researched",
+   "signature": "fluid_private.local_naming_progressive_researched(fluid_private.naming_brain_runs)",
+   "identityArguments": "fluid_private.naming_brain_runs",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_naming_progressive_basis",
+   "signature": "fluid_private.local_naming_progressive_basis(fluid_private.naming_brain_runs)",
+   "identityArguments": "fluid_private.naming_brain_runs",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_naming_progressive_counts",
+   "signature": "fluid_private.local_naming_progressive_counts(fluid_private.naming_brain_runs)",
+   "identityArguments": "fluid_private.naming_brain_runs",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_naming_progressive_saved_resume",
+   "signature": "fluid_private.local_naming_progressive_saved_resume(fluid_private.naming_brain_runs)",
+   "identityArguments": "fluid_private.naming_brain_runs",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_naming_progressive_state",
+   "signature": "fluid_private.local_naming_progressive_state(fluid_private.naming_brain_runs,text,text,text)",
+   "identityArguments": "fluid_private.naming_brain_runs, text, text, text",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_naming_progressive_current",
+   "signature": "fluid_private.local_naming_progressive_current(fluid_private.naming_brain_runs)",
+   "identityArguments": "fluid_private.naming_brain_runs",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_naming_previous_worker_action",
+   "signature": "fluid_private.local_naming_previous_worker_action(uuid,uuid,text,jsonb)",
+   "identityArguments": "uuid, uuid, text, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_naming_previous_preparation_pending",
+   "signature": "fluid_private.local_naming_previous_preparation_pending(fluid_private.naming_brain_runs)",
+   "identityArguments": "fluid_private.naming_brain_runs",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "ensure_local_naming_brain_run",
+   "signature": "public.ensure_local_naming_brain_run(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_paid_resume",
+   "signature": "fluid_private.naming_brain_paid_resume(fluid_private.naming_brain_runs)",
+   "identityArguments": "fluid_private.naming_brain_runs",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "report_naming_brain_worker_status",
+   "signature": "public.report_naming_brain_worker_status(jsonb,text,text,bigint,integer)",
+   "identityArguments": "jsonb, text, text, bigint, integer",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "ensure_hosted_naming_brain_run",
+   "signature": "public.ensure_hosted_naming_brain_run(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "hosted_naming_step_authority",
+   "signature": "fluid_private.hosted_naming_step_authority(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "latest_naming_brain_receipt",
+   "signature": "fluid_private.latest_naming_brain_receipt(uuid,text,text)",
+   "identityArguments": "uuid, text, text",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_naming_progressive_authorize",
+   "signature": "fluid_private.local_naming_progressive_authorize(uuid,uuid,jsonb)",
+   "identityArguments": "uuid, uuid, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_progressive_provider_cap",
+   "signature": "fluid_private.naming_progressive_provider_cap(jsonb,jsonb)",
+   "identityArguments": "jsonb, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_brain_artifact_output_matches",
+   "signature": "fluid_private.naming_brain_artifact_output_matches(text,jsonb,text)",
+   "identityArguments": "text, jsonb, text",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "ensure_naming_brain_receipt_totals",
+   "signature": "fluid_private.ensure_naming_brain_receipt_totals(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_worker_job_ready",
+   "signature": "fluid_private.naming_worker_job_ready(fluid_private.naming_brain_runs,text)",
+   "identityArguments": "fluid_private.naming_brain_runs, text",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_worker_claim_pending",
+   "signature": "fluid_private.naming_worker_claim_pending(uuid,text,text)",
+   "identityArguments": "uuid, text, text",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_worker_claim_core",
+   "signature": "fluid_private.naming_worker_claim_core(text,text,integer)",
+   "identityArguments": "text, text, integer",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_worker_expiry_core",
+   "signature": "fluid_private.naming_worker_expiry_core(text,text)",
+   "identityArguments": "text, text",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_worker_attest_core",
+   "signature": "fluid_private.naming_worker_attest_core(uuid,integer,text,jsonb,jsonb)",
+   "identityArguments": "uuid, integer, text, jsonb, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "naming_brain_worker_maintenance_v2",
+   "signature": "public.naming_brain_worker_maintenance_v2(text,text,bigint,text,jsonb)",
+   "identityArguments": "text, text, bigint, text, jsonb",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_worker_ready_core",
+   "signature": "fluid_private.naming_worker_ready_core(fluid_private.naming_brain_runs,text)",
+   "identityArguments": "fluid_private.naming_brain_runs, text",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_worker_scope",
+   "signature": "fluid_private.naming_worker_scope(text)",
+   "identityArguments": "text",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_worker_context",
+   "signature": "fluid_private.naming_worker_context(uuid,text,text,text)",
+   "identityArguments": "uuid, text, text, text",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_worker_expiry_pending",
+   "signature": "fluid_private.naming_worker_expiry_pending(uuid,text)",
+   "identityArguments": "uuid, text",
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "hosted_naming_admission_context",
+   "signature": null,
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "naming_brain_artifacts",
+   "signature": null,
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "naming_brain_feed_entries",
+   "signature": null,
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "naming_brain_identity_index",
+   "signature": null,
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "naming_brain_intents",
+   "signature": null,
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "naming_brain_progressive_plans",
+   "signature": null,
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "naming_brain_provider_records",
+   "signature": null,
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "naming_brain_stage_results",
+   "signature": null,
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "naming_observation_recovery_audit",
+   "signature": null,
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "naming_worker_gateway_context",
+   "signature": null,
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "naming_worker_job_authority",
+   "signature": null,
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "naming_worker_leadership",
+   "signature": null,
+   "source": "migrations only (production removed it with candidates/shared_naming_cleanup.sql)"
+  },
+  {
+   "kind": "policy",
+   "schema": "public",
+   "name": "owned_read",
+   "signature": "on public.idea_brand_links",
+   "table": "public.idea_brand_links",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "public",
+   "name": "owned_read",
+   "signature": "on public.idea_project_attachment_requests",
+   "table": "public.idea_project_attachment_requests",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "public",
+   "name": "owned_read",
+   "signature": "on public.idea_project_attachments",
+   "table": "public.idea_project_attachments",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "public",
+   "name": "api_text_worker_step_read",
+   "signature": "on public.job_steps",
+   "table": "public.job_steps",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "public",
+   "name": "subscription_worker_step_read",
+   "signature": "on public.job_steps",
+   "table": "public.job_steps",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "public",
+   "name": "owned_read",
+   "signature": "on public.logo_style_notes",
+   "table": "public.logo_style_notes",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "public",
+   "name": "names_workspace_owner_read",
+   "signature": "on public.names_workspaces",
+   "table": "public.names_workspaces",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "public",
+   "name": "owned_read",
+   "signature": "on public.standalone_promotions",
+   "table": "public.standalone_promotions",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "public",
+   "name": "standalone_owner_read",
+   "signature": "on public.standalone_workspace_revisions",
+   "table": "public.standalone_workspace_revisions",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "public",
+   "name": "standalone_owner_read",
+   "signature": "on public.standalone_workspaces",
+   "table": "public.standalone_workspaces",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "public",
+   "name": "owned_read",
+   "signature": "on public.strategy_job_applications",
+   "table": "public.strategy_job_applications",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "storage",
+   "name": "embel_shared_storage_delete_fence",
+   "signature": "on storage.objects",
+   "table": "storage.objects",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "storage",
+   "name": "embel_shared_storage_insert",
+   "signature": "on storage.objects",
+   "table": "storage.objects",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "storage",
+   "name": "embel_shared_storage_insert_fence",
+   "signature": "on storage.objects",
+   "table": "storage.objects",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "storage",
+   "name": "embel_shared_storage_read",
+   "signature": "on storage.objects",
+   "table": "storage.objects",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "storage",
+   "name": "embel_shared_storage_read_fence",
+   "signature": "on storage.objects",
+   "table": "storage.objects",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "storage",
+   "name": "embel_shared_storage_update_fence",
+   "signature": "on storage.objects",
+   "table": "storage.objects",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "storage",
+   "name": "fluid_logo_worker_storage_delete_fence",
+   "signature": "on storage.objects",
+   "table": "storage.objects",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "storage",
+   "name": "fluid_logo_worker_storage_insert",
+   "signature": "on storage.objects",
+   "table": "storage.objects",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "storage",
+   "name": "fluid_logo_worker_storage_insert_fence",
+   "signature": "on storage.objects",
+   "table": "storage.objects",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "storage",
+   "name": "fluid_logo_worker_storage_read",
+   "signature": "on storage.objects",
+   "table": "storage.objects",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "storage",
+   "name": "fluid_logo_worker_storage_read_fence",
+   "signature": "on storage.objects",
+   "table": "storage.objects",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "policy",
+   "schema": "storage",
+   "name": "fluid_logo_worker_storage_update_fence",
+   "signature": "on storage.objects",
+   "table": "storage.objects",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "api_text_allowance_admission_immutable",
+   "signature": "on fluid_private.api_text_allowance_admissions",
+   "table": "fluid_private.api_text_allowance_admissions",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "research_operator_adjudication_immutable",
+   "signature": "on fluid_private.api_text_operator_adjudications",
+   "table": "fluid_private.api_text_operator_adjudications",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "research_operator_adjudication_insert",
+   "signature": "on fluid_private.api_text_operator_adjudications",
+   "table": "fluid_private.api_text_operator_adjudications",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "research_operator_adjudication_no_truncate",
+   "signature": "on fluid_private.api_text_operator_adjudications",
+   "table": "fluid_private.api_text_operator_adjudications",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "api_text_testing_admission_immutable",
+   "signature": "on fluid_private.api_text_testing_admissions",
+   "table": "fluid_private.api_text_testing_admissions",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "names_workspace_requests_immutable",
+   "signature": "on fluid_private.names_workspace_requests",
+   "table": "fluid_private.names_workspace_requests",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "shared_identity_immutable",
+   "signature": "on fluid_private.shared_identity_prepared",
+   "table": "fluid_private.shared_identity_prepared",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "shared_identity_immutable",
+   "signature": "on fluid_private.shared_identity_specification_cancellations",
+   "table": "fluid_private.shared_identity_specification_cancellations",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "shared_logo_advanced_quote_immutable",
+   "signature": "on fluid_private.shared_logo_advanced_quotes",
+   "table": "fluid_private.shared_logo_advanced_quotes",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "shared_logo_export_resolution_immutable",
+   "signature": "on fluid_private.shared_logo_export_resolutions",
+   "table": "fluid_private.shared_logo_export_resolutions",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "shared_logo_output_observation_immutable",
+   "signature": "on fluid_private.shared_logo_output_observations",
+   "table": "fluid_private.shared_logo_output_observations",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "shared_logo_proposal_request_closure_immutable",
+   "signature": "on fluid_private.shared_logo_proposal_request_closures",
+   "table": "fluid_private.shared_logo_proposal_request_closures",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "shared_logo_raster_recoveries_immutable",
+   "signature": "on fluid_private.shared_logo_raster_recoveries",
+   "table": "fluid_private.shared_logo_raster_recoveries",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "shared_logo_advanced_dispatch_immutable",
+   "signature": "on fluid_private.shared_logo_vector_proposal_dispatches",
+   "table": "fluid_private.shared_logo_vector_proposal_dispatches",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "logo_vector_proposal_materializations_immutable",
+   "signature": "on fluid_private.shared_logo_vector_proposal_materializations",
+   "table": "fluid_private.shared_logo_vector_proposal_materializations",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "logo_vector_proposal_prepared_results_immutable",
+   "signature": "on fluid_private.shared_logo_vector_proposal_prepared_results",
+   "table": "fluid_private.shared_logo_vector_proposal_prepared_results",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "logo_vector_proposals_immutable",
+   "signature": "on fluid_private.shared_logo_vector_proposals",
+   "table": "fluid_private.shared_logo_vector_proposals",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "shared_strategy_observed_outcome_immutable",
+   "signature": "on fluid_private.shared_strategy_observed_outcomes",
+   "table": "fluid_private.shared_strategy_observed_outcomes",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "fluid_private",
+   "name": "shared_strategy_observed_response_immutable",
+   "signature": "on fluid_private.shared_strategy_observed_responses",
+   "table": "fluid_private.shared_strategy_observed_responses",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "public",
+   "name": "idea_brand_links_immutable",
+   "signature": "on public.idea_brand_links",
+   "table": "public.idea_brand_links",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "public",
+   "name": "project_content_lifecycle",
+   "signature": "on public.idea_brand_links",
+   "table": "public.idea_brand_links",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "public",
+   "name": "idea_project_attachment_requests_immutable",
+   "signature": "on public.idea_project_attachment_requests",
+   "table": "public.idea_project_attachment_requests",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "public",
+   "name": "idea_project_attachments_immutable",
+   "signature": "on public.idea_project_attachments",
+   "table": "public.idea_project_attachments",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "public",
+   "name": "project_content_lifecycle",
+   "signature": "on public.idea_project_attachments",
+   "table": "public.idea_project_attachments",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "public",
+   "name": "logo_style_notes_immutable",
+   "signature": "on public.logo_style_notes",
+   "table": "public.logo_style_notes",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "public",
+   "name": "project_content_lifecycle",
+   "signature": "on public.logo_style_notes",
+   "table": "public.logo_style_notes",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "public",
+   "name": "project_content_lifecycle",
+   "signature": "on public.standalone_promotions",
+   "table": "public.standalone_promotions",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "public",
+   "name": "standalone_promotions_immutable",
+   "signature": "on public.standalone_promotions",
+   "table": "public.standalone_promotions",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "public",
+   "name": "standalone_workspace_revisions_immutable",
+   "signature": "on public.standalone_workspace_revisions",
+   "table": "public.standalone_workspace_revisions",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "public",
+   "name": "project_content_lifecycle",
+   "signature": "on public.strategy_job_applications",
+   "table": "public.strategy_job_applications",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "trigger",
+   "schema": "public",
+   "name": "strategy_job_applications_immutable",
+   "signature": "on public.strategy_job_applications",
+   "table": "public.strategy_job_applications",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "admit_shared_worker_job",
+   "signature": "fluid_private.admit_shared_worker_job(uuid,text,text,text,jsonb)",
+   "identityArguments": "uuid, text, text, text, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_allowance_available",
+   "signature": "fluid_private.api_text_allowance_available(uuid,text)",
+   "identityArguments": "uuid, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_allowance_paused",
+   "signature": "fluid_private.api_text_allowance_paused()",
+   "identityArguments": "",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_background_action",
+   "signature": "fluid_private.api_text_background_action(uuid,uuid,text,text,jsonb)",
+   "identityArguments": "uuid, uuid, text, text, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_background_control",
+   "signature": "fluid_private.api_text_background_control(uuid,text,jsonb)",
+   "identityArguments": "uuid, text, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_bounded_policy",
+   "signature": "fluid_private.api_text_bounded_policy(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_deleted_strategy_quarantined",
+   "signature": "fluid_private.api_text_deleted_strategy_quarantined(uuid,text,uuid,uuid)",
+   "identityArguments": "uuid, text, uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_deleted_strategy_runtime_quarantined",
+   "signature": "fluid_private.api_text_deleted_strategy_runtime_quarantined(uuid,text,jsonb,text,uuid)",
+   "identityArguments": "uuid, text, jsonb, text, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_descriptor_owner",
+   "signature": "fluid_private.api_text_descriptor_owner(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_descriptor",
+   "signature": "fluid_private.api_text_descriptor(public.jobs,fluid_private.api_text_dispatches)",
+   "identityArguments": "public.jobs, fluid_private.api_text_dispatches",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_legacy_policy_allowed",
+   "signature": "fluid_private.api_text_legacy_policy_allowed(uuid,text,jsonb,text,oid)",
+   "identityArguments": "uuid, text, jsonb, text, oid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_paid_paused",
+   "signature": "fluid_private.api_text_paid_paused(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_policy_allowed",
+   "signature": "fluid_private.api_text_policy_allowed(uuid,text,jsonb,text,oid)",
+   "identityArguments": "uuid, text, jsonb, text, oid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_project_allowance_available",
+   "signature": "fluid_private.api_text_project_allowance_available(uuid,text,uuid)",
+   "identityArguments": "uuid, text, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_project_allowance_paused",
+   "signature": "fluid_private.api_text_project_allowance_paused(uuid,text,uuid)",
+   "identityArguments": "uuid, text, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_project_policy_allowed",
+   "signature": "fluid_private.api_text_project_policy_allowed(uuid,text,jsonb,text,uuid,oid)",
+   "identityArguments": "uuid, text, jsonb, text, uuid, oid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_quarantine_worker_ready",
+   "signature": "fluid_private.api_text_quarantine_worker_ready(text,jsonb,text,oid)",
+   "identityArguments": "text, jsonb, text, oid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_request_policy",
+   "signature": "fluid_private.api_text_request_policy(uuid,text,jsonb)",
+   "identityArguments": "uuid, text, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_strategy_outcome_resolved",
+   "signature": "fluid_private.api_text_strategy_outcome_resolved(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_strategy_paused",
+   "signature": "fluid_private.api_text_strategy_paused(uuid,text,uuid)",
+   "identityArguments": "uuid, text, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_strategy_runtime_paused",
+   "signature": "fluid_private.api_text_strategy_runtime_paused(uuid,text,jsonb,text)",
+   "identityArguments": "uuid, text, jsonb, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_testing_enabled",
+   "signature": "fluid_private.api_text_testing_enabled(uuid,text)",
+   "identityArguments": "uuid, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_testing_enqueue_matches",
+   "signature": "fluid_private.api_text_testing_enqueue_matches(uuid,uuid,text,integer,text,jsonb,text,bigint,integer)",
+   "identityArguments": "uuid, uuid, text, integer, text, jsonb, text, bigint, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_testing_gateway_matches",
+   "signature": "fluid_private.api_text_testing_gateway_matches(uuid,text,jsonb,text,uuid)",
+   "identityArguments": "uuid, text, jsonb, text, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_testing_gateway_project",
+   "signature": "fluid_private.api_text_testing_gateway_project(uuid,text,jsonb,text)",
+   "identityArguments": "uuid, text, jsonb, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_testing_job_allowed",
+   "signature": "fluid_private.api_text_testing_job_allowed(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_testing_project_scope",
+   "signature": "fluid_private.api_text_testing_project_scope(uuid,text,uuid)",
+   "identityArguments": "uuid, text, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "bind_shared_worker_execution",
+   "signature": "fluid_private.bind_shared_worker_execution(jsonb,uuid)",
+   "identityArguments": "jsonb, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "claim_local_strategy_job",
+   "signature": "fluid_private.claim_local_strategy_job(text,integer)",
+   "identityArguments": "text, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "close_shared_worker_execution",
+   "signature": "fluid_private.close_shared_worker_execution(jsonb,jsonb)",
+   "identityArguments": "jsonb, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "commit_logo_asset_publication",
+   "signature": "fluid_private.commit_logo_asset_publication(public.jobs,uuid)",
+   "identityArguments": "public.jobs, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "complete_job_step_core",
+   "signature": "fluid_private.complete_job_step_core(uuid,uuid,text,text,bigint,jsonb,text)",
+   "identityArguments": "uuid, uuid, text, text, bigint, jsonb, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "enqueue_strategy_job_legacy",
+   "signature": "fluid_private.enqueue_strategy_job_legacy(uuid,integer,text,text,bigint)",
+   "identityArguments": "uuid, integer, text, text, bigint",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "enter_shared_worker_claim_context",
+   "signature": "fluid_private.enter_shared_worker_claim_context(jsonb,uuid)",
+   "identityArguments": "jsonb, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "enter_shared_worker_context",
+   "signature": "fluid_private.enter_shared_worker_context(jsonb,jsonb,text)",
+   "identityArguments": "jsonb, jsonb, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "expire_local_strategy_leases",
+   "signature": "fluid_private.expire_local_strategy_leases()",
+   "identityArguments": "",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "get_api_strategy_availability_legacy",
+   "signature": "fluid_private.get_api_strategy_availability_legacy(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "guided_api_strategy_input",
+   "signature": "fluid_private.guided_api_strategy_input(uuid,uuid,integer,text,jsonb,bigint)",
+   "identityArguments": "uuid, uuid, integer, text, jsonb, bigint",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "handles_search_payload",
+   "signature": "fluid_private.handles_search_payload(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "handles_search_preset",
+   "signature": "fluid_private.handles_search_preset(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "idea_content",
+   "signature": "fluid_private.idea_content(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "idea_link_json",
+   "signature": "fluid_private.idea_link_json(public.idea_brand_links)",
+   "identityArguments": "public.idea_brand_links",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "idea_project_context_text",
+   "signature": "fluid_private.idea_project_context_text(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "idea_record",
+   "signature": "fluid_private.idea_record(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "identity_mutation_context",
+   "signature": "fluid_private.identity_mutation_context(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "identity_request",
+   "signature": "fluid_private.identity_request(jsonb,boolean)",
+   "identityArguments": "jsonb, boolean",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "identity_write_selection",
+   "signature": "fluid_private.identity_write_selection(public.identity_system_versions,jsonb,boolean,text,uuid,timestamp with time zone)",
+   "identityArguments": "public.identity_system_versions, jsonb, boolean, text, uuid, timestamp with time zone",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "leave_shared_worker_context",
+   "signature": "fluid_private.leave_shared_worker_context()",
+   "identityArguments": "",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "lifecycle_revision",
+   "signature": "fluid_private.lifecycle_revision(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "lifecycle_uuid",
+   "signature": "fluid_private.lifecycle_uuid(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_prototype_job_worker",
+   "signature": "fluid_private.local_prototype_job_worker(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_prototype_paid_paused",
+   "signature": "fluid_private.local_prototype_paid_paused(uuid,uuid,uuid)",
+   "identityArguments": "uuid, uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_prototype_project_paused",
+   "signature": "fluid_private.local_prototype_project_paused(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_prototype_unlimited_context",
+   "signature": "fluid_private.local_prototype_unlimited_context(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_strategy_job_ready",
+   "signature": "fluid_private.local_strategy_job_ready(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "local_strategy_worker_owner",
+   "signature": "fluid_private.local_strategy_worker_owner()",
+   "identityArguments": "",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "lock_leased_job",
+   "signature": "fluid_private.lock_leased_job(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "lock_local_strategy_job",
+   "signature": "fluid_private.lock_local_strategy_job(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "lock_logo_job_readiness",
+   "signature": "fluid_private.lock_logo_job_readiness(public.jobs,text)",
+   "identityArguments": "public.jobs, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "lock_shared_worker_slot",
+   "signature": "fluid_private.lock_shared_worker_slot(jsonb,boolean)",
+   "identityArguments": "jsonb, boolean",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_commit_direction_publication",
+   "signature": "fluid_private.logo_commit_direction_publication(public.jobs,uuid,uuid)",
+   "identityArguments": "public.jobs, uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_commit_export_publication",
+   "signature": "fluid_private.logo_commit_export_publication(public.jobs,uuid)",
+   "identityArguments": "public.jobs, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_commit_vector_publication",
+   "signature": "fluid_private.logo_commit_vector_publication(public.jobs,uuid)",
+   "identityArguments": "public.jobs, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_direction_checks_valid",
+   "signature": "fluid_private.logo_direction_checks_valid(jsonb,jsonb,jsonb)",
+   "identityArguments": "jsonb, jsonb, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_direction_group_valid",
+   "signature": "fluid_private.logo_direction_group_valid(jsonb,jsonb,uuid,uuid)",
+   "identityArguments": "jsonb, jsonb, uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_export_expected_files",
+   "signature": "fluid_private.logo_export_expected_files(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_export_group_valid",
+   "signature": "fluid_private.logo_export_group_valid(public.jobs,jsonb)",
+   "identityArguments": "public.jobs, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_freeze_direction_inputs",
+   "signature": "fluid_private.logo_freeze_direction_inputs(public.jobs,jsonb)",
+   "identityArguments": "public.jobs, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_generative_storage_job",
+   "signature": "fluid_private.logo_generative_storage_job(jsonb,uuid,uuid)",
+   "identityArguments": "jsonb, uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_generative_storage_member",
+   "signature": "fluid_private.logo_generative_storage_member(public.jobs,public.logo_asset_publications,text)",
+   "identityArguments": "public.jobs, public.logo_asset_publications, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_generative_storage_object_allowed",
+   "signature": "fluid_private.logo_generative_storage_object_allowed(text,text,text,text)",
+   "identityArguments": "text, text, text, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_job_policy_matches",
+   "signature": "fluid_private.logo_job_policy_matches(public.jobs,fluid_private.logo_runtime_policies)",
+   "identityArguments": "public.jobs, fluid_private.logo_runtime_policies",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_job_ready",
+   "signature": "fluid_private.logo_job_ready(public.jobs,text)",
+   "identityArguments": "public.jobs, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_local_context_allowed",
+   "signature": "fluid_private.logo_local_context_allowed(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_local_enabled",
+   "signature": "fluid_private.logo_local_enabled(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_local_job_allowed",
+   "signature": "fluid_private.logo_local_job_allowed(uuid,text)",
+   "identityArguments": "uuid, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_local_project_clear",
+   "signature": "fluid_private.logo_local_project_clear(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_lock_job",
+   "signature": "fluid_private.logo_lock_job(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_operation_ready",
+   "signature": "fluid_private.logo_operation_ready(uuid,text)",
+   "identityArguments": "uuid, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_policy_descriptor",
+   "signature": "fluid_private.logo_policy_descriptor(fluid_private.logo_runtime_policies)",
+   "identityArguments": "fluid_private.logo_runtime_policies",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_prepare_direction_sources_before_visual_direction",
+   "signature": "fluid_private.logo_prepare_direction_sources_before_visual_direction(uuid,uuid,uuid)",
+   "identityArguments": "uuid, uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_prepare_direction_sources",
+   "signature": "fluid_private.logo_prepare_direction_sources(uuid,uuid,uuid)",
+   "identityArguments": "uuid, uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_production_storage_member",
+   "signature": "fluid_private.logo_production_storage_member(public.jobs,public.logo_asset_publications,text)",
+   "identityArguments": "public.jobs, public.logo_asset_publications, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_publication_failure_adjudication_matches",
+   "signature": "fluid_private.logo_publication_failure_adjudication_matches(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_response_identity_complete",
+   "signature": "fluid_private.logo_response_identity_complete(public.jobs,jsonb)",
+   "identityArguments": "public.jobs, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_storage_context",
+   "signature": "fluid_private.logo_storage_context()",
+   "identityArguments": "",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_storage_identity_bound",
+   "signature": "fluid_private.logo_storage_identity_bound()",
+   "identityArguments": "",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_storage_object_allowed",
+   "signature": "fluid_private.logo_storage_object_allowed(text,text)",
+   "identityArguments": "text, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_storage_reservation_live",
+   "signature": "fluid_private.logo_storage_reservation_live(jsonb,uuid,uuid,uuid)",
+   "identityArguments": "jsonb, uuid, uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_subscription_observation_valid",
+   "signature": "fluid_private.logo_subscription_observation_valid(public.jobs,jsonb)",
+   "identityArguments": "public.jobs, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_subscription_quota_available",
+   "signature": "fluid_private.logo_subscription_quota_available(uuid,jsonb,uuid)",
+   "identityArguments": "uuid, jsonb, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_subscription_registration_ready",
+   "signature": "fluid_private.logo_subscription_registration_ready(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_trace_settings_valid",
+   "signature": "fluid_private.logo_trace_settings_valid(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_vector_edit_cancel_command_valid",
+   "signature": "fluid_private.logo_vector_edit_cancel_command_valid(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "logo_vector_edit_request_state",
+   "signature": "fluid_private.logo_vector_edit_request_state(uuid,uuid,uuid)",
+   "identityArguments": "uuid, uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "names_workspace_input",
+   "signature": "fluid_private.names_workspace_input(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "names_workspace_payload",
+   "signature": "fluid_private.names_workspace_payload(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "names_workspace_text",
+   "signature": "fluid_private.names_workspace_text(jsonb,integer,integer)",
+   "identityArguments": "jsonb, integer, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "names_workspace_uuid",
+   "signature": "fluid_private.names_workspace_uuid(jsonb,boolean)",
+   "identityArguments": "jsonb, boolean",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_expire_job",
+   "signature": "fluid_private.naming_expire_job(uuid,boolean)",
+   "identityArguments": "uuid, boolean",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_finish_job",
+   "signature": "fluid_private.naming_finish_job(uuid,text)",
+   "identityArguments": "uuid, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "naming_round_json",
+   "signature": "fluid_private.naming_round_json(fluid_private.naming_rounds)",
+   "identityArguments": "fluid_private.naming_rounds",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "park_shared_worker_execution",
+   "signature": "fluid_private.park_shared_worker_execution(jsonb,jsonb)",
+   "identityArguments": "jsonb, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "read_leased_logo_vector_revision",
+   "signature": "fluid_private.read_leased_logo_vector_revision(uuid,uuid,uuid)",
+   "identityArguments": "uuid, uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "record_research_operator_adjudication",
+   "signature": "fluid_private.record_research_operator_adjudication()",
+   "identityArguments": "",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "reject_logo_admission",
+   "signature": "fluid_private.reject_logo_admission(uuid,uuid,jsonb,text)",
+   "identityArguments": "uuid, uuid, jsonb, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "reject_logo_export_admission",
+   "signature": "fluid_private.reject_logo_export_admission(uuid,uuid,jsonb)",
+   "identityArguments": "uuid, uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "report_local_strategy_ready",
+   "signature": "fluid_private.report_local_strategy_ready(text,jsonb,integer)",
+   "identityArguments": "text, jsonb, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "research_operator_adjudication_matches",
+   "signature": "fluid_private.research_operator_adjudication_matches(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "set_strategy_billing_route",
+   "signature": "fluid_private.set_strategy_billing_route(uuid,integer,text)",
+   "identityArguments": "uuid, integer, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_identity_asset_shape",
+   "signature": "fluid_private.shared_identity_asset_shape(jsonb,uuid,uuid,boolean)",
+   "identityArguments": "jsonb, uuid, uuid, boolean",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_identity_authorize",
+   "signature": "fluid_private.shared_identity_authorize(public.jobs,text,text,text,text)",
+   "identityArguments": "public.jobs, text, text, text, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_identity_cancel_known_specification",
+   "signature": "fluid_private.shared_identity_cancel_known_specification(public.jobs,text)",
+   "identityArguments": "public.jobs, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_identity_complete",
+   "signature": "fluid_private.shared_identity_complete(public.jobs,text,text,bigint,jsonb,text)",
+   "identityArguments": "public.jobs, text, text, bigint, jsonb, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_identity_context",
+   "signature": "fluid_private.shared_identity_context(uuid,uuid,boolean)",
+   "identityArguments": "uuid, uuid, boolean",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_identity_finish",
+   "signature": "fluid_private.shared_identity_finish(public.jobs,text)",
+   "identityArguments": "public.jobs, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_identity_input",
+   "signature": "fluid_private.shared_identity_input(public.jobs)",
+   "identityArguments": "public.jobs",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_identity_manifest_shape",
+   "signature": "fluid_private.shared_identity_manifest_shape(jsonb,uuid,uuid)",
+   "identityArguments": "jsonb, uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_identity_observation_valid",
+   "signature": "fluid_private.shared_identity_observation_valid(jsonb,fluid_private.shared_identity_calls)",
+   "identityArguments": "jsonb, fluid_private.shared_identity_calls",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_identity_observe_asset",
+   "signature": "fluid_private.shared_identity_observe_asset(public.jobs,uuid,jsonb)",
+   "identityArguments": "public.jobs, uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_identity_policy",
+   "signature": "fluid_private.shared_identity_policy(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_identity_prepare_asset",
+   "signature": "fluid_private.shared_identity_prepare_asset(public.jobs,jsonb)",
+   "identityArguments": "public.jobs, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_identity_previous_logo_gateway",
+   "signature": "fluid_private.shared_identity_previous_logo_gateway(jsonb,jsonb,text,jsonb)",
+   "identityArguments": "jsonb, jsonb, text, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_identity_read_asset",
+   "signature": "fluid_private.shared_identity_read_asset(public.jobs,jsonb)",
+   "identityArguments": "public.jobs, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_identity_receipt_complete",
+   "signature": "fluid_private.shared_identity_receipt_complete(public.jobs,fluid_private.shared_identity_receipts,text)",
+   "identityArguments": "public.jobs, fluid_private.shared_identity_receipts, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_identity_receipt_json",
+   "signature": "fluid_private.shared_identity_receipt_json(fluid_private.shared_identity_receipts)",
+   "identityArguments": "fluid_private.shared_identity_receipts",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_identity_record_receipt",
+   "signature": "fluid_private.shared_identity_record_receipt(public.jobs,uuid,jsonb)",
+   "identityArguments": "public.jobs, uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_identity_runtime_ready",
+   "signature": "fluid_private.shared_identity_runtime_ready(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_identity_stage",
+   "signature": "fluid_private.shared_identity_stage(public.jobs,text,jsonb,jsonb)",
+   "identityArguments": "public.jobs, text, jsonb, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_identity_storage_member",
+   "signature": "fluid_private.shared_identity_storage_member(public.jobs,public.logo_asset_publications,text)",
+   "identityArguments": "public.jobs, public.logo_asset_publications, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_identity_system_id",
+   "signature": "fluid_private.shared_identity_system_id(public.jobs,text)",
+   "identityArguments": "public.jobs, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_admit_advanced",
+   "signature": "fluid_private.shared_logo_admit_advanced(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_admit_vector",
+   "signature": "fluid_private.shared_logo_admit_vector(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_advanced_action",
+   "signature": "fluid_private.shared_logo_advanced_action(uuid,uuid,text,jsonb)",
+   "identityArguments": "uuid, uuid, text, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_advanced_job_matches",
+   "signature": "fluid_private.shared_logo_advanced_job_matches(public.jobs,jsonb)",
+   "identityArguments": "public.jobs, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_advanced_quote_binding",
+   "signature": "fluid_private.shared_logo_advanced_quote_binding(public.logo_cost_quotes,jsonb)",
+   "identityArguments": "public.logo_cost_quotes, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_advanced_quote_current",
+   "signature": "fluid_private.shared_logo_advanced_quote_current(public.logo_cost_quotes,jsonb)",
+   "identityArguments": "public.logo_cost_quotes, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_apply_proposal_command",
+   "signature": "fluid_private.shared_logo_apply_proposal_command(uuid,jsonb,jsonb)",
+   "identityArguments": "uuid, jsonb, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_begin_job",
+   "signature": "fluid_private.shared_logo_begin_job(uuid,uuid,text,text,bigint)",
+   "identityArguments": "uuid, uuid, text, text, bigint",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_claim_job",
+   "signature": "fluid_private.shared_logo_claim_job(uuid,text,integer)",
+   "identityArguments": "uuid, text, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_commit_direction_publication",
+   "signature": "fluid_private.shared_logo_commit_direction_publication(public.jobs,uuid,uuid)",
+   "identityArguments": "public.jobs, uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_commit_vector_proposal",
+   "signature": "fluid_private.shared_logo_commit_vector_proposal(uuid,uuid,jsonb,jsonb)",
+   "identityArguments": "uuid, uuid, jsonb, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_complete_directions",
+   "signature": "fluid_private.shared_logo_complete_directions(uuid,uuid,text,text,bigint,jsonb,text)",
+   "identityArguments": "uuid, uuid, text, text, bigint, jsonb, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_complete_proposal",
+   "signature": "fluid_private.shared_logo_complete_proposal(uuid,uuid,text,text,bigint,jsonb,text)",
+   "identityArguments": "uuid, uuid, text, text, bigint, jsonb, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_complete_style_note",
+   "signature": "fluid_private.shared_logo_complete_style_note(uuid,uuid,text,text,bigint,jsonb,text)",
+   "identityArguments": "uuid, uuid, text, text, bigint, jsonb, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_context_allowed",
+   "signature": "fluid_private.shared_logo_context_allowed(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_create_raster_jobs",
+   "signature": "fluid_private.shared_logo_create_raster_jobs(public.logo_cost_quotes,jsonb,jsonb)",
+   "identityArguments": "public.logo_cost_quotes, jsonb, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_direction_storage_member",
+   "signature": "fluid_private.shared_logo_direction_storage_member(public.jobs,public.logo_asset_publications)",
+   "identityArguments": "public.jobs, public.logo_asset_publications",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_directions_observation_valid",
+   "signature": "fluid_private.shared_logo_directions_observation_valid(jsonb,jsonb)",
+   "identityArguments": "jsonb, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_job_context",
+   "signature": "fluid_private.shared_logo_job_context(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_json_arg",
+   "signature": "fluid_private.shared_logo_json_arg(jsonb,integer)",
+   "identityArguments": "jsonb, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_legacy_cancel_command_valid",
+   "signature": "fluid_private.shared_logo_legacy_cancel_command_valid(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_legacy_edit_request_state",
+   "signature": "fluid_private.shared_logo_legacy_edit_request_state(uuid,uuid,uuid)",
+   "identityArguments": "uuid, uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_legacy_job_ready",
+   "signature": "fluid_private.shared_logo_legacy_job_ready(public.jobs,text)",
+   "identityArguments": "public.jobs, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_legacy_local_context",
+   "signature": "fluid_private.shared_logo_legacy_local_context(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_legacy_local_job",
+   "signature": "fluid_private.shared_logo_legacy_local_job(uuid,text)",
+   "identityArguments": "uuid, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_legacy_lock_job",
+   "signature": "fluid_private.shared_logo_legacy_lock_job(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_legacy_lock_readiness",
+   "signature": "fluid_private.shared_logo_legacy_lock_readiness(public.jobs,text)",
+   "identityArguments": "public.jobs, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_legacy_operation_ready",
+   "signature": "fluid_private.shared_logo_legacy_operation_ready(uuid,text)",
+   "identityArguments": "uuid, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_lock_issued_job",
+   "signature": "fluid_private.shared_logo_lock_issued_job(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_lock_vector_proposal_dispatch",
+   "signature": "fluid_private.shared_logo_lock_vector_proposal_dispatch(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_policy_valid",
+   "signature": "fluid_private.shared_logo_policy_valid(text,jsonb)",
+   "identityArguments": "text, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_policy",
+   "signature": "fluid_private.shared_logo_policy(uuid,text)",
+   "identityArguments": "uuid, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_project_clear",
+   "signature": "fluid_private.shared_logo_project_clear(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_proposal_request_owner",
+   "signature": "fluid_private.shared_logo_proposal_request_owner(uuid,boolean)",
+   "identityArguments": "uuid, boolean",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_proposal_request_quote",
+   "signature": "fluid_private.shared_logo_proposal_request_quote(uuid,uuid,jsonb)",
+   "identityArguments": "uuid, uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_quote_directions",
+   "signature": "fluid_private.shared_logo_quote_directions(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_quote_raster",
+   "signature": "fluid_private.shared_logo_quote_raster(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_quote_style_note",
+   "signature": "fluid_private.shared_logo_quote_style_note(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_quote_vector_proposal",
+   "signature": "fluid_private.shared_logo_quote_vector_proposal(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_raster_job_matches",
+   "signature": "fluid_private.shared_logo_raster_job_matches(public.jobs,jsonb)",
+   "identityArguments": "public.jobs, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_raster_observation_valid",
+   "signature": "fluid_private.shared_logo_raster_observation_valid(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_raster_policy_valid",
+   "signature": "fluid_private.shared_logo_raster_policy_valid(text,jsonb)",
+   "identityArguments": "text, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_raster_quote_binding",
+   "signature": "fluid_private.shared_logo_raster_quote_binding(public.logo_cost_quotes,jsonb)",
+   "identityArguments": "public.logo_cost_quotes, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_read_proposal_asset",
+   "signature": "fluid_private.shared_logo_read_proposal_asset(uuid,jsonb,uuid,uuid)",
+   "identityArguments": "uuid, jsonb, uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_read_proposal_command",
+   "signature": "fluid_private.shared_logo_read_proposal_command(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_read_proposal_request",
+   "signature": "fluid_private.shared_logo_read_proposal_request(uuid,uuid,jsonb,public.logo_cost_quotes)",
+   "identityArguments": "uuid, uuid, jsonb, public.logo_cost_quotes",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_record_response",
+   "signature": "fluid_private.shared_logo_record_response(uuid,uuid,jsonb)",
+   "identityArguments": "uuid, uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_record_vector_proposal_response",
+   "signature": "fluid_private.shared_logo_record_vector_proposal_response(uuid,uuid,jsonb)",
+   "identityArguments": "uuid, uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_report_runtime_ready",
+   "signature": "fluid_private.shared_logo_report_runtime_ready(jsonb,jsonb)",
+   "identityArguments": "jsonb, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_resolve_prepared_export",
+   "signature": "fluid_private.shared_logo_resolve_prepared_export()",
+   "identityArguments": "",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_resolve_raster",
+   "signature": "fluid_private.shared_logo_resolve_raster()",
+   "identityArguments": "",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_response_identity_complete",
+   "signature": "fluid_private.shared_logo_response_identity_complete(public.jobs,jsonb)",
+   "identityArguments": "public.jobs, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_retain_proposal",
+   "signature": "fluid_private.shared_logo_retain_proposal(public.jobs,fluid_private.shared_logo_vector_proposal_prepared_results,text,text)",
+   "identityArguments": "public.jobs, fluid_private.shared_logo_vector_proposal_prepared_results, text, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_runtime_manifest_item_valid",
+   "signature": "fluid_private.shared_logo_runtime_manifest_item_valid(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_runtime_ready",
+   "signature": "fluid_private.shared_logo_runtime_ready(uuid,text)",
+   "identityArguments": "uuid, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_slot_runtime_ready",
+   "signature": "fluid_private.shared_logo_slot_runtime_ready(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_stage_proposal",
+   "signature": "fluid_private.shared_logo_stage_proposal(uuid,uuid,jsonb,uuid)",
+   "identityArguments": "uuid, uuid, jsonb, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_stage_style_note",
+   "signature": "fluid_private.shared_logo_stage_style_note(uuid,uuid,jsonb,uuid)",
+   "identityArguments": "uuid, uuid, jsonb, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_storage_member",
+   "signature": "fluid_private.shared_logo_storage_member(public.jobs,public.logo_asset_publications,text)",
+   "identityArguments": "public.jobs, public.logo_asset_publications, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_storage_policy_matches",
+   "signature": "fluid_private.shared_logo_storage_policy_matches(public.jobs,jsonb)",
+   "identityArguments": "public.jobs, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_storage_policy",
+   "signature": "fluid_private.shared_logo_storage_policy(public.jobs)",
+   "identityArguments": "public.jobs",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_storage_ready",
+   "signature": "fluid_private.shared_logo_storage_ready(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_style_note_exists",
+   "signature": "fluid_private.shared_logo_style_note_exists(uuid,uuid,jsonb)",
+   "identityArguments": "uuid, uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_style_note_observation_valid",
+   "signature": "fluid_private.shared_logo_style_note_observation_valid(jsonb,jsonb)",
+   "identityArguments": "jsonb, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_style_note_source",
+   "signature": "fluid_private.shared_logo_style_note_source(uuid,uuid,uuid)",
+   "identityArguments": "uuid, uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_style_note_storage_member",
+   "signature": "fluid_private.shared_logo_style_note_storage_member(public.jobs,public.logo_asset_publications)",
+   "identityArguments": "public.jobs, public.logo_asset_publications",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_style_note_text_policy_valid",
+   "signature": "fluid_private.shared_logo_style_note_text_policy_valid(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_valid_vector_proposal_observation",
+   "signature": "fluid_private.shared_logo_valid_vector_proposal_observation(jsonb,jsonb)",
+   "identityArguments": "jsonb, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_valid_vector_proposal_text_policy",
+   "signature": "fluid_private.shared_logo_valid_vector_proposal_text_policy(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_vector_proposal_application_command_valid",
+   "signature": "fluid_private.shared_logo_vector_proposal_application_command_valid(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_vector_proposal_basis_current",
+   "signature": "fluid_private.shared_logo_vector_proposal_basis_current(fluid_private.shared_logo_vector_proposals)",
+   "identityArguments": "fluid_private.shared_logo_vector_proposals",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_vector_proposal_job_quote_matches",
+   "signature": "fluid_private.shared_logo_vector_proposal_job_quote_matches(public.jobs,public.logo_cost_quotes)",
+   "identityArguments": "public.jobs, public.logo_cost_quotes",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_vector_proposal_materializable",
+   "signature": "fluid_private.shared_logo_vector_proposal_materializable(fluid_private.shared_logo_vector_proposals)",
+   "identityArguments": "fluid_private.shared_logo_vector_proposals",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_vector_proposal_owned_asset_valid",
+   "signature": "fluid_private.shared_logo_vector_proposal_owned_asset_valid(uuid,uuid,jsonb,text)",
+   "identityArguments": "uuid, uuid, jsonb, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_vector_proposal_payload_shape_valid",
+   "signature": "fluid_private.shared_logo_vector_proposal_payload_shape_valid(jsonb,jsonb)",
+   "identityArguments": "jsonb, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_vector_proposal_payload_valid",
+   "signature": "fluid_private.shared_logo_vector_proposal_payload_valid(jsonb,jsonb)",
+   "identityArguments": "jsonb, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_vector_proposal_pending_reason",
+   "signature": "fluid_private.shared_logo_vector_proposal_pending_reason(public.jobs,jsonb,jsonb)",
+   "identityArguments": "public.jobs, jsonb, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_vector_proposal_quote_binding",
+   "signature": "fluid_private.shared_logo_vector_proposal_quote_binding(public.logo_cost_quotes)",
+   "identityArguments": "public.logo_cost_quotes",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_vector_proposal_result_valid",
+   "signature": "fluid_private.shared_logo_vector_proposal_result_valid(jsonb,jsonb,jsonb)",
+   "identityArguments": "jsonb, jsonb, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_storage_auth_context",
+   "signature": "fluid_private.shared_storage_auth_context()",
+   "identityArguments": "",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_storage_execution",
+   "signature": "fluid_private.shared_storage_execution(jsonb,uuid,uuid,uuid,uuid,boolean)",
+   "identityArguments": "jsonb, uuid, uuid, uuid, uuid, boolean",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_storage_identity_bound",
+   "signature": "fluid_private.shared_storage_identity_bound()",
+   "identityArguments": "",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_storage_object_allowed",
+   "signature": "fluid_private.shared_storage_object_allowed(text,text,text,text)",
+   "identityArguments": "text, text, text, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_storage_operation_member",
+   "signature": "fluid_private.shared_storage_operation_member(public.jobs,public.logo_asset_publications,text)",
+   "identityArguments": "public.jobs, public.logo_asset_publications, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_storage_operation_policy_matches",
+   "signature": "fluid_private.shared_storage_operation_policy_matches(public.jobs,jsonb)",
+   "identityArguments": "public.jobs, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_storage_operation_policy",
+   "signature": "fluid_private.shared_storage_operation_policy(public.jobs)",
+   "identityArguments": "public.jobs",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_storage_slot_ready",
+   "signature": "fluid_private.shared_storage_slot_ready(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_strategy_descriptor",
+   "signature": "fluid_private.shared_strategy_descriptor(public.jobs,fluid_private.api_text_dispatches)",
+   "identityArguments": "public.jobs, fluid_private.api_text_dispatches",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_strategy_legacy_descriptor",
+   "signature": "fluid_private.shared_strategy_legacy_descriptor(public.jobs,fluid_private.api_text_dispatches)",
+   "identityArguments": "public.jobs, fluid_private.api_text_dispatches",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_strategy_legacy_runtime",
+   "signature": "fluid_private.shared_strategy_legacy_runtime(text,jsonb,text)",
+   "identityArguments": "text, jsonb, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_strategy_policy_available",
+   "signature": "fluid_private.shared_strategy_policy_available(uuid,uuid,text,jsonb,text)",
+   "identityArguments": "uuid, uuid, text, jsonb, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_strategy_uncapped_context",
+   "signature": "fluid_private.shared_strategy_uncapped_context(uuid,uuid,text,integer,text,jsonb,text,bigint,integer)",
+   "identityArguments": "uuid, uuid, text, integer, text, jsonb, text, bigint, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_worker_admission_active",
+   "signature": "fluid_private.shared_worker_admission_active(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_worker_base_lock_leased_job",
+   "signature": "fluid_private.shared_worker_base_lock_leased_job(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_worker_claimable",
+   "signature": "fluid_private.shared_worker_claimable(jsonb,uuid)",
+   "identityArguments": "jsonb, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_worker_context_execution",
+   "signature": "fluid_private.shared_worker_context_execution(text)",
+   "identityArguments": "text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_worker_context_mode",
+   "signature": "fluid_private.shared_worker_context_mode(text)",
+   "identityArguments": "text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_worker_execution_json",
+   "signature": "fluid_private.shared_worker_execution_json(fluid_private.shared_worker_executions)",
+   "identityArguments": "fluid_private.shared_worker_executions",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_worker_execution",
+   "signature": "fluid_private.shared_worker_execution(jsonb,jsonb,text)",
+   "identityArguments": "jsonb, jsonb, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_worker_legacy_lock_leased_job_v1",
+   "signature": "fluid_private.shared_worker_legacy_lock_leased_job_v1(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_worker_role_safe",
+   "signature": "fluid_private.shared_worker_role_safe(name,oid)",
+   "identityArguments": "name, oid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_worker_slot_json",
+   "signature": "fluid_private.shared_worker_slot_json(fluid_private.shared_worker_slots)",
+   "identityArguments": "fluid_private.shared_worker_slots",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "stage_logo_vector_publication",
+   "signature": "fluid_private.stage_logo_vector_publication(uuid,uuid,jsonb)",
+   "identityArguments": "uuid, uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "standalone_current_import",
+   "signature": "fluid_private.standalone_current_import(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "standalone_domain",
+   "signature": "fluid_private.standalone_domain(text)",
+   "identityArguments": "text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "standalone_names_availability",
+   "signature": "fluid_private.standalone_names_availability(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "standalone_names_dto",
+   "signature": "fluid_private.standalone_names_dto(public.standalone_name_jobs)",
+   "identityArguments": "public.standalone_name_jobs",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "standalone_names_keys",
+   "signature": "fluid_private.standalone_names_keys(jsonb,text[])",
+   "identityArguments": "jsonb, text[]",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "standalone_names_text",
+   "signature": "fluid_private.standalone_names_text(jsonb,integer,integer)",
+   "identityArguments": "jsonb, integer, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "standalone_payload",
+   "signature": "fluid_private.standalone_payload(text,jsonb)",
+   "identityArguments": "text, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "standalone_record",
+   "signature": "fluid_private.standalone_record(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "subscription_strategy_route",
+   "signature": "fluid_private.subscription_strategy_route(uuid,text)",
+   "identityArguments": "uuid, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "admit_logo_operation",
+   "signature": "public.admit_logo_operation(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "api_text_dispatch_action",
+   "signature": "public.api_text_dispatch_action(jsonb,text,jsonb)",
+   "identityArguments": "jsonb, text, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "api_text_multi_account_readiness",
+   "signature": "public.api_text_multi_account_readiness(jsonb,text)",
+   "identityArguments": "jsonb, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "api_text_worker_can_read_step",
+   "signature": "public.api_text_worker_can_read_step(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "append_subscription_partial",
+   "signature": "public.append_subscription_partial(uuid,uuid,text)",
+   "identityArguments": "uuid, uuid, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "apply_strategy_job_result_v2",
+   "signature": "public.apply_strategy_job_result_v2(uuid,uuid,integer,text)",
+   "identityArguments": "uuid, uuid, integer, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "apply_strategy_job_result",
+   "signature": "public.apply_strategy_job_result(uuid,uuid,integer,text)",
+   "identityArguments": "uuid, uuid, integer, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "attach_idea_to_project",
+   "signature": "public.attach_idea_to_project(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "authorize_api_text_dispatch",
+   "signature": "public.authorize_api_text_dispatch(uuid,uuid,text,text,text)",
+   "identityArguments": "uuid, uuid, text, text, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "authorize_logo_generative_storage",
+   "signature": "public.authorize_logo_generative_storage(uuid,uuid,uuid,text)",
+   "identityArguments": "uuid, uuid, uuid, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "authorize_logo_storage_reservation",
+   "signature": "public.authorize_logo_storage_reservation(uuid,uuid,uuid)",
+   "identityArguments": "uuid, uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "authorize_shared_logo_storage",
+   "signature": "public.authorize_shared_logo_storage(uuid,uuid,uuid,uuid,uuid,text)",
+   "identityArguments": "uuid, uuid, uuid, uuid, uuid, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "begin_job_step",
+   "signature": "public.begin_job_step(uuid,uuid,text,text,bigint)",
+   "identityArguments": "uuid, uuid, text, text, bigint",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "begin_logo_job_step",
+   "signature": "public.begin_logo_job_step(uuid,uuid,text,text,bigint)",
+   "identityArguments": "uuid, uuid, text, text, bigint",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "cancel_logo_vector_edit",
+   "signature": "public.cancel_logo_vector_edit(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "cancel_shared_identity_batch",
+   "signature": "public.cancel_shared_identity_batch(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "cancel_standalone_names",
+   "signature": "public.cancel_standalone_names(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "check_api_text_runtime",
+   "signature": "public.check_api_text_runtime(text,jsonb,text)",
+   "identityArguments": "text, jsonb, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "claim_api_text_job",
+   "signature": "public.claim_api_text_job(uuid,text,integer,text,text)",
+   "identityArguments": "uuid, text, integer, text, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "claim_job",
+   "signature": "public.claim_job(text,integer)",
+   "identityArguments": "text, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "claim_logo_job",
+   "signature": "public.claim_logo_job(text,integer)",
+   "identityArguments": "text, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "claim_shared_worker_slot",
+   "signature": "public.claim_shared_worker_slot(uuid,uuid,text,integer)",
+   "identityArguments": "uuid, uuid, text, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "claim_standalone_names",
+   "signature": "public.claim_standalone_names(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "claim_subscription_job",
+   "signature": "public.claim_subscription_job(text,uuid,text,integer)",
+   "identityArguments": "text, uuid, text, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "close_logo_vector_proposal_request",
+   "signature": "public.close_logo_vector_proposal_request(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "close_shared_identity_generation_intent",
+   "signature": "public.close_shared_identity_generation_intent(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "complete_job_step",
+   "signature": "public.complete_job_step(uuid,uuid,text,text,bigint,jsonb,text)",
+   "identityArguments": "uuid, uuid, text, text, bigint, jsonb, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "complete_logo_job_step",
+   "signature": "public.complete_logo_job_step(uuid,uuid,text,text,bigint,jsonb,text)",
+   "identityArguments": "uuid, uuid, text, text, bigint, jsonb, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "configure_subscription_runtime",
+   "signature": "public.configure_subscription_runtime(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "configure_subscription_runtime",
+   "signature": "public.configure_subscription_runtime(uuid,text,jsonb,boolean)",
+   "identityArguments": "uuid, text, jsonb, boolean",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "create_idea_brand",
+   "signature": "public.create_idea_brand(uuid,integer,uuid,jsonb,text)",
+   "identityArguments": "uuid, integer, uuid, jsonb, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "create_idea",
+   "signature": "public.create_idea(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "disable_subscription_runtime",
+   "signature": "public.disable_subscription_runtime(uuid,text)",
+   "identityArguments": "uuid, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "enqueue_job",
+   "signature": "public.enqueue_job(uuid,uuid,text,integer,text,jsonb,text,bigint,integer)",
+   "identityArguments": "uuid, uuid, text, integer, text, jsonb, text, bigint, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "enqueue_local_strategy_job",
+   "signature": "public.enqueue_local_strategy_job(uuid,integer,text,text,bigint)",
+   "identityArguments": "uuid, integer, text, text, bigint",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "enqueue_shared_strategy_job",
+   "signature": "public.enqueue_shared_strategy_job(uuid,integer,text,text,text)",
+   "identityArguments": "uuid, integer, text, text, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "enqueue_standalone_names",
+   "signature": "public.enqueue_standalone_names(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "enqueue_strategy_job",
+   "signature": "public.enqueue_strategy_job(uuid,integer,text,text,bigint)",
+   "identityArguments": "uuid, integer, text, text, bigint",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "enqueue_subscription_strategy_job",
+   "signature": "public.enqueue_subscription_strategy_job(uuid,integer,text,text,text)",
+   "identityArguments": "uuid, integer, text, text, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "ensure_shared_account_enrollment",
+   "signature": "public.ensure_shared_account_enrollment()",
+   "identityArguments": "",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "ensure_shared_identity_batch",
+   "signature": "public.ensure_shared_identity_batch(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "expand_project_scope",
+   "signature": "public.expand_project_scope(uuid,integer)",
+   "identityArguments": "uuid, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "expire_api_text_job",
+   "signature": "public.expire_api_text_job(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "expire_job_leases",
+   "signature": "public.expire_job_leases()",
+   "identityArguments": "",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "expire_logo_job_leases",
+   "signature": "public.expire_logo_job_leases()",
+   "identityArguments": "",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "fence_shared_worker_slot",
+   "signature": "public.fence_shared_worker_slot(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "finish_job",
+   "signature": "public.finish_job(uuid,uuid,text,text)",
+   "identityArguments": "uuid, uuid, text, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "finish_logo_job",
+   "signature": "public.finish_logo_job(uuid,uuid,text)",
+   "identityArguments": "uuid, uuid, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "finish_standalone_names",
+   "signature": "public.finish_standalone_names(uuid,uuid,text,jsonb,text,text)",
+   "identityArguments": "uuid, uuid, text, jsonb, text, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_api_strategy_availability",
+   "signature": "public.get_api_strategy_availability(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_api_text_dispatch",
+   "signature": "public.get_api_text_dispatch(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_idea",
+   "signature": "public.get_idea(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_local_strategy_availability",
+   "signature": "public.get_local_strategy_availability(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_names_workspace",
+   "signature": "public.get_names_workspace()",
+   "identityArguments": "",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_project_idea_attachments",
+   "signature": "public.get_project_idea_attachments(uuid,uuid,integer)",
+   "identityArguments": "uuid, uuid, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_project_idea_source",
+   "signature": "public.get_project_idea_source(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_shared_account_enrollment",
+   "signature": "public.get_shared_account_enrollment()",
+   "identityArguments": "",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_shared_identity_availability",
+   "signature": "public.get_shared_identity_availability(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_shared_strategy_availability",
+   "signature": "public.get_shared_strategy_availability(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_standalone_import",
+   "signature": "public.get_standalone_import(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_standalone_name_job",
+   "signature": "public.get_standalone_name_job(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_standalone_names",
+   "signature": "public.get_standalone_names(timestamp with time zone,uuid)",
+   "identityArguments": "timestamp with time zone, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_standalone_promotion_snapshot",
+   "signature": "public.get_standalone_promotion_snapshot(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_standalone_promotion_source",
+   "signature": "public.get_standalone_promotion_source(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_standalone_workspace",
+   "signature": "public.get_standalone_workspace(text)",
+   "identityArguments": "text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_strategy_availability",
+   "signature": "public.get_strategy_availability(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_strategy_job_deliveries",
+   "signature": "public.get_strategy_job_deliveries(uuid,uuid[])",
+   "identityArguments": "uuid, uuid[]",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "get_subscription_runtime_bindings",
+   "signature": "public.get_subscription_runtime_bindings()",
+   "identityArguments": "",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "heartbeat_job",
+   "signature": "public.heartbeat_job(uuid,uuid,integer)",
+   "identityArguments": "uuid, uuid, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "heartbeat_logo_job",
+   "signature": "public.heartbeat_logo_job(uuid,uuid,integer)",
+   "identityArguments": "uuid, uuid, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "list_api_text_dispatches_v2",
+   "signature": "public.list_api_text_dispatches_v2(integer)",
+   "identityArguments": "integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "list_ideas",
+   "signature": "public.list_ideas(timestamp with time zone,uuid,integer,text,text)",
+   "identityArguments": "timestamp with time zone, uuid, integer, text, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "list_logo_project_creations",
+   "signature": "public.list_logo_project_creations(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "list_logo_vector_history",
+   "signature": "public.list_logo_vector_history(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "list_logo_vector_proposals",
+   "signature": "public.list_logo_vector_proposals(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "list_pending_api_text_dispatches",
+   "signature": "public.list_pending_api_text_dispatches(integer)",
+   "identityArguments": "integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "list_pending_logo_vector_proposal_requests",
+   "signature": "public.list_pending_logo_vector_proposal_requests(uuid,uuid,integer)",
+   "identityArguments": "uuid, uuid, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "list_shared_strategy_dispatches",
+   "signature": "public.list_shared_strategy_dispatches(jsonb,integer)",
+   "identityArguments": "jsonb, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "load_logo_direction_inputs",
+   "signature": "public.load_logo_direction_inputs(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "load_logo_export_inputs",
+   "signature": "public.load_logo_export_inputs(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "local_logo_operation",
+   "signature": "public.local_logo_operation(uuid,text,jsonb)",
+   "identityArguments": "uuid, text, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "local_strategy_job_action",
+   "signature": "public.local_strategy_job_action(uuid,text,jsonb)",
+   "identityArguments": "uuid, text, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "logo_storage_session",
+   "signature": "public.logo_storage_session()",
+   "identityArguments": "",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "mark_api_text_published",
+   "signature": "public.mark_api_text_published(uuid,text,integer,text)",
+   "identityArguments": "uuid, text, integer, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "prepare_api_text_redrive",
+   "signature": "public.prepare_api_text_redrive(uuid,text,integer)",
+   "identityArguments": "uuid, text, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "promote_standalone_workspace",
+   "signature": "public.promote_standalone_workspace(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "pulse_standalone_names",
+   "signature": "public.pulse_standalone_names(uuid,uuid,boolean,text)",
+   "identityArguments": "uuid, uuid, boolean, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "quote_logo_operation",
+   "signature": "public.quote_logo_operation(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "read_idea_project_attachment_request",
+   "signature": "public.read_idea_project_attachment_request(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "read_leased_logo_record",
+   "signature": "public.read_leased_logo_record(uuid,uuid,text,jsonb)",
+   "identityArguments": "uuid, uuid, text, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "read_local_strategy_steps",
+   "signature": "public.read_local_strategy_steps(uuid,uuid,uuid,text)",
+   "identityArguments": "uuid, uuid, uuid, text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "read_logo_capabilities",
+   "signature": "public.read_logo_capabilities(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "read_logo_project_creation",
+   "signature": "public.read_logo_project_creation(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "read_logo_style_note_jobs",
+   "signature": "public.read_logo_style_note_jobs(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "read_logo_vector_edit_request",
+   "signature": "public.read_logo_vector_edit_request(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "read_logo_vector_proposal_application",
+   "signature": "public.read_logo_vector_proposal_application(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "read_logo_vector_proposal_request",
+   "signature": "public.read_logo_vector_proposal_request(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "read_logo_vector_proposal",
+   "signature": "public.read_logo_vector_proposal(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "read_shared_worker_execution_page",
+   "signature": "public.read_shared_worker_execution_page(jsonb,uuid,integer)",
+   "identityArguments": "jsonb, uuid, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "read_shared_worker_executions",
+   "signature": "public.read_shared_worker_executions(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "read_standalone_promotion_request",
+   "signature": "public.read_standalone_promotion_request(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "reconcile_logo_request",
+   "signature": "public.reconcile_logo_request(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "record_logo_provider_response",
+   "signature": "public.record_logo_provider_response(uuid,uuid,jsonb)",
+   "identityArguments": "uuid, uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "refine_identity_component",
+   "signature": "public.refine_identity_component(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "register_job_plan",
+   "signature": "public.register_job_plan(uuid,uuid,jsonb)",
+   "identityArguments": "uuid, uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "register_logo_job_plan",
+   "signature": "public.register_logo_job_plan(uuid,uuid,jsonb)",
+   "identityArguments": "uuid, uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "release_shared_worker_slot",
+   "signature": "public.release_shared_worker_slot(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "renew_shared_worker_slot",
+   "signature": "public.renew_shared_worker_slot(jsonb,integer)",
+   "identityArguments": "jsonb, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "report_job_progress",
+   "signature": "public.report_job_progress(uuid,uuid,integer)",
+   "identityArguments": "uuid, uuid, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "report_logo_worker_ready",
+   "signature": "public.report_logo_worker_ready(text,jsonb,integer)",
+   "identityArguments": "text, jsonb, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "report_standalone_names_ready",
+   "signature": "public.report_standalone_names_ready(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "report_strategy_worker_ready",
+   "signature": "public.report_strategy_worker_ready(text,jsonb,integer)",
+   "identityArguments": "text, jsonb, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "report_subscription_worker_ready",
+   "signature": "public.report_subscription_worker_ready(uuid,text,text,jsonb,integer)",
+   "identityArguments": "uuid, text, text, jsonb, integer",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "request_logo_export",
+   "signature": "public.request_logo_export(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "retain_standalone_name",
+   "signature": "public.retain_standalone_name(uuid,integer,boolean,boolean)",
+   "identityArguments": "uuid, integer, boolean, boolean",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "save_names_workspace",
+   "signature": "public.save_names_workspace(integer,uuid,jsonb)",
+   "identityArguments": "integer, uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "save_standalone_workspace",
+   "signature": "public.save_standalone_workspace(text,integer,uuid,jsonb,jsonb)",
+   "identityArguments": "text, integer, uuid, jsonb, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "select_identity_system",
+   "signature": "public.select_identity_system(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "shared_logo_operation",
+   "signature": "public.shared_logo_operation(uuid,text,jsonb)",
+   "identityArguments": "uuid, text, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "shared_logo_storage_session_closed",
+   "signature": "public.shared_logo_storage_session_closed()",
+   "identityArguments": "",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "shared_logo_storage_session",
+   "signature": "public.shared_logo_storage_session()",
+   "identityArguments": "",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "shared_logo_worker_action",
+   "signature": "public.shared_logo_worker_action(jsonb,jsonb,text,jsonb)",
+   "identityArguments": "jsonb, jsonb, text, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "shared_naming_worker_action",
+   "signature": "public.shared_naming_worker_action(jsonb,jsonb,text,jsonb)",
+   "identityArguments": "jsonb, jsonb, text, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "shared_strategy_worker_action",
+   "signature": "public.shared_strategy_worker_action(jsonb,jsonb,text,jsonb)",
+   "identityArguments": "jsonb, jsonb, text, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "shared_worker_pool_configuration",
+   "signature": "public.shared_worker_pool_configuration()",
+   "identityArguments": "",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "stage_logo_directions",
+   "signature": "public.stage_logo_directions(uuid,uuid,jsonb,uuid,jsonb)",
+   "identityArguments": "uuid, uuid, jsonb, uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "stage_logo_exports",
+   "signature": "public.stage_logo_exports(uuid,uuid,jsonb)",
+   "identityArguments": "uuid, uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "start_logo_project",
+   "signature": "public.start_logo_project(jsonb)",
+   "identityArguments": "jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "start_naming_run",
+   "signature": "public.start_naming_run(uuid,jsonb)",
+   "identityArguments": "uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "stop_naming_run",
+   "signature": "public.stop_naming_run(uuid)",
+   "identityArguments": "uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "subscription_worker_can_read_step",
+   "signature": "public.subscription_worker_can_read_step(uuid,uuid)",
+   "identityArguments": "uuid, uuid",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "public",
+   "name": "update_idea",
+   "signature": "public.update_idea(uuid,integer,uuid,jsonb)",
+   "identityArguments": "uuid, integer, uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "save_names_workspace",
+   "signature": "fluid_private.save_names_workspace(integer,uuid,jsonb)",
+   "identityArguments": "integer, uuid, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "api_strategy_bindings",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "api_text_allowance_rollout",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "api_text_background_responses",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "api_text_operator_adjudications",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "api_text_testing_access",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "api_text_testing_admission_context",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "api_text_testing_admissions",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "local_prototype_admission_context",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "logo_generative_storage_capabilities",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "logo_local_capabilities",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "logo_local_context",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "logo_storage_grants",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "names_workspace_requests",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "shared_identity_prepared",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "shared_identity_specification_cancellations",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "shared_logo_admission_context",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "shared_logo_advanced_quotes",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "shared_logo_export_resolutions",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "shared_logo_output_observations",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "shared_logo_proposal_request_closures",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "shared_logo_raster_recoveries",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "shared_logo_slot_runtime_readiness",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "shared_logo_vector_proposal_dispatches",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "shared_logo_vector_proposal_materializations",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "shared_logo_vector_proposal_prepared_results",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "shared_storage_grants",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "shared_storage_target",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "shared_strategy_admission_context",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "shared_strategy_observed_outcomes",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "shared_strategy_observed_responses",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "standalone_names_runtime",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "public",
+   "name": "idea_brand_links",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "public",
+   "name": "idea_project_attachment_requests",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "public",
+   "name": "logo_style_notes",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "public",
+   "name": "standalone_promotions",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "public",
+   "name": "strategy_job_applications",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "api_text_operation",
+   "signature": "fluid_private.api_text_operation(text)",
+   "identityArguments": "text",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "function",
+   "schema": "fluid_private",
+   "name": "shared_logo_advanced_policy_valid",
+   "signature": "fluid_private.shared_logo_advanced_policy_valid(text,jsonb)",
+   "identityArguments": "text, jsonb",
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "api_text_allowance_admissions",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "api_text_owner_entitlements",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "shared_logo_vector_proposals",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "shared_storage_actors",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "public",
+   "name": "idea_project_attachments",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "public",
+   "name": "names_workspaces",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "fluid_private",
+   "name": "api_text_allowance_cohorts",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "public",
+   "name": "standalone_workspaces",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "table",
+   "schema": "public",
+   "name": "standalone_workspace_revisions",
+   "signature": null,
+   "source": "migrations and installed packets"
+  },
+  {
+   "kind": "role",
+   "schema": null,
+   "name": "embel_development_logo_worker",
+   "signature": null,
+   "source": "dropped if it exists"
+  },
+  {
+   "kind": "role",
+   "schema": null,
+   "name": "embel_development_text_worker",
+   "signature": null,
+   "source": "dropped if it exists"
+  },
+  {
+   "kind": "role",
+   "schema": null,
+   "name": "fluid_api_text_worker",
+   "signature": null,
+   "source": "dropped if it exists"
+  },
+  {
+   "kind": "role",
+   "schema": null,
+   "name": "fluid_local_worker",
+   "signature": null,
+   "source": "dropped if it exists"
+  },
+  {
+   "kind": "role",
+   "schema": null,
+   "name": "fluid_logo_worker",
+   "signature": null,
+   "source": "dropped if it exists"
+  },
+  {
+   "kind": "role",
+   "schema": null,
+   "name": "fluid_naming_brain_worker",
+   "signature": null,
+   "source": "dropped if it exists"
+  },
+  {
+   "kind": "role",
+   "schema": null,
+   "name": "^embel_shared_(strategy|naming|logo)_[a-z0-9_]+$",
+   "signature": null,
+   "match": "regex",
+   "source": "shared-worker slot logins, plus every role_name in fluid_private.shared_worker_slots"
+  },
+  {
+   "kind": "role",
+   "schema": null,
+   "name": "fluid_private.api_text_worker_principals.role_name",
+   "signature": null,
+   "match": "registry",
+   "source": "old Strategy worker logins"
+  },
+  {
+   "kind": "role",
+   "schema": null,
+   "name": "fluid_private.subscription_worker_principals.role_name",
+   "signature": null,
+   "match": "registry",
+   "source": "old ChatGPT-plan worker logins"
+  },
+  {
+   "kind": "role",
+   "schema": null,
+   "name": "fluid_private.logo_worker_principals.role_name",
+   "signature": null,
+   "match": "registry",
+   "source": "old Logo worker logins"
+  }
+ ],
+ "expectedMentionsInKeptFunctions": {
+  "note": "Kept function bodies that still name a dropped object. None executes it: comments, or calls guarded by to_regprocedure(...) is null. A production body search should find exactly these.",
+  "mentions": [
+   {
+    "keptFunction": "public.request_project_deletion(uuid,integer,integer)",
+    "droppedName": "begin_job_step",
+    "kind": "comment"
+   },
+   {
+    "keptFunction": "fluid_private.shared_http_role(text)",
+    "droppedName": "api_text_worker_can_read_step",
+    "kind": "to_regprocedure-guarded"
+   },
+   {
+    "keptFunction": "fluid_private.shared_http_role(text)",
+    "droppedName": "subscription_worker_can_read_step",
+    "kind": "to_regprocedure-guarded"
+   },
+   {
+    "keptFunction": "fluid_private.shared_logo_http_role(text)",
+    "droppedName": "api_text_worker_can_read_step",
+    "kind": "to_regprocedure-guarded"
+   },
+   {
+    "keptFunction": "fluid_private.shared_logo_http_role(text)",
+    "droppedName": "subscription_worker_can_read_step",
+    "kind": "to_regprocedure-guarded"
+   },
+   {
+    "keptFunction": "public.execute_shared_logo_request(text,text,jsonb,jsonb)",
+    "droppedName": "shared_logo_apply_proposal_command",
+    "kind": "code"
+   },
+   {
+    "keptFunction": "public.execute_shared_logo_request(text,text,jsonb,jsonb)",
+    "droppedName": "shared_logo_quote_vector_proposal",
+    "kind": "code"
+   },
+   {
+    "keptFunction": "public.execute_shared_logo_request(text,text,jsonb,jsonb)",
+    "droppedName": "shared_logo_read_proposal_command",
+    "kind": "code"
+   }
+  ]
+ }
+}

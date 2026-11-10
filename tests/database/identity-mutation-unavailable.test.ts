@@ -1,7 +1,7 @@
 import { afterAll,beforeAll,beforeEach,describe,expect,it,vi } from "vitest";
 vi.mock("server-only",()=>({}));
 import { getIdentitySystem,getProjectIdentity,selectIdentitySystem,refineIdentityComponent } from "../../src/server/data/identity";
-import { asRole,createTestDatabase,OWNER_A,OWNER_B,resetFixture,seedProject,type TestDatabase } from "./local-supabase";
+import { asRole,createTestDatabase,OWNER_A,resetFixture,seedProject,type TestDatabase } from "./local-supabase";
 import { identityDalAuth,seedIdentityRoot } from "./identity-system-database";
 
 describe("Identity mutation fail-closed boundary pending trusted transaction",()=>{
@@ -12,10 +12,6 @@ describe("Identity mutation fail-closed boundary pending trusted transaction",()
  const select=()=>({...fences(),systemVersionId:f.system.id});
  const refine=()=>({...fences(),baseSystemVersionId:f.system.id,component:"colors",input:{swatches:[{key:"primary",name:"New",hex:"#ABCDEF"}],usageNotes:""},idempotencyKey:"unavailable-refinement-0001"});
  async function unchanged(){for(const table of ["identity_sessions","identity_selections","identity_component_changes","asset_usages"])expect((await db.query(`select count(*)::int count from public.${table}`)).rows[0]).toEqual({count:0});expect((await db.query("select count(*)::int count from public.identity_system_versions")).rows[0]).toEqual({count:1});}
- it.each(["select_identity_system","refine_identity_component"])("blocks direct authenticated %s without publishing or changing state",async(name)=>{
-  await expect(asRole(db,"authenticated",OWNER_A,()=>db.query(`select public.${name}($1,$2::jsonb)`,[project,JSON.stringify(name==="select_identity_system"?select():refine())]))).rejects.toMatchObject({code:"55000"});await unchanged();
-  await expect(asRole(db,"authenticated",OWNER_B,()=>db.query(`select public.${name}($1,$2::jsonb)`,[project,JSON.stringify(select())]))).rejects.toMatchObject({code:"P0002"});
- });
  it("returns unavailable through DAL while preserving owned history",async()=>{
   const auth=identityDalAuth(db);
   expect((await getIdentitySystem(auth,project,f.system.id)).system).toEqual(f.system);const overview=await getProjectIdentity(auth,project);expect(overview.systems.items).toHaveLength(1);expect(overview.saveAvailability).toEqual({status:"unavailable",reason:"trusted_transaction_unavailable"});

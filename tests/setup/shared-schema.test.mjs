@@ -47,25 +47,28 @@ test('operational retargeting refuses absent or ambiguous target predicates',()=
  }
 });
 
-test('real isolated Supabase: repeated provisioning, restricted logins, source and service-account isolation',{
+test('real isolated Supabase: repeated provisioning and restricted web logins',{
  skip:process.env.EMBEL_TEST_PORTABLE_SQL!=='1',timeout:90_000,
 },async()=>{
  const first=await provisionDevelopmentSchema(),second=await provisionDevelopmentSchema();
- assert.deepEqual(first,second,'a repeat must not rotate credentials, slots or the service actor');
+ assert.deepEqual(first,second,'a repeat must not rotate credentials');
+ assert.deepEqual(first.httpPrincipals.map(p=>p.lane),['identity','home','logo']);
+ assert.equal(first.slots,undefined,'the old worker slots were retired');
  const db=await developmentDatabase();
  const catalog=await db.sql(CATALOG_FINGERPRINT_SQL);
  const marker=JSON.parse(await db.sql('select row_to_json(i) from fluid_private.portable_development_installation i;'));
  // The retired brainstorm development add-on is no longer installed.
  assert.equal(marker.brainstorm_supplement_v1,undefined);
- assert.equal(marker.catalog_sha256,catalog);
+ // Recorded when the packets were installed; later migrations (the old worker retirement) change the catalog.
+ assert.match(marker.catalog_sha256,/^[0-9a-f]{64}$/);
  assert.equal((await installDevelopmentSchema()).settings.projectId,first.target.deploymentId);
  assert.equal(await db.sql(CATALOG_FINGERPRINT_SQL),catalog);
- for(const principal of [...first.slots,...first.httpPrincipals]){
+ for(const principal of first.httpPrincipals){
   const client=new pg.Client({connectionString:principal.databaseUrl});
   try{
    await client.connect();
    await assert.rejects(client.query('select * from public.projects'),e=>e.code==='42501');
-   await assert.rejects(client.query('select * from fluid_private.shared_worker_slots'),e=>e.code==='42501');
+   await assert.rejects(client.query('select * from fluid_private.shared_http_principals'),e=>e.code==='42501');
    const result=await client.query("select has_schema_privilege(current_user,'fluid_private','USAGE') as private_usage,has_database_privilege(current_user,current_database(),'CREATE') as db_create");
    assert.deepEqual(result.rows,[{private_usage:false,db_create:false}]);
   }finally{await client.end();}
@@ -73,17 +76,5 @@ test('real isolated Supabase: repeated provisioning, restricted logins, source a
  await assert.rejects(db.sql("begin; update fluid_private.shared_http_target set origin='http://127.0.0.1:99999'; rollback;"));
  await assert.rejects(db.sql("begin; update fluid_private.shared_http_target set origin='http://localhost:55421'; rollback;"));
  assert.equal(await db.sql("select mode||' '||origin from fluid_private.shared_http_target;"),'development '+first.target.supabaseOrigin);
- const storage=first.storage;
- const response=await fetch(first.target.supabaseOrigin+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:storage.publishableKey,'Content-Type':'application/json'},body:JSON.stringify({email:storage.email,password:storage.password})});
- assert.equal(response.status,200,'the provisioned actor uses actual local Auth');
- const session=await response.json();
- try{
-  const headers={apikey:storage.publishableKey,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'};
-  const enrollment=await fetch(first.target.supabaseOrigin+'/rest/v1/rpc/get_shared_account_enrollment',{method:'POST',headers,body:'{}'});
-  assert.equal(enrollment.status,200);
-  assert.equal((await enrollment.json()).eligible,false,'storage service actor cannot become a customer');
- }finally{
-  await fetch(first.target.supabaseOrigin+'/auth/v1/logout?scope=local',{method:'POST',headers:{apikey:storage.publishableKey,Authorization:'Bearer '+session.access_token}});
- }
  assert.equal(await db.sql(CATALOG_FINGERPRINT_SQL),catalog);
 });

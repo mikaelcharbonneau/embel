@@ -4,7 +4,7 @@ import { promisify } from "node:util";
 import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { cliVersion, defaults, digest, DevelopmentError, localDockerEnvironment, migrationSources, prepare, publicEnvironment, readOptional, repositoryRoot, settingsFor, writeState } from "./development/config.mjs";
+import { cliVersion, defaults, digest, DevelopmentError, localDockerEnvironment, migrationSources, prepare, publicEnvironment, readOptional, repositoryRoot, settingsFor, SHARED_PACKETS_BEFORE, unstageFrom, writeState } from "./development/config.mjs";
 
 export { localDockerEnvironment } from "./development/config.mjs";
 
@@ -102,11 +102,20 @@ async function health(settings, status) {
   return checks;
 }
 
+async function databaseVolumeExists(settings) {
+  try { await docker(["volume", "inspect", "supabase_db_" + settings.projectId]); return true; }
+  catch { return false; }
+}
+
+async function installedVersions(settings) {
+  return (await docker(["exec", "supabase_db_" + settings.projectId, "psql", "-U", "postgres", "-d", "postgres", "-At", "-c", "select version from supabase_migrations.schema_migrations order by version"])).split(/\r?\n/);
+}
+
 async function coreStatus(root, state, settings, migrations) {
   const status = JSON.parse(await cli(root, state, ["status", "--output", "json"]));
   const serviceChecks = await inspectServices(settings);
   const http = await health(settings, status);
-  const installed = (await docker(["exec", "supabase_db_" + settings.projectId, "psql", "-U", "postgres", "-d", "postgres", "-At", "-c", "select version from supabase_migrations.schema_migrations order by version"])).split(/\r?\n/);
+  const installed = await installedVersions(settings);
   const expected = migrations.map(entry => entry.staged.slice(0, 14));
   if (JSON.stringify(installed) !== JSON.stringify(expected)) throw new DevelopmentError("The installed local migration history differs from this checkout. Run npm run dev:up.");
   return { status, report: { coreReady: true, migrations: installed.length, services: serviceChecks, http } };
@@ -172,9 +181,19 @@ export async function main(args, root = repositoryRoot) {
       await prepareProxyHealth(root, state, docker);
     }
     const network = await loopbackNetwork(settings);
+    // A new database applies the staged migrations when it starts: hold back the
+    // retirement of the old worker objects until the shared packets are installed.
+    if (!await databaseVolumeExists(settings)) await unstageFrom(state, SHARED_PACKETS_BEFORE);
     console.log("Starting the isolated stack; the first run may download container images.");
     await cli(root, state, ["start", "--network-id", network, "--exclude", excludes]);
     await inspectServices(settings);
+    if (!(await installedVersions(settings)).includes(SHARED_PACKETS_BEFORE)) {
+      await unstageFrom(state, SHARED_PACKETS_BEFORE);
+      await cli(root, state, ["migration", "up", "--local"]);
+      const { installDevelopmentSchema } = await import("./development/shared-schema-install.mjs");
+      await installDevelopmentSchema(root, { migrationsBefore: SHARED_PACKETS_BEFORE });
+      await prepare(root, options.ports);
+    }
     await cli(root, state, ["migration", "up", "--local"]);
   }
   const { status, report } = await coreStatus(root, state, settings, migrations);

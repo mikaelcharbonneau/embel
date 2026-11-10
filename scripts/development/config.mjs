@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { chmod, lstat, mkdir, readFile, readdir, realpath, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdir, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -7,6 +7,9 @@ export const repositoryRoot = fileURLToPath(new URL("../../", import.meta.url));
 export const cliVersion = "2.122.0";
 export const defaults = Object.freeze({ webPort: 3105, apiPort: 54321, dbPort: 54322, shadowPort: 54320, mailPort: 54324 });
 export const digest = value => createHash("sha256").update(value).digest("hex");
+/** Production ran the shared packets (supabase/candidates) before this migration retired
+ * the old worker objects. A new local database gets them at the same point. */
+export const SHARED_PACKETS_BEFORE = "20261110180000";
 
 export class DevelopmentError extends Error {}
 
@@ -96,6 +99,13 @@ export async function prepare(root, overrides = {}) {
   await writeState(path.join(state, "settings.json"), JSON.stringify(settings, null, 2) + "\n");
   await writeState(path.join(state, "migration-manifest.json"), JSON.stringify(migrations.map(({ source, staged, sha256 }) => ({ source, staged, sha256 })), null, 2) + "\n");
   return { settings, state, migrations };
+}
+
+/** Takes staged migrations from `version` on out of the local CLI's directory, so the
+ * next start or `migration up` stops before them. `prepare` stages them again. */
+export async function unstageFrom(state, version) {
+  const target = path.join(state, "supabase/migrations");
+  for (const name of await readdir(target)) if (name.endsWith(".sql") && name.slice(0, 14) >= version) await rm(path.join(target, name));
 }
 
 export function publicEnvironment(settings, status = null) {
