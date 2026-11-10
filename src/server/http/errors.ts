@@ -7,7 +7,7 @@ export type ApiErrorCode =
   | "naming_active" | "project_revision_changed" | "preferences_changed" | "preferences_incomplete"
   | "invalid_naming_request" | "naming_unavailable"
   | "weak_password" | "same_password" | "recovery_required"
-  | "generation_unavailable" | "generation_active" | "daily_limit" | "insufficient_credits";
+  | "generation_unavailable" | "generation_active" | "daily_limit" | "insufficient_credits" | "bot_detected";
 
 const failures = {
   unauthenticated: [401, "Sign in to continue."],
@@ -35,6 +35,7 @@ const failures = {
   generation_active: [409, "This step is already generating."],
   daily_limit: [429, "You've reached today's limit for this step. Try again tomorrow."],
   insufficient_credits: [402, "You're out of credits for this month."],
+  bot_detected: [403, "This request looks automated and was blocked. Reload the page and try again."],
 } as const;
 
 export class ApiError extends Error {

@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withBotId } from "botid/next/config";
 import { withWorkflow } from "workflow/next";
 
 // Files loaded by isolated logo children and native filesystem-backed engines.
@@ -114,4 +115,5 @@ const nextConfig: NextConfig = {
 /** The app's own settings, before Workflow adds its build transforms (read by tests). */
 export const appConfig = nextConfig;
 // Transforms "use workflow" and "use step" (docs/generation-engine.md).
-export default withWorkflow(nextConfig);
+// BotID adds the rewrites that serve its challenge script from this origin.
+export default withWorkflow(withBotId(nextConfig));
