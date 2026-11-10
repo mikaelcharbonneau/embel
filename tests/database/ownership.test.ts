@@ -130,7 +130,7 @@ describe("local PostgreSQL ownership boundaries (not live Supabase)", () => {
   });
 
   it("lets only the owner's own engine round write Creative directions, through functions only", async () => {
-    // 20261110160000: rounds are written by the engine login into the existing Creative
+    // 20261110170000: rounds are written by the engine login into the existing Creative
     // direction tables; clients keep read-only access and never write them directly.
     const a = await seedProject(db);
     const runId = (await db.query<{ id: string }>(`insert into public.generation_runs(owner_id,project_id,kind,status,idempotency_key,input,credits)

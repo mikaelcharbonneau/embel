@@ -38,7 +38,7 @@ const reviewedLogoAndHomeFunctions = [
   // 20261110140000: Naming on the engine. Owner-scoped read of the project's generated names
   // and latest run; names are written only by the engine login (engine_save_names).
   "public.get_name_feed(uuid, timestamp with time zone, uuid, integer)",
-  // 20261110160000: Creative directions on the engine. Owner-derived availability,
+  // 20261110170000: Creative directions on the engine. Owner-derived availability,
   // admission (through start_generation), Stop and request closing; boards are written
   // only by the engine login (engine_identity_save_board).
   "public.get_identity_directions_availability(uuid)",

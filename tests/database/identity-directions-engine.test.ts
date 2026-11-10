@@ -14,7 +14,7 @@ import { sharedHttpRoles } from "./shared-account-fixture";
 import { createSharedIdentityFixture, hash, OWNER_A, OWNER_B, type SharedIdentityFixture } from "./shared-identity-generation-fixture";
 import { applySharedImageModel } from "./shared-image-model-fixture";
 
-// Migration 20261110160000_identity_directions_engine: Creative directions on the
+// Migration 20261110170000_identity_directions_engine: Creative directions on the
 // generation engine. Rounds are written into the shared worker's Creative direction
 // tables, so the same readers, evidence check and selection accept them.
 

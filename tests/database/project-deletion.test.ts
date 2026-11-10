@@ -102,7 +102,7 @@ describe("reversible project lifecycle on complete migrated PGlite schema (synth
     await change();
   });
   it("keeps a project busy while a Creative directions round runs on the engine, and frees it when the round ends", async () => {
-    // 20261110160000: the round's job runs under the run's lease until finish_generation_run closes it.
+    // 20261110170000: the round's job runs under the run's lease until finish_generation_run closes it.
     const job = await insertJob("running");
     await db.query("update public.jobs set operation='identity.image', idempotency_key='engine:' || $2 where id=$1", [job.id, job.id]);
     const runId = (await db.query<{ id: string }>(`insert into public.generation_runs(owner_id,project_id,kind,status,idempotency_key,input,credits,workflow_run_id,started_at)
