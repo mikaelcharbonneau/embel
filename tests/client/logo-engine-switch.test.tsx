@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, createElement } from "react";
+import { act, createElement, useLayoutEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useGenerationEstimate, type LogoEngineStarter } from "@/components/logo-creation/use-generation-estimate";
@@ -19,9 +19,10 @@ function controller(estimate: LogoCreationController["estimate"]) {
 }
 const heads = { projectRevision: 1, referenceRevision: 0, preferencesRevision: 0, workspaceRevision: 1, stageRevisions: { brief_references: 1, concepts: 0, vector: 0, refinements: 0, directions: 0, deliverables: 0 } };
 const request: LogoQuoteRequest = { operation: "concepts", expected: heads, briefRevisionId: "eeeeeeee-5555-4555-8555-555555555555", referenceSnapshotId: "eeeeeeee-5555-4555-8555-555555555556" };
-let latest: ReturnType<typeof useGenerationEstimate> | null = null;
+const probe: { current: ReturnType<typeof useGenerationEstimate> | null } = { current: null };
 function Probe({ creation, value, engine }: { creation: LogoCreationController; value: LogoQuoteRequest | null; engine: LogoEngineStarter | null }) {
-  latest = useGenerationEstimate(creation, value, engine);
+  const estimate = useGenerationEstimate(creation, value, engine);
+  useLayoutEffect(() => { probe.current = estimate; });
   return null;
 }
 async function render(creation: LogoCreationController, value: LogoQuoteRequest | null, engine: LogoEngineStarter | null) {
@@ -34,23 +35,23 @@ describe("starting Logo work", () => {
     const estimate = vi.fn(async () => { throw new Error("no quote in this test"); });
     await render(controller(estimate), request, null);
     expect(estimate).toHaveBeenCalledTimes(1);
-    expect(latest).toMatchObject({ canStart: false, quote: null });
+    expect(probe.current).toMatchObject({ canStart: false, quote: null });
   });
   it("starts the engine run with one click and never asks for a quote while the Logo kinds are enabled", async () => {
     const estimate = vi.fn(), start = vi.fn();
     const engine: LogoEngineStarter = { busy: false, error: null, errorKey: null, start, clearError: vi.fn() };
     await render(controller(estimate), request, engine);
     expect(estimate).not.toHaveBeenCalled();
-    expect(latest).toMatchObject({ canStart: true, quote: null, loading: false, busy: false });
-    latest!.start();
+    expect(probe.current).toMatchObject({ canStart: true, quote: null, loading: false, busy: false });
+    probe.current!.start();
     expect(start).toHaveBeenCalledWith(request);
   });
   it("holds every action while an engine run works, and explains a refusal only on its own action", async () => {
     const engine: LogoEngineStarter = { busy: true, error: "You've used this month's credits. Your logos are saved.", errorKey: JSON.stringify(request), start: vi.fn(), clearError: vi.fn() };
     await render(controller(vi.fn()), request, engine);
-    expect(latest).toMatchObject({ canStart: false, busy: true, error: engine.error });
+    expect(probe.current).toMatchObject({ canStart: false, busy: true, error: engine.error });
     await render(controller(vi.fn()), { ...request, operation: "more_concepts" }, engine);
-    expect(latest!.error).toBeNull();
+    expect(probe.current!.error).toBeNull();
   });
 });
 
