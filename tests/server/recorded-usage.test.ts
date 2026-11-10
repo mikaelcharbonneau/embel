@@ -7,7 +7,7 @@ const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", project = "bbbbbbbb-bbbb-4
 const api = "11111111-1111-4111-8111-111111111111", subscription = "22222222-2222-4222-8222-222222222222";
 function auth(jobs: unknown[], steps: unknown[]) {
   return { userId: owner, client: { from: (table: string) => {
-    let rows = table === "jobs" ? jobs : steps;
+    let rows = table === "jobs" ? jobs : table === "job_steps" ? steps : [];
     const query = { select: () => query, eq: () => query, order: () => query,
       in: (field: string, values: string[]) => { rows = rows.filter(row => values.includes((row as Record<string, string>)[field]!)); return query; },
       limit: async (count: number) => ({ data: rows.slice(0, count), error: null }) };

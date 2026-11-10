@@ -35,6 +35,9 @@ const reviewedLogoAndHomeFunctions = [
   "public.cancel_generation(uuid)",
   "public.get_credit_summary()",
   "public.get_generation_catalog()",
+  // 20261110140000: Naming on the engine. Owner-scoped read of the project's generated names
+  // and latest run; names are written only by the engine login (engine_save_names).
+  "public.get_name_feed(uuid, timestamp with time zone, uuid, integer)",
   // local20261007014000: server/data/home-lifecycle.ts preserves manual source
   // provenance through owner-derived association/promotion and receipt recovery.
   "public.attach_idea_to_project(jsonb)",

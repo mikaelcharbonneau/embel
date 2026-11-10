@@ -81,6 +81,7 @@
   "src/server/ai/chatgpt-directions.ts",
   "src/server/ai/config.ts",
   "src/server/ai/naming-generation-provider.ts",
+  "src/server/ai/naming-prompt.ts",
   "src/server/ai/openai-transport.ts",
   "src/server/ai/strategy-response.ts",
   "src/server/api-text/config.ts",

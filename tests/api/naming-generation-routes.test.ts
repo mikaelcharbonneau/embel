@@ -40,7 +40,8 @@ beforeEach(() => {
   mocks.auth.mockResolvedValue({ userId: owner, client: { rpc: mocks.rpc, from: mocks.from } });
   mocks.from.mockImplementation(() => { const query = { select: () => query, eq: () => query, maybeSingle: async () => ({ data: savedPreferences, error: null }) }; return query; });
   mocks.rpc.mockImplementation(async (name: string, args: { p_request?: { kind: string } }) => ({ error: null,
-    data: name === "get_naming_generation" ? feedRow() : name === "start_naming_run" ? { run: runRow("queued", args.p_request!.kind), reused: false } : name === "stop_naming_run" ? { run: runRow("cancel_requested") } : null }));
+    data: name === "get_naming_generation" ? feedRow() : name === "start_naming_run" ? { run: runRow("queued", args.p_request!.kind), reused: false } : name === "stop_naming_run" ? { run: runRow("cancel_requested") }
+      : name === "get_generation_catalog" ? { plans: [], kinds: [{ kind: "naming.generate", credits: 1, enabled: false }] } : null }));
 });
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
@@ -49,7 +50,9 @@ describe("GET feed", () => {
     const response = await feedRoute(request(undefined, { method: "GET" }), params());
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("private, no-store");
-    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("get_naming_generation", { p_project: project, p_after_created_at: null, p_after_id: null, p_limit: 100 });
+    // The engine switch is consulted first; with naming.generate disabled the old path answers.
+    expect(rpcCalls("get_generation_catalog")).toHaveLength(1);
+    expect(rpcCalls("get_naming_generation")).toEqual([["get_naming_generation", { p_project: project, p_after_created_at: null, p_after_id: null, p_limit: 100 }]]);
     const { feed } = await response.json();
     expect(feed.entries[0].entry.candidate.strategyKey).toBe(namingStrategyKey(context));
     expect(feed.run).toMatchObject({ runId: run, state: "running", savedCount: 1 });
