@@ -351,10 +351,25 @@ describe("independent database boundary attacks", () => {
       "public.read_logo_workspace_record(uuid, text, uuid)",
       "public.list_logo_workspace_records(uuid, text, jsonb)",
       "public.apply_logo_workspace_command(uuid, jsonb)",
+      // 20261110200000_account_deletion_and_export: the caller's own export
+      // limit (auth.uid()) and the catalog list of tables the export reads.
+      "public.admit_account_export()",
+      "public.account_export_tables()",
     ]);
-    // service_role keeps only the two identity helpers; the baseline grants them by name to
-    // production's roles, so a login created afterwards executes nothing.
-    const workerFunctions = new Set([...publicFunctions]);
+    // service_role and a direct login keep only the two identity helpers, plus the
+    // server's account deletion and cleanup functions (service_role only;
+    // 20261110200000_account_deletion_and_export). No worker login gets them.
+    const workerFunctions = new Set([...publicFunctions,
+      "public.account_deletion_begin(uuid)",
+      "public.account_deletion_purge(uuid)",
+      "public.account_storage_objects(uuid, text, integer)",
+      "public.account_deletion_files_removed(uuid, integer)",
+      "public.account_deletion_complete(uuid)",
+      "public.account_deletions_pending(interval, integer)",
+      "public.orphaned_storage_objects(text, integer)",
+    ]);
+    // The baseline grants the worker helpers by name to production's roles, so a login
+    // created afterwards executes nothing.
     const unrelatedLoginFunctions = new Set<string>();
     expect(grants.rows.length).toBeGreaterThan(10);
     expect(new Set(grants.rows.filter(grant => grant.authenticated).map(grant => grant.signature))).toEqual(userFunctions);

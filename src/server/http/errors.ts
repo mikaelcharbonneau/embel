@@ -7,7 +7,8 @@ export type ApiErrorCode =
   | "naming_active" | "project_revision_changed" | "preferences_changed" | "preferences_incomplete"
   | "invalid_naming_request" | "naming_unavailable"
   | "captcha_failed" | "weak_password" | "same_password" | "recovery_required"
-  | "generation_unavailable" | "generation_active" | "daily_limit" | "insufficient_credits" | "bot_detected";
+  | "generation_unavailable" | "generation_active" | "daily_limit" | "insufficient_credits" | "bot_detected"
+  | "reauthentication_required" | "confirmation_mismatch" | "deletion_incomplete" | "export_rate_limited";
 
 const failures = {
   unauthenticated: [401, "Sign in to continue."],
@@ -37,6 +38,10 @@ const failures = {
   daily_limit: [429, "You've reached today's limit for this step. Try again tomorrow."],
   insufficient_credits: [402, "You're out of credits for this month."],
   bot_detected: [403, "This request looks automated and was blocked. Reload the page and try again."],
+  reauthentication_required: [403, "For your security, sign in again before deleting your account."],
+  confirmation_mismatch: [422, "The email doesn't match this account."],
+  deletion_incomplete: [503, "Account deletion didn't finish. Some of your data may already be deleted. Try again to finish it."],
+  export_rate_limited: [429, "You can download your data 3 times a day. Try again tomorrow."],
 } as const;
 
 export class ApiError extends Error {
