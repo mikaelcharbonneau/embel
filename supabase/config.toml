@@ -39,3 +39,11 @@ file_size_limit = "50MiB"
 
 [auth]
 enabled = true
+
+[auth.email.template.confirmation]
+subject = "Confirm your Embel account"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Reset your Embel password"
+content_path = "./supabase/templates/recovery.html"
