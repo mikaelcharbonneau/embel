@@ -113,11 +113,9 @@ describe("existing-brand initialization through the actual logo workspace", () =
     }
     await until(() => f.state.posts.length === 1 && message().includes(savedName));
     expect(briefName(f.state.posts[0])).toBe(savedName); expect(f.state.posts[0]!.path).toMatch(/\/initialize$/);
-    if (savedName === "Élan & Co") await until(() => quotes.length === 1);
-    else {
-      expect(host.textContent).toContain("Some characters in this name cannot yet be rendered");
-      expect(quotes).toEqual([]);
-    }
+    // Logo images start on the generation engine with a click; nothing is quoted or requested here.
+    if (savedName !== "Élan & Co") expect(host.textContent).toContain("Some characters in this name cannot yet be rendered");
+    expect(quotes).toEqual([]);
     expect(button("Explore six concepts")?.disabled).toBe(true);
   });
   it("updates its brief when Inspiration likes change on the same page before any concepts exist", async () => {

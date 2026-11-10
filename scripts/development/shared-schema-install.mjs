@@ -54,7 +54,7 @@ export async function installDevelopmentSchema(root=repositoryRoot) {
 }
 
 export async function verifyDevelopmentAuthority(db,root=repositoryRoot) {
- const manifest=JSON.parse(await readOptional(path.join(root,'worker/shared-pool/authority-manifest.json')));
+ const manifest=JSON.parse(await readOptional(path.join(root,'scripts/development/shared-authority-manifest.json')));
  if(manifest.version!==1||!Array.isArray(manifest.functions)||manifest.functions.length<1)throw new DevelopmentError('Shared engine authority manifest is missing.');
  const mismatch=await db.sql(`select count(*) from jsonb_array_elements(${q(JSON.stringify(manifest.functions))}::jsonb) e
  left join pg_namespace n on n.nspname=e->>'schema'

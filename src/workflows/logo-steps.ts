@@ -48,7 +48,7 @@ async function logoDeps(): Promise<LogoRunDeps> {
 }
 async function styleNoteDeps(): Promise<StyleNoteRunDeps> {
   const [{ engineOpenAI }, { engineStorage }, { runLogoReferenceOnWhiteProcess }] = await Promise.all([
-    import("@/server/engine/openai"), import("@/server/engine/storage"), import("../../worker/logo-vector/process")]);
+    import("@/server/engine/openai"), import("@/server/engine/storage"), import("../server/image-process/process")]);
   const db = await engineDb();
   return {
     openai: engineOpenAI(), storage: engineStorage(), check: db.check,

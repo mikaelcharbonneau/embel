@@ -1,5 +1,17 @@
 # Emergency stop: AI generation
 
+> **Since the old worker's retirement (November 10, 2026)** all AI steps run on the generation
+> engine inside the web app. Stop them with the engine's switch, in the Supabase SQL editor of the
+> production project:
+>
+> ```sql
+> update fluid_private.engine_settings set paused = true;   -- start again: set paused = false
+> ```
+>
+> New requests are refused and running ones stop before their next paid call. To stop one step
+> only, set `enabled = false` for its kinds in `public.generation_kinds`. The daemon commands below
+> apply only until the old worker is removed ([retire-old-worker-release.md](retire-old-worker-release.md)).
+
 Use this when spending looks wrong or generations misbehave. It stops all research, naming and logo
 work at once. The website, sign-in and downloads keep working.
 

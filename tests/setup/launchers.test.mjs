@@ -13,23 +13,19 @@ const repository = fileURLToPath(new URL("../../", import.meta.url));
 async function checkout(t) {
   const root = await realpath(await mkdtemp(path.join(os.tmpdir(), "embel launcher with spaces ")));
   t.after(() => rm(root, { recursive: true, force: true }));
-  for (const directory of ["scripts/development", "worker/development", ".embel-dev", "node_modules/tsx", "node_modules/next/dist/bin"]) {
+  for (const directory of ["scripts/development", ".embel-dev", "node_modules/tsx", "node_modules/next/dist/bin"]) {
     await mkdir(path.join(root, directory), { recursive: true });
   }
-  for (const file of ["scripts/development-worker.mjs", "scripts/development-web.mjs", "scripts/development/config.mjs", "scripts/development/shared-web.mjs"]) {
+  for (const file of ["scripts/development-web.mjs", "scripts/development/config.mjs", "scripts/development/shared-web.mjs"]) {
     await copyFile(path.join(repository, file), path.join(root, file));
   }
   await writeFile(path.join(root, "package.json"), '{"type":"module"}\n');
   // Execute the real launcher, with tiny child programs instead of starting
-  // Next.js or a database worker. No installed-package symlinks are required.
+  // Next.js. No installed-package symlinks are required.
   await writeFile(path.join(root, "node_modules/tsx/package.json"), '{"name":"tsx","type":"module","exports":"./index.mjs"}\n');
   await writeFile(path.join(root, "node_modules/tsx/index.mjs"), 'import { register } from "node:module"; register("./loader.mjs", import.meta.url);\n');
   await writeFile(path.join(root, "node_modules/tsx/loader.mjs"), `
-import { readFile } from "node:fs/promises";
 export async function load(url, context, nextLoad) {
-  if (url.endsWith("/worker/development/index.ts")) {
-    return { format: "module", source: await readFile(new URL(url), "utf8"), shortCircuit: true };
-  }
   return nextLoad(url, context);
 }
 `);
@@ -64,40 +60,6 @@ async function run(root, launcher, args, env = environment()) {
     return { code: error.code, stdout: error.stdout, stderr: error.stderr };
   }
 }
-
-test("worker launcher resolves a spaced checkout and keeps lane/inherited settings ahead of generated defaults", async t => {
-  const root = await checkout(t);
-  await writeFile(path.join(root, "worker/development/index.ts"), `
-const env = process.env;
-console.log(JSON.stringify({
-  cwd: process.cwd(), args: process.argv.slice(2), origin: env.APP_ORIGIN,
-  mode: env.NODE_ENV, dispatch: env.EMBEL_DEVELOPMENT_DISPATCH_APPROVED,
-  paid: env.FLUID_PAID_CALLS_APPROVED,
-  credentialSource: env.EMBEL_DEVELOPMENT_PROVIDER_API_KEY === "fixture-inherited" ? "inherited"
-    : env.EMBEL_DEVELOPMENT_PROVIDER_API_KEY === "fixture-lane" ? "lane" : "unexpected",
-}));
-process.exit(Number(env.FIXTURE_EXIT_CODE ?? 0));
-`);
-  for (const [credentialSource, code, overrides] of [
-    ["inherited", 0, { EMBEL_DEVELOPMENT_PROVIDER_API_KEY: "fixture-inherited" }],
-    ["lane", 17, { FIXTURE_EXIT_CODE: "17" }],
-  ]) {
-    const result = await run(root, "development-worker.mjs", ["--lane", "strategy", "--run"], environment(overrides));
-    assert.equal(result.code, code, result.stderr);
-    assert.deepEqual(JSON.parse(result.stdout), {
-      cwd: root, args: ["--lane", "strategy", "--run"], origin: "http://127.0.0.1:3155",
-      mode: "development", dispatch: "true", paid: "true", credentialSource,
-    });
-  }
-});
-
-test("worker launcher rejects invalid lanes before loading a child or selecting a credential file", async t => {
-  const root = await checkout(t);
-  const result = await run(root, "development-worker.mjs", ["--lane", "../outside"]);
-  assert.equal(result.code, 2);
-  assert.equal(result.stdout, "");
-  assert.match(result.stderr, /Use npm run dev:worker/);
-});
 
 test("web launcher uses its generated origin and configured port from any working directory", async t => {
   const root = await checkout(t);

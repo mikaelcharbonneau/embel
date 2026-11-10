@@ -5,7 +5,7 @@ import { LOGO_STYLE_NOTE_VERSION, logoStyleNoteSchema } from "@/domain/logo-styl
 import { logoVectorProposalUsageCost, logoVectorProposalUsageSchema } from "@/domain/logo-vector-proposal-jobs";
 import type { ResponsesRequest } from "../ai/openai-transport";
 import { OPENAI_STRATEGY_MODEL } from "../ai/config";
-import { createStyleNoteRequest, type StyleNoteImage } from "../logo-creation/style-note-request";
+import { createStyleNoteRequest, type StyleNoteImage } from "../ai/style-note-request";
 import { EngineProviderError, isTerminal, type EngineOpenAI } from "./openai";
 import type { EngineStorage } from "./storage";
 import { LOGO_STYLE_NOTE_KIND, logoStyleNoteRunInputSchema, styleNoteOutputKey, type LogoStyleNoteRunInput } from "./logo-input";

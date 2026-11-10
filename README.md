@@ -2,7 +2,7 @@
 
 Embel is an account-based workspace for turning a product idea into strategy, a
 name, a logo, visual directions and usable brand assets. It uses Next.js, React,
-TypeScript, Supabase Auth/Postgres/private Storage, and durable background workers.
+TypeScript, Supabase Auth/Postgres/private Storage, and Vercel Workflow for the AI steps.
 
 [AGENTS.md](AGENTS.md) records the current working agreement and product decisions.
 This README describes the current source. Dated specifications and release
@@ -73,9 +73,8 @@ capacity for thousands of concurrent users.
 ## Local development
 
 Use a Node.js version supported by the complete toolchain:
-`^22.22.2 || ^24.15.0 || >=26.0.0`. The development default in `.nvmrc` is Node 24;
-the packaged shared worker pins Node 22.22.2. Dependencies are pinned in
-`package-lock.json`.
+`^22.22.2 || ^24.15.0 || >=26.0.0`. The development default in `.nvmrc` is Node 24.
+Dependencies are pinned in `package-lock.json`.
 
 ```sh
 npm ci
@@ -85,8 +84,8 @@ npm run dev
 
 The interface is at `http://127.0.0.1:3105`. For local accounts, database, private
 Storage and email, start Docker Desktop/Engine and run `npm run dev:up` before
-starting the web server. `npm run dev:doctor` reports service readiness and
-shared worker status. `npm run dev:down` stops this checkout's services
+starting the web server. `npm run dev:doctor` reports service readiness.
+`npm run dev:down` stops this checkout's services
 and retains its local data.
 
 The commands resolve their paths from the checkout and are designed for local
@@ -96,13 +95,11 @@ The pinned CLI, configuration templates and baseline migrations are in Git;
 generated settings and database state remain local. See
 [development setup](docs/development-environment.md) and
 [switching between local and cloud](docs/local-cloud-sync.md).
-`dev:up` also provisions the shared application schema, restricted web/worker
-principals and a local worker Storage identity. With a dedicated application
-provider key configured, `npm run dev:branding` builds and starts the same shared
-Strategy/Naming/Logo engine used by the hosted application, including visual
-identity directions. The worker runs in Docker with its pinned Linux/amd64
-Node 22.22.2 runtime. The historical `npm run local` subscription launcher is
-separate.
+`dev:up` also provisions the shared application schema and the restricted web
+principals. The AI steps run on the [generation engine](docs/generation-engine.md)
+inside the web app: set `EMBEL_ENGINE_DATABASE_URL`, `EMBEL_ENGINE_SUPABASE_SECRET_KEY`
+and `OPENAI_API_KEY` for the dev server, and enable the step's kinds in
+`generation_kinds`, to run them locally.
 
 GitHub remains the shared reference for code, nonsecret configuration and SQL
 changes. Credentials and database contents have their own authoritative stores;
@@ -125,10 +122,9 @@ with the `.live.ts` suffix run only through the separately configured
 `npm run test:live`; the ordinary test suite uses local fixtures. Passing fixture
 tests do not establish live provider, account or Storage acceptance.
 
-`npm run test:setup` exercises the portable setup commands. Worker build,
-packaging and database authority commands are documented with their runtimes.
-These commands are available for the changes being developed; they are not a
-mandatory publication checklist.
+`npm run test:setup` exercises the portable setup commands. These commands are
+available for the changes being developed; they are not a mandatory publication
+checklist.
 
 ## Runtime and deployment
 
@@ -138,23 +134,26 @@ mandatory publication checklist.
 - **Supabase:** Auth, Postgres and private Storage retain authoritative ownership,
   revisions, jobs, provider evidence and files. A SQL filename is not evidence
   that a database has that change installed.
-- **Shared worker:** one Vercel Daemon contains fixed Strategy, Naming and Logo
-  lanes. Identity generation uses the Logo lane. Restricted service principals,
-  immutable job scope and compiled SQL authority checks govern execution.
-- **Historical runtimes:** separate API-text, dedicated Naming/Logo and local
-  subscription entrypoints remain for their existing callers and data formats.
-  Their existence does not enable them or make their older contracts current.
+- **Generation engine:** Strategy, Naming, Logo images and style notes, and
+  Creative directions run as Vercel Workflow runs inside the web app
+  (`src/workflows`, `src/server/engine`). `start_generation` admits each run with
+  the person's own login (credits, limits, one run per step at a time); only the
+  `embel_engine` login writes results. Each step's kinds in `generation_kinds`
+  are its stop switch: a disabled step shows as unavailable. See
+  [the generation engine](docs/generation-engine.md).
+- **Old worker (retired):** the shared worker daemon, the API-text worker, the
+  dedicated Logo worker, ChatGPT-plan mode and the laptop runtimes are gone from
+  the code. Requests they made earlier still display from the old job tables.
+  Their database objects are dropped separately.
 
-See [production deployment](docs/production-deployment.md),
-[shared worker authority](docs/shared-worker-pool.md), and
-[worker packaging](services/shared-worker/README.md). Keep credentials and private
+See [production deployment](docs/production-deployment.md) and
+[retiring the old worker](docs/retire-old-worker-release.md). Keep credentials and private
 runtime state outside Git and browser bundles. Use the actual upload file set
 when verifying a Vercel source deployment, not only the full checkout.
 
 Database changes must reconcile the target's migration history and installed
 function bodies. Historical SQL stays immutable. Use a reviewed forward packet
-with exact predecessor guards, and coordinate the compatible worker when its
-authority changes. Files in `supabase/candidates` can already be deployed; do not
+with exact predecessor guards. Files in `supabase/candidates` can already be deployed; do not
 blanket-apply them or infer installation status from that directory name.
 [Migration history](docs/migration-order.md) explains the older handoff and links
 the current installation authority.
@@ -166,7 +165,7 @@ the current installation authority.
 | `src/app`, `src/components`, `src/features` | Routes, interface and feature implementations |
 | `src/domain` | Shared contracts and validation |
 | `src/server` | Authentication, persistence, providers and runtime boundaries |
-| `worker`, `services` | Durable execution and deployment entrypoints |
+| `src/workflows`, `src/server/engine` | The generation engine: AI step workflows, admission and results |
 | `supabase` | Historical migrations, guarded forward packets and setup material |
 | `tests` | Unit, database, security, browser and opt-in live checks |
 

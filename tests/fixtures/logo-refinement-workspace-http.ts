@@ -38,6 +38,8 @@ export async function syntheticRefinementWorkspaceHttp(preexisting = false) {
     if (path === "/api/session") return json({ user: { id: state.owner } });
     if (state.owner !== foundation.ownerId) return json({}, 404);
     if (path === base) return json(workspace);
+    // The Logo kinds are on, as in production; a test can answer this path itself to change that.
+    if (path === `${base}/engine`) return json({ engine: true, runs: [] });
     if (path === `${base}/capabilities`) { const now = Date.now(); return json({ ownerId: foundation.ownerId, projectId: foundation.projectId, observedAt: new Date(now).toISOString(), operations: Object.fromEntries(logoOperationSchema.options.map(operation => [operation, operation === "identity.logo_vectorize" || operation === "identity.logo_refine" && state.imageAvailable ? { status: "available", expiresAt: new Date(now + 30000).toISOString() } : { status: "unavailable" }])) }); }
     if (path.includes(`${base}/stages/`)) { const revision = stages.get(path.split("/").at(-1)!); return json(revision ?? {}, revision ? 200 : 404); }
     if (path === `${base}/reference-snapshots/${resolved.referenceSnapshot.id}`) return json(resolved.referenceSnapshot);

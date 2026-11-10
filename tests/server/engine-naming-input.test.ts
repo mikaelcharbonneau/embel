@@ -82,7 +82,6 @@ describe("freezing a Naming run's input", () => {
     expect(await failure(buildNamingRunInput(auth(tables()), project, request({ kind: "steer", seedIds: [id(999)] })))).toBe("invalid_naming_request");
     expect(await failure(buildNamingRunInput(auth(tables()), project, request({ kind: "more", instruction: "Not for More names" })))).toBe("invalid_naming_request");
     expect(await failure(buildNamingRunInput(auth(tables()), project, { ...request(), preferences }))).toBe("invalid_naming_request");
-    expect(await failure(buildNamingRunInput(auth(tables({ jobs: [{ id: id(500), owner_id: owner, project_id: project, operation: "naming.generate", state: "running" }] })), project, request()))).toBe("generation_active");
     expect(await failure(buildNamingRunInput(auth(tables({ projects: [] })), project, request()))).toBe("not_found");
   });
   it("keeps a large project's input inside start_generation's limit by dropping the oldest identities", async () => {

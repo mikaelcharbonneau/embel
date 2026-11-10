@@ -8,14 +8,14 @@ import {
 } from "@/domain/project-identity";
 import { logoBriefRevisionSchema } from "@/domain/logo-workspace";
 import { identityLogoSourceSchema } from "@/domain/identity-logo-source";
-import { isSharedWorkerRuntime } from "../shared-account/routing";
 import { identityGeneratedSystemBindingSchema } from "@/domain/identity-jobs";
 import { identityReferenceSnapshotSchema } from "@/domain/identity-references";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 import { productionIdentityTransactions,productionIdentitySaveAvailability } from "./identity-transaction";
 import { resolveDevelopmentIdentityRuntime } from "../development/identity";
-import { acquireAccountIdentityRuntime } from "../runtime/account-http-binding-source";
+import { acquireAccountIdentityRuntime } from "../runtime/account-http-lanes";
+import { sharedAccountHttpConfigured } from "../shared-account/bootstrap";
 
 function input<T>(schema:z.ZodType<T>,value:unknown):T {const result=schema.safeParse(value);if(!result.success)throw new ApiError("invalid_input");return result.data;}
 function stored<T>(schema:z.ZodType<T>,value:unknown):T {const result=schema.safeParse(value);if(!result.success)throw new ApiError("integration_unavailable");return result.data;}
@@ -86,7 +86,9 @@ async function readHistory(auth:AuthenticatedContext,id:string,value:unknown,rpc
 }
 const sourceStateSchema = z.strictObject({ sourceLogo: identityLogoSourceSchema, sourceLogoCurrent: z.boolean() });
 async function logoSourceState(auth: AuthenticatedContext, id: string, systemId: string) {
- if (!isSharedWorkerRuntime()) return {};
+ // The selected-logo board packet installs this reader with the shared web lanes; a database
+ // built from migrations alone has no source records.
+ if (!sharedAccountHttpConfigured()) return {};
  const result = await auth.client.rpc("get_identity_logo_source", { p_project_id: id, p_system_version_id: systemId });
  databaseError(result.error);
  const source = stored(sourceStateSchema.nullable(), result.data);

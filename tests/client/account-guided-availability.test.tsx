@@ -62,28 +62,6 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); });
 
 describe("guided Strategy availability presentation", () => {
-  it("keeps fresh worker handoff quiet, offers a check after a real delay, and clears it once running", async () => {
-    addGuidedTurn(); unavailable("request_active");
-    const queued = { ...boundJob("queued"), dispatchState: "dispatch_pending", workerDelivery: "awaiting_worker", canRetryDelivery: false };
-    strategy.overview!.jobs = [strategyJobSchema.parse(queued)];
-    await render();
-    // Queued research already shows the research card (redesign, 2026-11-06).
-    expect(host.querySelector('[aria-label="Researching your competitors"]')).not.toBeNull();
-    expect(button("Cancel research")?.disabled).toBe(false);
-    expect(host.querySelector(".guided-delivery-notice")).toBeNull();
-    expect(button("Retry delivery")).toBeUndefined(); expect(notice()).toBe("");
-    strategy.overview!.jobs = [strategyJobSchema.parse({ ...queued, workerDelivery: "worker_delayed" })];
-    await render();
-    expect(host.querySelector(".guided-delivery-notice")?.textContent).toContain("still queued");
-    expect(button("Retry delivery")).toBeUndefined();
-    await act(async () => button("Check status")!.click());
-    expect(strategy.refresh).toHaveBeenCalledOnce();
-    strategy.overview!.jobs = [boundJob("running")];
-    await render();
-    expect(host.querySelector('[aria-label="Researching your competitors"]')).not.toBeNull();
-    expect(host.querySelector(".guided-delivery-notice")).toBeNull();
-    expect(strategy.retryDelivery).not.toHaveBeenCalled(); expect(strategy.enqueue).not.toHaveBeenCalled();
-  });
 
   it("does not treat temporary refusal of new requests as a failed admission in progress", async () => {
     addGuidedTurn(); unavailable("request_active"); strategy.pending = true;
@@ -91,42 +69,7 @@ describe("guided Strategy availability presentation", () => {
     expect(host.querySelector('[aria-label="Researching your competitors"]')).not.toBeNull();
     expect(notice()).toBe(""); expect(button("Retry research")).toBeUndefined();
   });
-  it("offers exact delivery recovery after reload despite request_active without automatically retrying", async () => {
-    addGuidedTurn(); unavailable("request_active");
-    const job = strategyJobSchema.parse({ ...boundJob("queued"), dispatchState: "dispatch_pending", canRetryDelivery: true });
-    strategy.overview!.jobs = [job];
-    await render();
-    expect(host.querySelector(".guided-delivery-notice")?.textContent).toContain("delivery to the worker is not confirmed");
-    const recovery = host.querySelector('[role="group"][aria-label="Delivery recovery"]');
-    expect(recovery).not.toBeNull();
-    expect([...recovery!.querySelectorAll("button")].map(control => control.textContent)).toEqual(["Check status", "Retry delivery"]);
-    expect(button("Retry delivery")?.disabled).toBe(false);
-    expect(strategy.retryDelivery).not.toHaveBeenCalled(); expect(strategy.enqueue).not.toHaveBeenCalled();
-    await act(async () => button("Check status")!.click());
-    expect(strategy.refresh).toHaveBeenCalledOnce(); expect(strategy.retryDelivery).not.toHaveBeenCalled();
-    await act(async () => button("Retry delivery")!.click());
-    expect(strategy.retryDelivery).toHaveBeenCalledExactlyOnceWith(job);
-    expect(saveContext).not.toHaveBeenCalled(); expect(strategy.enqueue).not.toHaveBeenCalled();
-  });
 
-  it("keeps the queued audience request after saved competitor selection and removes recovery when delivery advances", async () => {
-    const saved = { ...workspace.saved, current_revision: 2,
-      context: initialGuidedContext({ ...workspace.saved.context, competitorReviewComplete: true }, 2, when) };
-    workspace = { ...workspace, saved, draft: accountProjectDraft(saved) };
-    unavailable("request_active");
-    const job = strategyJobSchema.parse({ ...boundJob("queued"), operation: "strategy.audience", input_revision: 2,
-      dispatchState: "dispatch_pending", canRetryDelivery: true });
-    strategy.overview!.jobs = [job];
-    await render();
-    expect(button("Retry delivery")?.disabled).toBe(false);
-    await act(async () => button("Retry delivery")!.click());
-    expect(strategy.retryDelivery).toHaveBeenCalledExactlyOnceWith(job);
-    strategy.overview!.jobs = [strategyJobSchema.parse({ ...job, state: "running", dispatchState: "published", canRetryDelivery: false })];
-    await render();
-    expect(button("Retry delivery")).toBeUndefined();
-    expect(host.querySelector('[aria-label="Embel is thinking"]')).not.toBeNull();
-    expect(saveContext).not.toHaveBeenCalled(); expect(strategy.enqueue).not.toHaveBeenCalled();
-  });
 
   it.each([
     ["ordinary queued", {}], ["published queued", { dispatchState: "published", canRetryDelivery: false }],
@@ -142,15 +85,6 @@ describe("guided Strategy availability presentation", () => {
     expect(strategy.retryDelivery).not.toHaveBeenCalled(); expect(strategy.enqueue).not.toHaveBeenCalled();
   });
 
-  it("disables delivery while a request is in flight or saved content is conflicted", async () => {
-    addGuidedTurn(); unavailable("request_active");
-    strategy.overview!.jobs = [strategyJobSchema.parse({ ...boundJob("queued"), dispatchState: "dispatch_pending", canRetryDelivery: true })];
-    strategy.pending = true; await render();
-    expect(button("Retry delivery")?.disabled).toBe(true);
-    strategy.pending = false; workspace = { ...workspace, conflict: true }; await render();
-    expect(button("Retry delivery")?.disabled).toBe(true);
-    expect(strategy.retryDelivery).not.toHaveBeenCalled();
-  });
 
   it.each(reasons)("shows %s before the first turn without inventing request history or save completion", async (reason, expected) => {
     unavailable(reason);

@@ -5,7 +5,7 @@ vi.mock("@/server/shared-account/runtime",()=>({createSharedAccountHttpRuntime:p
 vi.mock("@/server/shared-account/logo-runtime",()=>({createSharedLogoHttpRuntime:ports.logo}));
 vi.mock("@/server/runtime/account-http-services",()=>({createAccountHttpRuntimeFromConfiguration:vi.fn(),resolveAccountIdentityRuntime:ports.legacyIdentity,resolveAccountHomeAttachmentService:ports.legacyHome}));
 import { startSharedAccountHttpServices,stopSharedAccountHttpServices,resolveSharedLogoRequestServices } from "@/server/shared-account/bootstrap";
-import { acquireAccountIdentityRuntime,acquireAccountHomeAttachmentService } from "@/server/runtime/account-http-binding-source";
+import { acquireAccountIdentityRuntime,acquireAccountHomeAttachmentService } from "@/server/runtime/account-http-lanes";
 import type { AuthenticatedContext } from "@/server/auth/context";
 const a={userId:"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",client:{}} as AuthenticatedContext;
 const b={userId:"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",client:{}} as AuthenticatedContext;

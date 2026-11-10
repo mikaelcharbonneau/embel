@@ -44,7 +44,7 @@ const homeExamples = [
 ];
 
 export function NewProjectForm({ exampleId, home = false }: { exampleId?: string; home?: boolean }) {
-  const { session, enrollment, isCurrent, expire, homeInputSession, drafts: accountDrafts } = useAccountSession();
+  const { session, isCurrent, expire, homeInputSession, drafts: accountDrafts } = useAccountSession();
   const account = session.status === "ready" ? session : null;
   const example = briefExamples.find((item) => item.id === exampleId);
   // Every project is a complete brand.
@@ -142,7 +142,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
       if (result && !controller.signal.aborted && isCurrent(account)) setCapability({ fence: sessionFence, policy: result.policy, reason: result.reason });
     }).catch(() => { if (!controller.signal.aborted && isCurrent(account)) setCapability({ fence: sessionFence, policy: null, reason: "Verified file storage is unavailable. Your typed prompt stays available." }); });
     return () => { controller.abort(); };
-  }, [account, client, isCurrent, sessionFence, enrollment?.capabilities.home_attachments]);
+  }, [account, client, isCurrent, sessionFence]);
   useEffect(() => () => { attachedRequest.current?.abort(); }, [sessionFence]);
   const currentCapability = capability?.fence === sessionFence ? capability : null;
   const openingHref = opening?.fence === sessionFence ? opening.href : null;

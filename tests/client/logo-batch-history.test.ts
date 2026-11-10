@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createAccountLogoClient } from "../../src/components/identity/account-logo-client";
-import { createLogoBatchHistory, logoBatchRecoveryRequestKeys, checkLogoBatchRequests } from "../../src/components/logo-creation/batch-history";
-import { syntheticLogoBatch, syntheticLogoWorkspace, logoFixtureId as id } from "../fixtures/logo-creation";
-import type { LogoConceptBatch, LogoRequestState } from "../../src/domain/logo-jobs";
+import { createLogoBatchHistory } from "../../src/components/logo-creation/batch-history";
+import { syntheticLogoWorkspace, logoFixtureId as id } from "../fixtures/logo-creation";
 
 const saved = syntheticLogoWorkspace(), account = { status: "ready" as const, userId: saved.ownerId, generation: 1 };
 const one = { id: id(60), requestKey: id(61), createdAt: "2026-10-06T12:00:00Z" };
@@ -50,41 +49,5 @@ describe("durable logo batch discovery", () => {
     let resolve!: (response: Response) => void; f.hold(() => new Promise(yes => { resolve = yes; }));
     const loading = history.refresh(); await history.refresh(); expect(f.requests).toHaveLength(1);
     resolve(Response.json(envelope([one]))); await loading; expect(history.getSnapshot().items).toEqual([one]);
-  });
-});
-
-function retryBatch(): LogoConceptBatch {
-  const original = syntheticLogoBatch(), slot = original.slots[5]!, attempt = slot.attempts[0]!;
-  return { ...original, slots: original.slots.map(row => row.id === slot.id ? { ...row, attempts: [attempt,
-    { ...attempt, id: id(911), jobId: id(912), requestKey: id(913), previousAttemptId: attempt.id, attemptNumber: 2 },
-    { ...attempt, id: id(914), jobId: id(915), requestKey: id(916), previousAttemptId: id(911), attemptNumber: 3, state: "needs_reconciliation", reason: "outcome_unknown", billing: { status: "unknown", confirmedMicrousd: null } },
-  ] } : row) };
-}
-describe("reconciliation follows immutable attempt request keys", () => {
-  it("reload of retry R3 checks R3 rather than original batch R1 or confirmed failed R2", () => {
-    const batch = retryBatch(); expect(batch.requestKey).toBe(id(61)); expect(logoBatchRecoveryRequestKeys(batch)).toEqual([id(916)]);
-  });
-  it("all uncertain retry keys are checked once without losing five saved successes", async () => {
-    const batch = retryBatch(), failed = batch.slots[5]!;
-    const withTwo = { ...batch, slots: batch.slots.map(slot => slot.id === failed.id ? { ...slot, attempts: slot.attempts.map(attempt => attempt.id === id(911) ? { ...attempt, state: "needs_reconciliation" as const, reason: "outcome_unknown", billing: { status: "unknown" as const, confirmedMicrousd: null } } : attempt) } : slot) };
-    const before = JSON.stringify(withTwo), paths: string[] = [];
-    const client = createAccountLogoClient(account, saved.projectId, () => true, () => undefined, async (path, init) => {
-      paths.push(`${init?.method} ${path}`);
-      const key = String(path).replace(/\/reconcile$/, "").split("/").at(-1)!;
-      const state: LogoRequestState = { status: "needs_reconciliation", requestKey: key, receipt: null, outputs: [], billing: { status: "unknown", confirmedMicrousd: null }, reason: "outcome_unknown" };
-      return Response.json(state);
-    });
-    const results = await checkLogoBatchRequests({ client, requestKeys: logoBatchRecoveryRequestKeys(withTwo), isCurrent: () => true, signal: new AbortController().signal });
-    expect(results.map(result => result.requestKey)).toEqual([id(913), id(916)]);
-    expect(paths).toHaveLength(4); expect(paths.some(path => path.includes(id(61)))).toBe(false);
-    expect(paths.filter(path => path.startsWith("POST ")).every(path => path.endsWith("/reconcile"))).toBe(true);
-    expect(withTwo.slots.filter(slot => slot.acceptedPreview)).toHaveLength(5); expect(JSON.stringify(withTwo)).toBe(before);
-  });
-  it("not_found stays read-only and one failed check does not hide other uncertain requests", async () => {
-    const paths: string[] = [], client = createAccountLogoClient(account, saved.projectId, () => true, () => undefined, async path => {
-      paths.push(String(path)); return String(path).endsWith(id(916)) ? new Response(null, { status: 503 }) : Response.json({ status: "not_found" });
-    });
-    const results = await checkLogoBatchRequests({ client, requestKeys: [id(913), id(916)], isCurrent: () => true, signal: new AbortController().signal });
-    expect(results).toHaveLength(2); expect(results[0]?.state?.status).toBe("not_found"); expect(results[1]?.error).not.toBeNull(); expect(paths).toHaveLength(2);
   });
 });

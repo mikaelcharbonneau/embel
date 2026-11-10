@@ -6,7 +6,7 @@ import { identityBatchStateSchema, logoBoardAvailabilitySchema, logoBoardGenerat
 import { identityLogoSourceSchema } from "@/domain/identity-logo-source";
 import { createIdentityInputSnapshot } from "@/domain/project-identity";
 import { IMAGE_MODEL } from "@/domain/providers";
-import { batchState, generationIntent, ownerId, projectId } from "../worker/identity-generation-fixture";
+import { batchState, generationIntent, ownerId, projectId } from "../fixtures/identity-generation";
 import { syntheticLogoBatch, syntheticResolvedLogoConcept } from "../fixtures/logo-creation";
 
 const concept = syntheticResolvedLogoConcept(), preview = syntheticLogoBatch().slots[0]!.acceptedPreview!;

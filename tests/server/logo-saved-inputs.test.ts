@@ -10,8 +10,8 @@ import { inspirationBrands, inspirationCatalog, INSPIRATION_CATALOG_VERSION, typ
 import { contextSnapshotSchema } from "@/domain/projects";
 import type { AuthenticatedContext } from "@/server/auth/context";
 import { deriveSavedLogoInputs, getSavedLogoInputs, likedUploadReferences } from "@/server/data/logo-saved-inputs";
-import { buildLogoConceptPrompt } from "@/server/logo-creation/openai-logo-provider";
-import { planSixConcepts } from "@/server/logo-creation/concept-plan";
+import { buildLogoConceptPrompt } from "@/server/ai/logo-image-prompts";
+import { planSixConcepts } from "../fixtures/logo-concept-plan";
 import { syntheticResolvedLogoConcept } from "../fixtures/logo-creation";
 import { GET } from "@/app/api/projects/[projectId]/logo/saved-inputs/route";
 import { ApiError } from "@/server/http/errors";

@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { createIdentitySpecificationRequest, identityBoardPrompt } from "../../src/server/ai/identity-direction-requests";
-import { createIdentitySpecificationRequest as workerRequest } from "../../worker/identity/producer";
 import { ENGINE_IDENTITY_POLICY_IDENTITY, ENGINE_IDENTITY_TEXT_POLICY } from "../../src/server/engine/identity-input";
 import {
   createSpecification, drawBoard, prepareSpecification, readIdentityRound, recordBoardFailure, settleSpecification, specificationFromResponse, stopSpecification,
@@ -10,7 +9,7 @@ import {
 import { EngineProviderError, type BackgroundResponse, type EngineOpenAI } from "../../src/server/engine/openai";
 import { ENGINE_BOARD_IMAGE, EngineImageRejectedError, type EngineImageReply, type EngineImages } from "../../src/server/engine/openai-images";
 import { EngineStorageError, type EngineStorage } from "../../src/server/engine/storage";
-import { boardSpecification, hash, id, ownerId, projectId, response as specificationResponse, selectedLogoJobInput } from "../worker/identity-generation-fixture";
+import { boardSpecification, hash, id, ownerId, projectId, response as specificationResponse, selectedLogoJobInput } from "../fixtures/identity-generation";
 
 // Synthetic OpenAI, Storage and database only; no live inference.
 const runId = "cccccccc-3333-4333-8333-333333333333", jobId = id(31);
@@ -93,14 +92,12 @@ describe("the frozen round", () => {
 });
 
 describe("a direction's specification", () => {
-  it("sends the shared worker's exact request, with the round's earlier directions as prior systems", async () => {
+  it("sends the specification request with the round's earlier directions as prior systems", async () => {
     const prior = [boardSpecification(1).components];
     const prepared = await prepareSpecification(harness().deps, run, 2, prior);
     expect(prepared).toMatchObject({ ordinal: 2, requestKey: `identity-${runId}-spec-2` });
     const expected = createIdentitySpecificationRequest(job.input, prior.map(components => ({ components })), 2, ENGINE_IDENTITY_TEXT_POLICY, job.sourceLogo);
     expect("request" in prepared && prepared.request).toEqual(expected);
-    // The worker's lane builds the same bytes from the same module.
-    expect(JSON.stringify(workerRequest(job.input, prior.map(components => ({ components })), 2, ENGINE_IDENTITY_TEXT_POLICY, job.sourceLogo))).toBe(JSON.stringify(expected));
   });
   it("fails a direction whose input is too large before any paid call", async () => {
     const { deps, created } = harness({ tokens: ENGINE_IDENTITY_TEXT_POLICY.maxInputTokens + 1 });

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import sharp from "sharp";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-import { createOpenAIImageTransport, IMAGE_INPUT_LIMITS, type OpenAIImageRequest } from "../../src/server/logo-creation/openai-image-transport";
+import { createOpenAIImageTransport, IMAGE_INPUT_LIMITS, type OpenAIImageRequest } from "../../src/server/ai/openai-image-transport";
 import { IMAGE_MODEL } from "../../src/domain/providers";
 import type { VerifiedAssetBytes } from "../../src/domain/logo-deliverables";
 let png: Uint8Array<ArrayBuffer>;

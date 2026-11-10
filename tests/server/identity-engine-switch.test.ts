@@ -8,7 +8,7 @@ import type { AuthenticatedContext } from "../../src/server/auth/context";
 import { cancelIdentityBatch, closeIdentityBatchRequest, enqueueIdentityBatch, getIdentityAvailability, getIdentityBatch, IdentityAdmissionUncertainError } from "../../src/server/data/identity-jobs";
 import { identityRunNeedsStart } from "../../src/server/engine/identity";
 import { ENGINE_IDENTITY_POLICY_IDENTITY } from "../../src/server/engine/identity-input";
-import { batchId, batchState as legacyBatchState, generationIntent as legacyIntent, id, ownerId, projectId, selectedLogoJobInput } from "../worker/identity-generation-fixture";
+import { batchId, batchState as legacyBatchState, generationIntent as legacyIntent, id, ownerId, projectId, selectedLogoJobInput } from "../fixtures/identity-generation";
 
 // Creative directions' switch between the shared worker and the generation engine,
 // with mocked database calls only. The kind's enabled flag is the switch.
@@ -44,11 +44,11 @@ function fixture(options: { enabled: boolean; runs?: unknown[]; answers?: Record
 beforeEach(() => { started.runs = []; started.fail = false; vi.stubEnv("EMBEL_SHARED_WORKERS_ENABLED", "true"); });
 
 describe("Creative directions with the engine kind off", () => {
-  it("keep the shared worker's availability, admission and stop", async () => {
-    const f = fixture({ enabled: false, answers: { get_shared_identity_availability: { data: { ...available, policyIdentity: "a".repeat(64) } }, cancel_shared_identity_batch: { data: batch() } } });
-    expect(await getIdentityAvailability(f.auth, projectId)).toMatchObject({ status: "available", policyIdentity: "a".repeat(64) });
-    expect(await cancelIdentityBatch(f.auth, projectId, batchId)).toMatchObject({ batchId });
-    expect(f.calls()).toEqual(["get_shared_identity_availability", "cancel_shared_identity_batch"]);
+  it("show the step as unavailable and fall back to nothing", async () => {
+    const f = fixture({ enabled: false, answers: {} });
+    expect(await getIdentityAvailability(f.auth, projectId)).toMatchObject({ status: "unavailable", reason: "runtime_unavailable" });
+    await expect(cancelIdentityBatch(f.auth, projectId, batchId)).rejects.toMatchObject({ code: "conflict" });
+    expect(f.calls().filter(name => name.includes("shared"))).toEqual([]);
     expect(started.runs).toEqual([]);
   });
 });

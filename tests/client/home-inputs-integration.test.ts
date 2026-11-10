@@ -9,13 +9,12 @@ import { contextSnapshotSchema } from "@/domain/projects";
 import { accountProjectDraft, createAccountInput } from "@/components/workspace/project-draft-adapter";
 import { createHomeInputSession, emptyHomeInputIntent, type HomeInputSession } from "@/features/home-inputs/home-input-session";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
-import type { EnrollmentStatus } from "@/domain/account-enrollment";
 import { NewProjectForm } from "@/components/workspace/project-editor";
 import { forgetReceipt, readReceipt, rememberReceipt } from "@/components/workspace/account-project-start-recovery";
-const mock = vi.hoisted(() => ({ session: { status: "ready", userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", generation: 1 } as VerifiedAccount | { status: "checking"; generation: number }, enrollment: undefined as EnrollmentStatus | undefined, memory: null as HomeInputSession | null, create: vi.fn(), update: vi.fn(), get: vi.fn(), push: vi.fn(), strategy: vi.fn(), save: vi.fn(), current: vi.fn(), expire: vi.fn() }));
+const mock = vi.hoisted(() => ({ session: { status: "ready", userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", generation: 1 } as VerifiedAccount | { status: "checking"; generation: number }, memory: null as HomeInputSession | null, create: vi.fn(), update: vi.fn(), get: vi.fn(), push: vi.fn(), strategy: vi.fn(), save: vi.fn(), current: vi.fn(), expire: vi.fn() }));
 let accountDrafts: ReturnType<typeof createAccountDraftMemory>;
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mock.push }) }));
-vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ drafts: accountDrafts, session: mock.session, enrollment: mock.enrollment, homeInputSession: mock.memory, isCurrent: mock.current, expire: mock.expire }) }));
+vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ drafts: accountDrafts, session: mock.session, homeInputSession: mock.memory, isCurrent: mock.current, expire: mock.expire }) }));
 vi.mock("@/components/workspace/account-strategy-start", () => ({ useAccountStrategyStart: (options?: { beforeSignIn?: () => boolean }) => ({ start: mock.strategy, save: mock.save, pending: false, notice: createElement("a", { href: "/sign-in", onClick: (event: { preventDefault: () => void }) => { if (options?.beforeSignIn && !options.beforeSignIn()) event.preventDefault(); } }, "Sign in fixture") }) }));
 vi.mock("@/components/workspace/local-drafts", async importOriginal => ({ ...await importOriginal<typeof import("@/components/workspace/local-drafts")>(), useLocalDrafts: () => ({ loaded: true, drafts: [], storage: "available" }), createLocalDraft: mock.create, updateLocalDraft: mock.update, getLocalDraft: mock.get }));
 const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", projectId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc", fileId = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
@@ -30,7 +29,7 @@ beforeEach(() => {
   accountDrafts = createAccountDraftMemory();
  Object.defineProperty(navigator, "locks", { configurable: true, value: { request: (_name: string, _options: unknown, action: () => Promise<unknown>) => action() } });
  window.localStorage.clear(); window.sessionStorage.clear();
- Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }); HTMLElement.prototype.scrollTo = vi.fn(); mock.session = account; mock.enrollment = undefined; mock.memory = createHomeInputSession(); mock.memory.bind(account);
+ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }); HTMLElement.prototype.scrollTo = vi.fn(); mock.session = account; mock.memory = createHomeInputSession(); mock.memory.bind(account);
  mock.current.mockReset().mockImplementation((value: VerifiedAccount) => mock.session.status === "ready" && mock.session.userId === value.userId && mock.session.generation === value.generation);
  mock.update.mockReset().mockReturnValue(true); mock.create.mockReset().mockReturnValue(projectId); mock.get.mockReset().mockImplementation((id: string) => id === projectId ? draft : undefined); mock.push.mockReset(); mock.strategy.mockReset().mockResolvedValue(false); mock.save.mockReset().mockResolvedValue(true);
  forgetReceipt({ ownerId: owner, draftId: projectId, projectId: null });
@@ -40,8 +39,7 @@ afterEach(async () => { if (root) await act(async () => root!.unmount()); root =
 function selectFiles() { mock.memory!.set(account, { ...emptyHomeInputIntent(), files: [{ localId: fileId, file, upload: { requestKey: fileId, name: file.name, mimeType: "text/plain", contentHash: ref.contentHash }, receipt: ref, outcome: "verified" }] }); }
 const capability = () => Response.json({ ownerId: owner, policy: null, reason: "Synthetic unavailable storage; already staged fixture recovery is allowed." });
 describe("mounted Home attached brief integration", () => {
- it.each([false, true])("keeps the original attached save live during enrollment capability refresh and fences account changes (account changes=%s)", async changeAccount => {
-  mock.enrollment = { ownerId: owner, generation: 1, status: "pending", updatedAt: "2026-10-27T00:00:00Z", capabilities: { home_attachments: false, identity_transactions: false, strategy: false, naming: false, logo: false } };
+ it.each([false, true])("keeps the original attached save live across a re-render and fences account changes (account changes=%s)", async changeAccount => {
   selectFiles();
   let finish!: () => void, saveSignal!: AbortSignal;
   const fetcher = vi.fn((path: string, options: RequestInit) => {
@@ -56,11 +54,10 @@ describe("mounted Home attached brief integration", () => {
   await render(); await click("Save brief with files");
   expect(saveSignal).toBeDefined(); expect(saveSignal.aborted).toBe(false);
   const originalRequest = mock.memory!.get(account)!.saveIntent!;
-  mock.enrollment = { ...mock.enrollment, capabilities: { ...mock.enrollment.capabilities, home_attachments: true } };
   await render();
   expect(mock.session).toBe(account);
   expect(mock.memory!.get(account)!.saveIntent).toBe(originalRequest);
-  expect(fetcher.mock.calls.filter(([path]) => path.endsWith("/capability"))).toHaveLength(2);
+  expect(fetcher.mock.calls.filter(([path]) => path.endsWith("/capability"))).toHaveLength(1);
   expect(saveSignal.aborted).toBe(false);
   expect(fetcher.mock.calls.filter(([, options]) => options.method === "POST")).toHaveLength(1);
   if (changeAccount) {

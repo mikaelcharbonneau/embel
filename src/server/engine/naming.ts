@@ -65,14 +65,6 @@ const owned = (auth: AuthenticatedContext, projectId: string, rows: readonly { o
   if (rows.some(row => row.owner_id !== auth.userId || row.project_id !== projectId)) throw new ApiError("not_found");
 };
 
-/** An old-path run still working keeps the engine from starting a second one for this project. */
-async function assertNoLegacyRun(auth: AuthenticatedContext, projectId: string) {
-  const { data, error } = await auth.client.from("jobs").select("id")
-    .eq("owner_id", auth.userId).eq("project_id", projectId).eq("operation", NAMING_KIND).in("state", ["queued", "running"]).limit(1);
-  readFailure(error);
-  if (data?.length) throw new ApiError("generation_active");
-}
-
 const candidateRow = z.object({ id: z.uuid(), owner_id: z.uuid(), project_id: z.uuid(), value: z.string(), identity_key: z.string(), rationale: z.string(), created_at: z.string() });
 const CANDIDATE_COLUMNS = "id,owner_id,project_id,value,identity_key,rationale,created_at";
 
@@ -102,8 +94,6 @@ export async function buildNamingRunInput(auth: AuthenticatedContext, projectId:
   owned(auth, projectId, [saved.data]);
   const preferences = namingPreferencesV2Schema.safeParse(saved.data.preferences);
   if (!preferences.success || !getNamingPreferencesReadiness(preferences.data).ready) throw new ApiError("preferences_incomplete");
-
-  await assertNoLegacyRun(auth, projectId);
 
   const liked = await auth.client.from("name_retention").select("owner_id,project_id,candidate_id,updated_at")
     .eq("owner_id", auth.userId).eq("project_id", projectId).eq("liked", true).order("updated_at", { ascending: false }).order("candidate_id").limit(20);

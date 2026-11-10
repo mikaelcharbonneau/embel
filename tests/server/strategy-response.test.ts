@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { executeStrategyResponse } from "../../src/server/ai/strategy-response";
 import { strategyJobResultSchema } from "../../src/domain/strategy-jobs";
-import { guidedJobFixture } from "../worker/guided-strategy-fixtures";
+import { guidedJobFixture } from "../fixtures/guided-strategy";
 import { responseFixture, transportFixture } from "./openai-fixtures";
 
 /** Synthetic reproduction of the retained diagnostic shape, not a replay of

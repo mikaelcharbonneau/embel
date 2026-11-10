@@ -11,7 +11,6 @@ const runtime = () => import("@/server/runtime/logo-request-services");
 const uploadRoute = () => import("@/app/api/projects/[projectId]/logo/references/uploads/route");
 const vectorRoute = () => import("@/app/api/projects/[projectId]/logo/vector/revisions/[vectorRevisionId]/route");
 const approvalRoute = () => import("@/app/api/projects/[projectId]/logo/directions/approval/route");
-const restoreRoute = () => import("@/app/api/projects/[projectId]/logo/restore/route");
 const context = (fixture: LogoHttpFixture) => ({ params: Promise.resolve({ projectId: fixture.projectId, vectorRevisionId: fixture.revision.id }) });
 const json = (body: unknown, signal?: AbortSignal) => new Request("https://fluid.invalid/api/logo", { method: "POST", headers: { origin: "https://fluid.invalid", "content-type": "application/json" }, body: JSON.stringify(body), signal });
 function upload(fixture: LogoHttpFixture) {
@@ -105,8 +104,8 @@ describe("actual HTTP logo consumers with a trusted synthetic bootstrap", () => 
     expect(other.transport).not.toHaveBeenCalled();
   });
   it("keeps auth, origin, body and public error behavior before privileged resolution", async () => {
-    const fixture = await logoHttpFixture(), resolver = await configure(fixture), route = await restoreRoute();
-    const body = { requestKey: crypto.randomUUID(), expected: fixture.workspace.heads, stage: "vector", revisionId: fixture.stage.id, acceptEarlierBasis: true };
+    const fixture = await logoHttpFixture(), resolver = await configure(fixture), route = await approvalRoute();
+    const body = { requestKey: crypto.randomUUID(), expected: fixture.workspace.heads, directionSelectionId: crypto.randomUUID(), consistencyHash: "a".repeat(64) };
     fixture.getUser.mockResolvedValueOnce({ data: { user: null }, error: null } as never);
     const unauthenticated = json(body); expect((await route.POST(unauthenticated, context(fixture))).status).toBe(401); expect(unauthenticated.bodyUsed).toBe(false);
     const badOrigin = json(body); badOrigin.headers.set("origin", "https://foreign.invalid"); expect((await route.POST(badOrigin, context(fixture))).status).toBe(403);
@@ -115,12 +114,12 @@ describe("actual HTTP logo consumers with a trusted synthetic bootstrap", () => 
     expect(resolver).not.toHaveBeenCalled(); expect(fixture.connect).not.toHaveBeenCalled();
   });
 
-  it.each(["stage", "directions"] as const)("cancels a held %s account transport through the HTTP request signal", async boundary => {
+  it.each(["directions"] as const)("cancels a held %s account transport through the HTTP request signal", async boundary => {
     const fixture = await logoHttpFixture(), controller = new AbortController(); await configure(fixture);
     let started!: (signal?: AbortSignal) => void; const held = new Promise<AbortSignal | undefined>(resolve => { started = resolve; }); fixture.controls.heldRpc = started;
     fixture.controls.holdRpc = (name, args) => boundary === "directions" ? name === "list_logo_workspace_records" && args.p_kind === "directions_overview" : name === "read_logo_workspace_record" && args.p_kind === boundary;
     const request = json(boundary === "directions" ? { requestKey: crypto.randomUUID(), expected: fixture.workspace.heads, directionSelectionId: crypto.randomUUID(), consistencyHash: "a".repeat(64) } : boundary === "stage" ? { requestKey: crypto.randomUUID(), expected: fixture.workspace.heads, stage: "vector", revisionId: fixture.stage.id, acceptEarlierBasis: true } : fixture.edit, controller.signal);
-    const route = boundary === "directions" ? await approvalRoute() : await restoreRoute();
+    const route = await approvalRoute();
     const result = route.POST(request, context(fixture));
     const transportSignal = await held; controller.abort(); expect(transportSignal).toBe(request.signal); expect((await result).status).toBe(503);
     expect(fixture.storageCalls.filter(call => call.method === "POST")).toHaveLength(0); expect(fixture.sqlCalls.some(call => call.sql.includes("apply_logo_trusted_command"))).toBe(false);

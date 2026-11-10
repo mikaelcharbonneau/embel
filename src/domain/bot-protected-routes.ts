@@ -5,7 +5,5 @@ export const BOT_PROTECTED_ROUTES = [
   "/api/projects/*/generations",
   "/api/projects/*/naming/feed/ensure",
   "/api/projects/*/naming/steering",
-  "/api/projects/*/logo/requests",
-  "/api/projects/*/strategy",
   "/api/projects/*/identity/batches",
 ] as const;

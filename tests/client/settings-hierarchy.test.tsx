@@ -18,9 +18,6 @@ vi.mock("@/components/workspace/account-profile-provider", () => ({ useAccountPr
 vi.mock("@/components/workspace/account-access", () => ({
   AccountAccess: () => createElement("button", { type: "button", onClick: fixture.checkAccount }, "Sign out"),
 }));
-vi.mock("@/components/workspace/local-chatgpt-settings", () => ({
-  LocalChatGPTSettings: ({ enabled }: { enabled: boolean }) => { fixture.localAI(enabled); return createElement("section", { "aria-label": "Synthetic local connection" }, "Local connection"); },
-}));
 vi.mock("@/components/workspace/recorded-usage", () => ({
   RecordedUsageSection: ({ active }: { active: boolean }) => {
     useEffect(() => { fixture.usageMount(); return () => { fixture.usageUnmount(); }; }, []);
@@ -36,8 +33,8 @@ let root: Root, host: HTMLDivElement, restoreDialogs: () => void;
 const tab = (id: string) => host.querySelector<HTMLButtonElement>(`#settings-tab-${id}`)!;
 const panel = (id: string) => host.querySelector<HTMLElement>(`#settings-panel-${id}`)!;
 const select = (id: string) => act(async () => tab(id).click());
-async function render(localRuntimeEnabled = false) {
-  await act(async () => root.render(createElement(SettingsWorkspace, { localRuntimeEnabled })));
+async function render() {
+  await act(async () => root.render(createElement(SettingsWorkspace)));
 }
 function setProfile(revision = 1) {
   const saved = { ownerId: fixture.session.userId, email: "fixture@example.invalid", revision, updatedAt: "2026-10-20T00:00:00Z", values: { ...DEFAULT_PROFILE_VALUES, fullName: "Synthetic account" } };
@@ -111,12 +108,6 @@ describe("Settings keeps only working options", () => {
     expect(zone.value).toBe(DEFAULT_PROFILE_VALUES.timeZone);
   });
 
-  it("shows the local ChatGPT connection only on a development server", async () => {
-    await render(); expect(fixture.localAI).not.toHaveBeenCalled();
-    expect(host.querySelector('[aria-label="Synthetic local connection"]')).toBeNull();
-    await render(true); expect(fixture.localAI).toHaveBeenCalledWith(true);
-    expect(panel("account").lastElementChild!.getAttribute("aria-label")).toBe("Synthetic local connection");
-  });
 });
 
 describe("Usage tab lifetime", () => {

@@ -2,8 +2,6 @@ import { assertNotBot } from "@/server/http/bot-protection";
 import { startNamingRunRequestSchema } from "@/domain/naming-generation";
 import { getAuthenticatedContext } from "@/server/auth/context";
 import { startNamingEngineRun } from "@/server/data/naming-engine";
-import { startNamingRun } from "@/server/data/naming-generation";
-import { namingEngineEnabled } from "@/server/engine/naming";
 import { assertExpectedAccount } from "@/server/http/account-fence";
 import { ApiError, errorResponse, privateJson } from "@/server/http/errors";
 import { assertMutationOrigin, readJson } from "@/server/http/request";
@@ -16,7 +14,6 @@ export async function POST(request: Request, context: RouteContext) {
     assertMutationOrigin(request); const auth = await getAuthenticatedContext(); assertExpectedAccount(request, auth.userId);
     const body = await readJson(request, startNamingRunRequestSchema, 16_384);
     if (body.kind !== "steer") throw new ApiError("invalid_input");
-    const start = await namingEngineEnabled(auth) ? startNamingEngineRun : startNamingRun;
-    return privateJson(await start(auth, (await context.params).projectId, body));
+    return privateJson(await startNamingEngineRun(auth, (await context.params).projectId, body));
   } catch (error) { return errorResponse(error); }
 }

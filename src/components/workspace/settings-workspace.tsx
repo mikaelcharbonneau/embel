@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 import { useAccountSession } from "./account-session";
 import { AccountAccess } from "./account-access";
-import { LocalChatGPTSettings } from "./local-chatgpt-settings";
 import { RecordedUsageSection } from "./recorded-usage";
 import { AccountProfileEditor } from "./account-profile-editor";
 
@@ -12,7 +11,7 @@ import { AccountProfileEditor } from "./account-profile-editor";
 const categories = [["account", "Account"], ["usage", "Usage"]] as const;
 type Category = typeof categories[number][0];
 
-export function SettingsWorkspace({ localRuntimeEnabled = false }: { localRuntimeEnabled?: boolean }) {
+export function SettingsWorkspace() {
   const [category, setCategory] = useState<Category>("account");
   const [usageVisited, setUsageVisited] = useState(false);
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -31,7 +30,7 @@ export function SettingsWorkspace({ localRuntimeEnabled = false }: { localRuntim
     {categories.map(([id]) => {
       const active = category === id;
       return <div key={id} className="sg-content" role="tabpanel" id={`settings-panel-${id}`} aria-labelledby={`settings-tab-${id}`} tabIndex={active ? 0 : -1} hidden={!active} inert={!active} aria-hidden={!active || undefined}>
-        {active && id === "account" && <AccountSettings localRuntimeEnabled={localRuntimeEnabled} />}
+        {active && id === "account" && <AccountSettings />}
         {/* Usage stays mounted after the first visit so returning keeps its rows. */}
         {id === "usage" && usageVisited && <RecordedUsageSection active={active} />}
       </div>;
@@ -39,7 +38,7 @@ export function SettingsWorkspace({ localRuntimeEnabled = false }: { localRuntim
   </div>;
 }
 
-function AccountSettings({ localRuntimeEnabled }: { localRuntimeEnabled: boolean }) {
+function AccountSettings() {
   const { session } = useAccountSession();
   const signedIn = session.status === "ready";
   return <>
@@ -48,6 +47,5 @@ function AccountSettings({ localRuntimeEnabled }: { localRuntimeEnabled: boolean
       <div className="sg-row"><div className="sg-row-copy"><strong>{signedIn ? "Sign out" : "Sign in"}</strong><p>{signedIn ? "Sign out of Embel on this device. Your work stays saved in your account." : "Sign in to save your work and settings to your account."}</p></div><AccountAccess /></div>
     </section>
     {/* Only on a local development server; hosted Embel never renders it. */}
-    {localRuntimeEnabled && <LocalChatGPTSettings enabled />}
   </>;
 }

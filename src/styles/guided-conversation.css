@@ -26,9 +26,6 @@
 .guided-new-response > .button { pointer-events: auto; min-height: 44px; background: var(--paper); box-shadow: 0 2px 8px #1919190d; }
 .guided-conversation-error { margin-bottom: 12px; padding: 12px 14px; border-radius: 8px; background: #fff5f3; color: var(--danger, #a52b2b); font-size: 13px; line-height: 20px; }
 .guided-conversation-error .text-link { margin: 6px 16px 0 0; font-size: 13px; min-height: 32px; }
-.guided-delivery-notice { margin-bottom: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--secondary); font-size: 13px; line-height: 20px; }
-.guided-delivery-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; margin-top: 6px; }
-.guided-delivery-actions .text-link { min-height: 44px; font-size: 13px; }
 .guided-thinking { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--secondary); }
 .guided-thinking > img { animation: guided-thinking-pulse 1.5s ease-in-out infinite; }
 .guided-thinking .text-link { margin-left: auto; font-size: 13px; }

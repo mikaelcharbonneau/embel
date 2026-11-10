@@ -2,15 +2,16 @@ import "server-only";
 import type { AuthenticatedContext } from "../auth/context";
 import { createSharedAccountHttpRuntime,type SharedAccountHttpDependencies } from "./runtime";
 import { createSharedLogoHttpRuntime } from "./logo-runtime";
-import { isSharedWorkerRuntime } from "./routing";
 
 type Environment=Readonly<Record<string,string|undefined>>;
 type Runtime=NonNullable<ReturnType<typeof createSharedAccountHttpRuntime>>;
 type State={status:"installed"|"unavailable";runtime?:Runtime;logo?:NonNullable<ReturnType<typeof createSharedLogoHttpRuntime>>};
 const key=Symbol.for("embel.shared-account-http.v1");
 const empty=()=>({configured:true as const,value:null,release:async()=>{}});
+/** The web app's restricted Identity, Home and Logo write lanes. EMBEL_SHARED_WORKERS_ENABLED
+ * is still accepted as the older name of this switch (production set it with the old worker). */
 export function sharedAccountHttpConfigured(env:Environment=process.env) {
- return isSharedWorkerRuntime(env)||env.EMBEL_SHARED_ACCOUNT_HTTP_ENABLED==="true";
+ return env.EMBEL_SHARED_ACCOUNT_HTTP_ENABLED==="true"||env.EMBEL_SHARED_WORKERS_ENABLED==="true";
 }
 /** One finite service pool set per web instance. No account registry, customer
  * credential, Vault access or provider key is loaded by web instrumentation. */

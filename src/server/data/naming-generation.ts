@@ -1,9 +1,8 @@
 import "server-only";
 import { z } from "zod";
-import { getNamingPreferencesReadiness, namingPreferencesV2Schema } from "@/domain/naming-brain-preferences";
 import {
-  namingFeedCursorSchema, namingGenerationFeedSchema, namingRunSchema, namingUsageSchema, startNamingRunRequestSchema, startNamingRunResultSchema,
-  type NamingFeedCursor, type NamingGenerationFeed, type NamingRun, type NamingUsage, type StartNamingRunRequest,
+  namingFeedCursorSchema, namingUsageSchema,
+  type NamingFeedCursor, type NamingGenerationFeed, type NamingRun, type NamingUsage,
 } from "@/domain/naming-generation";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError, type ApiErrorCode } from "../http/errors";
@@ -62,47 +61,7 @@ export function verifyFeed(auth: AuthenticatedContext, projectId: string, feed: 
   return feed;
 }
 
-export async function getNamingFeed(auth: AuthenticatedContext, projectId: string, cursor?: NamingFeedCursor, limit = NAMING_FEED_PAGE_LIMIT): Promise<NamingGenerationFeed> {
-  const project = projectKey(projectId);
-  if (!Number.isSafeInteger(limit) || limit < 1 || limit > NAMING_FEED_PAGE_LIMIT) throw new ApiError("invalid_input");
-  const after = cursor ? namingFeedCursorSchema.safeParse(cursor) : null;
-  if (after && !after.success) throw new ApiError("invalid_input");
-  const feed = await rpc(auth, "get_naming_generation", {
-    p_project: project, p_after_created_at: after?.data?.createdAt ?? null, p_after_id: after?.data?.id ?? null, p_limit: limit,
-  }, namingGenerationFeedSchema);
-  return verifyFeed(auth, project, feed);
-}
-
-/** The saved choices the request names must exist and be complete before SQL admits a run. */
-async function assertPreferencesReady(auth: AuthenticatedContext, projectId: string, version: number) {
-  const saved = await auth.client.from("naming_preferences").select("owner_id,project_id,version,preferences")
-    .eq("owner_id", auth.userId).eq("project_id", projectId).eq("version", version).maybeSingle();
-  if (saved.error) throw new ApiError("integration_unavailable");
-  if (!saved.data) throw new ApiError("preferences_changed");
-  if (saved.data.owner_id !== auth.userId || saved.data.project_id !== projectId || saved.data.version !== version) throw new ApiError("not_found");
-  const preferences = namingPreferencesV2Schema.safeParse(saved.data.preferences);
-  if (!preferences.success || !getNamingPreferencesReadiness(preferences.data).ready) throw new ApiError("preferences_incomplete");
-}
-
 export type NamingStartResult = { feed: NamingGenerationFeed; run: NamingRun; reused: boolean };
-
-/** One deliberate request starts at most one run; repeating its idempotency key returns that run. */
-export async function startNamingRun(auth: AuthenticatedContext, projectId: string, request: StartNamingRunRequest): Promise<NamingStartResult> {
-  const project = projectKey(projectId);
-  const parsed = startNamingRunRequestSchema.safeParse(request);
-  if (!parsed.success) throw new ApiError("invalid_input");
-  await assertPreferencesReady(auth, project, parsed.data.expectedPreferencesVersion);
-  const result = await rpc(auth, "start_naming_run", { p_project: project, p_request: parsed.data }, startNamingRunResultSchema);
-  if (result.run.kind !== parsed.data.kind) throw new ApiError("integration_unavailable");
-  return { feed: await getNamingFeed(auth, project), run: result.run, reused: result.reused };
-}
-
-/** Stop keeps every saved name. Without an active run SQL has nothing to stop. */
-export async function stopNamingRun(auth: AuthenticatedContext, projectId: string): Promise<{ feed: NamingGenerationFeed }> {
-  const project = projectKey(projectId);
-  await rpc(auth, "stop_naming_run", { p_project: project }, z.strictObject({ run: namingRunSchema.nullable() }));
-  return { feed: await getNamingFeed(auth, project) };
-}
 
 export type NamingJobUsage = NamingUsage & { jobId: string };
 const usageRowSchema = z.strictObject({ jobId: z.uuid(), ...namingUsageSchema.shape });

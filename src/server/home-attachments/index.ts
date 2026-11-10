@@ -128,7 +128,7 @@ export function createHomeAttachmentService(dependencies: HomeAttachmentDependen
 }
 export const productionHomeAttachmentService = createHomeAttachmentService(null);
 async function withRouteService<T>(auth: AuthenticatedContext, signal: AbortSignal | undefined, run: (service: ReturnType<typeof createHomeAttachmentService>) => Promise<T> | T): Promise<T> {
- const { acquireAccountHomeAttachmentService } = await import('../runtime/account-http-binding-source');
+ const { acquireAccountHomeAttachmentService } = await import('../runtime/account-http-lanes');
  const lease = await acquireAccountHomeAttachmentService(auth, signal);
  try {
   let service = lease.value;

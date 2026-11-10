@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { canonicalLogoDocumentBytes, validateLogoVectorCandidate, verifyLogoVectorRevision } from "../../../src/features/logo-vector/server/revisions";
 import { captureLogoComponentLocks } from "../../../src/features/logo-vector/model/locks";
-import { applyLogoManualEdit } from "../../../src/features/logo-vector/model/edits";
+import { applyLogoManualEdit } from "../../fixtures/logo-vector/edits";
 import type { LogoVectorRevision } from "../../../src/domain/logo-vector";
 import { separatedLogoDocument } from "./fixtures";
 import { digestBytes, syntheticConversionInput, syntheticSource } from "./raster-fixtures";

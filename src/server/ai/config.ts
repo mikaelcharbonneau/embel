@@ -1,9 +1,9 @@
 import "server-only";
 import { z } from "zod";
 import { strategyJobPolicySchema, strategyOperationSchema, type StrategyJobPolicy, type StrategyOperation } from "../../domain/strategy-jobs";
-import { isLocalPrototypeRuntime } from "../api-text/config";
 
-// Official model/pricing docs checked 2026-10-03. Access is a separate runtime gate.
+// Model and policy settings of the generation engine's text requests. Official model and
+// pricing docs checked 2026-10-03. The engine's kinds and stop switch control access.
 export const OPENAI_STRATEGY_MODEL = "gpt-6.1-sol";
 export const STRATEGY_HANDLER_VERSION = "strategy-openai-v1";
 export const STRATEGY_PRICING_VERSION = "2026-10-03";
@@ -61,48 +61,4 @@ export function strategyPolicy(operation: StrategyOperation): StrategyJobPolicy 
     webSearchMicrousdPerCall: 10_000,
     maximumCostMicrousd: research ? 3_142_880 : 122_880,
   });
-}
-
-export type OpenAIStrategyConfiguration = {
-  apiKey: string;
-  policies: ReadonlyMap<StrategyOperation, StrategyJobPolicy>;
-};
-
-/** No default model, credential, permission, or account access is inferred. */
-export function readOpenAIStrategyConfiguration(env: Record<string, string | undefined> = process.env): OpenAIStrategyConfiguration | null {
-  if (env.FLUID_PAID_CALLS_APPROVED !== "true") return null;
-  const key = z.string().trim().min(16).max(500).regex(/^[^\s]+$/).safeParse(env.OPENAI_API_KEY);
-  if (!key.success) return null;
-  const verified = (env.FLUID_OPENAI_VERIFIED_MODELS ?? "").split(",").map(value => value.trim());
-  const localGuided = isLocalPrototypeRuntime(env) && env.FLUID_GUIDED_INTERVIEW_ENABLED === "true";
-  const policies = new Map<StrategyOperation, StrategyJobPolicy>();
-  for (const [operation, variable] of [
-    ["strategy.reformulate", "FLUID_TEXT_MODEL_REFORMULATE"],
-    ["strategy.competitors", "FLUID_TEXT_MODEL_COMPETITORS"],
-    ["strategy.audience", "FLUID_TEXT_MODEL_AUDIENCE"],
-    ["strategy.personality", "FLUID_TEXT_MODEL_PERSONALITY"],
-    ["strategy.positioning", "FLUID_TEXT_MODEL_POSITIONING"],
-    ["strategy.slogan", "FLUID_TEXT_MODEL_SLOGAN"],
-  ] as const) {
-    const selected = env[variable] ?? env.FLUID_TEXT_MODEL_STRATEGY;
-    if (selected === OPENAI_STRATEGY_MODEL && verified.includes(OPENAI_STRATEGY_MODEL)) policies.set(operation,
-      env.FLUID_GUIDED_INTERVIEW_ENABLED === "true" ? guidedStrategyPolicy(operation) : strategyPolicy(operation));
-    else if (selected === LOCAL_STRATEGY_MODEL && verified.includes(LOCAL_STRATEGY_MODEL) && localGuided)
-      policies.set(operation, guidedStrategyPolicy(operation, LOCAL_STRATEGY_MODEL));
-  }
-  return policies.size ? { apiKey: key.data, policies } : null;
-}
-
-export function matchesStrategyPolicy(operation: StrategyOperation, policy: StrategyJobPolicy): boolean {
-  if (!strategyOperationSchema.safeParse(operation).success) return false;
-  const expected = policy.version === 2
-    ? guidedStrategyPolicy(operation, policy.model === LOCAL_STRATEGY_MODEL ? LOCAL_STRATEGY_MODEL : OPENAI_STRATEGY_MODEL) : strategyPolicy(operation);
-  return Object.keys(expected).every(key => expected[key as keyof StrategyJobPolicy] === policy[key as keyof StrategyJobPolicy]);
-}
-
-/** One shared allowlist for delivery and protected readiness. SQL separately
- * qualifies the exact owner, operation, policy, restricted role and deployment. */
-export function isHostedStrategyPolicy(operation: StrategyOperation, policy: StrategyJobPolicy): boolean {
-  return policy.model === OPENAI_STRATEGY_MODEL && strategyOperationSchema.safeParse(operation).success && matchesStrategyPolicy(operation, policy) && (policy.version === 2
-    || operation !== "strategy.competitors" && operation !== "strategy.slogan" && policy.maxWebSearchCalls === 0 && policy.maximumCostMicrousd <= 122_880);
 }

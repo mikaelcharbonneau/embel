@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-import { buildLogoConceptPrompt, buildLogoRefinementPrompt, createLogoImageProvider, type LogoImageConfiguration } from "../../src/server/logo-creation/openai-logo-provider";
-import { OpenAIImageTransportError, type OpenAIImageResponse } from "../../src/server/logo-creation/openai-image-transport";
+import { buildLogoConceptPrompt, buildLogoRefinementPrompt, createLogoImageProvider, type LogoImageConfiguration } from "../../src/server/ai/logo-image-prompts";
+import { OpenAIImageTransportError, type OpenAIImageResponse } from "../../src/server/ai/openai-image-transport";
 import { CAPPED_LOGO_IMAGE_MODEL, IMAGE_MODEL } from "../../src/domain/providers";
 import { syntheticResolvedLogoConcept, syntheticResolvedLogoRefinement } from "../fixtures/logo-creation";
 const config: LogoImageConfiguration = { apiKey: "synthetic-only", model: IMAGE_MODEL, policyIdentity: "c".repeat(64), handlerVersion: "logo-image-v1", priceUsage: usage => usage ? { status: "recorded", confirmedMicrousd: 1000 } : { status: "unknown", confirmedMicrousd: null } };

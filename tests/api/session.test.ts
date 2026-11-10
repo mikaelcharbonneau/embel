@@ -64,17 +64,8 @@ describe("verified account session endpoint", () => {
     expect(await (await GET({ [SESSION_STATE_HEADER]: "1" })).json()).toEqual({ user: { id } });
   });
 
-  it("advertises enrollment recovery only when explicitly enabled, without provisioning during session reads", async () => {
+  it("never advertises the retired per-customer enrollment, whatever the environment says", async () => {
     vi.stubEnv("EMBEL_ACCOUNT_ENROLLMENT_ENABLED", "true");
-    const id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-    doubles.getUser.mockResolvedValue({ data: { user: { id, email_confirmed_at: "2026-10-13T10:00:00Z" } }, error: null });
-    expect(await (await GET()).json()).toEqual({ user: { id }, enrollmentEnabled: true });
-    expect(doubles.getUser).toHaveBeenCalledOnce();
-  });
-
-  it("keeps shared signup out of the obsolete per-customer provisioning loop", async () => {
-    vi.stubEnv("EMBEL_ACCOUNT_ENROLLMENT_ENABLED", "true");
-    vi.stubEnv("EMBEL_SHARED_WORKERS_ENABLED", "true");
     const id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
     doubles.getUser.mockResolvedValue({ data: { user: { id, email_confirmed_at: "2026-10-13T10:00:00Z" } }, error: null });
     expect(await (await GET()).json()).toEqual({ user: { id } });
