@@ -123,17 +123,91 @@ jobs:
       - run: npm run dev:down
         if: ${{ always() }}
 
+  # Builds the database from supabase/migrations on a fresh local Supabase stack (what
+  # supabase db push will later apply to production), checks the migration files and history,
+  # and keeps the resulting schema fingerprint. No production access. It runs on every pull
+  # request and push with no path filter, so it can be made a required check as it is.
+  database:
+    name: Database migrations
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      # supabase_db_ plus project_id in supabase/config.toml
+      DB_CONTAINER: supabase_db_embel
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          # The guards diff against the base branch.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Guard the migration files
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          base=""
+          if [ "$EVENT" = pull_request ]; then
+            base="origin/$BASE_REF"
+          elif [ "$EVENT" = push ] && [ -n "$BEFORE" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            base="$BEFORE"
+          fi
+          node scripts/ci/migration-guard.mjs ${base:+--base "$base"}
+      - name: Apply every migration to a fresh local database
+        # Only Postgres is needed: the Supabase image already has the auth and storage schemas
+        # the baseline refers to (the schema fingerprint is identical with the full stack up),
+        # so no other service is started or pulled. supabase start applies the migrations
+        # itself and fails on the first error.
+        run: >-
+          node node_modules/supabase/dist/supabase.js start
+          --exclude storage-api,gotrue,postgrest,kong,mailpit,studio,postgres-meta,edge-runtime,realtime,logflare,vector,supavisor,imgproxy
+      - name: Check that every migration is recorded as applied
+        run: |
+          set -o pipefail
+          node node_modules/supabase/dist/supabase.js migration list --local --output-format json \
+            | node scripts/ci/migration-history.mjs applied
+      - name: Take the schema fingerprint
+        run: |
+          mkdir -p schema-fingerprint
+          docker exec -i "$DB_CONTAINER" psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres \
+            < supabase/tests/baseline-parity.sql > schema-fingerprint/baseline-parity.txt
+          {
+            echo '### Schema fingerprint (supabase/tests/baseline-parity.sql)'
+            echo 'Run the same file against production and diff the two outputs to see drift. The full output is in the schema-fingerprint artifact.'
+            echo '```'
+            grep '^summary|' schema-fingerprint/baseline-parity.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Retain the schema fingerprint
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: schema-fingerprint
+          path: schema-fingerprint/baseline-parity.txt
+          if-no-files-found: ignore
+          retention-days: 30
+      - name: Show the database log after a failure
+        if: ${{ failure() }}
+        run: docker logs --tail 200 "$DB_CONTAINER" || true
+
   ci:
     name: CI
     if: ${{ always() }}
-    needs: [quality, unit]
+    needs: [quality, unit, database]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
       QUALITY_RESULT: ${{ needs.quality.result }}
       UNIT_RESULT: ${{ needs.unit.result }}
+      DATABASE_RESULT: ${{ needs.database.result }}
     steps:
       - name: Require every check to pass
         run: |
           test "$QUALITY_RESULT" = success
           test "$UNIT_RESULT" = success
+          test "$DATABASE_RESULT" = success
