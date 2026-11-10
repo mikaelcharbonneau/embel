@@ -64,7 +64,9 @@ fluid_private.engine_settings(id bool pk default true, paused bool, global_daily
      (`start_failed`), or running past the kind's `max_running_minutes`, 30 by default (`run_timed_out`).
      `cancel_generation` does the same, so cancelling a run whose workflow stopped reporting ends it at once;
   3. checks there's no active run for the same project and kind;
-  4. checks the owner's daily limit and the global cost cap;
+  4. checks the owner's daily limit and the global cost cap (provider cost of the past day's
+     outputs, plus the cost kept for accounts deleted since: `fluid_private.deleted_account_usage`,
+     migration `20261110210000`);
   5. grants the monthly allowance lazily when a new period starts;
   6. checks the balance is at least the kind's credits;
   7. inserts the run and the charge.
