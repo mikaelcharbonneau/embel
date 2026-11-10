@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
-import { inputTokenCountRequest, OPENAI_RESPONSES_URL, readBoundedJson, safeRequestId, type ResponsesRequest } from "../ai/openai-transport";
+import { inputTokenCountRequest, readBoundedJson, safeRequestId, type ResponsesRequest } from "../ai/openai-transport";
+import { engineOpenAIOrigin, OPENAI_ORIGIN } from "./provider-origin";
 
 // OpenAI Responses in background mode for the generation engine (docs/generation-engine.md).
 // A create returns at once with a response id; the workflow sleeps and polls by id, so an
@@ -55,10 +56,12 @@ export interface EngineOpenAI {
   cancel(responseId: string): Promise<BackgroundResponse>;
 }
 
-/** Fixed official origin, no redirects. `idempotent` calls (reads, cancel, counting) treat an
- * unknown outcome as retryable; a create never does. */
-export function createEngineOpenAI(options: { apiKey: string; fetch?: typeof fetch }): EngineOpenAI {
+/** The official origin unless a test origin is given (src/server/engine/provider-origin.ts), no
+ * redirects. `idempotent` calls (reads, cancel, counting) treat an unknown outcome as retryable;
+ * a create never does. */
+export function createEngineOpenAI(options: { apiKey: string; fetch?: typeof fetch; origin?: string }): EngineOpenAI {
   const fetcher = options.fetch ?? fetch;
+  const responsesUrl = `${options.origin ?? OPENAI_ORIGIN}/v1/responses`;
   async function call(method: "GET" | "POST", url: string, body: ResponsesRequest | undefined, idempotent: boolean, requestKey?: string) {
     const unknown = idempotent ? "retry" : "uncertain";
     let response: Response;
@@ -89,16 +92,16 @@ export function createEngineOpenAI(options: { apiKey: string; fetch?: typeof fet
   }
   const responseUrl = (id: string) => {
     if (!envelopeSchema.shape.id.safeParse(id).success) throw new EngineProviderError("rejected", null);
-    return `${OPENAI_RESPONSES_URL}/${id}`;
+    return `${responsesUrl}/${id}`;
   };
   return {
     async countInputTokens(request) {
-      const { body } = await call("POST", `${OPENAI_RESPONSES_URL}/input_tokens`, inputTokenCountRequest(request), true);
+      const { body } = await call("POST", `${responsesUrl}/input_tokens`, inputTokenCountRequest(request), true);
       const parsed = z.object({ input_tokens: z.number().int().nonnegative().max(10_000_000) }).safeParse(body);
       if (!parsed.success) throw new EngineProviderError("retry", 200);
       return parsed.data.input_tokens;
     },
-    create: (request, requestKey) => background("POST", OPENAI_RESPONSES_URL, { ...request, background: true, store: false, stream: false }, false, requestKey),
+    create: (request, requestKey) => background("POST", responsesUrl, { ...request, background: true, store: false, stream: false }, false, requestKey),
     // Include is request-scoped: polling must ask for the same research evidence as creation.
     retrieve: id => background("GET", `${responseUrl(id)}?include%5B%5D=web_search_call.action.sources`, undefined, true),
     cancel: id => background("POST", `${responseUrl(id)}/cancel`, {}, true),
@@ -111,7 +114,7 @@ export function engineOpenAI(): EngineOpenAI {
   if (shared) return shared;
   const key = z.string().trim().min(16).max(500).regex(/^[^\s]+$/u).safeParse(process.env.OPENAI_API_KEY);
   if (!key.success) throw new Error("provider_unconfigured");
-  shared = createEngineOpenAI({ apiKey: key.data });
+  shared = createEngineOpenAI({ apiKey: key.data, origin: engineOpenAIOrigin() });
   return shared;
 }
 
