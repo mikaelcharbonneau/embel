@@ -6,8 +6,14 @@ describe("reversible project lifecycle on complete migrated PGlite schema (synth
   let db: TestDatabase;
   let project: { id: string; current_revision: number };
   const run = <T>(fn: () => Promise<T>, owner: string | null = OWNER_A) => asRole(db, "authenticated", owner, fn);
-  const change = (deleted = true, lifecycle = 0, revision = 1, owner: string | null = OWNER_A, id = project.id) => run(async () =>
-    (await db.query("select * from public.set_project_deleted($1,$2,$3,$4)", [id, revision, lifecycle, deleted])).rows[0]!, owner);
+  // set_project_deleted is revoked from every API role (20261110160000). The lifecycle
+  // rules are still tested directly, as the database owner with the owner's JWT subject.
+  const asSubject = async <T>(owner: string | null, fn: () => Promise<T>) => {
+    await db.query("select set_config('request.jwt.claim.sub', $1, false)", [owner ?? ""]);
+    try { return await fn(); } finally { await db.query("select set_config('request.jwt.claim.sub', '', false)"); }
+  };
+  const change = (deleted = true, lifecycle = 0, revision = 1, owner: string | null = OWNER_A, id = project.id) => asSubject(owner, async () =>
+    (await db.query("select * from public.set_project_deleted($1,$2,$3,$4)", [id, revision, lifecycle, deleted])).rows[0]!);
   const snapshot = async () => ({
     projects: (await db.query("select * from public.projects order by id")).rows,
     revisions: (await db.query("select * from public.project_revisions order by project_id,revision")).rows,
@@ -139,7 +145,7 @@ describe("reversible project lifecycle on complete migrated PGlite schema (synth
     expect((await db.query("select relrowsecurity,relforcerowsecurity from pg_class where oid='public.projects'::regclass")).rows).toEqual([{ relrowsecurity: true, relforcerowsecurity: true }]);
     await expect(run(() => db.query("update public.projects set deleted_at=clock_timestamp(),lifecycle_version=1 where id=$1", [project.id]))).rejects.toMatchObject({ code: "42501" });
     await expect(run(() => db.query("delete from public.projects where id=$1", [project.id]))).rejects.toMatchObject({ code: "42501" });
-    for (const role of ["anon", "service_role"] as const) await expect(asRole(db, role, OWNER_A, () => db.query("select public.set_project_deleted($1,1,0,true)", [project.id]))).rejects.toMatchObject({ code: "42501" });
+    for (const role of ["anon", "authenticated", "service_role"] as const) await expect(asRole(db, role, OWNER_A, () => db.query("select public.set_project_deleted($1,1,0,true)", [project.id]))).rejects.toMatchObject({ code: "42501" });
     for (const signature of ["fluid_private.require_active_project(uuid,uuid)", "fluid_private.guard_project_content_lifecycle()", "fluid_private.guard_project_job_admission()", "fluid_private.guard_project_storage_lifecycle()", "fluid_private.guard_project_lifecycle_change()"]) {
       expect((await db.query("select has_function_privilege('authenticated',$1,'execute') allowed", [signature])).rows).toEqual([{ allowed: false }]);
     }
