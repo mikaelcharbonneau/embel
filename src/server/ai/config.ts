@@ -27,7 +27,7 @@ type GuidedStrategyOperation = StrategyOperation;
  * the full documented 1,050,000-token model context, including search, and use
  * the highest long-context input rate (cache writes). Output includes reasoning.
  * 3,150,000 * $5/M + 8,192 * $15/M + 2 * $0.01 = $15.89288.
- * Evidence: docs/guided-interview-runtime.md. Low/default search settings are
+ * Evidence: docs/archive/guided-interview-runtime.md. Low/default search settings are
  * not treated as numeric cost controls. Legacy research remains unqualified. */
 export function guidedStrategyPolicy(operation: GuidedStrategyOperation, model: typeof OPENAI_STRATEGY_MODEL | typeof LOCAL_STRATEGY_MODEL = OPENAI_STRATEGY_MODEL): StrategyJobPolicy {
   strategyOperationSchema.parse(operation);

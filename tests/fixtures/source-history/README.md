@@ -8,7 +8,7 @@ can now run offline in a source archive without Git object metadata.
 
 Retrieved read-only on 2026-10-15 using the existing authenticated GitHub CLI
 and the GitHub Contents API with an exact commit reference. The repository
-documented in `docs/cloud-development.md` as `mikaelcharbonneau/emble` redirects
+documented in `docs/archive/cloud-development.md` as `mikaelcharbonneau/emble` redirects
 to `mikaelcharbonneau/embel`: repository ID **1410624483**, private, created
 2026-10-08T16:08:49Z, default branch `main`. Both commit objects and source bytes
 were read from that same repository. No checkout, Git history, remote source,

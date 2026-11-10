@@ -1,6 +1,13 @@
-# Generation engine (Phase 4 design)
+# Generation engine
 
-_November 9, 2026. This implements Phase 4 and step 2.1 of [architecture-review.md](architecture-review.md)._
+_Designed November 9, 2026; all four journey steps run on it since November 10, 2026. Implements Phase 4
+and step 2.1 of [architecture-review.md](architecture-review.md)._
+
+The design decisions, data model and functions below describe the running system. The per-step sections
+("Strategy on the engine" onward) record how each step was moved and what it relies on; where they
+mention the "shared worker", "worker lane" or old `jobs` tables, that is the retired system they were
+ported from. Prompt and request details are in `src/server/ai/` and `src/server/engine/`; if this file
+and the code disagree, the code is right.
 
 ## Goal
 
@@ -18,18 +25,18 @@ Each journey step moved over on its own, behind a switch. All four steps now run
 | Topic | Decision | Why |
 |---|---|---|
 | Orchestrator | `workflow` 5.2.3 + `@workflow/next` (Vercel Workflow, generally available April 2026) | Durable steps, retries and cancellation, inside the existing app; no extra deploy target |
-| Run records | New tables `generation_runs` and `generation_outputs`. The old `jobs`/`job_steps` stay read-only until they're dropped in Phase 5.2 | The old tables carry lease fences, plan manifests and immutable-history triggers built for the slot worker |
+| Run records | New tables `generation_runs` and `generation_outputs`. The old queue, lease, dispatch and receipt tables were dropped in task B2 (65 tables, 502 functions, 10 logins; list in `supabase/retired-objects-20261110.json`). `jobs` and `job_steps` remain only as the finished records the engine's Logo and Creative direction functions write | Nothing is left that a slot worker needed |
 | Who may start a run | `public.start_generation(...)`, a SECURITY DEFINER function using `auth.uid()`. Calling it directly through the Data API is the same as clicking in the app: credits and limits apply either way | Limits live where every path meets (review M3) |
 | Who writes results | Only the `embel_engine` database login, which can only execute `fluid_private.engine_*` functions. Its password is set in production outside migrations and stored as a Vercel secret (`EMBEL_ENGINE_DATABASE_URL`) | Least privilege; no secret key in the web bundle |
 | Text providers | OpenAI Responses in background mode. A step creates the response and stores its id; the workflow sleeps and polls; a step retrieves the result | An uncertain outcome is looked up by response id, never blindly re-sent (AGENTS.md); no function holds a long connection |
-| Image providers | The Images API exactly as the Logo step already calls it (`gpt-image-2.6-sunburst`, highest quality, transparent PNG), one call per image (step 4.4). Each try is marked as sent in the database before it is sent; an unknown outcome fails that image and returns its credit | The Responses `image_generation` tool would put a text model between the prompt and the image model and change the drawings; the Images API has no lookup by id, so the marker is what keeps a paid image from being sent twice |
+| Image providers | The Images API exactly as the Logo step already calls it (`gpt-image-2.6-sunburst`, low quality, low complexity, transparent PNG), one call per image (step 4.4). Each try is marked as sent in the database before it is sent; an unknown outcome fails that image and returns its credit | The Responses `image_generation` tool would put a text model between the prompt and the image model and change the drawings; the Images API has no lookup by id, so the marker is what keeps a paid image from being sent twice |
 | Retries | Steps retry transient failures (429, 5xx, network) with backoff, at most 3 attempts. Bad output gets one corrective re-prompt, then fails. Validation and permission errors fail immediately (`FatalError`) | Bounded, automatic, no operator adjudication |
 | Cancellation | `cancel_generation(run_id)` marks the run. The workflow checks between steps and cancels open OpenAI background responses | Users can stop work, and no paid call starts after a cancel |
 | Concurrency | No global slots. One active run per project and kind, a per-owner daily run limit, and a global daily cost cap, all enforced in `start_generation`. OpenAI rate limits are handled as retries | Throughput grows with demand (review M1) |
 | Credits | Ledger `credit_entries` (grant, charge, refund) plus a `plans` table (monthly allowance) and a `generation_kinds` table (credits per kind, enabled flag). `start_generation` charges; a failed or cancelled run is refunded | Monthly plans with credits (owner decision, November 9) |
 | Stop switch | `fluid_private.engine_settings.paused`, checked by `start_generation` and before every paid step | Stops paid work within seconds, no redeploy |
 | Status to the browser | Each step's existing screen polls its own status route every 3 s (Supabase Realtime later) | Smallest change per screen |
-| Costs | Each provider call records `cost_microusd` on its output row. Not shown to users | Admin visibility (S8); [no cost estimates in the UI] |
+| Costs | Each provider call records `cost_microusd` on its output row. Not shown to users | Admin visibility (S8); no cost estimates in the UI |
 
 ## Data model (migration `generation_engine`)
 
@@ -90,7 +97,7 @@ The workflow file only orchestrates. Every database or provider call is a `"use 
 3. **Naming.**
 4. **Logo concepts** (6 in parallel), refinements and style notes. Needs file storage writes; the engine gets a Supabase secret API key for that step (`EMBEL_ENGINE_SUPABASE_SECRET_KEY`).
 5. **Creative directions and exports.**
-6. **Retirement:** turn off the shared worker daemon; delete `services/`, `worker/`, slot logins, ChatGPT-plan mode and laptop runtimes; drop the old tables (Phase 5.2); make a clean baseline migration (Phase 1.2). The code part is done (see "Retirement (step 6)" below); the production steps are in [retire-old-worker-release.md](retire-old-worker-release.md).
+6. **Retirement:** turn off the shared worker daemon; delete `services/`, `worker/`, slot logins, ChatGPT-plan mode and laptop runtimes; drop the old tables (Phase 5.2); make a clean baseline migration (Phase 1.2). The code part is done (see "Retirement (step 6)" below); the production steps are in [archive/retire-old-worker-release.md](archive/retire-old-worker-release.md).
 
 ## Strategy on the engine (step 2)
 
@@ -140,10 +147,10 @@ _November 10, 2026. All four steps ran with real live runs on the engine; the ow
 - **Removed from the code:** `worker/` and `services/` (the shared worker daemon, the API-text worker and the dedicated Logo worker), their build, package and verify scripts and `package.json` scripts, the `worker-builds` and `portable-development` CI jobs, the old admission and dispatch paths (`strategy-jobs` enqueue and delivery, `api-text/*`, old Naming run starts, `logo-jobs`, Logo quotes and requests, the shared worker's Creative direction admission), ChatGPT-plan mode and the laptop runtimes (`local-chatgpt`, `npm run local`, port 3106), account enrollment, and the remaining vector conversion code.
 - **Moved:** the engine's prompts and image request helpers to `src/server/ai/`; the image check child process to `src/server/image-process/`.
 - **Kept:** reads of saved data (old jobs, results, names, logos, directions and boards), `src/domain/jobs.ts`, `request_job_cancel` for old requests that never finished, and the web app's restricted write lanes (`src/server/shared-account`, `src/server/runtime`), which Home attachments, Creative direction choices and Logo uploads still use.
-- **Database:** unchanged by this step. The objects nothing references any more are listed in the retirement PR and dropped in Phase 5.2.
+- **Database:** the objects nothing references any more were dropped afterwards in task B2 (migration `20261110180000_retire_old_worker_objects`, applied in production); the baseline migration reproduces the result.
 
 ## Release and rollback
 
 - Each kind's `generation_kinds.enabled` is its stop switch. With a kind off, its step shows as unavailable; there is no other path to fall back to.
 - `fluid_private.engine_settings.paused` stops every paid step at once.
-- Rolling back the retirement means redeploying an earlier web release and restarting the old worker ([retire-old-worker-release.md](retire-old-worker-release.md)), until Phase 5.2 drops its tables.
+- There is no old worker to fall back to: its code and database objects are gone. A bad release is rolled back by redeploying an earlier web release, and a misbehaving step is stopped by switching its kind off.

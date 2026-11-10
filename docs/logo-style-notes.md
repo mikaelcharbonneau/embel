@@ -49,9 +49,9 @@ development provider key. The first full run on November 9 made 56 requests
 ## Liked uploads
 
 A liked upload ("Your images") gets its own note, written once per upload
-version, on the generation engine only (kind `logo.style_note`,
+version, on the generation engine (kind `logo.style_note`,
 `src/workflows/logo.ts`). While the Logo kinds are off there are no upload
-notes, and the shared worker keeps attaching liked uploads to concepts.
+notes.
 
 - Preparing a new set requests one run for every liked upload that has no note,
   then waits up to a minute for them. A note still being written, or one that is
@@ -61,8 +61,7 @@ notes, and the shared worker keeps attaching liked uploads to concepts.
   read as solid black) and sends it at most 1024 px, as PNG or, if larger, JPEG
   within the 128 KiB request bound.
 - One structured `gpt-6.1-sol` request in background mode, under Creative
-  direction's exact text prices and limits (the worker lane's request,
-  `src/server/logo-creation/style-note-request.ts`). The note is saved as the
+  direction's exact text prices and limits (`src/server/ai/style-note-request.ts`). The note is saved as the
   run's output `note.<referenceId>` with its cost.
 - A request whose outcome is unknown is never repeated automatically; after two
   finished runs without a note for the same upload version, it is not requested
@@ -73,7 +72,7 @@ notes, and the shared worker keeps attaching liked uploads to concepts.
 - A saved brief whose liked-style lines differ from the latest (for example, an
   upload note written after the brief was saved) counts as outdated.
 
-The candidate `supabase/archive/candidates/shared_logo_style_notes.sql` (worker lane,
-`logo_style_notes` table) is superseded and not applied.
+An older design for the retired worker (`supabase/archive/candidates/shared_logo_style_notes.sql`,
+a `logo_style_notes` table) was never applied and is superseded.
 
 The first local note: 1,447 input and 61 output tokens, recorded at $0.004.

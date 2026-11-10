@@ -7,7 +7,7 @@ import { namingStrategyBasisSchema, projectNameEntrySchema } from "./project-nam
  * Shared contract for Naming generation (November 2026 rebuild). One run is one
  * `naming.generate` job: up to three OpenAI rounds that together save at most
  * 100 cleaned names. The database stores clean names only; it never re-reads a
- * raw provider reply. See docs/naming-generation-contract.md.
+ * raw provider reply. See docs/archive/naming-generation-contract.md.
  */
 export const NAMING_RUN_TARGET = 100;
 export const NAMING_MAX_ROUNDS = 3;

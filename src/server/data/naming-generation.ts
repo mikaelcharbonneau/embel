@@ -10,7 +10,7 @@ import { normalizeNamingRows } from "./project-naming";
 
 /**
  * Naming generation (November 2026 rebuild): thin owner-scoped wrappers over the
- * definer RPCs in docs/naming-generation-contract.md. SQL owns admission, the
+ * definer RPCs in docs/archive/naming-generation-contract.md. SQL owns admission, the
  * frozen brief and duplicate prevention; this module validates shapes, checks
  * that every row belongs to the signed-in account and maps errors to HTTP.
  */

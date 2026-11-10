@@ -10,7 +10,7 @@ This is a short map. For depth, read [generation-engine.md](generation-engine.md
 | Piece | What it is | Where |
 | --- | --- | --- |
 | Web app | Next.js 16.4.4 (webpack build) on Vercel, team `embel`, project `embel`. Screens, authenticated APIs, private download checks | `src/app`, `src/components`, `src/features`, `src/server` |
-| Database and files | Supabase Pro: Postgres 17, Auth, private Storage bucket `fluid-assets`. Accounts, projects, credits, run records, results | `supabase` |
+| Database and files | Supabase Pro: Postgres 17, Auth, private Storage bucket `fluid-assets`. Accounts, projects, credits, run records, results. One baseline migration plus newer ones | `supabase/migrations` |
 | Generation engine | Vercel Workflow 5.2.3 runs inside the web app. One workflow per AI step | `src/workflows`, `src/server/engine` |
 | AI provider | OpenAI: text through the Responses API (background mode), logos through the Images API (`gpt-image-2.6-sunburst`, low quality, low complexity, transparent background) | `src/server/engine` |
 
@@ -55,12 +55,15 @@ a second time blindly.
 
 ## Releases
 
-CI runs on every pull request, including the full-journey browser test with a stand-in AI
-(`npm run test:journey`). Production deploys are manual from a clean clone with
-`vercel deploy --prod --scope embel`; skew protection is on. The release lead applies database
-changes. See [retire-old-worker-release.md](retire-old-worker-release.md) for the latest example.
+CI runs on every pull request: type check, lint, build, sharded unit tests, the full-journey browser
+test with a stand-in AI (`npm run test:journey`) and the "Database migrations" job, which builds the
+database from `supabase/migrations` from scratch. Production deploys are manual from a clean clone with
+`vercel deploy --prod --scope embel`; skew protection is on. Database changes reach production through
+[database-release.md](database-release.md) (a manual workflow that stays inert until its secrets are
+added) or are applied by hand by the release lead; the one-time baseline step is in
+[baseline-release.md](baseline-release.md).
 
 ## Older records
 
 Everything written before the engine (workers, slots, API-text, the ChatGPT bridge, old release
-runbooks, per-screen design notes) is in [archive](archive/). Treat it as history.
+runbooks, per-screen design notes) is in [archive](archive/). Treat it as history. The index of current documents is [README.md](README.md).
