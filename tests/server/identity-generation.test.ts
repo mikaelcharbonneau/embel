@@ -1,5 +1,7 @@
 import { beforeEach,describe,expect,it,vi } from "vitest";
 vi.mock("server-only",()=>({}));
+// The shared worker path, as with Creative directions' engine kind off (identity-engine-switch.test.ts covers it on).
+vi.mock("../../src/server/engine/identity",async original=>({...await original<object>(),identityEngineEnabled:async()=>false,findIdentityDirectionsRun:async()=>null}));
 import { enqueueIdentityBatch,getIdentityAvailability,getIdentityBatch,getLatestIdentityBatch,readIdentityBatchRequest,cancelIdentityBatch,closeIdentityBatchRequest,IdentityIntentClosureUncertainError,IdentityAdmissionUncertainError } from "../../src/server/data/identity-jobs";
 import type { AuthenticatedContext } from "../../src/server/auth/context";
 import { IMAGE_MODEL } from "../../src/domain/providers";

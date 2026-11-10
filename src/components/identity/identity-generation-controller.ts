@@ -1,6 +1,7 @@
 import { identityBatchStateSchema, identityGenerationIntentSchema, type IdentityBatchOverview, type IdentityBatchState, type IdentityGenerationIntent } from "@/domain/identity-jobs";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 import { AccountRequestError } from "@/components/workspace/account-api";
+import { creditsMessage } from "@/components/workspace/credits-message";
 import type { AccountIdentityClient } from "./account-identity-client";
 import type { IdentityDraftMemory, IdentityGenerationRequest } from "./identity-draft-memory";
 
@@ -13,6 +14,19 @@ export type IdentityGenerationState = {
   busy: "checking" | "starting" | "stopping" | null; stopAcknowledgedBatchId: string | null; lookup: "unchecked" | "not_found"; error: string | null;
 };
 export const EMPTY_IDENTITY_GENERATION: IdentityGenerationState = Object.freeze({ overview: null, batch: null, retained: null, busy: null, stopAcknowledgedBatchId: null, lookup: "unchecked", error: null });
+
+/** Statuses that refuse a request outright. 402 (credits) and 429 (today's limit) come
+ * from the generation engine; nothing was admitted or charged for any of them. */
+const FINAL_REFUSALS: readonly number[] = [400, 402, 404, 409, 413, 422, 429];
+/** What the screen says when a request or check fails. Never a price. */
+export function identityGenerationErrorMessage(error: unknown, failure: string): string {
+  if (error instanceof AccountRequestError) {
+    if (error.status === 409) return "Saved inputs changed. Check the latest before starting a new request. Existing systems and the original request are kept.";
+    if (error.status === 402) return creditsMessage(null, "Your saved directions are kept.");
+    if (error.status === 429) return "You've reached today's limit for new directions. Your saved directions are kept. Try again tomorrow.";
+  }
+  return failure;
+}
 
 /** Reads never admit work. Only explicit start/retry send an immutable user intent. */
 export function createIdentityGenerationController({ account, projectId, client, memory, canStart }: {
@@ -42,9 +56,7 @@ export function createIdentityGenerationController({ account, projectId, client,
     publish({ busy: kind, error: null });
     try { await work(controller.signal); }
     catch (error) {
-      if (current()) publish({ error: error instanceof AccountRequestError && error.status === 409
-        ? "Saved inputs changed. Check the latest before starting a new request. Existing systems and the original request are kept."
-        : failure });
+      if (current()) publish({ error: identityGenerationErrorMessage(error, failure) });
     } finally {
       clearTimeout(timeout);
       if (operation === controller) { operation = null; publish({ busy: null }); }
@@ -95,7 +107,8 @@ export function createIdentityGenerationController({ account, projectId, client,
           if (!current() || signal.aborted || !batch) throw new AccountRequestError(503);
           recover(batch, input);
         } catch (error) {
-          if (current() && error instanceof AccountRequestError && [400, 404, 409, 413, 422].includes(error.status)) memory.resolveGenerationRequest(account.userId, projectId, input.idempotencyKey);
+          // A refusal is a final answer: nothing was admitted, so the request is not kept for recovery.
+          if (current() && error instanceof AccountRequestError && FINAL_REFUSALS.includes(error.status)) memory.resolveGenerationRequest(account.userId, projectId, input.idempotencyKey);
           throw error;
         }
       }, "The generation request could not be confirmed. Check the original request before trying again.");

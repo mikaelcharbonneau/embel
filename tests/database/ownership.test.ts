@@ -129,6 +129,27 @@ describe("local PostgreSQL ownership boundaries (not live Supabase)", () => {
     });
   });
 
+  it("lets only the owner's own engine round write Creative directions, through functions only", async () => {
+    // 20261110170000: rounds are written by the engine login into the existing Creative
+    // direction tables; clients keep read-only access and never write them directly.
+    const a = await seedProject(db);
+    const runId = (await db.query<{ id: string }>(`insert into public.generation_runs(owner_id,project_id,kind,status,idempotency_key,input,credits)
+      values($1,$2,'identity.directions','running',$3,$4,3) returning id`, [OWNER_A, a.id, `directions-${randomUUID()}`, JSON.stringify({ version: 1, revision: 1, batchId: randomUUID(), jobId: randomUUID() })])).rows[0]!.id;
+    for (const owner of [OWNER_A, OWNER_B]) await asRole(db, "authenticated", owner, async () => {
+      await expect(db.query("select fluid_private.engine_identity_save_board($1,1,'{}',null,0)", [runId])).rejects.toMatchObject({ code: "42501" });
+      await expect(db.query("select fluid_private.engine_identity_begin($1)", [runId])).rejects.toMatchObject({ code: "42501" });
+      for (const table of ["identity_batches", "identity_system_versions", "identity_generated_roots", "job_steps"]) {
+        await expect(db.query(`delete from public.${table}`), table).rejects.toMatchObject({ code: "42501" });
+      }
+      expect((await db.query("select id from public.generation_runs where id=$1", [runId])).rows).toEqual(owner === OWNER_A ? [{ id: runId }] : []);
+    });
+    for (const role of ["anon", "service_role"]) {
+      for (const signature of ["public.start_identity_directions(uuid,jsonb)", "public.cancel_identity_directions(uuid,uuid)", "fluid_private.engine_identity_save_board(uuid,integer,jsonb,text,bigint)"]) {
+        expect((await db.query("select has_function_privilege($1,$2,'EXECUTE') allowed", [role, signature])).rows, `${role} ${signature}`).toEqual([{ allowed: false }]);
+      }
+    }
+  });
+
   it("appends revisions with optimistic concurrency and immutable history", async () => {
     const a = await seedProject(db);
     await asRole(db, "authenticated", OWNER_A, async () => {

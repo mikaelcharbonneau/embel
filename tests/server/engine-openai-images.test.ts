@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { syntheticPng } from "../features/logo-vector/raster-fixtures";
 import { EngineProviderError } from "../../src/server/engine/openai";
-import { createEngineImages, EngineImageRejectedError, ENGINE_LOGO_IMAGE, imageCostMicrousd } from "../../src/server/engine/openai-images";
+import { createHash } from "node:crypto";
+import { createEngineImages, EngineImageRejectedError, ENGINE_BOARD_IMAGE, ENGINE_LOGO_IMAGE, imageCostMicrousd } from "../../src/server/engine/openai-images";
 
 // Synthetic Images API replies only; no live inference.
 const usage = { input_tokens: 100, output_tokens: 6_000, total_tokens: 6_100, input_tokens_details: { text_tokens: 100, image_tokens: 0 } };
@@ -52,5 +53,26 @@ describe("the engine's Logo image request", () => {
   it("keeps a paid reply without a readable image as unusable, not as a retry", async () => {
     const result = await draw(client(() => new Response(JSON.stringify({ data: [], usage }), { headers: { "content-type": "application/json" } })).images);
     expect(result).toMatchObject({ kind: "unusable", code: "invalid_output", costMicrousd: imageCostMicrousd(usage) });
+  });
+});
+
+describe("the engine's Creative direction board request", () => {
+  it("is the shared worker's board request: medium quality on an opaque PNG, the chosen logo attached first", async () => {
+    expect(ENGINE_BOARD_IMAGE).toEqual({ model: "gpt-image-2.6-sunburst", quality: "medium", background: "opaque" });
+    const logo = syntheticPng(8, 8, () => [0, 0, 0, 255]), digest = createHash("sha256").update(logo).digest("hex");
+    const reference = { ownerId: "aaaaaaaa-1111-4111-8111-111111111111", projectId: "bbbbbbbb-2222-4222-8222-222222222222", assetId: "cccccccc-3333-4333-8333-333333333333", versionId: "dddddddd-4444-4444-8444-444444444444", contentHash: digest };
+    const image = { reference, mimeType: "image/png" as const, bytes: new Uint8Array(logo), verification: { status: "verified" as const, checkedAt: "2026-11-09T20:00:00.000Z", contentHash: digest, mimeType: "image/png" as const, byteLength: logo.byteLength } };
+    const { calls, images } = client(() => reply(syntheticPng(1024, 1024, () => [200, 40, 40, 255])));
+    await images.draw({ prompt: "Create one complete coordinated brand board, not a logo grid.", images: [image], profile: ENGINE_BOARD_IMAGE }, "identity-run-board-1-1");
+    expect(calls[0]!.url).toBe("https://api.openai.com/v1/images/edits");
+    const form = calls[0]!.init.body as FormData;
+    expect(Object.fromEntries(["model", "quality", "background", "size", "output_format"].map(key => [key, form.get(key)])))
+      .toEqual({ model: "gpt-image-2.6-sunburst", quality: "medium", background: "opaque", size: "1024x1024", output_format: "png" });
+    expect(form.getAll("image[]")).toHaveLength(1);
+  });
+  it("refuses any other profile before sending", async () => {
+    const { calls, images } = client(() => reply(syntheticPng(1024, 1024, () => [0, 0, 0, 255])));
+    await expect(images.draw({ prompt: "x", images: [], profile: { ...ENGINE_BOARD_IMAGE } }, "identity-run-board-1-1")).rejects.toMatchObject({ disposition: "rejected" });
+    expect(calls).toHaveLength(0);
   });
 });

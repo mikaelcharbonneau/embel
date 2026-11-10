@@ -107,6 +107,19 @@ describe("reversible project lifecycle on complete migrated PGlite schema (synth
     await db.query("update public.usage_reservations set state='settled' where job_id=$1", [job.id]);
     await change();
   });
+  it("keeps a project busy while a Creative directions round runs on the engine, and frees it when the round ends", async () => {
+    // 20261110170000: the round's job runs under the run's lease until finish_generation_run closes it.
+    const job = await insertJob("running");
+    await db.query("update public.jobs set operation='identity.image', idempotency_key='engine:' || $2 where id=$1", [job.id, job.id]);
+    const runId = (await db.query<{ id: string }>(`insert into public.generation_runs(owner_id,project_id,kind,status,idempotency_key,input,credits,workflow_run_id,started_at)
+      values($1,$2,'identity.directions','running',$3,$4,3,'wrun_lifecycle',now()) returning id`,
+      [OWNER_A, project.id, `directions-${job.id}`, JSON.stringify({ version: 1, revision: 1, batchId: job.id, jobId: job.id })])).rows[0]!.id;
+    await expect(change()).rejects.toMatchObject({ code: "PT409", message: "project_busy" });
+    await db.query("select fluid_private.finish_generation_run($1,'cancelled','cancelled')", [runId]);
+    expect((await db.query("select state, lease_token from public.jobs where id=$1", [job.id])).rows).toEqual([{ state: "cancelled", lease_token: null }]);
+    expect((await db.query("select delta from public.credit_entries where run_id=$1 and kind='refund'", [runId])).rows).toEqual([{ delta: 3 }]);
+    await change();
+  });
   it("does not mistake another owned or foreign project's work for this project's work", async () => {
     const own = await seedProject(db), foreign = await seedProject(db, OWNER_B);
     await insertJob("queued", own.id); await insertJob("needs_reconciliation", foreign.id, OWNER_B);
