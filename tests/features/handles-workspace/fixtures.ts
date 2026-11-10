@@ -1,4 +1,4 @@
-import { createEntry, declareAccountCreated, type HandleNameSource, type HandlesState } from "./domain";
+import { createEntry, declareAccountCreated, type HandleNameSource, type HandlesState } from "@/features/handles-workspace/domain";
 
 // Synthetic fixture only; never loaded by HandlesWorkspace or its public barrel.
 export const fixtureHandleNames: HandleNameSource[] = [

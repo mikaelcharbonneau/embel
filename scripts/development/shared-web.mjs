@@ -17,7 +17,7 @@ export async function prepareSharedWeb(root, settings) {
     return { roleName, roleOid, databaseUrl };
   };
   const values = {
-    EMBEL_SHARED_ACCOUNT_HTTP_ENABLED: "true", EMBEL_SHARED_WORKERS_ENABLED: "true",
+    EMBEL_SHARED_ACCOUNT_HTTP_ENABLED: "true",
     EMBEL_DEVELOPMENT_DATABASE_PORT: String(settings.dbPort),
     EMBEL_SHARED_ACCOUNT_HTTP_CONFIG: JSON.stringify({ identity: principal("identity"), homeVerifier: principal("home") }),
     EMBEL_SHARED_LOGO_HTTP_CONFIG: JSON.stringify(principal("logo")),
@@ -45,6 +45,6 @@ export async function sharedWebEnvironment(root, settings, publicValues) {
     const rows = provision.httpPrincipals?.filter(row => row.lane === lane);
     if (rows?.length !== 1 || !actual || ["roleName", "roleOid", "databaseUrl"].some(key => actual[key] !== rows[0][key])) throw new DevelopmentError("Shared HTTP bindings differ from local provisioning.");
   }
-  const keys = ["EMBEL_SHARED_ACCOUNT_HTTP_ENABLED", "EMBEL_SHARED_WORKERS_ENABLED", "EMBEL_DEVELOPMENT_DATABASE_PORT", "EMBEL_SHARED_ACCOUNT_HTTP_CONFIG", "EMBEL_SHARED_LOGO_HTTP_CONFIG"];
+  const keys = ["EMBEL_SHARED_ACCOUNT_HTTP_ENABLED", "EMBEL_DEVELOPMENT_DATABASE_PORT", "EMBEL_SHARED_ACCOUNT_HTTP_CONFIG", "EMBEL_SHARED_LOGO_HTTP_CONFIG"];
   return Object.fromEntries(keys.filter(key => Object.hasOwn(values, key)).map(key => [key, values[key]]));
 }

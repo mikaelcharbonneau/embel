@@ -12,29 +12,16 @@ export type LogoRequestServiceResolution = {
   projectId: string;
   dependencies: LogoRequestServiceDependencies;
 };
-/** Trusted server bootstrap only. The caller must independently qualify the
- * restricted login and exact private-storage scope. This structural contract
- * is not evidence of hosted permissions, readiness or provider availability. */
+/** Resolves the restricted login and exact private-storage scope for one verified
+ * account and project. Not evidence of hosted permissions, readiness or provider availability. */
 export type LogoRequestServiceResolver = (
   auth: AuthenticatedContext,
   projectId: string,
   signal?: AbortSignal,
 ) => Promise<LogoRequestServiceResolution | null>;
 
-// Store only the resolver. Never retain an account, project, request, services,
-// database connection or private-storage transport at this HTTP boundary.
-// Next instrumentation and route bundles can evaluate independent module copies.
-// The process-global slot holds only the once-installed resolver, never requests.
-const RESOLVER = Symbol.for("fluid.logo.request-services.v1");
 const unavailable = () => new ApiError("integration_unavailable");
 const active = (signal?: AbortSignal) => { if (signal?.aborted) throw unavailable(); };
-
-/** Installation is explicit, once-only and zero-I/O. There is intentionally no
- * default bootstrap, environment/credential discovery, reset or replacement. */
-export function configureLogoRequestServices(trustedResolver: LogoRequestServiceResolver): void {
-  if (Reflect.has(globalThis, RESOLVER) || typeof trustedResolver !== "function") throw unavailable();
-  Object.defineProperty(globalThis, RESOLVER, { value: trustedResolver, configurable: true });
-}
 
 /** Resolve fresh capabilities for this verified account and exact owned project.
  * Never use a privileged dependency to establish ordinary account ownership. */
@@ -43,8 +30,8 @@ export async function resolveLogoRequestServices(auth: AuthenticatedContext, pro
   const ownerId = logoOwner(auth);
   projectId = logoId(projectId);
   active(signal);
-  const resolve = sharedAccountHttpConfigured() ? resolveSharedLogoRequestServices : Reflect.get(globalThis, RESOLVER) as LogoRequestServiceResolver | undefined;
-  if (!resolve) return createLogoServices(null);
+  if (!sharedAccountHttpConfigured()) return createLogoServices(null);
+  const resolve: LogoRequestServiceResolver = resolveSharedLogoRequestServices;
   await getLogoWorkspace(auth, projectId, signal);
   active(signal);
   // A resolver must honor the signal for its own work. Independently fence the

@@ -128,15 +128,10 @@ export function createHomeAttachmentService(dependencies: HomeAttachmentDependen
 }
 export const productionHomeAttachmentService = createHomeAttachmentService(null);
 async function withRouteService<T>(auth: AuthenticatedContext, signal: AbortSignal | undefined, run: (service: ReturnType<typeof createHomeAttachmentService>) => Promise<T> | T): Promise<T> {
- const { acquireAccountHomeAttachmentService } = await import('../runtime/account-http-lanes');
- const lease = await acquireAccountHomeAttachmentService(auth, signal);
+ const { acquireSharedAccountHome } = await import('../shared-account/bootstrap');
+ const lease = await acquireSharedAccountHome(auth, signal);
  try {
-  let service = lease.value;
-  if (!service && !lease.configured) {
-   const { getDevelopmentHomeAttachmentService } = await import('./development');
-   service = await getDevelopmentHomeAttachmentService(auth);
-  }
-  return await run(service ?? productionHomeAttachmentService);
+  return await run(lease.value ?? productionHomeAttachmentService);
  } finally { await lease.release(); }
 }
 export async function getHomeAttachmentCapability(auth?: AuthenticatedContext): Promise<AttachmentPolicy | null> {

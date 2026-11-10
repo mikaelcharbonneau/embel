@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('server-only', () => ({}));
-import { createPostgresHomeAttachmentBackend } from '@/server/home-attachments/postgres';
+import { createPostgresHomeAttachmentBackend } from '../../helpers/home-attachment-postgres-backend';
 import type { AuthenticatedContext } from '@/server/auth/context';
 import type { IdentityConnectionFactory } from '@/server/data/identity-transaction';
 const owner = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';

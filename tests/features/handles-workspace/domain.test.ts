@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { appendEvidence, buildHandleMatrix, createEntry, declareAccountCreated, emptyHandlesState, evidenceSchema, filterBundles, handleStatus, lastCheckedAt, saveBundle, updateBundleEntry, workspaceSchema, type HandleEvidence } from "@/features/handles-workspace/domain";
 import { checkHandleEntry, unavailableHandleAdapter } from "@/features/handles-workspace/adapters";
-import { fixtureHandleNames, fixtureHandlesState } from "@/features/handles-workspace/fixtures";
+import { fixtureHandleNames, fixtureHandlesState } from "./fixtures";
 
 const available: HandleEvidence = { platform: "instagram", handle: "morrow", outcome: "confirmed_available", authority: "platform_api", source: "Synthetic permitted API fixture", sourceUrl: "https://example.test/check", method: "Synthetic availability response", checkedAt: "2026-10-05T12:00:00Z", observedAt: "2026-10-05T12:00:01Z", detail: "Test fixture, not a live platform result." };
 describe("Handles matrix and evidence boundaries", () => {

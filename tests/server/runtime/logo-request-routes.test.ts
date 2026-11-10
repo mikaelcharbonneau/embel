@@ -1,5 +1,12 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
+const slot = vi.hoisted(() => ({ resolver: undefined as undefined | ((...args: unknown[]) => unknown) }));
+// The shared lane is the only production resolver; tests stand in for it here.
+vi.mock("@/server/shared-account/bootstrap", () => ({
+  sharedAccountHttpConfigured: () => slot.resolver !== undefined,
+  resolveSharedLogoRequestServices: (...args: unknown[]) => slot.resolver!(...args),
+}));
+const configureLogoRequestServices = (resolver: (...args: never[]) => unknown) => { slot.resolver = resolver as (...args: unknown[]) => unknown; };
 const f = vi.hoisted(() => ({ createClient: vi.fn() }));
 // Keep real getAuthenticatedContext, all route validation, services and adapters.
 // Only the external cookie/account client is substituted by a local port.
@@ -7,7 +14,6 @@ vi.mock("@/server/auth/client", () => ({ createRouteAuthClient: f.createClient }
 import { pathFor, type LogoHttpFixture } from "../../fixtures/logo-http-runtime";
 import type { LogoRequestServiceResolver } from "@/server/runtime/logo-request-services";
 const logoHttpFixture = async (...args: Parameters<typeof import("../../fixtures/logo-http-runtime")["logoHttpFixture"]>) => (await import("../../fixtures/logo-http-runtime")).logoHttpFixture(...args);
-const runtime = () => import("@/server/runtime/logo-request-services");
 const uploadRoute = () => import("@/app/api/projects/[projectId]/logo/references/uploads/route");
 const vectorRoute = () => import("@/app/api/projects/[projectId]/logo/vector/revisions/[vectorRevisionId]/route");
 const approvalRoute = () => import("@/app/api/projects/[projectId]/logo/directions/approval/route");
@@ -23,9 +29,9 @@ function privateResponse(response: Response) {
 async function configure(fixture: LogoHttpFixture, custom?: LogoRequestServiceResolver) {
   f.createClient.mockResolvedValue(fixture.client);
   const resolve = vi.fn(custom ?? (async (auth, projectId) => ({ ownerId: auth.userId, projectId, dependencies: fixture.dependencies })));
-  (await runtime()).configureLogoRequestServices(resolve); return resolve;
+  configureLogoRequestServices(resolve); return resolve;
 }
-beforeEach(() => { Reflect.deleteProperty(globalThis, Symbol.for("fluid.logo.request-services.v1")); vi.resetModules(); vi.resetAllMocks(); vi.stubEnv("APP_ORIGIN", "https://fluid.invalid"); });
+beforeEach(() => { slot.resolver = undefined; vi.resetModules(); vi.resetAllMocks(); vi.stubEnv("APP_ORIGIN", "https://fluid.invalid"); });
 afterEach(() => vi.unstubAllEnvs());
 
 describe("actual HTTP logo consumers with a trusted synthetic bootstrap", () => {

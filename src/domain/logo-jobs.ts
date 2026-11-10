@@ -4,12 +4,12 @@ import { z } from "zod";
 import { moneySchema } from "./jobs";
 import { sharedImageModelSchema } from "./providers";
 import { subscriptionLimitsSchema, subscriptionUsageSchema } from "./strategy-jobs";
-import { localRegistrationIdSchema } from "./local-chatgpt";
 import { LOGO_REFERENCE_SNAPSHOT_MAX_BYTES,logoExpectedHeadsSchema,logoBriefRevisionSchema,logoReferenceSnapshotSchema,logoMutationReceiptSchema,type LogoMutationReceipt } from "./logo-workspace";
 import { committedIdentityAssetReceiptSchema,logoVariantSetSchema,logoExportRejectionSchema,type LogoExportRejection,type IdentityAssetReceipt,type LogoVariantSet } from "./logo-deliverables";
 import { fontRecordSchema } from "./logo-directions";
 import { reviewedVisualDirectionSchema, VISUAL_DIRECTION_MAX_BYTES } from "./visual-direction";
 import { LOGO_MUTATION_MAX_BYTES,LOGO_GEOMETRY_MAX_BYTES,logoUuidSchema as uuid,logoHashSchema as hash,logoStringSchema as text,logoTimestampSchema as timestamp,logoIdentifierSchema as identifier,logoScopeShape as scope,logoTypeSchema,logoRasterSourceSchema,logoRevisionSchema as revision,logoAssetReferenceSchema,logoInputRevisionsSchema,logoLocksSchema,logoTraceSettingsSchema,logoApprovalSchema,logoVectorDocumentSchema,boundedLogoJson as bounded,uniqueLogoValues as unique,sameLogoScope,logoIssue as issue } from "./logo-vector";
+const localRegistrationIdSchema=z.string().min(1).max(200).regex(/^[A-Za-z0-9_-]+$/);
 
 export const LOGO_CONCEPT_OPERATION="identity.logo_concept" as const;
 // Active host inventory remains five lanes until the separate Task 6 integration.

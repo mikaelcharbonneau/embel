@@ -3,6 +3,8 @@ import { ApiError } from "@/server/http/errors";
 import { getSupabaseConfiguration } from "@/server/config";
 import { readDevelopmentConfiguration } from "@/server/development/config";
 
+/** The hosted Supabase project the shared lanes serve by default. */
+export const LOGO_SUPABASE_ORIGIN = "https://fricsfwqibyhemknqgyf.supabase.co";
 type Environment = Readonly<Record<string, string | undefined>>;
 const unavailable = () => new ApiError("integration_unavailable");
 

@@ -5,19 +5,16 @@ workflow dispatch. The final `CI` job succeeds only when every required job and
 all four test shards succeed. Repository branch protection can require this
 single stable check; adding the workflow does not change branch protection.
 
-The web job uses Node 24 from `.nvmrc` and runs the existing typecheck, lint,
+Every job uses Node 24 from `.nvmrc`. The web job runs the existing typecheck, lint,
 production build, production dependency audit and `test:setup` portability checks.
 The setup checks use disposable directories and need no Docker or credentials.
-Unit/integration tests and
-worker bundle builds use Node **22.22.2**, matching the dedicated workers'
-runtime qualification and Containerfiles. Each job installs `package-lock.json`
-with `npm ci`; only the npm download cache is shared.
+Each job installs `package-lock.json` with `npm ci`; only the npm download cache is shared.
 
 The ordinary Vitest suite is split into four shards with two workers per shard.
 It includes disposable PGlite database tests (they apply the baseline migration from
 `supabase/migrations`), native rendering tests, API tests, and browser-component
 tests. No Docker engine is needed for this job. Each shard retains its JUnit report
-for seven days. To reproduce a shard locally with Node 22.22.2:
+for seven days. To reproduce a shard locally with Node 24:
 
 ```sh
 npm ci

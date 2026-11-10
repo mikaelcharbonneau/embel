@@ -1,5 +1,5 @@
 /** Synthetic local examples only. These records are not real availability or purchases. */
-import { domainCheckSchema, domainOrderSchema, domainQuoteSchema, type DomainSearchAdapter } from "./model";
+import { domainCheckSchema, domainOrderSchema, domainQuoteSchema, type DomainSearchAdapter } from "@/features/domain-workspace/model";
 export function domainFixtures(now = Date.now()) {
   const date = (offset: number) => new Date(now + offset).toISOString();
   const check = domainCheckSchema.parse({ id: "fixture-check", domain: "northstar.com", provider: "Synthetic fixture registrar", availability: "available", checkedAt: date(-1000), validUntil: date(60000), evidenceReference: "fixture-evidence" });

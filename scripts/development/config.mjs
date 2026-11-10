@@ -108,7 +108,7 @@ export function publicEnvironment(settings, status = null) {
     "APP_ORIGIN=http://127.0.0.1:" + settings.webPort + "\n" +
     "NEXT_PUBLIC_SUPABASE_URL=" + (status ? status.API_URL : "") + "\n" +
     "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=" + (status ? status.PUBLISHABLE_KEY : "") + "\n" +
-    "FLUID_PAID_CALLS_APPROVED=false\nNEXT_TELEMETRY_DISABLED=1\n";
+    "NEXT_TELEMETRY_DISABLED=1\n";
 }
 
 export function localDockerEnvironment(endpoint, environment = process.env) {

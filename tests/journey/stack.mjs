@@ -19,7 +19,7 @@ function sharedWeb() {
   try { return parseEnv(readFileSync(path.join(state, "shared-web.env"), "utf8")); }
   catch { throw new Error("Local shared configuration is missing. Run npm run dev:up."); }
 }
-const SHARED_KEYS = ["EMBEL_SHARED_ACCOUNT_HTTP_ENABLED", "EMBEL_SHARED_WORKERS_ENABLED", "EMBEL_DEVELOPMENT_DATABASE_PORT", "EMBEL_SHARED_ACCOUNT_HTTP_CONFIG", "EMBEL_SHARED_LOGO_HTTP_CONFIG"];
+const SHARED_KEYS = ["EMBEL_SHARED_ACCOUNT_HTTP_ENABLED", "EMBEL_DEVELOPMENT_DATABASE_PORT", "EMBEL_SHARED_ACCOUNT_HTTP_CONFIG", "EMBEL_SHARED_LOGO_HTTP_CONFIG"];
 
 let cached = null;
 /** Local Supabase settings and keys of this checkout's stack. */
@@ -48,7 +48,7 @@ export function journeyStack() {
     appEnvironment: {
       ...Object.fromEntries(SHARED_KEYS.filter(key => Object.hasOwn(shared, key)).map(key => [key, shared[key]])),
       NODE_ENV: "development", NEXT_TELEMETRY_DISABLED: "1", PORT: String(settings.webPort),
-      EMBEL_DEVELOPMENT_ENABLED: "true", APP_ORIGIN: appOrigin, FLUID_PAID_CALLS_APPROVED: "false",
+      EMBEL_DEVELOPMENT_ENABLED: "true", APP_ORIGIN: appOrigin,
       NEXT_PUBLIC_SUPABASE_URL: apiUrl, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: web.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
       EMBEL_ENGINE_DATABASE_URL: `postgres://embel_engine:${ENGINE_PASSWORD}@127.0.0.1:${settings.dbPort}/postgres`,
       EMBEL_ENGINE_SUPABASE_SECRET_KEY: status.SECRET_KEY,
