@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useProjectLogoEvidence } from "@/components/workspace/project-workspace";
-import { useCallback, useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { LogoRasterSource } from "@/domain/logo-workspace";
 import { logoUuidSchema } from "@/domain/logo-vector";
 import type { LogoConceptBatch, LogoQuoteRequest } from "@/domain/logo-jobs";
@@ -11,7 +11,9 @@ import { IMAGE_INPUT_LIMITS } from "@/domain/logo-image-limits";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { useLogoDraftMemory } from "@/components/identity/logo-draft-memory-context";
 import { useLogoCreation } from "./use-logo-creation";
-import { useGenerationEstimate } from "./use-generation-estimate";
+import { useGenerationEstimate, type LogoEngineStarter } from "./use-generation-estimate";
+import { useLogoEngine } from "./use-logo-engine";
+import { LOGO_ENGINE_KINDS, logoDrawingSlotIds, logoRefineRequestStatus, logoRunBatchId } from "@/domain/logo-engine";
 import { LogoGenerationAction } from "./generation-action";
 import { acceptedConceptAttempt } from "./presentation";
 import type { LogoCreationState } from "./creation-controller";
@@ -71,6 +73,19 @@ function OwnedLogoCreation({ account, projectId, onContinue, continueHidden }: {
   const { workspace, creation: generation, capabilities } = useLogoCreation(projectId);
   const generationState = useSyncExternalStore(generation?.subscribe ?? noSubscription, generation?.getSnapshot ?? emptyCreation, emptyCreation);
   const { client, draft, reload: reloadWorkspace } = workspace;
+  // While every Logo kind is enabled, concepts, refinements and style notes run on the
+  // generation engine; otherwise the old quote-and-admit path runs exactly as before.
+  const logoEngine = useLogoEngine(account, projectId);
+  const engineOn = logoEngine.engine === true;
+  const activeConceptRun = engineOn ? logoEngine.active(LOGO_ENGINE_KINDS.concepts) : null;
+  const latestConceptRun = engineOn ? logoEngine.latest(LOGO_ENGINE_KINDS.concepts) : null;
+  const activeRefineRun = engineOn ? logoEngine.active(LOGO_ENGINE_KINDS.refine) : null;
+  const latestRefineRun = engineOn ? logoEngine.latest(LOGO_ENGINE_KINDS.refine) : null;
+  const engineRefine = latestRefineRun && logoEngine.followed.has(latestRefineRun.id) ? latestRefineRun : null;
+  const engineBatchId = logoRunBatchId(activeConceptRun) ?? (latestConceptRun && logoEngine.followed.has(latestConceptRun.id) ? logoRunBatchId(latestConceptRun) : null);
+  const engineRun = activeConceptRun ?? activeRefineRun;
+  const canConcept = engineOn || capabilities.isAvailable("identity.logo_concept");
+  const canRefine = engineOn || capabilities.isAvailable("identity.logo_refine");
   const { controller: batchHistory, state: batchHistoryState } = useLogoBatchHistory(client, account, projectId);
   const { controller: refinementHistory, state: refinementHistoryState } = useLogoRefinementHistory(client, account, projectId);
   const savedInputsRead = useRef<AbortController | null>(null);
@@ -101,7 +116,7 @@ function OwnedLogoCreation({ account, projectId, onContinue, continueHidden }: {
   const needsInitialization = Boolean(saved && !saved.stages.brief_references);
   const workspaceRevision = saved?.heads.workspaceRevision;
   const dispatch = generationState.request && generationState.request.status !== "not_found" && generationState.request.receipt && "jobIds" in generationState.request.receipt ? generationState.request.receipt : null;
-  const batchIds = [...new Set([...(dispatch?.batchId ? [dispatch.batchId] : []), ...batchHistoryState.items.map(batch => batch.id),
+  const batchIds = [...new Set([...(engineBatchId ? [engineBatchId] : []), ...(dispatch?.batchId ? [dispatch.batchId] : []), ...batchHistoryState.items.map(batch => batch.id),
     ...(workspace.stagePayloads?.concepts?.payload.batchIds ?? []).slice().reverse()])];
   const batchId = batchIds[0];
   const matchingBatchRead = client && saved?.ownerId === account.userId && saved.projectId === projectId
@@ -122,13 +137,19 @@ function OwnedLogoCreation({ account, projectId, onContinue, continueHidden }: {
   const pendingIntentKey = workspace.pendingIntent?.requestKey;
   const recoveryKeys = [...new Set([...(pendingIntentKey ? [pendingIntentKey] : []), ...logoBatchRecoveryRequestKeys(activeBatch)])];
   const activeRequest = generationState.request ?? recoveryKeys.map(key => requestReadouts[key]?.state).find(state => state !== null && state !== undefined) ?? null;
+  const drawingSlotIds = logoDrawingSlotIds(activeConceptRun, activeBatch);
+  const engineDrawing = useRef(false);
+  const activeConceptRunId = activeConceptRun?.id ?? null;
+  useLayoutEffect(() => { engineDrawing.current = activeConceptRunId !== null; }, [activeConceptRunId]);
 
   useEffect(() => () => { savedInputsRead.current?.abort(); requestRead.current?.abort(); }, []);
 
   useEffect(() => { if (dispatch?.batchId) void batchHistory?.refresh(); }, [batchHistory, dispatch?.batchId]);
 
-  const refinementRequestKey = activeRequest && activeRequest.status !== "not_found" && activeRequest.receipt && "operation" in activeRequest.receipt && activeRequest.receipt.operation === "identity.logo_refine" ? activeRequest.requestKey : null;
-  const refinementRequestStatus = activeRequest?.status;
+  // An engine refinement records its result under the run's id, as an old request key would.
+  const refinementRequestKey = engineRefine ? engineRefine.id
+    : activeRequest && activeRequest.status !== "not_found" && activeRequest.receipt && "operation" in activeRequest.receipt && activeRequest.receipt.operation === "identity.logo_refine" ? activeRequest.requestKey : null;
+  const refinementRequestStatus = engineRefine ? logoRefineRequestStatus(engineRefine) : activeRequest?.status;
   useEffect(() => {
     if (!refinementHistory || !refinementRequestKey) return;
     void refinementHistory.refresh();
@@ -152,7 +173,7 @@ function OwnedLogoCreation({ account, projectId, onContinue, continueHidden }: {
         if (!current()) return;
         setBatchRead(previous => batch ? { id: batchId!, client: client!, revision: workspaceRevision!, batch, unavailable: false }
           : previous && previous.client === client && previous.id === batchId ? { ...previous, unavailable: true } : { id: batchId!, client: client!, revision: workspaceRevision!, batch: null, unavailable: true });
-        if (batch?.slots.some(slot => ["queued", "running"].includes(slot.attempts.at(-1)?.state ?? ""))) timer = setTimeout(() => void read(), 3000);
+        if (engineDrawing.current || batch?.slots.some(slot => ["queued", "running"].includes(slot.attempts.at(-1)?.state ?? ""))) timer = setTimeout(() => void read(), 3000);
         else if (generation?.getSnapshot().phase === "active") {
           await generation.checkRequest();
           const retained = memory.get(projectId);
@@ -164,7 +185,18 @@ function OwnedLogoCreation({ account, projectId, onContinue, continueHidden }: {
     }
     void read();
     return () => { controller.abort(); clearTimeout(timer); };
-  }, [account, batchId, batchReload, client, dispatch?.requestKey, generation, isCurrent, memory, projectId, reloadWorkspace, workspaceRevision]);
+  }, [account, activeConceptRunId, batchId, batchReload, client, dispatch?.requestKey, generation, isCurrent, memory, projectId, reloadWorkspace, workspaceRevision]);
+
+  const endedRound = useRef<string | null>(null);
+  useEffect(() => {
+    if (activeConceptRunId) { endedRound.current = activeConceptRunId; return; }
+    if (!endedRound.current) return;
+    endedRound.current = null;
+    void batchHistory?.refresh();
+    setBatchReload(value => value + 1);
+    const retained = memory.get(projectId);
+    if (retained && !retained.pendingIntent && !retained.dirty) void reloadWorkspace(false);
+  }, [activeConceptRunId, batchHistory, memory, projectId, reloadWorkspace]);
 
   const quoteReviewBlocked = ["rejected", "refreshing_workspace", "resolve_draft"].includes(generationState.phase);
   const editing = workspace.canEdit && !savedInputsBusy && !selectionState.busy;
@@ -182,7 +214,7 @@ function OwnedLogoCreation({ account, projectId, onContinue, continueHidden }: {
   const completedRefinement = refinementHistoryState.items.find(({ record, verified }) => verified && record.requestKey === refinementRequestKey && record.state === "succeeded" && record.billing.status === "recorded" && record.preview?.publicationState === "committed")?.record;
   const composerStatus = selectionState.busy ? "Saving your choice…" : refinementBusy ? refinementRequestStatus === "needs_reconciliation" ? "Checking on your last change…" : "Refining your logo…"
     : completedRefinement ? "Your refined logo is ready on its card." : initialConceptReadState ? initialConceptReadMessage : !selectedLogo ? "Select a logo above to get started." : focusedReview.loading ? "Loading your chosen logo…" : focusedReview.error ? "Your chosen logo could not be loaded. Try choosing it again."
-    : !capabilities.isAvailable("identity.logo_refine") ? "Changing logos is unavailable right now. Your message is kept." : "";
+    : !canRefine ? "Changing logos is unavailable right now. Your message is kept." : "";
 
   // Logo types stay editable once concepts exist; a change saves the brief and
   // applies to the next set (More concepts). Not while a set is still drawing.
@@ -202,16 +234,26 @@ function OwnedLogoCreation({ account, projectId, onContinue, continueHidden }: {
   const canPrepareInputs = Boolean(saved && editing && !workspace.pending && !workspace.dirty && !draft?.conflict && !quoteReviewBlocked);
   const canEstimate = nameReadiness.supported && canPrepareInputs;
   const brief = workspace.stagePayloads?.brief_references;
-  const conceptsRequest: LogoQuoteRequest | null = !activeBatch && !batchId && !savedBatchLoading && !savedBatchUnavailable && canEstimate && !conceptReferenceLimitExceeded && capabilities.isAvailable("identity.logo_concept")
+  const [engineErrorKey, setEngineErrorKey] = useState<string | null>(null);
+  const engineStarter: LogoEngineStarter | null = engineOn ? {
+    busy: logoEngine.starting || Boolean(engineRun), error: logoEngine.error, errorKey: engineErrorKey, clearError: logoEngine.clearError,
+    start(request) {
+      setEngineErrorKey(JSON.stringify(request));
+      if (request.operation === "refine_preview") void logoEngine.start(LOGO_ENGINE_KINDS.refine, { expected: request.expected, source: request.source, instruction: request.instruction });
+      else if (request.operation === "retry_failed") void logoEngine.start(LOGO_ENGINE_KINDS.concepts, { operation: "retry_failed", expected: request.expected, sourceBatchId: request.sourceBatchId, failedSlotIds: request.failedSlotIds });
+      else if (request.operation === "concepts" || request.operation === "more_concepts") void logoEngine.start(LOGO_ENGINE_KINDS.concepts, { operation: request.operation, expected: request.expected, briefRevisionId: request.briefRevisionId });
+    },
+  } : null;
+  const conceptsRequest: LogoQuoteRequest | null = !activeBatch && !batchId && !savedBatchLoading && !savedBatchUnavailable && canEstimate && !conceptReferenceLimitExceeded && canConcept
     ? savedInputs.status === "prepared" && JSON.stringify(savedInputs.request.expected) === JSON.stringify(saved?.heads) ? savedInputs.request : null : null;
-  const conceptEstimate = useGenerationEstimate(generation, conceptsRequest);
-  const moreEstimate = useGenerationEstimate(generation, canEstimate && batchReady && saved && brief && !conceptReferenceLimitExceeded && capabilities.isAvailable("identity.logo_concept")
-    ? { operation: "more_concepts", expected: saved.heads, briefRevisionId: brief.id, referenceSnapshotId: brief.payload.referenceSnapshotId } : null);
+  const conceptEstimate = useGenerationEstimate(generation, conceptsRequest, engineStarter);
+  const moreEstimate = useGenerationEstimate(generation, canEstimate && batchReady && saved && brief && !conceptReferenceLimitExceeded && canConcept
+    ? { operation: "more_concepts", expected: saved.heads, briefRevisionId: brief.id, referenceSnapshotId: brief.payload.referenceSnapshotId } : null, engineStarter);
   const failedSlotIds = activeBatch?.slots.filter(slot => !acceptedConceptAttempt(slot) && slot.attempts.at(-1)?.state === "failed" && slot.attempts.at(-1)?.billing.status === "recorded").map(slot => slot.id) ?? [];
-  const retryEstimate = useGenerationEstimate(generation, canEstimate && batchReady && saved && activeBatch && failedSlotIds.length && capabilities.isAvailable("identity.logo_concept")
-    ? { operation: "retry_failed", expected: saved.heads, sourceBatchId: activeBatch.id, failedSlotIds } : null);
-  const refinementEstimate = useGenerationEstimate(generation, canEstimate && saved && selectedLogo && focusedReceipt && !refinementBusy && refineInstruction.trim() && capabilities.isAvailable("identity.logo_refine")
-    ? { operation: "refine_preview", expected: saved.heads, source: selectedLogo, instruction: refineInstruction.trim() } : null);
+  const retryEstimate = useGenerationEstimate(generation, canEstimate && batchReady && saved && activeBatch && failedSlotIds.length && canConcept && drawingSlotIds.size === 0
+    ? { operation: "retry_failed", expected: saved.heads, sourceBatchId: activeBatch.id, failedSlotIds } : null, engineStarter);
+  const refinementEstimate = useGenerationEstimate(generation, canEstimate && saved && selectedLogo && focusedReceipt && !refinementBusy && refineInstruction.trim() && canRefine
+    ? { operation: "refine_preview", expected: saved.heads, source: selectedLogo, instruction: refineInstruction.trim() } : null, engineStarter);
   const prepareLatestInputs = useEffectEvent(() => { void prepareSavedInputs(); });
   // Likes changed in Inspiration on this page: before the first concepts, update
   // the brief and liked images (re-reading the workspace, whose reference
@@ -278,8 +320,12 @@ function OwnedLogoCreation({ account, projectId, onContinue, continueHidden }: {
         isCurrent: current, getDraft: () => memory.get(projectId), readSavedInputs: signal => client.readLogoSavedInputs(signal),
         saveBrief: brief => workspace.saveBrief(brief), saveReferences: selections => workspace.saveReferences(selections), readBriefRevision: (id, signal) => client.getLogoStageRevision("brief_references", id, signal),
         onProgress: status => { if (current()) setSavedInputs({ status }); },
-        // One note request per liked upload without a note, as part of this click.
-        requestStyleNote: async (referenceId, expected, signal) => {
+        // One note request per liked upload without a note, as part of this click; the
+        // engine writes all missing notes in one run.
+        ...(engineOn ? { requestStyleNotes: async (referenceIds: readonly string[]) => {
+          if (!await logoEngine.start(LOGO_ENGINE_KINDS.styleNote, { referenceIds })) throw new Error("Style notes not started");
+        } } : {}),
+        requestStyleNote: engineOn ? undefined : async (referenceId, expected, signal) => {
           const quote = await client.quoteLogoOperation({ operation: "style_note", expected, referenceId }, signal);
           if (!quote) throw new Error("Style note quote unavailable");
           if (!await client.admitLogoOperation({ requestKey: crypto.randomUUID(), quoteId: quote.id, expected }, signal)) throw new Error("Style note not admitted");
@@ -465,7 +511,7 @@ function OwnedLogoCreation({ account, projectId, onContinue, continueHidden }: {
         : `Time for a logo. I’ll draw six concepts for ${draft?.brief.name || "your brand"}, guided by the designs you liked. First, which kinds of logo should I explore?`}</p>
       {!activeBatch && <LogoTypesQuestion value={draft?.brief.logoTypes ?? []} disabled={!draft || !editing || !autoSave}
         onChange={draft && editing && autoSave ? types => workspace.setBriefDraft({ ...draft.brief, logoTypes: types }) : undefined}
-        action={<LogoGenerationAction estimate={conceptEstimate} label="Explore six concepts" unavailable={savedInputsBusy ? "Preparing saved inputs…" : !capabilities.isAvailable("identity.logo_concept") ? "Generation is currently unavailable." : "Complete your saved logo inputs to continue."} />} />}
+        action={<LogoGenerationAction estimate={conceptEstimate} label="Explore six concepts" unavailable={savedInputsBusy ? "Preparing saved inputs…" : !canConcept ? "Generation is currently unavailable." : "Complete your saved logo inputs to continue."} />} />}
       {activeBatch && (changingTypes
         ? <LogoTypesQuestion value={draft?.brief.logoTypes ?? []} disabled={!canChangeTypes}
           onChange={draft && canChangeTypes ? types => workspace.setBriefDraft({ ...draft.brief, logoTypes: types }) : undefined}
@@ -492,13 +538,14 @@ function OwnedLogoCreation({ account, projectId, onContinue, continueHidden }: {
       onSelectVersion={batchReady && saved?.capabilities.save.status === "available" && !workspace.pending && !workspace.dirty && !draft?.conflict && editing ? source => void selectCandidate(source) : undefined} filter={conceptFilter} comparison={comparison} onCompare={compareCandidate} batch={activeBatch} savedBatchUnavailable={savedBatchUnavailable} savedBatchLoading={savedBatchLoading}
       selected={selectedLogo?.kind === "concept" ? selectedLogo : null}
       onSelect={batchReady && saved?.capabilities.save.status === "available" && !workspace.pending && !workspace.dirty && editing ? source => void selectCandidate(source) : undefined}
-      generation={capabilities.isAvailable("identity.logo_concept") ? { status: "available" } : { status: "unavailable", reason: "Concept generation is currently unavailable." }}
-      refinement={capabilities.isAvailable("identity.logo_refine") ? { status: "available" } : { status: "unavailable", reason: "Image refinement is currently unavailable." }} plan={conceptEstimate.quote?.conceptPlan}
+      generation={canConcept ? { status: "available" } : { status: "unavailable", reason: "Concept generation is currently unavailable." }}
+      refinement={canRefine ? { status: "available" } : { status: "unavailable", reason: "Image refinement is currently unavailable." }} drawingSlotIds={drawingSlotIds} plan={conceptEstimate.quote?.conceptPlan}
       renderPreview={client ? receipt => <LogoVerifiedPreview client={client} receipt={receipt} /> : undefined}
       generationActions={<>
         {!nameReadiness.supported && <p role="status">{nameReadiness.message}</p>}
         {activeBatch && <LogoGenerationAction variant="secondary" estimate={moreEstimate} label="More concepts" unavailable="" />}
-        {failedSlotIds.length > 0 && <LogoGenerationAction variant="secondary" estimate={retryEstimate} label={`Retry ${failedSlotIds.length} failed concept${failedSlotIds.length === 1 ? "" : "s"}`} unavailable="" />}
+        {failedSlotIds.length > 0 && drawingSlotIds.size === 0 && <LogoGenerationAction variant="secondary" estimate={retryEstimate} label={`Retry ${failedSlotIds.length} failed concept${failedSlotIds.length === 1 ? "" : "s"}`} unavailable="" />}
+        {engineRun && <button className={styles.secondaryButton} type="button" disabled={engineRun.cancelRequested} onClick={() => void logoEngine.cancel(engineRun.id)}>{engineRun.cancelRequested ? "Stopping…" : "Stop"}</button>}
       </>}
       onRequestRefine={batchReady && selectedLogo && canEstimate ? () => { refinementInput.current?.focus(); } : undefined}
       request={activeRequest} onCheckRequest={recoveryKeys.length > 0 && client && editing && !checkingRequest ? () => void checkRequest() : undefined} />

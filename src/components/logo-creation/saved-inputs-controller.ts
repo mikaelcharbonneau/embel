@@ -26,6 +26,8 @@ type Input = {
   checkOnly?: boolean;
   /** Requests one liked upload's style note, as part of this deliberate generation. */
   requestStyleNote?(referenceId: string, expected: LogoExpectedHeads, signal: AbortSignal): Promise<void>;
+  /** Requests every missing note at once (the generation engine writes them in one run). */
+  requestStyleNotes?(referenceIds: readonly string[], signal: AbortSignal): Promise<void>;
   /** Waits between reads while requested notes are written. */
   wait?(milliseconds: number, signal: AbortSignal): Promise<void>;
 };
@@ -69,10 +71,14 @@ export async function prepareSavedLogoConcepts(input: Input): Promise<LogoSavedI
     // Liked uploads guide concepts through style notes: request the missing ones
     // once, then wait briefly for them. A note that is unavailable or still
     // being written stays out of this brief rather than holding the click.
-    if (!input.checkOnly && input.requestStyleNote && input.wait && source.uploadNotes.some(note => note.status === "missing" || note.status === "pending")) {
+    if (!input.checkOnly && (input.requestStyleNote || input.requestStyleNotes) && input.wait && source.uploadNotes.some(note => note.status === "missing" || note.status === "pending")) {
       const awaited = new Set(source.uploadNotes.filter(row => row.status === "pending").map(row => row.referenceId));
-      for (const note of source.uploadNotes.filter(row => row.status === "missing")) {
-        try { await input.requestStyleNote(note.referenceId, captured.workspace.heads, input.signal); awaited.add(note.referenceId); }
+      const missing = source.uploadNotes.filter(row => row.status === "missing").map(row => row.referenceId);
+      if (input.requestStyleNotes && missing.length) {
+        try { await input.requestStyleNotes(missing, input.signal); for (const id of missing) awaited.add(id); }
+        catch { if (!current()) return { status: "obsolete" }; }
+      } else if (input.requestStyleNote) for (const referenceId of missing) {
+        try { await input.requestStyleNote(referenceId, captured.workspace.heads, input.signal); awaited.add(referenceId); }
         catch { if (!current()) return { status: "obsolete" }; }
       }
       for (let round = 0; awaited.size && round < STYLE_NOTE_WAIT_ROUNDS; round += 1) {

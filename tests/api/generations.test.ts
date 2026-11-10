@@ -31,7 +31,7 @@ const runParams = () => ({ params: Promise.resolve({ projectId: project, runId }
 /** A query builder that records its filters and answers with `rows`. */
 function query(rows: unknown, calls: unknown[][] = []) {
   const builder: Record<string, unknown> = {};
-  for (const method of ["select", "eq", "in", "like", "order", "limit"]) builder[method] = (...args: unknown[]) => { calls.push([method, ...args]); return builder; };
+  for (const method of ["select", "eq", "in", "like", "not", "order", "limit"]) builder[method] = (...args: unknown[]) => { calls.push([method, ...args]); return builder; };
   builder.maybeSingle = async () => ({ data: rows, error: null });
   builder.then = (resolve: (value: unknown) => void) => resolve({ data: rows, error: null });
   return builder;

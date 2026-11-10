@@ -2,7 +2,7 @@ import { legacyLogoVectorProposalTextPolicySchema,uncappedLogoVectorProposalText
 import { logoVectorProposalRequestSchema } from "./logo-vector-proposals";
 import { z } from "zod";
 import { moneySchema } from "./jobs";
-import { IMAGE_MODEL } from "./providers";
+import { sharedImageModelSchema } from "./providers";
 import { subscriptionLimitsSchema, subscriptionUsageSchema } from "./strategy-jobs";
 import { localRegistrationIdSchema } from "./local-chatgpt";
 import { LOGO_REFERENCE_SNAPSHOT_MAX_BYTES,logoExpectedHeadsSchema,logoBriefRevisionSchema,logoReferenceSnapshotSchema,logoMutationReceiptSchema,type LogoMutationReceipt } from "./logo-workspace";
@@ -36,7 +36,7 @@ export type LogoDirectionsApiPolicy=z.infer<typeof logoDirectionsApiPolicySchema
  * second provider call; shared execution authority remains independently bound. */
 export const uncappedLogoRasterCapabilitySchema=z.strictObject({
  operation:z.enum(["identity.logo_concept","identity.logo_refine"]),policyIdentity:hash,
- handlerVersion:z.literal("logo-image-v1"),provider:z.literal("openai"),model:z.literal(IMAGE_MODEL),engine:z.null(),
+ handlerVersion:z.literal("logo-image-v1"),provider:z.literal("openai"),model:sharedImageModelSchema,engine:z.null(),
  spendControl:z.literal("uncapped"),estimatedCostMicrousd:moneySchema.nullable(),
 });
 export type UncappedLogoRasterCapability=z.infer<typeof uncappedLogoRasterCapabilitySchema>;
@@ -116,7 +116,7 @@ export const uncappedLogoProposalQuoteSchema=uncappedQuoteBasis.extend({handlerV
 export const uncappedLogoRasterQuoteSchema=z.strictObject({...legacyLogoCostQuoteSchema.shape})
  .omit({maxCostMicrousd:true,externalProviderCostMicrousd:true,billingMode:true,policy:true,textPolicy:true})
  .extend({version:z.literal(3),billingMode:z.literal("openai_api"),spendControl:z.literal("uncapped"),
-  handlerVersion:z.literal("logo-image-v1"),provider:z.literal("openai"),model:z.literal(IMAGE_MODEL),engine:z.null(),estimatedCostMicrousd:moneySchema.nullable()})
+  handlerVersion:z.literal("logo-image-v1"),provider:z.literal("openai"),model:sharedImageModelSchema,engine:z.null(),estimatedCostMicrousd:moneySchema.nullable()})
  .superRefine((v,ctx)=>{
   if(!["concepts","more_concepts","retry_failed","refine_preview"].includes(v.request.operation)
    ||JSON.stringify(v.expected)!==JSON.stringify(v.request.expected))issue(ctx,"Raster quote requires its exact owned request");

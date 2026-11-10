@@ -153,29 +153,49 @@ describe("liked upload notes in the logo brief", () => {
 
 describe("liked upload note status", () => {
   const referenceId = "eeeeeeee-eeee-4eee-8eee-000000000001", hash = "1".repeat(64);
-  function client(notes: object[], jobs: object[]) {
-    const tables: Record<string, object[]> = { logo_reference_sources: [{ reference_id: referenceId, content_hash: hash, owner_id: ownerId, project_id: projectId }], logo_style_notes: notes };
-    const from = (name: string) => { let found = [...(tables[name] ?? [])] as Record<string, unknown>[];
-      const query = { select: () => query, match: (filter: Record<string, unknown>) => { found = found.filter(row => Object.entries(filter).every(([key, value]) => row[key] === undefined || row[key] === value)); return query; },
+  const assetId = "eeeeeeee-eeee-4eee-8eee-000000000002", versionId = "eeeeeeee-eeee-4eee-8eee-000000000003";
+  /** The person's own reads: the Logo kinds' switch, the upload's version, and style-note runs and outputs. */
+  function client(engine: boolean, runs: object[], outputs: object[], calls: string[] = []) {
+    const tables: Record<string, object[]> = { generation_runs: runs, generation_outputs: outputs,
+      logo_reference_sources: [{ reference_id: referenceId, asset_id: assetId, version_id: versionId, content_hash: hash, owner_id: ownerId, project_id: projectId, source_kind: "upload" }] };
+    const from = (name: string) => { calls.push(name); let found = [...(tables[name] ?? [])] as Record<string, unknown>[];
+      const query = { select: () => query, order: () => query, limit: () => query,
+        match: (filter: Record<string, unknown>) => { found = found.filter(row => Object.entries(filter).every(([key, value]) => row[key] === undefined || row[key] === value)); return query; },
         in: (key: string, values: unknown[]) => { found = found.filter(row => values.includes(row[key])); return query; },
         then: (resolve: (value: { data: unknown[]; error: null }) => unknown) => Promise.resolve({ data: found, error: null }).then(resolve) };
       return query; };
-    return { userId: ownerId, client: { from, rpc: async () => ({ data: jobs, error: null }) } } as unknown as AuthenticatedContext;
+    const rpc = async (name: string) => { calls.push(`rpc:${name}`);
+      return name === "get_generation_catalog" ? { data: { kinds: ["logo.concepts", "logo.refine", "logo.style_note"].map(kind => ({ kind, enabled: engine })) }, error: null }
+        : { data: null, error: { message: "function does not exist" } }; };
+    return { userId: ownerId, client: { from, rpc } } as unknown as AuthenticatedContext;
   }
-  const status = async (notes: object[], jobs: object[]) => (await likedUploadNotes(client(notes, jobs), projectId, [{ referenceId, aspects: ["overall_feel"] }]))[0];
-  const job = (state: string, contentHash = hash) => ({ referenceId, contentHash, state });
-  it("is ready only with a note for the upload's current bytes", async () => {
-    expect(await status([{ reference_id: referenceId, content_hash: hash, note_version: "logo-style-note-v1", symbol: "solid modules", lettering: null }], []))
-      .toEqual({ referenceId, status: "ready", note: { symbol: "solid modules", lettering: null } });
-    expect((await status([{ reference_id: referenceId, content_hash: "2".repeat(64), note_version: "logo-style-note-v1", symbol: "old", lettering: null }], []))!.status).toBe("missing");
+  let runs = 0;
+  const run = (status: string, contentHash = hash) => ({ id: `cccccccc-cccc-4ccc-8ccc-${String(++runs).padStart(12, "0")}`, owner_id: ownerId, project_id: projectId, kind: "logo.style_note", status,
+    input: { version: 1, revision: 1, references: [{ referenceId, mimeType: "image/png", asset: { ownerId, projectId, assetId, versionId, contentHash } }] } });
+  const output = (runId: string, values: Record<string, unknown>, contentHash = hash) => ({ run_id: runId, owner_id: ownerId, output_key: `note.${referenceId}`,
+    output: { referenceId, contentHash, noteVersion: "logo-style-note-v1", ...values } });
+  const status = async (rows: object[], outputs: object[] = []) => (await likedUploadNotes(client(true, rows, outputs), projectId, [{ referenceId, aspects: ["overall_feel"] }]))[0];
+
+  it("reads no notes, and nothing that production lacks, while the Logo engine is off", async () => {
+    const calls: string[] = [];
+    expect(await likedUploadNotes(client(false, [run("succeeded")], [], calls), projectId, [{ referenceId, aspects: ["overall_feel"] }])).toEqual([]);
+    expect(calls).toEqual(["rpc:get_generation_catalog"]);
   });
-  it("is pending while a request runs and unavailable after an unclear outcome", async () => {
-    expect((await status([], [job("running")]))!.status).toBe("pending");
-    expect((await status([], [job("needs_reconciliation")]))!.status).toBe("unavailable");
+  it("is ready only with a note written for the upload's current bytes", async () => {
+    const written = run("succeeded");
+    expect(await status([written], [output(written.id, { status: "written", symbol: "solid modules", lettering: null })]))
+      .toEqual({ referenceId, status: "ready", note: { symbol: "solid modules", lettering: null } });
+    const older = run("succeeded", "2".repeat(64));
+    expect((await status([older], [output(older.id, { status: "written", symbol: "old", lettering: null }, "2".repeat(64))]))!.status).toBe("missing");
+  });
+  it("is pending while a run writes it and unavailable after a send whose outcome is unknown", async () => {
+    expect((await status([run("running")]))!.status).toBe("pending");
+    const unclear = run("failed");
+    expect((await status([unclear], [output(unclear.id, { status: "failed", code: "send_interrupted" })]))!.status).toBe("unavailable");
   });
   it("allows a new request after one definite failure, not after two", async () => {
-    expect((await status([], [job("failed")]))!.status).toBe("missing");
-    expect((await status([], [job("failed"), job("failed")]))!.status).toBe("unavailable");
-    expect((await status([], [job("failed", "9".repeat(64)), job("failed", "9".repeat(64))]))!.status).toBe("missing");
+    expect((await status([run("failed")]))!.status).toBe("missing");
+    expect((await status([run("failed"), run("failed")]))!.status).toBe("unavailable");
+    expect((await status([run("failed", "9".repeat(64)), run("failed", "9".repeat(64))]))!.status).toBe("missing");
   });
 });
