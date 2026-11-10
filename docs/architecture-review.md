@@ -549,6 +549,60 @@ retention policy (question 9).
     - daily `cost_microusd` against the $50 cap;
     - Vercel Workflow failures.
   - The old Strategy slot, the API-text worker, its queue and its cron stay until a cleanup after that.
+
+#### November 10, 2026: every AI step on the engine, plus fixes and safety
+
+**Engine steps (all live)**
+
+- **Strategy on the engine (#216):** live and verified. Four live runs succeeded in 20–29 s, against an
+  86 s average before.
+- **Safety net (#217):** a run that stops reporting ends after its kind's time limit, and its credits come
+  back.
+- **Naming on the engine (#220):** live. 100 names in 38 s, against 57% failures and about 20 minutes
+  before. Each round sends three requests at once, of about 40 names each, and saves each reply's names as
+  soon as it arrives. One slow or broken request no longer loses the others' names.
+- **Logos on the engine (#222):** live. It replaced the four unreleased logo PRs #209–#212.
+- **Image-checker fix (#223):** the first live logo rounds drew all six images, then rejected them, because
+  a file was missing from the helper's packaged files and the image check crashed on Vercel. The bug dated
+  from October 18. A new test guards the list, so a missing file now fails CI instead of production.
+- **Low-quality logos (#227):** logos now use quality low and complexity low, at about $0.025 per image and
+  about $0.15 per round of 6, against $1.27 at max. The owner chose this after a side-by-side test of
+  medium ($0.27 per round), high ($0.32) and max ($1.27). These are internal measurements, not shown in
+  the app.
+- **Creative directions on the engine (#228):** live. 3 of 3 boards in 182 s, about $0.29 per round, and 1
+  credit per delivered board.
+
+**Fixes and safety**
+
+- **Home receipts (#219):** old browser save receipts in a retired format no longer block Home. Before
+  this, one outdated receipt stopped every new prompt.
+- **Skew protection (#221):** on, with a 12-hour maximum age, so a tab opened before a release keeps
+  working. #221 fixed a build-cache bug in `next/font` that made pages render in Times.
+- **Bot protection (#224):** BotID guards every route that starts paid AI work (`botid` 1.5.12, pinned). It
+  fails open if BotID can't be reached, and the credit and daily checks still apply.
+  - **Owner to do:** apply the WAF rate-limit rules in `docs/security-rate-limits.md`.
+- **Database hardening (#225):** anonymous visitors can call no SECURITY DEFINER function,
+  `set_project_deleted` is closed, and new functions are private by default.
+- **Turnstile CAPTCHA (#226):** shipped switched off.
+  - **Owner to do:** open a Cloudflare account, then follow `docs/auth-captcha.md`.
+
+**Decisions**
+
+- **No observation periods:** the owner rejected waiting periods between a verified release and the next
+  step. This replaces the "watch for 48 hours" lines above and in "Done when". Each release is verified
+  when it goes live, and the next step starts at once.
+- **Step 0.6 (idle logo slots):** already recorded above as decided against, because logos moved to the
+  engine. Nothing new.
+- **Deploys stay pinned:** production deployments pin pages to their own deployment, so a tab opened
+  before a release keeps working.
+
+**In progress (not done)**
+
+- **A6, full-journey browser test in CI:** a helper is building it on branch `ci/journey-e2e`.
+- **B1, retiring the old worker code:** a helper is working on it on branch `retire/old-worker`.
+
+The plan for the rest of the work is in `docs/execution-plan.md`.
+
 ### Files that change most
 
 - **New:**
