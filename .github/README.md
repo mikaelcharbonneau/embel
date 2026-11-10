@@ -14,24 +14,15 @@ runtime qualification and Containerfiles. Each job installs `package-lock.json`
 with `npm ci`; only the npm download cache is shared.
 
 The ordinary Vitest suite is split into four shards with two workers per shard.
-It includes disposable PGlite database tests, native rendering tests, API tests,
-and browser-component tests. The migration composer test also starts a disposable
-native PostgreSQL 17 container. Each shard fetches its exact public image digest
-before running tests, so changing shard assignments does not depend on a cached
-image. That fixture has no network, exposed ports, or application credentials.
-Each shard retains its JUnit report for seven days.
-To reproduce a shard locally with Node 22.22.2, start your local Docker engine
-(Docker Desktop, Colima or OrbStack; the test uses the active local Docker
-context) and pull the fixture image once:
+It includes disposable PGlite database tests (they apply the baseline migration from
+`supabase/migrations`), native rendering tests, API tests, and browser-component
+tests. No Docker engine is needed for this job. Each shard retains its JUnit report
+for seven days. To reproduce a shard locally with Node 22.22.2:
 
 ```sh
 npm ci
-docker pull ghcr.io/supabase/cli/postgres:17.11.0.006-r0@sha256:ee0f2d9747fb9d3c0a29703684ec718f070384ad05bf0d92823ed02cabde8e5a
 npm test -- --shard=1/4 --maxWorkers=2
 ```
-
-Outside CI, the native PostgreSQL suite is skipped, with the reason in its name,
-when no local engine is running or the image has not been pulled.
 
 No application credentials or GitHub environment are attached to these jobs.
 The workflow has only read access to repository contents, does not persist the

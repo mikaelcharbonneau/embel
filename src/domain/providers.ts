@@ -8,7 +8,7 @@ export const IMAGE_MODEL = "gpt-image-2.6-sunburst" as const;
 export const CAPPED_LOGO_IMAGE_MODEL = "gpt-image-2.5-sunburst-2026-09-08" as const;
 export type LogoImageModel = typeof IMAGE_MODEL | typeof CAPPED_LOGO_IMAGE_MODEL;
 /** The model a shared worker policy names. Production's shared worker still runs the
- * 2.5 snapshot: the packet that would move it (supabase/candidates/shared_image_model_2_6.sql)
+ * 2.5 snapshot: the packet that would move it (supabase/archive/candidates/shared_image_model_2_6.sql)
  * is not applied, and the generation engine draws Logo images with IMAGE_MODEL instead.
  * Old-path readers accept either, so the old path keeps working until it is retired. */
 export const sharedImageModelSchema = z.enum([IMAGE_MODEL, CAPPED_LOGO_IMAGE_MODEL]);

@@ -1,4 +1,3 @@
-import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { contextSnapshotSchema } from "@/domain/projects";
@@ -18,7 +17,7 @@ describe("owned project screening records in local SQL", () => {
     const result = await auth(async () => (await db.query<{ value: { entry: { candidate: { id: string } } } }>("select public.import_local_name($1,$2,$3,$4,$5,$6) value", [project, revision, { id: randomUUID(), value, createdAt: screeningInput.observedAt, origin: "manual", history: [] }, context, value.toLowerCase(), randomUUID()])).rows[0]!.value);
     return auth(async () => (await db.query<{ value: { currentSelection: { selection: { id: string } } } }>("select public.select_project_name($1,$2,$3,true) value", [project, result.entry.candidate.id, revision])).rows[0]!.value.currentSelection.selection.id);
   }
-  beforeAll(async () => { db = await createTestDatabase({ additionalMigrations: [await readFile(new URL("../../supabase/candidates/project_screening.sql", import.meta.url), "utf8")] }); }, 120000);
+  beforeAll(async () => { db = await createTestDatabase(); }, 120000);
   afterAll(async () => { await db?.close(); });
   beforeEach(async () => {
     await resetFixture(db);

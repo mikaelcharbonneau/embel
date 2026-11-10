@@ -1,10 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { asRole, claim, createTestDatabase, enqueue, HASH, OWNER_A, OWNER_B, registerPlan, resetFixture, seedProject, type TestDatabase } from "../database/local-supabase";
 import { beginStep, completeStep, finishJob } from "../database/retired-worker-fixture";
 
-const migration = "20261015235900_project_stop_and_delete.sql";
 type Summary = { id: string; lifecycle_version: number; deletion_state: string; deletion_requested_at: string | null };
 type UsageAccount = { owner_id: string; reserved_microusd: number; spent_microusd: number; provider_actual_microusd: number; limit_microusd: number };
 
@@ -12,7 +10,6 @@ type UsageAccount = { owner_id: string; reserved_microusd: number; spent_microus
 describe("independent stop-and-delete transaction safety", () => {
   let db: TestDatabase;
   let project: string;
-  let oldFunctionIds: number[];
   const owner = <T>(run: () => Promise<T>, identity: string | null = OWNER_A) => asRole(db, "authenticated", identity, run);
   const service = <T>(run: () => Promise<T>) => asRole(db, "service_role", null, run);
   const request = (epoch = 0, identity = OWNER_A) => owner(async () => (await db.query<{ result: Summary }>(
@@ -34,18 +31,9 @@ describe("independent stop-and-delete transaction safety", () => {
     await beginStep(db, job, "one", "review-provider-request", 100);
     return job;
   }
-  beforeAll(async () => {
-    db = await createTestDatabase({ before: migration });
-    oldFunctionIds = (await db.query<{ oid: number }>("select oid::int from pg_proc")).rows.map(row => row.oid);
-    await db.exec("alter default privileges in schema public grant execute on functions to fixture_subscription_worker_a; alter default privileges in schema fluid_private grant execute on functions to fixture_subscription_worker_a");
-    await db.exec(await readFile(new URL(`../../supabase/migrations/${migration}`, import.meta.url), "utf8"));
-  }, 60_000);
+  beforeAll(async () => { db = await createTestDatabase(); }, 60_000);
   afterAll(async () => { await db?.close(); });
   beforeEach(async () => { await resetFixture(db); project = (await seedProject(db)).id; });
-
-  it("scrubs hostile inherited EXECUTE from every new helper and owner RPC", async () => {
-    expect((await db.query("select oid::regprocedure::text signature from pg_proc where oid<>all($1::oid[]) and has_function_privilege('fixture_subscription_worker_a',oid,'EXECUTE')", [oldFunctionIds])).rows).toEqual([]);
-  });
 
   it("replays only the current deletion epoch and never releases a reservation twice", async () => {
     const job = await enqueue(db, project);

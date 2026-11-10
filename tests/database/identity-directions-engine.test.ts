@@ -55,13 +55,14 @@ describe("identity directions engine on a database built from migrations alone",
     expect(policy).toEqual({ policyIdentity: ENGINE_IDENTITY_POLICY_IDENTITY, textPolicy: ENGINE_IDENTITY_TEXT_POLICY, requestedModel: "gpt-image-2.6-sunburst" });
   });
 
-  it("refuses rounds without the selected-logo board packet, even with the kind on", async () => {
+  it("refuses rounds outside a verified PostgREST session, even with the kind on", async () => {
     await db.exec("update fluid_private.generation_kinds set enabled = true where kind = 'identity.directions'");
     const project = await seedProject(db, MIGRATIONS_OWNER);
     for (const sql of ["select public.get_identity_directions_availability($1)", "select public.start_identity_directions($1, '{}'::jsonb)",
       "select public.cancel_identity_directions($1, gen_random_uuid())", "select public.close_identity_directions_intent($1, '{}'::jsonb)"]) {
+      // The fixture's owner is a direct database session, not the authenticator login.
       const error = await asRole(db, "authenticated", MIGRATIONS_OWNER, () => failure(() => db.query(sql, [project.id])));
-      expect(error, sql).toMatchObject({ code: "55000", message: "generation_unavailable" });
+      expect(error, sql).toMatchObject({ code: "42501", message: "shared_identity_verified_account_required" });
       expect(await asRole(db, "authenticated", null, () => failure(() => db.query(sql, [project.id]))), sql).toMatchObject({ code: "42501", message: "unauthenticated" });
     }
     expect((await db.query("select count(*)::int n from public.generation_runs")).rows).toEqual([{ n: 0 }]);

@@ -4,7 +4,7 @@ import { promisify } from "node:util";
 import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { cliVersion, defaults, digest, DevelopmentError, localDockerEnvironment, migrationSources, prepare, publicEnvironment, readOptional, repositoryRoot, settingsFor, SHARED_PACKETS_BEFORE, unstageFrom, writeState } from "./development/config.mjs";
+import { cliVersion, defaults, digest, DevelopmentError, localDockerEnvironment, migrationSources, prepare, publicEnvironment, readOptional, repositoryRoot, settingsFor, writeState } from "./development/config.mjs";
 
 export { localDockerEnvironment } from "./development/config.mjs";
 
@@ -102,11 +102,6 @@ async function health(settings, status) {
   return checks;
 }
 
-async function databaseVolumeExists(settings) {
-  try { await docker(["volume", "inspect", "supabase_db_" + settings.projectId]); return true; }
-  catch { return false; }
-}
-
 async function installedVersions(settings) {
   return (await docker(["exec", "supabase_db_" + settings.projectId, "psql", "-U", "postgres", "-d", "postgres", "-At", "-c", "select version from supabase_migrations.schema_migrations order by version"])).split(/\r?\n/);
 }
@@ -138,7 +133,7 @@ export function parseArguments(args) {
 export async function main(args, root = repositoryRoot) {
   const options = parseArguments(args);
   if (options.action === "help") {
-    console.log("Embel portable development\n  npm run dev:setup     Prepare this checkout (no Docker required)\n  npm run dev:up        Start local services and provision full shared database\n  npm run dev:doctor    Check local services\n  npm run dev:down      Stop this checkout's stack, retaining its data\n  npm run dev          Start the web interface\n\nsetup/up options: --web-port, --api-port, --db-port, --shadow-port, --mail-port\nup option: --proxy-health (exact loopback health probes in managed proxy environments)");
+    console.log("Embel portable development\n  npm run dev:setup     Prepare this checkout (no Docker required)\n  npm run dev:up        Start local services, apply supabase/migrations and provision the local logins\n  npm run dev:doctor    Check local services\n  npm run dev:down      Stop this checkout's stack, retaining its data\n  npm run dev          Start the web interface\n\nsetup/up options: --web-port, --api-port, --db-port, --shadow-port, --mail-port\nup option: --proxy-health (exact loopback health probes in managed proxy environments)");
     return;
   }
   if (options.action === "down") {
@@ -181,26 +176,18 @@ export async function main(args, root = repositoryRoot) {
       await prepareProxyHealth(root, state, docker);
     }
     const network = await loopbackNetwork(settings);
-    // A new database applies the staged migrations when it starts: hold back the
-    // retirement of the old worker objects until the shared packets are installed.
-    if (!await databaseVolumeExists(settings)) await unstageFrom(state, SHARED_PACKETS_BEFORE);
+    // A new database applies the staged migrations (supabase/migrations) when it starts;
+    // an existing one receives the ones it does not have yet.
     console.log("Starting the isolated stack; the first run may download container images.");
     await cli(root, state, ["start", "--network-id", network, "--exclude", excludes]);
     await inspectServices(settings);
-    if (!(await installedVersions(settings)).includes(SHARED_PACKETS_BEFORE)) {
-      await unstageFrom(state, SHARED_PACKETS_BEFORE);
-      await cli(root, state, ["migration", "up", "--local"]);
-      const { installDevelopmentSchema } = await import("./development/shared-schema-install.mjs");
-      await installDevelopmentSchema(root, { migrationsBefore: SHARED_PACKETS_BEFORE });
-      await prepare(root, options.ports);
-    }
     await cli(root, state, ["migration", "up", "--local"]);
   }
   const { status, report } = await coreStatus(root, state, settings, migrations);
   if (options.action === "up") {
     await writeState(publicFile, publicEnvironment(settings, status));
     await writeState(path.join(state, "applied-config.sha256"), digest(await readFile(path.join(state, "supabase/config.toml"))) + "\n");
-    const { provisionDevelopmentSchema } = await import("./development/shared-schema-install.mjs");
+    const { provisionDevelopmentSchema } = await import("./development/provision.mjs");
     const { prepareSharedWeb } = await import("./development/shared-web.mjs");
     await provisionDevelopmentSchema(root);
     await prepareSharedWeb(root, settings);

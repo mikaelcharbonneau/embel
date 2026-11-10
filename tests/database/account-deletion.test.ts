@@ -69,8 +69,8 @@ async function seedAccount(owner: string) {
 
 beforeAll(async () => {
   db = await createTestDatabase();
-  // The real storage.objects has created_at; the shared minimal fixture does not.
-  await db.exec("alter table storage.objects add column created_at timestamptz not null default now()");
+  // The shared fixture gives storage.objects created_at like the real table.
+  await db.exec("alter table storage.objects alter column created_at set not null");
   await db.exec("insert into storage.buckets(id, name) values('fluid-assets','fluid-assets') on conflict do nothing");
 }, 180_000);
 afterAll(async () => { await db?.close(); });

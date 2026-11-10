@@ -18,12 +18,14 @@ const env = () => ({ NODE_ENV: "test" as const, EMBEL_DEVELOPMENT_ENABLED: "true
   EMBEL_DEVELOPMENT_IDENTITY_OWNER_ID: owner, EMBEL_DEVELOPMENT_IDENTITY_ROLE_NAME: role,
   EMBEL_DEVELOPMENT_IDENTITY_ROLE_OID: "12345" });
 
-const sql = readFileSync(new URL("../database/identity-trusted-replacement.sql", import.meta.url), "utf8");
+// The helper bodies as the baseline migration (and production) define them.
+const sql = readFileSync(new URL("../../supabase/migrations/20261110190000_baseline.sql", import.meta.url), "utf8");
 function helperRows() {
   return ["identity_web_owner", "prepare_identity_transaction", "commit_identity_transaction"].map(name => {
-    const match = sql.match(new RegExp(`create function fluid_private\\.${name}[\\s\\S]*?as \\$\\$([\\s\\S]*?)\\$\\$;`));
+    // pg_dump quotes a body with $$, or with $_$ when the body itself contains $$.
+    const match = sql.match(new RegExp(`CREATE FUNCTION fluid_private\\.${name}\\([\\s\\S]*?AS (\\$[A-Za-z_]*\\$)([\\s\\S]*?)\\1;`));
     if (!match) throw new Error("Missing reviewed local helper");
-    return { name, body: match[1]!, definer: name !== "identity_web_owner", owner: name === "identity_web_owner" ? "postgres" : "fluid_identity_writer_definer_v1",
+    return { name, body: match[2]!, definer: name !== "identity_web_owner", owner: name === "identity_web_owner" ? "postgres" : "fluid_identity_writer_definer_v1",
       volatility: name === "identity_web_owner" ? "s" : "v", safe_path: true, no_public_execute: true, trusted_owner: true, owner_attributes: true, callable: true };
   });
 }

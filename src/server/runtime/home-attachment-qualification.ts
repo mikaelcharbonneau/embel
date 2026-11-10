@@ -7,7 +7,7 @@ import { readManagedPrincipalProof, type ManagedQualification } from "./managed-
 
 const unavailable = () => new ApiError("integration_unavailable");
 const helpers = {
-  home_attachment_owner: { hash: "5b5f2a913343ce8c2785dc677e1e283aea7a5833f7c83a57b9da03197c4dd40b", volatility: "s" },
+  home_attachment_owner: { hash: "d56e97decff5330b4ad9a0ac36c9e1c56987b9e2ea07f3652c45f5d11b8fc291", volatility: "s" },
   prepare_home_attachment: { hash: "c0eb091e034e62845fa67e75e8b8049a066c0677f980ebb7961d95866824a402", volatility: "v" },
   observe_home_attachment: { hash: "fce80bafee4f77b9f1985e6d0235b065adeddfe26d3cab01f748f8e29e72edc8", volatility: "v" },
   lookup_home_attachment: { hash: "289abf1c70b7f4fdb9e2e195bb896b71b6f7ad4b22c4b28b1d45d384b38ea206", volatility: "s" },

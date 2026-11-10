@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import { asRole, claim, createTestDatabase, enqueue, HASH, OWNER_A, OWNER_B, registerPlan, resetFixture, seedProject, type TestDatabase } from "./local-supabase";
 import { beginStep } from "./retired-worker-fixture";
 
@@ -50,9 +49,7 @@ const reviewedReadOnlyTables = [...reviewedLogoAndHomeTables, ...reviewedWorkflo
 describe("local PostgreSQL ownership boundaries (not live Supabase)", () => {
   let db: TestDatabase;
   beforeAll(async () => {
-    db = await createTestDatabase({ additionalMigrations: [
-      await readFile(new URL("../../supabase/candidates/project_screening.sql", import.meta.url), "utf8"),
-    ] });
+    db = await createTestDatabase();
   }, 300_000); // Cold local engine/migration setup, not an application deadline.
   afterAll(async () => { await db?.close(); });
   beforeEach(async () => { await resetFixture(db); });

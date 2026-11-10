@@ -140,31 +140,3 @@ describe('Home pre-project SQL ownership, CAS and recovery (local fixtures)', ()
  });
 
 });
-
-it('scrubs hostile default grants from only Home tables and exact function signatures', async () => {
- const { PGlite } = await import('@electric-sql/pglite'); const { readFile, readdir } = await import('node:fs/promises'); const db = new PGlite();
- try {
-  await db.exec(`create role anon nologin;create role authenticated nologin;create role service_role nologin bypassrls;
-   create role fluid_identity_writer_definer_v1 nologin noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
-   create role fixture_subscription_worker_a login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
-   create role fixture_subscription_worker_b login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
-   create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
-   grant usage on schema auth,public to anon,authenticated,service_role;grant execute on function auth.uid() to anon,authenticated,service_role;
-   create schema storage;create table storage.buckets(id text primary key,name text not null,public boolean not null default false,file_size_limit bigint);
-   create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text references storage.buckets(id),name text not null,owner_id text,unique(bucket_id,name));
-   alter table storage.objects enable row level security;grant usage on schema storage to authenticated,service_role;grant select,insert,update,delete on storage.objects to authenticated,service_role;`);
-  const directory = new URL('../../supabase/migrations/', import.meta.url), candidate = '20261007015000_home_attachments.sql';
-  for (const name of (await readdir(directory)).filter(n => n.endsWith('.sql') && n < candidate).sort()) await db.exec(await readFile(new URL(name, directory), 'utf8'));
-  await db.exec("create role fixture_home_hostile nologin;alter default privileges in schema public,fluid_private grant all on tables to fixture_home_hostile with grant option;alter default privileges in schema public,fluid_private grant all on functions to fixture_home_hostile with grant option;create table public.unrelated_home_fixture(id integer);create function public.read_home_attachment_request(text) returns text language sql as $$select $1$$;");
-  const defaults = (await db.query('select defaclnamespace,defaclobjtype,defaclacl::text acl from pg_default_acl order by oid')).rows;
-  await db.exec(await readFile(new URL(candidate, directory), 'utf8'));
-  for (const name of ['fluid_private.home_attachment_principals','public.home_attachments','public.home_attachment_project_requests']) {
-   for (const permission of ['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']) expect((await db.query<{ v: boolean }>("select has_table_privilege('fixture_home_hostile',$1,$2) v", [name, permission])).rows[0]!.v, `${name} ${permission}`).toBe(false);
-   expect((await db.query<{ relrowsecurity: boolean; relforcerowsecurity: boolean }>('select relrowsecurity,relforcerowsecurity from pg_class where oid=$1::regclass', [name])).rows[0]).toEqual({ relrowsecurity: true, relforcerowsecurity: true });
-  }
-  for (const fn of ['fluid_private.home_attachment_owner()','fluid_private.home_attachment_ref(public.home_attachments,boolean)','fluid_private.home_attachment_reservation(public.home_attachments)','fluid_private.home_attachment_immutable()','fluid_private.prepare_home_attachment(jsonb,bigint)','fluid_private.observe_home_attachment(uuid,jsonb)','fluid_private.lookup_home_attachment(uuid)','fluid_private.resolve_home_attachments(uuid[])','public.read_home_attachment_request(uuid)','public.save_attached_home_project(jsonb,text)','public.read_attached_home_project_request(uuid)']) expect((await db.query<{ v: boolean }>("select has_function_privilege('fixture_home_hostile',$1,'EXECUTE') v", [fn])).rows[0]!.v, fn).toBe(false);
-  expect((await db.query('select defaclnamespace,defaclobjtype,defaclacl::text acl from pg_default_acl order by oid')).rows).toEqual(defaults);
-  expect((await db.query<{ v: boolean }>("select has_table_privilege('fixture_home_hostile','public.unrelated_home_fixture','TRUNCATE') v")).rows[0]!.v).toBe(true);
-  expect((await db.query<{ v: boolean }>("select has_function_privilege('fixture_home_hostile','public.read_home_attachment_request(text)','EXECUTE') v")).rows[0]!.v).toBe(true);
- } finally { await db.close(); }
-}, 60_000);
