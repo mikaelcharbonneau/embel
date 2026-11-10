@@ -1,3 +1,4 @@
+import { assertNotBot } from "@/server/http/bot-protection";
 import { IDENTITY_JOB_MUTATION_MAX_BYTES, identityBatchOverviewSchema, identityGenerationIntentSchema } from "@/domain/identity-jobs";
 import { getAuthenticatedContext } from "@/server/auth/context";
 import { enqueueIdentityBatch, getIdentityAvailability, getLatestIdentityBatch } from "@/server/data/identity-jobs";
@@ -19,6 +20,7 @@ export async function GET(request: Request, context: { params: Promise<{ project
 
 export async function POST(request: Request, context: { params: Promise<{ projectId: string }> }) {
   try {
+    await assertNotBot();
     assertMutationOrigin(request);
     const auth = await getAuthenticatedContext();
     noQuery(request);

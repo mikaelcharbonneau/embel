@@ -1,3 +1,4 @@
+import { assertNotBot } from "@/server/http/bot-protection";
 import { getAuthenticatedContext } from "@/server/auth/context";
 import { privateJson } from "@/server/http/errors";
 import { logoErrorResponse } from "@/server/http/logo-errors";
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request, context: { params: Promise<{ projectId: string }> }) {
   let scope: { ownerId: string; projectId: string; requestKey: string; quoteId: string } | null = null;
   try {
+    await assertNotBot();
     const auth = await getAuthenticatedContext();
     assertMutationOrigin(request);
     const { projectId } = await context.params;
