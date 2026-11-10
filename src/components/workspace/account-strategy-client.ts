@@ -3,6 +3,7 @@ import type { GenerationRun } from "@/domain/generations";
 import { strategyJobResultSchema, strategyJobSchema, strategyOperationSchema, subscriptionLimitsSchema, subscriptionPolicyIdentitySchema, type EnqueueStrategyJob, type StrategyJob, type StrategyJobApplication, type StrategyOperation, type StrategyOverview, type SubscriptionLimits } from "@/domain/strategy-jobs";
 import { accountDraftChanged, type AccountWorkspace } from "./account-draft-memory";
 import { AccountRequestError } from "./account-api";
+import { creditsMessage } from "./credits-message";
 
 export const strategyLabels: Record<StrategyOperation, string> = {
   "strategy.reformulate": "Response", "strategy.competitors": "Competitor research", "strategy.audience": "Audience proposal",
@@ -146,9 +147,7 @@ export function engineStrategyJob(run: GenerationRun, ownerId: string, projectId
 }
 /** Remaining credits matter only once they run out. Never a price. */
 export function strategyCreditsMessage(periodEnd: string | null) {
-  const renews = periodEnd ? new Date(periodEnd) : null;
-  const date = renews && !Number.isNaN(renews.getTime()) ? renews.toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" }) : null;
-  return `You've used this month's credits${date ? `. They renew on ${date}` : ""}. Your conversation is saved.`;
+  return creditsMessage(periodEnd, "Your conversation is saved.");
 }
 
 export function strategyErrorMessage(error: unknown) {

@@ -33,7 +33,7 @@ export function namingDatabaseError(error: { code?: unknown; message?: unknown }
   return new ApiError("integration_unavailable");
 }
 
-function projectKey(value: string) {
+export function projectKey(value: string) {
   if (!z.uuid().safeParse(value).success) throw new ApiError("not_found");
   return value.toLowerCase();
 }
@@ -42,14 +42,14 @@ function stored<T>(schema: z.ZodType<T>, value: unknown): T {
   if (!parsed.success) throw new ApiError("integration_unavailable");
   return parsed.data;
 }
-async function rpc<T>(auth: AuthenticatedContext, name: string, args: Record<string, unknown>, schema: z.ZodType<T>): Promise<T> {
+export async function rpc<T>(auth: AuthenticatedContext, name: string, args: Record<string, unknown>, schema: z.ZodType<T>): Promise<T> {
   const { data, error } = await auth.client.rpc(name, args);
   if (error) throw namingDatabaseError(error);
   return stored(schema, normalizeNamingRows(data, auth.userId));
 }
 
 /** Every entry must be one of this project's generated names. */
-function verifyFeed(auth: AuthenticatedContext, projectId: string, feed: NamingGenerationFeed): NamingGenerationFeed {
+export function verifyFeed(auth: AuthenticatedContext, projectId: string, feed: NamingGenerationFeed): NamingGenerationFeed {
   if (feed.projectId !== projectId) throw new ApiError("not_found");
   const seen = new Set<string>();
   for (const row of feed.entries) {

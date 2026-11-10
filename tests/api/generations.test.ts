@@ -1,12 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-const doubles = vi.hoisted(() => ({ auth: vi.fn(), rpc: vi.fn(), start: vi.fn(), from: vi.fn(), buildInput: vi.fn() }));
+const doubles = vi.hoisted(() => ({ auth: vi.fn(), rpc: vi.fn(), start: vi.fn(), from: vi.fn(), buildInput: vi.fn(), buildNamingInput: vi.fn() }));
 vi.mock("../../src/server/auth/context", () => ({ getAuthenticatedContext: doubles.auth }));
 vi.mock("workflow/api", () => ({ start: doubles.start }));
 vi.mock("../../src/workflows/probe", () => ({ probeGeneration: function probeGeneration() {} }));
 vi.mock("../../src/workflows/strategy", () => ({ strategyGeneration: function strategyGeneration() {} }));
+vi.mock("../../src/workflows/naming", () => ({ namingGeneration: function namingGeneration() {} }));
 vi.mock("../../src/server/engine/strategy", async importOriginal => ({ ...await importOriginal<object>(), buildStrategyRunInput: doubles.buildInput }));
+vi.mock("../../src/server/engine/naming", async importOriginal => ({ ...await importOriginal<object>(), buildNamingRunInput: doubles.buildNamingInput }));
 import { GET as listRoute, POST as startRoute } from "../../src/app/api/projects/[projectId]/generations/route";
 import { POST as cancelRoute } from "../../src/app/api/projects/[projectId]/generations/[runId]/cancel/route";
 import { GET as creditsRoute } from "../../src/app/api/credits/route";
@@ -62,7 +64,7 @@ describe("starting a generation", () => {
   });
   it("rejects forged origins, unknown kinds and extra fields before admission", async () => {
     expect((await startRoute(post(`/api/projects/${project}/generations`, body, { origin: "https://evil.invalid" }), params())).status).toBe(403);
-    expect((await startRoute(post(`/api/projects/${project}/generations`, { ...body, kind: "naming.generate" }), params())).status).toBe(503);
+    expect((await startRoute(post(`/api/projects/${project}/generations`, { ...body, kind: "logo.concept" }), params())).status).toBe(503);
     expect((await startRoute(post(`/api/projects/${project}/generations`, { ...body, ownerId: owner }), params())).status).toBe(422);
     expect(doubles.rpc).not.toHaveBeenCalled();
   });
@@ -122,6 +124,22 @@ describe("Strategy runs", () => {
     expect(runs[0]).not.toHaveProperty("input");
     expect(calls).toContainEqual(["like", "kind", "strategy.%"]);
     expect((await listRoute(new Request(`${origin}/api/projects/${project}/generations?step=Strategy%25`), params())).status).toBe(422);
+  });
+});
+
+describe("Naming runs", () => {
+  const namingBody = { kind: "naming.generate", idempotencyKey: "naming-key-0123456789", input: { kind: "initial", expectedProjectRevision: 2, expectedPreferencesVersion: 1, seedIds: [], instruction: null } };
+  it("freezes the input with the Naming builder and starts the Naming workflow", async () => {
+    const frozen = { version: 1, kind: "initial", revision: 2 };
+    doubles.from.mockReturnValue(query(null));
+    doubles.buildNamingInput.mockResolvedValue(frozen);
+    doubles.rpc.mockResolvedValueOnce({ data: row({ kind: "naming.generate", credits: 1, input: frozen }), error: null });
+    const response = await startRoute(post(`/api/projects/${project}/generations`, namingBody), params());
+    expect(response.status).toBe(202);
+    expect((await response.json()).run).toMatchObject({ kind: "naming.generate", inputRevision: 2, credits: 1 });
+    expect(doubles.buildNamingInput).toHaveBeenCalledWith(expect.objectContaining({ userId: owner }), project, namingBody.input);
+    expect(doubles.rpc).toHaveBeenCalledWith("start_generation", { p_project_id: project, p_kind: "naming.generate", p_idempotency_key: namingBody.idempotencyKey, p_input: frozen });
+    expect(doubles.start.mock.calls[0]![0].name).toBe("namingGeneration");
   });
 });
 
