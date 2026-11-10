@@ -1,3 +1,4 @@
+import { assertNotBot } from "@/server/http/bot-protection";
 import { getAuthenticatedContext } from "@/server/auth/context";
 import { listGenerations, publicRun, startGenerationSchema } from "@/server/engine/runs";
 import { startGeneration, WorkflowStartError } from "@/server/engine/start";
@@ -18,6 +19,7 @@ export async function GET(request: Request, context: RouteContext) {
 
 export async function POST(request: Request, context: RouteContext) {
   try {
+    await assertNotBot();
     assertMutationOrigin(request);
     const auth = await getAuthenticatedContext();
     const body = await readJson(request, startGenerationSchema, 32_768);
