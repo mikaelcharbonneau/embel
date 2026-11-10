@@ -88,7 +88,11 @@ step 4):
 
 - the logo types change is migration `20261110150000_logo_types_keep_concepts`,
   which installs the candidate's exact function bodies (and is a no-op where the
-  candidate already ran); the post-install packet list no longer names it;
+  candidate already ran); the post-install packet list replaces it with
+  `shared_logo_types_keep_concepts_after_boards.sql`, an exact copy of that
+  migration that finishes the Creative direction edit where the shared packets
+  are installed after migrations (local development and the composer's native
+  test) and changes nothing in production;
 - style notes are engine outputs (`logo.style_note`); no `logo_style_notes`
   table or `read_logo_style_note_jobs` reader is needed;
 - the engine draws with `gpt-image-2.6-sunburst`; the shared worker keeps its
