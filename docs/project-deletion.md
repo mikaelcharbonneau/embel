@@ -1,5 +1,9 @@
 # Recoverable project deletion
 
+_Status, November 10, 2026: "Product behavior" and "API and UI contract" describe the running feature.
+The lock-order, job, reservation and rollout sections were written for the retired worker system and
+are kept as a record of the design; the retired worker objects they mention no longer exist._
+
 ## Product behavior
 
 The three-dot menu on Projects and Home cards contains Delete. One confirmation,

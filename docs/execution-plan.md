@@ -21,7 +21,7 @@ by Addy Osmani (November 9, 2026).
 
 ## Waves and tasks
 
-Status as of November 10, 2026.
+Status as of November 10, 2026. Waves C and D are unchanged.
 
 ### Wave A: finish and protect what shipped
 
@@ -32,20 +32,20 @@ Status as of November 10, 2026.
 | A3 DB hardening | Sonnet, high | done (#225) |
 | A4 Rate limits and BotID | Sonnet, medium | done (#224); WAF rules pending owner |
 | A5 CAPTCHA | Sonnet, medium | done (#226), off |
-| A6 Journey e2e in CI | Opus, medium | in progress |
+| A6 Journey e2e in CI | Opus, medium | done |
 | A7 Old-worker map | Haiku | done |
 
 ### Wave B: retire the old system and clean up
 
 | Task | Model, effort | Status |
 |---|---|---|
-| B1 Retire old worker code | Opus, high | in progress |
-| B2 Drop old tables, functions, logins | Opus, high | — |
-| B3 Baseline migration matching production | Fable 5.2, medium | — |
-| B4 CI builds the DB and applies migrations | Sonnet, high | — |
-| B5 Account deletion and data export | Opus, high | — |
-| B6 Dead code, switches, Node 24, formatter | Sonnet, medium | — |
-| B7 README and AGENTS docs | Sonnet, medium | — |
+| B1 Retire old worker code | Opus, high | done (#231) |
+| B2 Drop old tables, functions, logins | Opus, high | done (#233), applied in production |
+| B3 Baseline migration matching production | Fable 5.2, medium | done (#235) |
+| B4 CI builds the DB and applies migrations | Sonnet, high | done (#236); release workflow inert until the owner adds secrets |
+| B5 Account deletion and data export | Opus, high | done (#234), live |
+| B6 Dead code, switches, Node 24, formatter | Sonnet, medium | done (#237); formatter pass still to do |
+| B7 README and docs | Sonnet, medium | done (this PR); AGENTS.md edits wait for the owner ([suggestions](agents-md-suggestions.md)) |
 
 ### Wave C: launch needs
 

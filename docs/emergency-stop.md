@@ -1,59 +1,52 @@
 # Emergency stop: AI generation
 
-> **Since the old worker's retirement (November 10, 2026)** all AI steps run on the generation
-> engine inside the web app. Stop them with the engine's switch, in the Supabase SQL editor of the
-> production project:
->
-> ```sql
-> update fluid_private.engine_settings set paused = true;   -- start again: set paused = false
-> ```
->
-> New requests are refused and running ones stop before their next paid call. To stop one step
-> only, set `enabled = false` for its kinds in `public.generation_kinds`. The daemon commands below
-> apply only until the old worker is removed ([retire-old-worker-release.md](retire-old-worker-release.md)).
+Use this when spending looks wrong or generations misbehave. All AI steps run on the generation
+engine inside the web app ([generation-engine.md](generation-engine.md)), so the stop is a database
+switch. The website, sign-in and downloads keep working.
 
-Use this when spending looks wrong or generations misbehave. It stops all research, naming and logo
-work at once. The website, sign-in and downloads keep working.
+Run these in the Supabase SQL editor of the production project.
 
-## Stop
+## Stop everything
 
-Needs the Vercel CLI, signed in to the Embel team.
-
-```bash
-vercel daemons scale shared-worker iad1=0 --project prj_vTOc6Kf8th7tXK2cOVwWTTaR20yx --scope embel
+```sql
+update fluid_private.engine_settings set paused = true;
 ```
 
-Check that it stopped:
-
-```bash
-vercel daemons instances ls shared-worker --project prj_vTOc6Kf8th7tXK2cOVwWTTaR20yx --scope embel --json
-```
-
-What happens next:
-
-- The worker gets up to 10 minutes (its 600-second graceful shutdown) to finish what it's doing.
-- Jobs cut off mid-run end as `lease_expired` or `send_interrupted` the next time a worker runs.
-  They are never sent to OpenAI again automatically.
-- New requests wait in the queue until the worker starts again.
+New requests are refused, and running ones stop before their next paid call. A call already sent to
+OpenAI may still finish and be billed.
 
 ## Start again
 
-```bash
-vercel daemons scale shared-worker iad1=1 --project prj_vTOc6Kf8th7tXK2cOVwWTTaR20yx --scope embel
+```sql
+update fluid_private.engine_settings set paused = false;
 ```
+
+## Stop one step only
+
+Each engine kind has its own switch. For example, to stop logo drawing:
+
+```sql
+update fluid_private.generation_kinds set enabled = false where kind like 'logo.%';
+```
+
+Set `enabled = true` to turn it back on. With a kind off, its step shows as unavailable to people;
+saved results stay. The kinds are `strategy.*`, `naming.generate`, `logo.concepts`, `logo.refine`,
+`logo.style_note` and `identity.directions`.
+
+## Check
+
+```sql
+select paused from fluid_private.engine_settings;
+select kind, enabled from fluid_private.generation_kinds order by kind;
+select kind, status, count(*) from public.generation_runs
+where status in ('queued', 'running') group by 1, 2;
+```
+
+Runs left over after a stop end on their own: the engine checks for a pause before every paid step,
+and overdue runs are ended with a refund the next time their owner starts or cancels a run.
 
 ## Money backstop
 
 In the OpenAI dashboard, set a monthly budget and email alerts for the project that holds the
-production key. It caps spending even if nobody runs the stop above.
-
-## Good to know
-
-- `prj_vTOc6Kf8th7tXK2cOVwWTTaR20yx` is the Vercel project named `embel-naming-worker`. It hosts the
-  shared worker for research, naming and logos.
-- Setting `FLUID_PAID_CALLS_APPROVED=false` does **not** stop the shared worker today. Its logo lanes
-  hard-code approval (`worker/shared-lanes/logo.ts:117`). Use the scale command instead.
-- A proper "stop paid calls" switch is planned for the new generation engine
-  ([architecture review](architecture-review.md), step 4.1).
-- Sources: `docs/release-20261109-naming-rebuild.md` (Rollback) and
-  `docs/review-fixes-rollout-20261102.md`.
+production key. It caps spending even if nobody runs the stop above. The engine also has a global
+daily cost cap inside `start_generation`.

@@ -1,7 +1,7 @@
 # Decision log
 
 This is a historical record. The current working agreement is
-[AGENTS.md](../AGENTS.md); see D089 for the October 29 preference review and D090
+[AGENTS.md](../../AGENTS.md); see D089 for the October 29 preference review and D090
 for the November 2 portability and workflow update.
 Earlier task-specific permissions, holds, spending caps, mandatory skills and
 design freezes must be interpreted in their original context. They do not
@@ -240,7 +240,7 @@ implementation records above. They do not grant activation or spending authority
      already connected services.
 
 These preferences supersede conflicting historical task restrictions and design
-freezes. The operative agreement is [AGENTS.md](../AGENTS.md). This record does
+freezes. The operative agreement is [AGENTS.md](../../AGENTS.md). This record does
 not claim that spending limits, confirmation dialogs or model bindings have
 already changed in the running application. Ownership, secret protection,
 truthful results and duplicate-request protection remain required.
@@ -253,5 +253,5 @@ truthful results and duplicate-request protection remain required.
   requests, run checks before publishing, and distinguish mock tests from live
   service verification. The separate requirement to ask before feature removal,
   new paid services/plans, materially expanded access or broader destructive
-  changes was removed. [AGENTS.md](../AGENTS.md) incorporates this update; the
+  changes was removed. [AGENTS.md](../../AGENTS.md) incorporates this update; the
   corresponding wording in older dated records is historical.

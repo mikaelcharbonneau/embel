@@ -48,8 +48,8 @@ inside the transaction that `account_deletion_purge` opened, recognised by a row
 writes that table, and the row is removed before it commits. Setting the transaction setting by hand
 is not enough, and an API role that tries gets a permission error. Triggers that also fire on INSERT
 or UPDATE are split: the original name keeps those events unchanged, and `<name>_on_delete` carries
-DELETE with the condition. Trigger function bodies are not changed, so the hashes reviewed in
-`scripts/development/shared-authority-manifest.json` still hold. The migration fails if any DELETE
+DELETE with the condition. Trigger function bodies are not changed, so the hashes reviewed earlier
+still hold (the manifest file that recorded them was removed with the old worker scripts). The migration fails if any DELETE
 row trigger on these schemas is left without the condition and uses an unreviewed function, so a new
 blocker is caught when it is applied.
 

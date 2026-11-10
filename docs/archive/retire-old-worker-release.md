@@ -1,7 +1,7 @@
 # Releasing the old worker's retirement
 
 _November 10, 2026. For the release lead. Code: the `retire/old-worker` PR
-([generation-engine.md](generation-engine.md), step 6)._
+([generation-engine.md](../generation-engine.md), step 6)._
 
 The web release removes the old worker from the code. Production still runs three
 old deployment targets until you turn them off. The database is not changed here;
@@ -64,7 +64,7 @@ later.
 
 The daemon is the `shared-worker` daemon in project `embel-naming-worker`
 (`prj_vTOc6Kf8th7tXK2cOVwWTTaR20yx`). Same commands as
-[emergency-stop.md](emergency-stop.md):
+[emergency-stop.md](../emergency-stop.md):
 
 ```bash
 vercel daemons scale shared-worker iad1=0 --project prj_vTOc6Kf8th7tXK2cOVwWTTaR20yx --scope embel

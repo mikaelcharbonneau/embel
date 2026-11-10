@@ -20,6 +20,7 @@ history and may not match the current system.
   directions using that exact logo. Each shows the logo, colors, typography and example uses.
   Picking a direction leads to the final brand board and downloads: logo files, color palette,
   font links, social profile images, post templates and banners.
+- **Account:** people can export their data and delete their account ([account-deletion](docs/account-deletion.md)).
 - **Saving:** meaningful edits save automatically. "Saved" appears only after the server confirms it,
   and failures offer a way to recover.
 - **Honesty:** Embel never shows invented AI output, availability or legal clearance. A generated name
@@ -55,7 +56,7 @@ flowchart TD
   (see [emergency stop](docs/emergency-stop.md)).
 
 There are no separate workers, daemons or laptop runtimes any more. The old worker system was removed
-in PR #231. Details: [architecture](docs/architecture.md) and the
+in PR #231, and its database objects are gone too. Details: [architecture](docs/architecture.md) and the
 [generation engine](docs/generation-engine.md).
 
 ## Security
@@ -71,6 +72,7 @@ in PR #231. Details: [architecture](docs/architecture.md) and the
 ## Local setup
 
 You need Node 24 (see `.nvmrc`; `package.json` lists the supported range) and Docker.
+Every variable the app reads is listed in [environment-variables](docs/environment-variables.md).
 
 ```sh
 npm ci
@@ -89,7 +91,7 @@ stops them while keeping local data. AI calls need an OpenAI key; see
 | --- | --- |
 | `npm run check` | Type check, lint, unit tests and a production build in one go |
 | `npm test` | Unit and integration tests (Vitest) |
-| `npm run test:journey` | The full browser journey, start to finish, against a stand-in AI (`tests/journey`) |
+| `npm run test:journey` | The full browser journey, start to finish, against a stand-in AI (`tests/journey`). Needs the local stack from `npm run dev:up` |
 | `npm run test:e2e` | Other browser tests (Playwright) |
 | `npm run test:setup` | The local setup scripts |
 | `npm run test:live` | Opt-in checks against real services; never part of CI |
@@ -98,24 +100,28 @@ Passing tests with stand-ins do not prove that live AI, accounts or Storage work
 
 ## Releasing
 
-1. Open a pull request. CI runs on every pull request: type check, lint, build, sharded unit tests and
-   the full-journey browser test.
+1. Open a pull request. CI runs on every pull request: type check, lint, build, sharded unit tests,
+   the full-journey browser test and the database migrations check.
 2. Merge to `main` once CI passes.
 3. Production deploys are **manual**, from a clean clone:
    `vercel deploy --prod --scope embel`. Skew protection is on, so open browser tabs keep working
    across a deploy.
-4. Database changes are applied by the release lead, never by the pipeline. Keep a rollback path and
-   record what went live.
-
-The most recent release steps are in
-[retire-old-worker-release](docs/retire-old-worker-release.md).
+4. Database changes: CI builds the database from `supabase/migrations` from scratch (the "Database
+   migrations" job). Production gets new migrations through the manual workflow in
+   [database-release](docs/database-release.md), which stays inert until the owner adds its secrets, or
+   the release lead applies them by hand. Keep a rollback path and record what went live. How the
+   baseline was recorded: [baseline-release](docs/baseline-release.md).
 
 ## Key documents
 
 | Document | Read it for |
 | --- | --- |
 | [AGENTS.md](AGENTS.md) | The owner's working agreement |
+| [docs/README.md](docs/README.md) | Index of every current document |
 | [docs/architecture.md](docs/architecture.md) | Short map of the system |
+| [docs/environment-variables.md](docs/environment-variables.md) | Every setting the app reads |
+| [docs/database-release.md](docs/database-release.md) | How database changes reach production |
+| [docs/account-deletion.md](docs/account-deletion.md) | Account deletion and data export |
 | [docs/generation-engine.md](docs/generation-engine.md) | How AI runs, credits and limits work |
 | [docs/architecture-review.md](docs/architecture-review.md) | The November 9 review and plan |
 | [docs/execution-plan.md](docs/execution-plan.md) | Who does which remaining task |
@@ -132,7 +138,7 @@ The most recent release steps are in
 | `src/domain` | Shared contracts and validation |
 | `src/server` | Authentication, data access, providers; `src/server/engine` is the generation engine |
 | `src/workflows` | The AI step workflows |
-| `supabase` | Database migrations |
+| `supabase/migrations` | The database: one baseline (`20261110190000`) plus newer migrations. `supabase/archive` is history |
 | `tests` | Unit, database, security, browser and live checks |
 
 The product was renamed from Fluid to Embel on October 13, 2026, so some `FLUID_*` settings and the
