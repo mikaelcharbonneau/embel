@@ -4,7 +4,7 @@ import { inspirationCatalog, inspirationLabels, inspirationPartElements, inspira
 import { logoBriefDraftSchema } from "@/domain/logo-workspace";
 import { DEFAULT_LOGO_CONCEPT_TYPES, LOGO_LIKED_UPLOAD_LIMIT, logoInspirationHeading, logoSavedInputsSchema, type LogoUploadNoteStatus } from "@/domain/logo-saved-inputs";
 import { inspirationLogoStyles } from "@/domain/inspiration-logo-styles";
-import { LIKED_LETTERING, LIKED_LOGO_DIRECTION, LIKED_LOGO_STYLE, LOGO_STYLE_NOTE_VERSION, logoStyleNoteSchema, type LogoStyleNote } from "@/domain/logo-style-notes";
+import { LIKED_LETTERING, LIKED_LOGO_DIRECTION, LIKED_LOGO_STYLE, type LogoStyleNote } from "@/domain/logo-style-notes";
 import { logoStringSchema } from "@/domain/logo-vector";
 import type { LogoReferenceSelection } from "@/domain/logo-workspace";
 import type { ContextSnapshot } from "@/domain/projects";
@@ -136,34 +136,15 @@ export async function likedUploadReferences(auth: AuthenticatedContext, projectI
   return selected.sort().map(referenceId => ({ referenceId, aspects: ["overall_feel"] }));
 }
 
-const noteJobsSchema = z.array(z.strictObject({ referenceId: z.string().nullable(), contentHash: z.string().nullable(), state: z.string() })).max(1000);
-/** Two definite failures for the same upload version stop new requests for it. */
-const STYLE_NOTE_ATTEMPT_LIMIT = 2;
-/** Each liked upload's style note: written for its current bytes (ready), a
- * request still running (pending), an unclear or repeatedly failed request
- * (unavailable: never repeated automatically), or nothing yet (missing). */
+/**
+ * Each liked upload's style note. Notes are written only by the generation
+ * engine (logo.style_note runs), so while its Logo kinds are off there are none,
+ * and the shared worker keeps attaching liked uploads to concepts as before.
+ */
 export async function likedUploadNotes(auth: AuthenticatedContext, projectId: string, references: readonly LogoReferenceSelection[]): Promise<LikedUploadNote[]> {
   if (!references.length) return [];
-  const owned = { project_id: projectId, owner_id: auth.userId }, ids = references.map(row => row.referenceId);
-  const sources = rows<{ reference_id: string; content_hash: string }>(
-    await auth.client.from("logo_reference_sources").select("reference_id, content_hash").match(owned).in("reference_id", ids));
-  const notes = rows<{ reference_id: string; content_hash: string; note_version: string; symbol: string | null; lettering: string | null }>(
-    await auth.client.from("logo_style_notes").select("reference_id, content_hash, note_version, symbol, lettering").match(owned).in("reference_id", ids));
-  const read = await auth.client.rpc("read_logo_style_note_jobs", { p_project_id: projectId });
-  if (read.error) throw new ApiError("integration_unavailable");
-  const jobs = noteJobsSchema.parse(read.data);
-  return references.map(({ referenceId }) => {
-    const hash = sources.find(row => row.reference_id === referenceId)?.content_hash;
-    if (!hash) return { referenceId, status: "unavailable" as const };
-    const stored = notes.find(row => row.reference_id === referenceId && row.content_hash === hash && row.note_version === LOGO_STYLE_NOTE_VERSION);
-    const note = stored ? logoStyleNoteSchema.safeParse({ symbol: stored.symbol, lettering: stored.lettering }) : null;
-    if (note?.success && (note.data.symbol || note.data.lettering)) return { referenceId, status: "ready" as const, note: note.data };
-    const attempts = jobs.filter(job => job.referenceId === referenceId && job.contentHash === hash);
-    if (attempts.some(job => ["queued", "running", "cancel_requested"].includes(job.state))) return { referenceId, status: "pending" as const };
-    if (attempts.some(job => job.state === "needs_reconciliation" || job.state === "succeeded")
-      || attempts.filter(job => ["failed", "cancelled", "partial"].includes(job.state)).length >= STYLE_NOTE_ATTEMPT_LIMIT) return { referenceId, status: "unavailable" as const };
-    return { referenceId, status: "missing" as const };
-  });
+  const { engineUploadNotes, logoEngineEnabled } = await import("../engine/logo");
+  return await logoEngineEnabled(auth) ? engineUploadNotes(auth, projectId, references) : [];
 }
 
 export async function getSavedLogoInputs(auth: AuthenticatedContext, projectId: string) {

@@ -2,11 +2,14 @@ import { start } from "workflow/api";
 import type { AuthenticatedContext } from "@/server/auth/context";
 import { getAuthenticatedContext } from "@/server/auth/context";
 import { STRATEGY_OPERATIONS, buildStrategyRunInput } from "@/server/engine/strategy";
+import { buildLogoConceptsRunInput, buildLogoRefineRunInput, buildLogoStyleNoteRunInput } from "@/server/engine/logo";
+import { LOGO_CONCEPTS_KIND, LOGO_REFINE_KIND, LOGO_STYLE_NOTE_KIND } from "@/server/engine/logo-input";
 import { admitGeneration, findGeneration, listGenerations, publicRun, startGenerationSchema } from "@/server/engine/runs";
 import { ApiError, errorResponse, privateJson } from "@/server/http/errors";
 import { assertMutationOrigin, readJson } from "@/server/http/request";
 import { probeGeneration } from "@/workflows/probe";
 import { strategyGeneration } from "@/workflows/strategy";
+import { logoImagesGeneration, logoStyleNoteGeneration } from "@/workflows/logo";
 
 export const dynamic = "force-dynamic";
 type RouteContext = { params: Promise<{ projectId: string }> };
@@ -16,11 +19,20 @@ type InputBuilder = (auth: AuthenticatedContext, projectId: string, kind: string
 const workflows: Readonly<Record<string, (runId: string) => Promise<unknown>>> = {
   "engine.probe": probeGeneration,
   ...Object.fromEntries(STRATEGY_OPERATIONS.map(operation => [operation, strategyGeneration])),
+  [LOGO_CONCEPTS_KIND]: logoImagesGeneration,
+  [LOGO_REFINE_KIND]: logoImagesGeneration,
+  [LOGO_STYLE_NOTE_KIND]: logoStyleNoteGeneration,
 };
 /** Kinds whose input the server freezes from the person's own saved data. The browser
- * only names what to answer, e.g. the project revision for Strategy. */
-const inputs: Readonly<Record<string, InputBuilder>> = Object.fromEntries(STRATEGY_OPERATIONS.map(operation =>
-  [operation, (auth, projectId, _kind, input) => buildStrategyRunInput(auth, projectId, operation, input)] satisfies [string, InputBuilder]));
+ * only names what to answer, e.g. the project revision for Strategy, or for Logo the
+ * workspace heads and what to draw. */
+const inputs: Readonly<Record<string, InputBuilder>> = {
+  ...Object.fromEntries(STRATEGY_OPERATIONS.map(operation =>
+    [operation, (auth, projectId, _kind, input) => buildStrategyRunInput(auth, projectId, operation, input)] satisfies [string, InputBuilder])),
+  [LOGO_CONCEPTS_KIND]: (auth, projectId, _kind, input) => buildLogoConceptsRunInput(auth, projectId, input),
+  [LOGO_REFINE_KIND]: (auth, projectId, _kind, input) => buildLogoRefineRunInput(auth, projectId, input),
+  [LOGO_STYLE_NOTE_KIND]: (auth, projectId, _kind, input) => buildLogoStyleNoteRunInput(auth, projectId, input),
+};
 
 export async function GET(request: Request, context: RouteContext) {
   try {
