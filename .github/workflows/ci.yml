@@ -198,14 +198,16 @@ jobs:
   ci:
     name: CI
     if: ${{ always() }}
-    needs: [quality, unit]
+    needs: [quality, unit, database]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
       QUALITY_RESULT: ${{ needs.quality.result }}
       UNIT_RESULT: ${{ needs.unit.result }}
+      DATABASE_RESULT: ${{ needs.database.result }}
     steps:
       - name: Require every check to pass
         run: |
           test "$QUALITY_RESULT" = success
           test "$UNIT_RESULT" = success
+          test "$DATABASE_RESULT" = success
