@@ -4,7 +4,7 @@ import type { VerifiedAssetBytes } from "../../src/domain/logo-deliverables";
 import { LOGO_IMAGE_HANDLER_VERSION } from "../../src/server/logo-creation/openai-logo-provider";
 import { resolveLogoReferenceInputs } from "../../src/server/logo-creation/reference-inputs";
 import { inspectIdentityRaster, verifyLogoRasterSource } from "../../src/features/logo-vector/server/converter";
-import { executeLogoRasterAttempt, type LogoConceptHandlerDependencies } from "./logo-concepts";
+import { executeLogoRasterAttempt, LOGO_IMAGE_STEP_TIMEOUT_MS, type LogoConceptHandlerDependencies } from "./logo-concepts";
 import type { JobHandler } from "../runner";
 
 /** The reviewed raster adapter cannot preserve component locks. Vector-source
@@ -22,7 +22,7 @@ export function createLogoRefinementHandler(deps: LogoRefinementHandlerDependenc
     if (job.operation !== "identity.logo_refine" || input.ownerId !== job.ownerId || input.projectId !== job.projectId || input.handlerVersion !== LOGO_IMAGE_HANDLER_VERSION) throw new Error("Invalid refinement job binding");
     if (input.source.kind !== "preview") throw new Error("Vector refinement unavailable");
     moneySchema.parse(job.reservedCostMicrousd);
-    return [{ key: "generate-refinement", maximumCostMicrousd: job.reservedCostMicrousd, timeoutMs: 300_000,
+    return [{ key: "generate-refinement", maximumCostMicrousd: job.reservedCostMicrousd, timeoutMs: LOGO_IMAGE_STEP_TIMEOUT_MS,
       async execute({ job: claimed, signal }) {
         let resolved: LogoResolvedRefinementInput, images: readonly VerifiedAssetBytes[];
         try {

@@ -4,12 +4,13 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { createSharedAdvancedLogoFixture, type SharedAdvancedLogoFixture } from "./shared-advanced-logo-fixture";
 import { OWNER_A, OWNER_B } from "./local-supabase";
-import { IMAGE_MODEL } from "../../src/domain/providers";
+import { CAPPED_LOGO_IMAGE_MODEL, IMAGE_MODEL } from "../../src/domain/providers";
 import { logoCostQuoteSchema } from "../../src/domain/logo-jobs";
 import { sharedExecutionSchema, sharedPendingExecutionSchema, type SharedSlotLease } from "../../worker/shared-pool/contracts";
 import { parseClaimedJob } from "../../worker/postgres-store";
 import { stripReviewedTransactionEnvelope } from "../../scripts/prepare-shared-production-migration.mjs";
 import type { IdentityAssetReservation } from "../../src/server/data/identity-asset-store";
+import { applySharedImageModel } from "./shared-image-model-fixture";
 import { createSharedLogoLaneEngine } from "../../worker/shared-lanes/logo";
 import { createSharedLogoStorageAuthorization } from "../../worker/shared-storage/authorization";
 import { qualifiedLogoRasterCapability } from "../../worker/logo-generative-storage-authorization";
@@ -21,7 +22,7 @@ describe("shared raster delivery recovery (actual disposable SQL, synthetic prov
  beforeAll(async () => { f = await createSharedAdvancedLogoFixture(); await f.db.exec(await packet("shared_identity_generation")); }, 90_000);
  afterAll(async () => { await f?.close(); });
  async function uncapped() {
-  await f.db.exec(await packet("shared_logo_raster_uncapped"));
+  await f.db.exec(await packet("shared_logo_raster_uncapped")); await applySharedImageModel(f.db);
   for (const operation of ["identity.logo_concept", "identity.logo_refine"]) {
    const policy = { operation, policyIdentity: (operation === "identity.logo_concept" ? "a5" : "b5").repeat(32), handlerVersion: "logo-image-v1", provider: "openai", model: IMAGE_MODEL,
     engine: null, spendControl: "uncapped", estimatedCostMicrousd: 1 };
@@ -61,7 +62,9 @@ describe("shared raster delivery recovery (actual disposable SQL, synthetic prov
   if (!image) await f.db.query("delete from public.logo_asset_publications where id=$1", [p.reservation.id]);
   await f.action(p.execution, "begin", [p.job.id, p.job.leaseToken, key, `synthetic:${p.job.id}`, p.job.reservedCostMicrousd]);
   const cost = billing === "recorded" && options.receipt !== false ? 17 : 0;
-  const observation = { provider: "openai", model: IMAGE_MODEL, providerRequestId: `synthetic-${p.job.id}`, responseHash: "a".repeat(64), observedAt: new Date().toISOString(),
+  // A worker labels its response with the model of the policy the job was admitted under.
+  const model = (await f.db.query<{ model: string }>("select policy->>'model' model from fluid_private.shared_job_admissions where job_id=$1", [p.job.id])).rows[0]!.model;
+  const observation = { provider: "openai", model, providerRequestId: `synthetic-${p.job.id}`, responseHash: "a".repeat(64), observedAt: new Date().toISOString(),
    billing: billing === "recorded" ? { status: "recorded", confirmedMicrousd: cost } : { status: "unknown", confirmedMicrousd: null },
    artifactHash: p.publication.contentHash, normalizedPixelHash: "b".repeat(64) };
   const receipt = options.receipt === false ? null : (await f.action(p.execution, "receipt", [p.job.id, p.job.leaseToken, observation])).result;
@@ -127,6 +130,21 @@ describe("shared raster delivery recovery (actual disposable SQL, synthetic prov
   const request = (await f.owner(OWNER_A, () => f.db.query<{ value: unknown }>("select public.read_logo_request($1,$2) value", [p.job.projectId, p.request.requestKey]))).rows[0]!.value;
   expect(request).toMatchObject({ status: kind === "concept" ? "partial" : "failed", billing: { status: "recorded", confirmedMicrousd: interrupted.cost } });
   expect((await f.action(p.execution, "recovery", [])).result).toMatchObject({ executionClosed: true });
+ }));
+
+ it("records a response only under the model its job was admitted with, across the model change", () => transaction(async () => {
+  const p = await prepare(2), input = p.job.input as { slotId: string; attemptId: string }, key = `logo-preview-v1:${input.slotId}:${input.attemptId}`;
+  await f.action(p.execution, "begin", [p.job.id, p.job.leaseToken, key, `synthetic:${p.job.id}`, p.job.reservedCostMicrousd]);
+  await uncapped(); // The shared policy moves to 2.6 while the job admitted under 2.5 is in flight.
+  const observation = (model: string) => ({ provider: "openai", model, providerRequestId: `synthetic-${p.job.id}`, responseHash: "a".repeat(64), observedAt: new Date().toISOString(),
+   billing: { status: "recorded", confirmedMicrousd: 17 }, artifactHash: p.publication.contentHash, normalizedPixelHash: "b".repeat(64) });
+  await expect(f.action(p.execution, "receipt", [p.job.id, p.job.leaseToken, observation(IMAGE_MODEL)])).rejects.toMatchObject({ code: "22023" });
+  await f.action(p.execution, "receipt", [p.job.id, p.job.leaseToken, observation(CAPPED_LOGO_IMAGE_MODEL)]);
+  expect((await f.db.query("select observation->>'model' model from public.logo_provider_responses where job_id=$1", [p.job.id])).rows).toEqual([{ model: CAPPED_LOGO_IMAGE_MODEL }]);
+  // New policies still require the current model.
+  const policy = (model: string) => ({ operation: "identity.logo_concept", policyIdentity: "a5".repeat(32), handlerVersion: "logo-image-v1", provider: "openai", model, engine: null, spendControl: "uncapped", estimatedCostMicrousd: 1 });
+  expect((await f.db.query("select fluid_private.shared_logo_raster_policy_valid('identity.logo_concept',$1) a, fluid_private.shared_logo_raster_policy_valid('identity.logo_concept',$2) b",
+   [policy(IMAGE_MODEL), policy(CAPPED_LOGO_IMAGE_MODEL)])).rows[0]).toEqual({ a: true, b: false });
  }));
 
  it("preserves duplicate-preview rejection when a second concept has the same pixels", () => transaction(async () => {

@@ -8,7 +8,7 @@ import { sharedExecutionSchema,sharedSlotLeaseSchema,type SharedExecution,type S
 import { type SharedLogoObservationScope } from "../shared-storage/authorization";
 import { slotSessionSchema,storageFetch,storageOrigin,storagePublicKey,storageUnavailable,type SharedStorageSession } from "../shared-storage/protocol";
 import { qualifySharedLogoCapability,type SharedLogoCapability } from "./logo-capability";
-import { logoDirectionsApiJobInputSchema,logoVectorizeJobInputSchema,logoExportJobInputSchema } from "../../src/domain/logo-jobs";
+import { logoDirectionsApiJobInputSchema,logoVectorizeJobInputSchema,logoExportJobInputSchema,logoStyleNoteJobInputSchema } from "../../src/domain/logo-jobs";
 import { identityGenerationJobInputSchema } from "../../src/domain/identity-jobs";
 import { identityAssetPublicationSchema,type IdentityAssetPublication } from "../../src/domain/logo-deliverables";
 import { logoAssetReferenceSchema } from "../../src/domain/logo-vector";
@@ -43,7 +43,7 @@ export function createSharedAdvancedLogoStorageAuthorization(input:{targetOrigin
  try{
  const origin=storageOrigin(input.targetOrigin),key=storagePublicKey(input.publishableKey,origin),execution=sharedExecutionSchema.parse(input.execution),first=sharedSlotLeaseSchema.parse(input.slot());
  const capability=qualifySharedLogoCapability(input.capability),authUserId=z.uuid().parse(input.session.authUserId),sessionId=z.uuid().parse(input.session.sessionId);
- if(!capability||!["identity.image","identity.logo_vectorize","identity.logo_export","identity.logo_directions"].includes(capability.operation)||capability.operation!==execution.operation
+ if(!capability||!["identity.image","identity.logo_vectorize","identity.logo_export","identity.logo_directions","identity.logo_style_note"].includes(capability.operation)||capability.operation!==execution.operation
   ||capability.policyIdentity!==execution.policyIdentity||first.lane!=="logo"||execution.lane!=="logo"||first.slotId!==execution.slotId
   ||first.generation<execution.generation||first.generation===execution.generation&&first.instanceId!==execution.instanceId||authUserId===execution.ownerId)throw storageUnavailable();
  const lifetime=new AbortController(),now=dependencies.now??Date.now,transport=dependencies.fetch??globalThis.fetch;
@@ -63,12 +63,12 @@ export function createSharedAdvancedLogoStorageAuthorization(input:{targetOrigin
   if(response.status!==200)throw storageUnavailable();z.object({id:z.literal(authUserId),is_anonymous:z.literal(false),email_confirmed_at:z.string().min(1)}).parse(await response.json());}
  function snapshot(raw:StorageJob,observe=false,lease?:string){
   const job=structuredClone(raw);jobStatusSchema.parse(job.status);const frozen=execution.operation==="identity.image"?identityGenerationJobInputSchema.parse(job.input)
-   :execution.operation==="identity.logo_vectorize"?logoVectorizeJobInputSchema.parse(job.input):execution.operation==="identity.logo_export"?logoExportJobInputSchema.parse(job.input):logoDirectionsApiJobInputSchema.parse(job.input);
+   :execution.operation==="identity.logo_vectorize"?logoVectorizeJobInputSchema.parse(job.input):execution.operation==="identity.logo_export"?logoExportJobInputSchema.parse(job.input):execution.operation==="identity.logo_style_note"?logoStyleNoteJobInputSchema.parse(job.input):logoDirectionsApiJobInputSchema.parse(job.input);
   if(job.id!==execution.jobId||job.operation!==execution.operation||job.ownerId!==execution.ownerId||job.projectId!==execution.projectId||frozen.ownerId!==job.ownerId||frozen.projectId!==job.projectId
    ||frozen.policyIdentity!==execution.policyIdentity||frozen.handlerVersion!==capability!.handlerVersion
    ||(observe?lease!==execution.leaseToken||job.leaseToken!==null&&job.leaseToken!==lease||job.status==="queued":job.leaseToken!==execution.leaseToken||job.status!=="running"))throw storageUnavailable();
   if(frozen.operation==="identity.image"&&(!("textPolicy" in capability!)||!isDeepStrictEqual(frozen.textPolicy,capability!.textPolicy))
-   ||frozen.operation==="identity.logo_directions"&&(!("apiPolicy" in capability!)||!isDeepStrictEqual(frozen.apiPolicy,capability!.apiPolicy))
+   ||(frozen.operation==="identity.logo_directions"||frozen.operation==="identity.logo_style_note")&&(!("apiPolicy" in capability!)||!isDeepStrictEqual(frozen.apiPolicy,capability!.apiPolicy))
    ||frozen.operation==="identity.logo_vectorize"&&!isDeepStrictEqual(frozen.engine,capability!.engine))throw storageUnavailable();
   job.input=frozen;return job;
  }

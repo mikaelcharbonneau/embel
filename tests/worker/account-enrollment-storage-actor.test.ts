@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { createVaultStorageActorProvisioner } from "../../worker/account-enrollment/storage-actor";
 import { readApprovedWorkerProfiles } from "../../worker/account-enrollment/configuration";
-import { IMAGE_MODEL } from "../../src/domain/providers";
+import { CAPPED_LOGO_IMAGE_MODEL } from "../../src/domain/providers";
 import type { EnrollmentContext } from "../../src/server/account-enrollment/contracts";
 
 const ownerId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", operationKey = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -10,7 +10,7 @@ const origin = "https://fricsfwqibyhemknqgyf.supabase.co";
 const profile = readApprovedWorkerProfiles([{ profileId: "approved-logo", providerBindingRef: "providers/logo", modelVerificationReceipt: "receipt:logo",
   applicationOrigin: "https://www.embel.xyz", supabaseOrigin: origin, projectId: "prj_1234567890ab", deploymentId: "dpl_qualified", sourceRevision: "a".repeat(40),
   artifactSha256: "b".repeat(64), managedProofSha256: "c".repeat(64), runtime: { node: "22.22.2", icu: "77.1", unicode: "16.0", platform: "linux", arch: "x64" },
-  dispatchApproved: true, capability: "logo", model: IMAGE_MODEL, admissionContract: "account_logo_operation", spendControl: "uncapped",
+  dispatchApproved: true, capability: "logo", model: CAPPED_LOGO_IMAGE_MODEL, admissionContract: "account_logo_operation", spendControl: "uncapped",
   policyIdentities: { "identity.logo_concept": "d".repeat(64), "identity.logo_refine": "d".repeat(64) }, storageIdentityRef: "storage/logo" }]).get("logo")!;
 const configuration = { vault: { origin: "https://vault.example", mount: "actors", token: "fixture-operator-vault-token" }, reservationPrefix: "operator-actors",
   supabaseOrigin: origin, adminKey: "fixture-explicit-admin-key-not-live", publishableKey: "sb_publishable_fixture", emailDomain: "actors.example" };

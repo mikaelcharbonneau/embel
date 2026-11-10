@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { moneySchema, type ClaimedJob } from "../src/domain/jobs";
-import { IMAGE_MODEL } from "../src/domain/providers";
+import { CAPPED_LOGO_IMAGE_MODEL, IMAGE_MODEL } from "../src/domain/providers";
 import { logoConceptJobInputSchema, logoRefinementJobInputSchema } from "../src/domain/logo-jobs";
 import type { IdentityAssetStore } from "../src/server/data/identity-asset-store";
 import { loadLogoConceptInputs, loadLogoRefinementInputs, loadLogoStepAsset, recordLogoProviderResponse, type LogoWorkerConnection } from "../src/server/data/logo-jobs";
@@ -36,7 +36,7 @@ export type LogoImageRuntimeAdapter<T extends LogoRasterCapability = LogoWorkerC
   refinements: Readonly<LogoRefinementHandlerDependencies> | null;
 }>;
 const unavailable = () => new Error("The exact owner-bound logo image runtime is unavailable.");
-const imageSchema = z.strictObject({ apiKey: z.string().min(1).max(4096).regex(/^[\x21-\x7e]+$/), model: z.literal(IMAGE_MODEL),
+const imageSchema = z.strictObject({ apiKey: z.string().min(1).max(4096).regex(/^[\x21-\x7e]+$/), model: z.enum([IMAGE_MODEL, CAPPED_LOGO_IMAGE_MODEL]),
   rateVersion: z.literal(SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion), paidCallsApproved: z.literal(true) });
 const jobSchema = z.strictObject({ id: z.uuid(), ownerId: z.uuid(), projectId: z.uuid(), operation: z.string(), input: z.unknown(),
   inputRevision: z.number().int().positive(), leaseToken: z.uuid(), status: z.enum(["running", "partial"]),
@@ -66,7 +66,7 @@ export function createLogoImageRuntimeAdapter(input: (Omit<LogoImageRuntimeAdapt
     const assets: IdentityAssetStore = { ...input.assets, readLeasedAsset: input.assets.readLeasedAsset.bind(input.assets),
       publishLeasedAsset: input.assets.publishLeasedAsset.bind(input.assets) };
     const assertAvailable = input.assertAvailable;
-    const priceUsage = createSunburstStandardImageUsagePricer(SUNBURST_STANDARD_IMAGE_PRICING.binding);
+    const priceUsage = createSunburstStandardImageUsagePricer({ ...SUNBURST_STANDARD_IMAGE_PRICING.binding, model: image.model });
     if (!priceUsage) throw unavailable();
     const configuration = { apiKey: image.apiKey, model: image.model,
       policyIdentity: capability.policyIdentity, handlerVersion: LOGO_IMAGE_HANDLER_VERSION, priceUsage };
@@ -105,7 +105,7 @@ export function createLogoImageRuntimeAdapter(input: (Omit<LogoImageRuntimeAdapt
       return { ...job, input: frozen };
     }
     const common = {
-      producer, assets,
+      model: image.model, producer, assets,
       async assertPolicyReady(raw: ClaimedJob) { const job = snapshot(raw); await assertAvailable(structuredClone(job)); snapshot(raw); },
       // Evidence retention deliberately does not run a fresh availability check:
       // a response already dispatched must survive a subsequent host stop.

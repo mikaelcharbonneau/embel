@@ -18,7 +18,7 @@ const textProviderBinding=z.strictObject({providerBindingRef:reference,model:z.s
 /** Production slot ceilings. Six Logo slots let one six-concept batch run at
  * once; Strategy and Naming keep their single fixed slot. */
 export const PRODUCTION_SLOTS_PER_LANE={strategy:1,naming:1,logo:6} as const satisfies Record<z.infer<typeof sharedLaneSchema>,number>;
-const logoOperations=new Set(["identity.logo_concept","identity.logo_refine","identity.logo_vectorize","identity.logo_directions","identity.logo_export","identity.logo_vector_propose","identity.image"]);
+const logoOperations=new Set(["identity.logo_concept","identity.logo_refine","identity.logo_vectorize","identity.logo_directions","identity.logo_export","identity.logo_vector_propose","identity.image","identity.logo_style_note"]);
 export const sharedPoolSlotSchema=z.strictObject({slotId:z.uuid(),lane:sharedLaneSchema,roleName:z.string().max(63).regex(/^embel_shared_(strategy|naming|logo)_[a-z0-9_]{1,30}$/u),
  roleOid:z.number().int().min(1).max(4_294_967_295),workerId:z.string().regex(/^[A-Za-z0-9._:-]{1,100}$/u),providerBindingRef:reference,
  model:z.string().min(1).max(150),modelVerificationReceipt:reference,
@@ -39,7 +39,7 @@ export const sharedPoolConfigurationSchema=z.strictObject({version:z.literal(1),
   if((slot.lane==="strategy")!==(slot.outboxProof!==undefined))ctx.addIssue({code:"custom",message:"Only Strategy slots require an approved outbox RPC"});
   if(slot.lane!=="logo"&&(slot.textProvider!==undefined||Object.keys(slot.policies).length>(slot.lane==="strategy"?6:4)))ctx.addIssue({code:"custom",message:"Only the Logo/Identity lane supports a separate text provider; Strategy has at most six operation policies"});
   if(slot.lane==="logo"&&Object.keys(slot.policies).some(operation=>!logoOperations.has(operation)))ctx.addIssue({code:"custom",message:"Logo/Identity policies require an explicit supported operation"});
-  if(slot.lane==="logo"&&!slot.textProvider&&["identity.image","identity.logo_directions","identity.logo_vector_propose"].some(operation=>Object.hasOwn(slot.policies,operation)))
+  if(slot.lane==="logo"&&!slot.textProvider&&["identity.image","identity.logo_directions","identity.logo_vector_propose","identity.logo_style_note"].some(operation=>Object.hasOwn(slot.policies,operation)))
    ctx.addIssue({code:"custom",message:"Identity specifications, directions and vector proposals require an explicitly verified text provider"});
  }
  if(config.capacity.maxConcurrentExecutions!==config.slots.length||config.capacity.maxPerTenantPerLane>config.capacity.maxConcurrentExecutions||config.capacity.renewalMs*3>=config.capacity.leaseSeconds*1000)

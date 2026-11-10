@@ -78,3 +78,100 @@ with their likes, selections and screening records. Names people added
 themselves and names from the new generation path stay. A final check fails the
 packet if any remaining function still names a removed object.
 
+
+## November 10: the three November 9 Logo packets are superseded
+
+Do not apply `shared_logo_types_keep_concepts.sql`, `shared_logo_style_notes.sql`
+or `shared_image_model_2_6.sql` to production. Logo concepts, refinements and
+style notes move to the generation engine instead (`docs/generation-engine.md`,
+step 4):
+
+- the logo types change is migration `20261110150000_logo_types_keep_concepts`,
+  which installs the candidate's exact function bodies (and is a no-op where the
+  candidate already ran); the post-install packet list replaces it with
+  `shared_logo_types_keep_concepts_after_boards.sql`, an exact copy of that
+  migration that finishes the Creative direction edit where the shared packets
+  are installed after migrations (local development and the composer's native
+  test) and changes nothing in production;
+- style notes are engine outputs (`logo.style_note`); no `logo_style_notes`
+  table or `read_logo_style_note_jobs` reader is needed;
+- the engine draws with `gpt-image-2.6-sunburst`; the shared worker keeps its
+  current 2.5 policies until its Logo lanes are retired, and the web readers
+  accept either model.
+
+The worker source on `main` still lists the two remaining packets in its
+authority manifest, so do not rebuild or redeploy the shared worker from it.
+The entries below are kept as history.
+
+## November 9 logo types packet
+
+`supabase/candidates/shared_logo_types_keep_concepts.sql` follows
+`shared_naming_cleanup.sql`. Changing only the logo types in a saved Logo brief
+no longer makes earlier concepts, vectors or directions outdated: the types only
+choose what the next concepts explore. It adds one owner-only comparison,
+`fluid_private.logo_brief_same_except_types`, and makes two guarded one-line
+edits, each checked against its reviewed predecessor body:
+
+- `logo_workspace_base_json` ignores a recorded brief that differs from the
+  current one only in its logo types;
+- `shared_identity_selected_logo` gives Creative direction the brief the chosen
+  image was made from (the current brief when that image's inputs include it),
+  so its recorded source still matches the image exactly.
+
+Any other brief change still makes that work outdated. It changes no rows. Apply
+it with the worker build whose authority manifest lists it; that build accepts up
+to 22 packets.
+
+## November 9 liked-upload style notes packet
+
+`supabase/candidates/shared_logo_style_notes.sql` follows
+`shared_logo_types_keep_concepts.sql`. It adds the operation
+`identity.logo_style_note`: one admitted text request that writes a style note
+for one liked upload, stored in the new owner-readable, immutable
+`public.logo_style_notes`, plus the owner-only reader
+`public.read_logo_style_note_jobs`. It adds eight private functions and makes
+guarded edits to thirteen shared Logo functions (operation lists, quote,
+admission, job binding, usage recording, worker actions and Storage reads),
+each checked against its reviewed predecessor body, and allows the step key
+`write-style-note`. `shared_logo_project_clear` is unchanged, so an unclear
+note never blocks a project's other Logo work.
+
+Release order: deploy the web app from the same branch first (it reads the
+seventh capability as optional), then apply the packet, then deploy the worker
+build whose authority manifest lists it (23 packets) and install the note
+policy on the concept slots only; Logo slot 1 stays at seven operations.
+
+## November 9 image model packet
+
+`supabase/candidates/shared_image_model_2_6.sql` follows
+`shared_logo_style_notes.sql`. Shared Logo concepts and refinements and
+Creative direction boards move from `gpt-image-2.5-sunburst-2026-09-08` to
+`gpt-image-2.6-sunburst`, which OpenAI publishes as an alias only, at the same
+per-token rates. It makes guarded edits to six functions, each checked against
+its reviewed predecessor body:
+
+- New admissions require 2.6: the shared raster policy, the Creative direction
+  policy and the model Creative direction availability reports.
+- Usage evidence stays truthful across the change. A stored raster response is
+  valid under either model, and a newly recorded raster response or board
+  receipt must name the model of the policy its own job was admitted under
+  (`fluid_private.shared_job_admissions`). Work admitted under 2.5 before the
+  release can still record what it was charged; a response labeled with
+  another model is refused.
+
+The earlier capped Logo policy (`maxCostMicrousd`) keeps the 2.5 snapshot, and
+its worker code pins it as `CAPPED_LOGO_IMAGE_MODEL`.
+
+Logo images are now requested at quality `max` on a transparent background;
+Creative direction boards stay at `medium` on an opaque background. That is
+worker request behavior, not database policy. Black-and-white vector tracing
+now reads each pixel as it shows on white, so a transparent logo traces to the
+same crisp shapes as before instead of one faint layer per alpha level; opaque
+images trace exactly as before.
+
+Release order: apply the packet, then deploy the worker build whose authority
+manifest lists it (24 packets) and the web app from the same branch. Slot
+policies naming 2.5 stop qualifying when the packet is applied, so Logo and
+Creative direction report unavailable until the new worker registers its
+policies and the web app expects the new model. Release with no Logo or
+Creative direction work running.

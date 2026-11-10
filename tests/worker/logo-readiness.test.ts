@@ -3,9 +3,9 @@ vi.mock("server-only", () => ({}));
 import type { LogoWorkerConnection } from "../../src/server/data/logo-jobs";
 import { syntheticLogoJob } from "../fixtures/logo-creation";
 import { createLogoReadiness, freezeLogoWorkerManifest } from "../../worker/logo-readiness";
-import { IMAGE_MODEL } from "../../src/domain/providers";
+import { CAPPED_LOGO_IMAGE_MODEL } from "../../src/domain/providers";
 
-const capability = () => ({ operation: "identity.logo_concept" as const, policyIdentity: "c".repeat(64), handlerVersion: "logo-image-v1", provider: "openai", model: IMAGE_MODEL, engine: null, maxCostMicrousd: 2000 });
+const capability = () => ({ operation: "identity.logo_concept" as const, policyIdentity: "c".repeat(64), handlerVersion: "logo-image-v1", provider: "openai", model: CAPPED_LOGO_IMAGE_MODEL, engine: null, maxCostMicrousd: 2000 });
 function fixture() {
   const query = vi.fn(async (sql: string, parameters?: unknown[]) => { void sql; void parameters; return { rows: [{ value: true }] }; });
   const connection = { query } as unknown as LogoWorkerConnection;

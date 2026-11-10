@@ -7,6 +7,7 @@ import { IMAGE_MODEL } from "../../src/domain/providers";
 import { logoCostQuoteSchema, logoConceptJobInputSchema, logoRefinementJobInputSchema } from "../../src/domain/logo-jobs";
 import { sharedExecutionSchema } from "../../worker/shared-pool/contracts";
 import { parseClaimedJob } from "../../worker/postgres-store";
+import { applySharedImageModel } from "./shared-image-model-fixture";
 
 /** Real disposable SQL execution; synthetic Auth, Storage and provider evidence.
  * Costs below are fixture evidence, never actual provider use or charges. */
@@ -17,6 +18,7 @@ describe("uncapped shared Logo rasters", () => {
  beforeAll(async () => {
   f = await createSharedAdvancedLogoFixture();
   await f.db.exec(await readFile(new URL("../../supabase/candidates/shared_logo_raster_uncapped.sql", import.meta.url), "utf8"));
+  await applySharedImageModel(f.db);
   for (const operation of ["identity.logo_concept", "identity.logo_refine"]) {
    const policy = { ...capability, operation, policyIdentity: operation === "identity.logo_concept" ? capability.policyIdentity : "b5".repeat(32) };
    await f.db.query("update fluid_private.shared_worker_policies set policy_identity=$2,policy=$3 where slot_id=$1 and operation=$4", [f.slotId, policy.policyIdentity, policy, operation]);

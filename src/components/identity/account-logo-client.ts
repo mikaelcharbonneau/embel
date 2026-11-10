@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isSignedDownloadUrl } from "@/domain/signed-download-url";
 import * as W from "@/domain/logo-workspace";
 import * as J from "@/domain/logo-jobs";
 import { logoCapabilitiesSchema } from "@/domain/logo-capabilities";
@@ -22,7 +23,7 @@ const clientBindings = new WeakMap<object, { ownerId: string; projectId: string;
 type PageQuery = { cursor?: string; limit?: number };
 type Preview = { url: string; release(): void };
 const assetDownloadSchema = z.strictObject({
-  url: z.url().max(8192).refine(value => { const url = new URL(value); return url.protocol === "https:" && !url.username && !url.password; }),
+  url: z.url().max(8192).refine(isSignedDownloadUrl),
   versionId: V.logoUuidSchema, contentHash: V.logoHashSchema, mimeType: z.string().min(1).max(150), expiresInSeconds: z.literal(60),
 });
 type AssetDownload = z.infer<typeof assetDownloadSchema>;

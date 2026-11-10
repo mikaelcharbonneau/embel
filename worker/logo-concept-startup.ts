@@ -5,7 +5,7 @@ import { lstat, open } from "node:fs/promises";
 import { join } from "node:path";
 import { Pool, type PoolConfig } from "pg";
 import { z } from "zod";
-import { IMAGE_MODEL } from "../src/domain/providers";
+import { CAPPED_LOGO_IMAGE_MODEL } from "../src/domain/providers";
 import { createIdentityAssetStore, createPostgresIdentityAssetBackend, type IdentityAssetReservation,
   type IdentityAssetStore } from "../src/server/data/identity-asset-store";
 import type { LogoWorkerConnection } from "../src/server/data/logo-jobs";
@@ -56,7 +56,7 @@ export function parseLogoConceptConfiguration(input: unknown): LogoConceptConfig
   const apiKey = field("FLUID_LOGO_OPENAI_API_KEY", value => z.string().max(4096).regex(/^[\x21-\x7e]+$/).parse(value));
   const policyIdentity = field("FLUID_LOGO_CONCEPT_POLICY_IDENTITY", value => z.string().regex(/^[a-f0-9]{64}$/).parse(value));
   const maxCostMicrousd = field("FLUID_LOGO_CONCEPT_MAX_COST_MICROUSD", value => integer(value, Number.MAX_SAFE_INTEGER));
-  field("FLUID_LOGO_IMAGE_MODEL", value => z.literal(IMAGE_MODEL).parse(value));
+  field("FLUID_LOGO_IMAGE_MODEL", value => z.literal(CAPPED_LOGO_IMAGE_MODEL).parse(value));
   field("FLUID_LOGO_IMAGE_PRICE_VERSION", value => z.literal(SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion).parse(value));
   field("FLUID_LOGO_PAID_CALLS_APPROVED", value => z.literal("true").parse(value));
   const authUserId = field("FLUID_LOGO_STORAGE_AUTH_USER_ID", value => z.uuid().parse(value).toLowerCase());
@@ -228,8 +228,8 @@ export async function startLogoConceptWorker(options: { configuration: LogoConce
     await connection.query(""); if (stopped) throw unavailable();
     const adapter = createLogoImageRuntimeAdapter({ ownerId, connection,
       capability: { operation: "identity.logo_concept", policyIdentity: configuration.policyIdentity, handlerVersion: LOGO_IMAGE_HANDLER_VERSION,
-        provider: "openai", model: IMAGE_MODEL, engine: null, maxCostMicrousd: configuration.maxCostMicrousd },
-      image: { apiKey: configuration.apiKey, model: IMAGE_MODEL, rateVersion: SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion, paidCallsApproved: true },
+        provider: "openai", model: CAPPED_LOGO_IMAGE_MODEL, engine: null, maxCostMicrousd: configuration.maxCostMicrousd },
+      image: { apiKey: configuration.apiKey, model: CAPPED_LOGO_IMAGE_MODEL, rateVersion: SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion, paidCallsApproved: true },
       references: "none", acceptingWork: () => !stopped, assets: referenceFreeAssets(connection, storage), transport: dependencies.imageTransport,
       async assertAvailable() { if (stopped) throw unavailable(); await storage.assertAvailable({ ownerId, operation: "identity.logo_concept" }); if (stopped) throw unavailable(); },
     });

@@ -7,12 +7,12 @@ import { guidedStrategyPolicy, OPENAI_STRATEGY_MODEL } from "../../src/server/ai
 import { namingGenerationPolicySchema } from "../../src/domain/naming-generation";
 import { IMAGE_MODEL } from "../../src/domain/providers";
 import { identityGenerationCapabilitySchema, identityTextPolicySchema } from "../../src/domain/identity-jobs";
-import { logoDirectionsApiPolicySchema, uncappedLogoRasterCapabilitySchema } from "../../src/domain/logo-jobs";
+import { logoDirectionsApiPolicySchema, logoStyleNoteApiPolicySchema, uncappedLogoRasterCapabilitySchema } from "../../src/domain/logo-jobs";
 import { uncappedLogoVectorProposalTextPolicySchema } from "../../src/domain/logo-vector-proposal-jobs";
 import { canonicalIdentityInput } from "../../src/features/identity-directions/model/font-check-binding";
 import { QUALIFIED_VTRACER } from "../../worker/logo-vector/engine";
 import { LOGO_EXPORT_HANDLER_VERSION, LOGO_EXPORT_POLICY_IDENTITY } from "../../worker/handlers/logo-exports";
-import { qualifySharedLogoCapability, sharedDirectionsCapabilitySchema } from "../../worker/shared-lanes/logo-capability";
+import { qualifySharedLogoCapability, sharedDirectionsCapabilitySchema, sharedStyleNoteCapabilitySchema } from "../../worker/shared-lanes/logo-capability";
 import { uncappedLogoVectorProposalCapabilitySchema } from "../../worker/logo-vector-proposal-capability";
 import { sharedPoolConfigurationSchema, type SharedPoolConfiguration } from "../../worker/shared-pool/configuration";
 import { readSharedPoolSecrets } from "../../worker/shared-pool/secrets";
@@ -33,7 +33,9 @@ const provisioningSchema = z.object({
 });
 /** Logo slots after the first only run concepts and refinements, as in production,
  * so native vector/export work and Identity stay one at a time on slot 1. */
-export const PARALLEL_LOGO_OPERATIONS = Object.freeze(["identity.logo_concept", "identity.logo_refine"] as const);
+export const PARALLEL_LOGO_OPERATIONS = Object.freeze(["identity.logo_concept", "identity.logo_refine", "identity.logo_style_note"] as const);
+/** Operations only the concept slots run: Logo slot 1 already reports its maximum of seven. */
+export const PARALLEL_ONLY_LOGO_OPERATIONS = Object.freeze(["identity.logo_style_note"] as const);
 const artifactSchema = sharedPoolConfigurationSchema.shape.artifact.extend({ sourceClean: z.boolean() });
 const modelSchema = z.object({ id: z.string(), object: z.literal("model") });
 export const DEVELOPMENT_MODELS = Object.freeze({ strategy: OPENAI_STRATEGY_MODEL, naming: "gpt-6-luna", logo: IMAGE_MODEL, logoText: OPENAI_STRATEGY_MODEL });
@@ -47,6 +49,8 @@ export function developmentWorkerPolicies(): Record<z.infer<typeof lane>, Record
     inputMicrousdPerMillionTokens: 2000000, cachedInputMicrousdPerMillionTokens: 100000, cacheWriteMicrousdPerMillionTokens: 2500000, outputMicrousdPerMillionTokens: 10000000 };
   const apiPolicy = logoDirectionsApiPolicySchema.parse({ ...textLimits, version: 1, billingMode: "openai_api", spendControl: "uncapped",
     handlerVersion: "logo-directions-api-v1", adapterVersion: "logo-directions-openai-v1" });
+  const styleNotePolicy = logoStyleNoteApiPolicySchema.parse({ ...textLimits, version: 1, billingMode: "openai_api", spendControl: "uncapped",
+    handlerVersion: "logo-style-note-v1", adapterVersion: "logo-style-note-openai-v1" });
   const proposalTextPolicy = uncappedLogoVectorProposalTextPolicySchema.parse({ ...textLimits, version: 2, billingMode: "openai_api", spendControl: "uncapped",
     handlerVersion: "logo-vector-propose-v1", adapterVersion: "logo-vector-propose-api-uncapped-v2", schemaVersion: "logo-vector-proposal-v1" });
   const identityTextPolicy = identityTextPolicySchema.parse({ version: 1, model: OPENAI_STRATEGY_MODEL, serviceTier: "default", pricingVersion: "2026-10-03",
@@ -63,6 +67,8 @@ export function developmentWorkerPolicies(): Record<z.infer<typeof lane>, Record
       model: OPENAI_STRATEGY_MODEL, engine: null, spendControl: "uncapped", textPolicy: proposalTextPolicy })),
     identityGenerationCapabilitySchema.parse(identified({ operation: "identity.image", handlerVersion: "identity-image-v1", provider: "openai", model: IMAGE_MODEL,
       engine: null, maxCostMicrousd: 0, spendControl: "uncapped", textPolicy: identityTextPolicy })),
+    sharedStyleNoteCapabilitySchema.parse(identified({ operation: "identity.logo_style_note", handlerVersion: "logo-style-note-v1", provider: "openai",
+      model: OPENAI_STRATEGY_MODEL, engine: null, spendControl: "uncapped", apiPolicy: styleNotePolicy })),
   ].map(value => { const qualified = qualifySharedLogoCapability(value); if (!qualified) throw unavailable(); return qualified; });
   return {
     strategy: Object.fromEntries((["strategy.reformulate", "strategy.competitors", "strategy.audience", "strategy.positioning", "strategy.personality", "strategy.slogan"] as const)
@@ -127,7 +133,9 @@ export async function composeSharedDevelopmentConfiguration(options: { root: str
       slots: provisioning.slots.map(slot => ({ slotId: slot.slotId, lane: slot.lane, roleName: slot.roleName, roleOid: slot.roleOid,
         workerId: `development-${slot.lane}-${slot.slotId}`, providerBindingRef: providers[slot.lane].bindingRef,
         model: providers[slot.lane].model, modelVerificationReceipt: providers[slot.lane].modelVerificationReceipt,
-        policies: slot.lane === "logo" && slot.slotIndex > 1 ? Object.fromEntries(PARALLEL_LOGO_OPERATIONS.map(operation => [operation, policies.logo[operation]])) : policies[slot.lane],
+        policies: slot.lane === "logo" && slot.slotIndex > 1 ? Object.fromEntries(PARALLEL_LOGO_OPERATIONS.map(operation => [operation, policies.logo[operation]]))
+          : slot.lane === "logo" ? Object.fromEntries(Object.entries(policies.logo).filter(([operation]) => !(PARALLEL_ONLY_LOGO_OPERATIONS as readonly string[]).includes(operation)))
+          : policies[slot.lane],
         gatewayProof: SHARED_LANE_RPC_PROOFS[slot.lane], ...(slot.lane === "strategy" ? { outboxProof: SHARED_STRATEGY_OUTBOX_PROOF } : {}),
         ...(slot.lane === "logo" ? { textProvider: { providerBindingRef: providers.logoText.bindingRef, model: providers.logoText.model, modelVerificationReceipt: providers.logoText.modelVerificationReceipt } } : {}) })),
     });

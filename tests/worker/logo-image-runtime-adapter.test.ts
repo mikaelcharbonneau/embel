@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import type { IdentityAssetStore } from "../../src/server/data/identity-asset-store";
 import type { LogoWorkerConnection } from "../../src/server/data/logo-jobs";
-import { IMAGE_MODEL } from "../../src/domain/providers";
+import { CAPPED_LOGO_IMAGE_MODEL } from "../../src/domain/providers";
 import { OpenAIImageTransportError } from "../../src/server/logo-creation/openai-image-transport";
 import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/logo-creation/openai-image-pricing";
 import { createLogoImageRuntimeAdapter, type LogoImageRuntimeAdapterInput } from "../../worker/logo-image-runtime-adapter";
@@ -17,8 +17,8 @@ function fixture(operation: "identity.logo_concept" | "identity.logo_refine" = "
   const assertAvailable = vi.fn(async () => {});
   const generate = vi.fn(async (): Promise<never> => { throw Error("No synthetic image request expected"); });
   const options: LogoImageRuntimeAdapterInput = { ownerId: job.ownerId, capability: { operation, policyIdentity: "c".repeat(64),
-    handlerVersion: "logo-image-v1", provider: "openai", model: IMAGE_MODEL, engine: null, maxCostMicrousd: 2000 },
-    image: { apiKey: "synthetic-never-display", model: IMAGE_MODEL, rateVersion: SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion, paidCallsApproved: true },
+    handlerVersion: "logo-image-v1", provider: "openai", model: CAPPED_LOGO_IMAGE_MODEL, engine: null, maxCostMicrousd: 2000 },
+    image: { apiKey: "synthetic-never-display", model: CAPPED_LOGO_IMAGE_MODEL, rateVersion: SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion, paidCallsApproved: true },
     connection: { query } as unknown as LogoWorkerConnection, assets, assertAvailable, references: "uploaded", transport: { createImage: generate } };
   return { options, job, resolved, query, denied, generate, assertAvailable };
 }

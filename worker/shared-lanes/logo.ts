@@ -40,6 +40,7 @@ export const sharedLogoStatements=Object.freeze({
  "select fluid_private.stage_logo_vector_publication($1::uuid,$2::uuid,$3::jsonb) value":{action:"stage_vector",count:3,column:"value"},
  "select fluid_private.read_leased_logo_vector_revision($1::uuid,$2::uuid,$3::uuid) value":{action:"read_vector",count:3,column:"value"},
  "select fluid_private.stage_logo_vector_proposal($1,$2,$3,$4) value":{action:"stage_proposal",count:4,column:"value",observation:true},
+ "select fluid_private.stage_logo_style_note($1,$2,$3,$4) value":{action:"stage_style_note",count:4,column:"value",observation:true},
  "select public.load_identity_generation_input($1,$2) value":{action:"identity_input",count:2,column:"value"},
  "select public.authorize_identity_generation_call($1,$2,$3,$4,$5,$6) value":{action:"identity_authorize",count:6,column:"value"},
  "select public.read_identity_generation_call($1,$2,$3,$4) value":{action:"identity_call",count:4,column:"value",observation:true},
@@ -61,7 +62,7 @@ export const sharedLogoStatements=Object.freeze({
 export function createSharedLogoLaneEngine(options:SharedLaneBase & {capabilities:readonly unknown[];storage:SharedLogoStorageFactory;textProvider?:SharedLaneBase["provider"];identityFactory?:SharedIdentityFactory;nativeQualification?:LogoProductionRuntimeQualification},dependencies:{transport?:OpenAIImageTransport;textTransport?:OpenAIResponsesTransport}={}):SharedLaneEngine{
  const capabilities=options.capabilities.map(value=>{const c=qualifySharedLogoCapability(value);if(!c)throw unavailable();
   if(["identity.logo_concept","identity.logo_refine","identity.image"].includes(c.operation)&&c.model!==options.provider.model)throw unavailable();
-  if(c.operation==="identity.logo_directions"||c.operation==="identity.logo_vector_propose"||c.operation==="identity.image"){
+  if(c.operation==="identity.logo_directions"||c.operation==="identity.logo_vector_propose"||c.operation==="identity.image"||c.operation==="identity.logo_style_note"){
    const model="apiPolicy" in c?c.apiPolicy.model:"textPolicy" in c?c.textPolicy?.model:null;
    if(!options.textProvider||!options.textProvider.apiKey||!options.textProvider.modelVerificationReceipt||options.textProvider.model!==model)throw unavailable();
   }
@@ -130,7 +131,7 @@ export function createSharedLogoLaneEngine(options:SharedLaneBase & {capabilitie
     const store=createLogoJobStore(connection),trusted=new WeakSet<object>();
     const claimedStore={...store,async claim(workerId:string,seconds:number){const current=await store.claim(workerId,seconds);
      if(current){gateway.assertJob(current.id,current.leaseToken,current.ownerId,current.projectId);if(!equalClaim(current.input,job.input))throw unavailable();
-      const input=current.input as {spendControl?:unknown};if(input?.spendControl==="uncapped"&&["identity.image","identity.logo_directions","identity.logo_vector_propose","identity.logo_concept","identity.logo_refine"].includes(current.operation))trusted.add(current);}
+      const input=current.input as {spendControl?:unknown};if(input?.spendControl==="uncapped"&&["identity.image","identity.logo_directions","identity.logo_vector_propose","identity.logo_concept","identity.logo_refine","identity.logo_style_note"].includes(current.operation))trusted.add(current);}
      return current;},hasUnmeteredExecutionAuthority:(current:ClaimedJob)=>trusted.has(current)};
     const state=await runOneJob({store:claimedStore,handlers,workerId:options.workerId,leaseSeconds:120,signal:combined});
     await Promise.allSettled([...pending]);

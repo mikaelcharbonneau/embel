@@ -151,13 +151,13 @@ describe("explicit injected non-generative logo startup", () => {
   });
 });
 
-import { IMAGE_MODEL } from "../../src/domain/providers";
+import { CAPPED_LOGO_IMAGE_MODEL } from "../../src/domain/providers";
 import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/logo-creation/openai-image-pricing";
 import type { LogoProductionImageOperationInput } from "../../worker/logo-production-startup";
 function imageOperation(f: ReturnType<typeof fixture>, operation: "identity.logo_concept" | "identity.logo_refine"): LogoProductionImageOperationInput {
-  return { capability: { operation, policyIdentity: "c".repeat(64), handlerVersion: "logo-image-v1", provider: "openai", model: IMAGE_MODEL, engine: null, maxCostMicrousd: 2000 },
+  return { capability: { operation, policyIdentity: "c".repeat(64), handlerVersion: "logo-image-v1", provider: "openai", model: CAPPED_LOGO_IMAGE_MODEL, engine: null, maxCostMicrousd: 2000 },
     assets: f.assets, assertAvailable: f.assertAvailable,
-    image: { apiKey: "synthetic-image-key", model: IMAGE_MODEL, rateVersion: SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion, paidCallsApproved: true },
+    image: { apiKey: "synthetic-image-key", model: CAPPED_LOGO_IMAGE_MODEL, rateVersion: SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion, paidCallsApproved: true },
     transport: { createImage: vi.fn(async (): Promise<never> => { throw Error("No image dispatch in idle startup test"); }) } };
 }
 describe("single combined logo operation startup", () => {

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { jobStatusSchema, moneySchema } from "./jobs";
-import { IMAGE_MODEL } from "./providers";
+import { sharedImageModelSchema } from "./providers";
 import { identityLogoSourceSchema } from "./identity-logo-source";
 import { brandBoardApplicationDesignSchema } from "./brand-board-design";
 import { logoRasterSourceSchema } from "./logo-workspace";
@@ -38,7 +38,7 @@ export type IdentityGenerationIntent = z.infer<typeof identityGenerationIntentSc
 
 const unavailableIdentitySchema = z.strictObject({
   ownerId: z.uuid(), projectId: z.uuid(), status: z.literal("unavailable"),
-  operation: z.literal("identity.image"), requestedModel: z.literal(IMAGE_MODEL),
+  operation: z.literal("identity.image"), requestedModel: sharedImageModelSchema,
   reason: z.enum(["pipeline_not_implemented", "runtime_unavailable", "policy_unavailable", "inputs_not_ready", "references_unavailable", "reference_limit_exceeded", "reference_bytes_exceeded", "logo_selection_required", "logo_needs_review", "unsupported_brand_text"]),
   maxReferenceImages: z.literal(4).optional(),
   maxReferenceBytes: z.literal(20_971_520).optional(),
@@ -46,7 +46,7 @@ const unavailableIdentitySchema = z.strictObject({
 /** Availability is loaded from actual SQL policy/slot/Storage readiness, never inferred from a model name. */
 const legacyAvailableIdentitySchema = z.strictObject({
   version: z.literal(2), spendControl: z.literal("uncapped"), ownerId: z.uuid(), projectId: z.uuid(), status: z.literal("available"),
-  operation: z.literal("identity.image"), requestedModel: z.literal(IMAGE_MODEL), policyIdentity: z.string().regex(/^[a-f0-9]{64}$/),
+  operation: z.literal("identity.image"), requestedModel: sharedImageModelSchema, policyIdentity: z.string().regex(/^[a-f0-9]{64}$/),
   handlerVersion: z.literal("identity-image-v1"), targetCount: z.literal(IDENTITY_BATCH_TARGET), maxReferenceImages:z.literal(4), maxReferenceBytes:z.literal(20_971_520),
 });
 export const logoBoardAvailabilitySchema = legacyAvailableIdentitySchema.extend({
@@ -235,7 +235,7 @@ export const identityTextPolicySchema = z.strictObject({
 export type IdentityTextPolicy = z.infer<typeof identityTextPolicySchema>;
 export const identityGenerationCapabilitySchema = z.strictObject({
   operation: z.literal("identity.image"), policyIdentity: digest, handlerVersion: z.literal(IDENTITY_IMAGE_HANDLER_VERSION),
-  provider: z.literal("openai"), model: z.literal(IMAGE_MODEL), engine: z.null(), maxCostMicrousd: z.literal(0),
+  provider: z.literal("openai"), model: sharedImageModelSchema, engine: z.null(), maxCostMicrousd: z.literal(0),
   spendControl: z.literal("uncapped"), textPolicy: identityTextPolicySchema,
 });
 export type IdentityGenerationCapability = z.infer<typeof identityGenerationCapabilitySchema>;

@@ -100,9 +100,11 @@ export async function createSharedStorageFixture() {
   async function complete(p: Awaited<ReturnType<typeof prepare>>, finish = true) {
    const frozen = p.job.input as { batchId: string; slotId: string; attemptId: string }, key = `logo-preview-v1:${frozen.slotId}:${frozen.attemptId}`;
    await action(p.execution, "begin", [p.job.id, p.job.leaseToken, key, `fixture:${p.job.id}`, p.job.reservedCostMicrousd]);
+   // A worker labels its response with the model of the policy the job was admitted under.
+   const model = (await db.query<{ model: string }>("select policy->>'model' model from fluid_private.shared_job_admissions where job_id=$1", [p.job.id])).rows[0]!.model;
    await action(p.execution, "observe_asset", [p.reservation.id, JSON.stringify({ status: "verified", checkedAt: new Date().toISOString(),
     contentHash: p.publication.contentHash, mimeType: "image/png", byteLength: p.bytes.byteLength }), p.job.id, p.job.leaseToken]);
-   const provider = (await action(p.execution, "receipt", [p.job.id, p.job.leaseToken, JSON.stringify({ provider: "openai", model: conceptCapability.model,
+   const provider = (await action(p.execution, "receipt", [p.job.id, p.job.leaseToken, JSON.stringify({ provider: "openai", model,
     providerRequestId: `synthetic-${p.job.id}`, responseHash: "a".repeat(64), observedAt: new Date().toISOString(), billing: { status: "recorded", confirmedMicrousd: 1 },
     artifactHash: p.publication.contentHash, normalizedPixelHash: "b".repeat(64) })])).result as { id: string };
    await action(p.execution, "complete", [p.job.id, p.job.leaseToken, key, "succeeded", 1, JSON.stringify({ version: 2, kind: "logo_concept", batchId: frozen.batchId,

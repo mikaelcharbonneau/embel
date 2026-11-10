@@ -2,7 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import type { PoolConfig } from "pg";
 import { z } from "zod";
-import { IMAGE_MODEL } from "../src/domain/providers";
+import { CAPPED_LOGO_IMAGE_MODEL } from "../src/domain/providers";
 import { SUNBURST_STANDARD_IMAGE_PRICING } from "../src/server/logo-creation/openai-image-pricing";
 
 export const CLOUD_LOGO_RUNTIME = Object.freeze({ node: "22.22.2", icu: "78.2", unicode: "17.0", platform: "linux", arch: "x64" });
@@ -17,7 +17,7 @@ const PROJECT = "fricsfwqibyhemknqgyf", DIRECT_HOST = `db.${PROJECT}.supabase.co
 const CA_HASH = "700723581420dd1ac98fd7e9ac529f0ef210eadcaf87fc868a3ad7d114c2f3b7";
 const secret = z.string().min(1).max(4096).regex(/^[\x21-\x7e]+$/);
 const capability = z.strictObject({ operation: z.literal("identity.logo_concept"), policyIdentity: z.literal(CLOUD_LOGO_POLICY_IDENTITY),
-  handlerVersion: z.literal("logo-image-v1"), provider: z.literal("openai"), model: z.literal(IMAGE_MODEL), engine: z.null(), maxCostMicrousd: z.literal(2_000_000) });
+  handlerVersion: z.literal("logo-image-v1"), provider: z.literal("openai"), model: z.literal(CAPPED_LOGO_IMAGE_MODEL), engine: z.null(), maxCostMicrousd: z.literal(2_000_000) });
 const configurationSchema = z.strictObject({ version: z.literal(1), enabled: z.literal(true),
   binding: z.strictObject({ ownerId: z.literal(CLOUD_LOGO_BINDING.ownerId), roleName: z.literal(CLOUD_LOGO_BINDING.roleName), roleOid: z.literal(CLOUD_LOGO_BINDING.roleOid) }),
   workerId: z.literal(CLOUD_LOGO_WORKER_ID),
@@ -25,7 +25,7 @@ const configurationSchema = z.strictObject({ version: z.literal(1), enabled: z.l
   // Expiring snapshots and refresh tokens are deliberately absent. Every process
   // signs in the existing restricted identity and retains rotation only in memory.
   storage: z.strictObject({ authUserId: z.literal(CLOUD_LOGO_STORAGE_USER_ID), publishableKey: z.string().regex(/^sb_publishable_[A-Za-z0-9_-]{1,500}$/), sessionApproved: z.literal(true) }),
-  image: z.strictObject({ apiKey: secret, model: z.literal(IMAGE_MODEL), rateVersion: z.literal(SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion), paidCallsApproved: z.literal(true) }),
+  image: z.strictObject({ apiKey: secret, model: z.literal(CAPPED_LOGO_IMAGE_MODEL), rateVersion: z.literal(SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion), paidCallsApproved: z.literal(true) }),
   operations: z.strictObject({ concepts: capability, refinements: capability.extend({ operation: z.literal("identity.logo_refine") }) }),
 });
 const identitySchema = z.strictObject({ version: z.literal(1), ownerId: z.literal(CLOUD_LOGO_BINDING.ownerId),

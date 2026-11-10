@@ -1,10 +1,20 @@
 import { z } from "zod";
 
-// Official documentation verified 2026-10-02; not proof of account access or inference.
-export const IMAGE_MODEL = "gpt-image-2.5-sunburst-2026-09-08" as const;
+// Official documentation verified 2026-11-09; not proof of account access or inference.
+/** Shared Logo concepts and refinements and Creative direction boards. Released
+ * 2026-10-28 as an alias only; OpenAI publishes no dated snapshot for it. */
+export const IMAGE_MODEL = "gpt-image-2.6-sunburst" as const;
+/** The earlier capped Logo policies (maxCostMicrousd), which still pin this snapshot. */
+export const CAPPED_LOGO_IMAGE_MODEL = "gpt-image-2.5-sunburst-2026-09-08" as const;
+export type LogoImageModel = typeof IMAGE_MODEL | typeof CAPPED_LOGO_IMAGE_MODEL;
+/** The model a shared worker policy names. Production's shared worker still runs the
+ * 2.5 snapshot: the packet that would move it (supabase/candidates/shared_image_model_2_6.sql)
+ * is not applied, and the generation engine draws Logo images with IMAGE_MODEL instead.
+ * Old-path readers accept either, so the old path keeps working until it is retired. */
+export const sharedImageModelSchema = z.enum([IMAGE_MODEL, CAPPED_LOGO_IMAGE_MODEL]);
 export const textOperationSchema = z.enum(["strategy.reformulate", "strategy.competitors", "strategy.audience", "strategy.personality", "strategy.positioning", "strategy.slogan", "naming.generate", "ideas.explore"]);
 export type TextOperation = z.infer<typeof textOperationSchema>;
-export const operationSchema = z.enum([...textOperationSchema.options, "identity.image", "identity.vector", "brand.export", "identity.logo_concept", "identity.logo_refine", "identity.logo_vectorize", "identity.logo_directions", "identity.logo_export", "identity.logo_vector_propose"]);
+export const operationSchema = z.enum([...textOperationSchema.options, "identity.image", "identity.vector", "brand.export", "identity.logo_concept", "identity.logo_refine", "identity.logo_vectorize", "identity.logo_directions", "identity.logo_export", "identity.logo_vector_propose", "identity.logo_style_note"]);
 export type Operation = z.infer<typeof operationSchema>;
 
 export const providerFailureSchema = z.discriminatedUnion("kind", [

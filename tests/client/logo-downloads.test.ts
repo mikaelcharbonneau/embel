@@ -32,6 +32,12 @@ describe("direct saved logo downloads", () => {
     expect(fetcher).toHaveBeenCalledExactlyOnceWith(`/api/assets/${f.preview.reference.versionId}/download`, expect.objectContaining({ method: "GET" }));
   });
 
+  it("downloads the original PNG from local development Storage, which is plain http on this computer", async () => {
+    const f = createVectorHttpFixture(), local = { ...link(f.preview.reference, "image/png"), url: "http://127.0.0.1:54321/storage/v1/object/sign/fluid-assets/file?token=signed&download=logo.png" };
+    const client = createAccountLogoClient(account, projectId, () => true, vi.fn(), vi.fn(async () => Response.json(local)));
+    expect(await client.downloadAsset(f.preview)).toEqual(local);
+  });
+
   it.each(["geometry", "owner", "id"])("never requests an SVG link for mismatched saved %s", async mismatch => {
     const f = createVectorHttpFixture(), requestedId = f.initial.revision.id;
     if (mismatch === "geometry") f.initial.document.components[0]!.paths[0]!.fill!.color = "#123456";

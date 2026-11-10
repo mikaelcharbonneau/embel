@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isSignedDownloadUrl } from "@/domain/signed-download-url";
 import { identityReferenceUploadSchema, identityReferenceUploadLookupSchema, type IdentityReferenceUpload } from "@/domain/identity-reference-uploads";
 import { identityReferenceEntrySchema } from "@/domain/identity-references";
 import { logoInputRequestSchema, logoInputRequestStateSchema, LOGO_REFERENCE_UPLOAD_MAX_BYTES } from "@/features/logo-inputs/model/contracts";
@@ -31,7 +32,7 @@ export function identityObservation(input: ProjectIdentityOverview): IdentityObs
     identityRevision: overview.session?.identityRevision ?? 0, basis: overview.currentBasis.basis, previousSelectionId: overview.currentSelection?.selection.id ?? null });
 }
 const downloadSchema = z.strictObject({
-  url: z.url().max(8192).refine(value => { const url = new URL(value); return url.protocol === "https:" && !url.username && !url.password; }),
+  url: z.url().max(8192).refine(isSignedDownloadUrl),
   versionId: z.uuid(), contentHash: z.string().regex(/^[a-f0-9]{64}$/), mimeType: z.string().min(1).max(150), expiresInSeconds: z.literal(60),
 });
 const same = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);

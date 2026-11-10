@@ -55,6 +55,16 @@ describe("isolated real raster conversion", () => {
     expect(result.raster.alphaLevels).toEqual([128]);
     expect(result.raster.outputColorSpace).toBe("srgb");
   });
+  it("traces B/W as the art shows on white, so a soft edge on a transparent background is one crisp opaque layer", async () => {
+    // A black square whose edge fades out through partial alpha, and the same art drawn opaque on white.
+    const fade = (x: number, y: number) => { const d = Math.max(Math.abs(x - 15.5), Math.abs(y - 11.5)); return d < 6 ? 255 : d < 9 ? Math.round(255 * (9 - d) / 3) : 0; };
+    const transparent = syntheticPng(32, 24, (x, y) => [0, 0, 0, fade(x, y)]), onWhite = syntheticPng(32, 24, (x, y) => [255 - fade(x, y), 255 - fade(x, y), 255 - fade(x, y), 255]);
+    const settings = { preset: "bw" as const, simplify: 0, filterSpeckle: 0, maxColors: 2 };
+    const [clear, white] = await Promise.all([transparent, onWhite].map(bytes => convertLogoRaster({ ...syntheticConversionInput("abstract"), source: syntheticSource(bytes), settings }, signal())));
+    expect(clear!.raster.alphaLevels).toEqual([255]);
+    expect(clear!.document.components.flatMap(c => c.paths).length).toBeGreaterThan(0);
+    expect(clear!.document).toEqual(white!.document);
+  });
   it("snapshots Buffer-backed input before the caller overwrites it", async () => {
     // Larger than the process pipe buffer. The shared white prefix makes the
     // pending aliased write become a valid B image, not merely corrupt data.

@@ -283,8 +283,9 @@ describe("five-operation host with actual direction production, owner approval a
     expect(createImage).toHaveBeenCalledTimes(6);
     expect(await rpc("admit_logo_operation", [initial.projectId, intent])).toEqual(admission);
     const completed = await db.query<{ state: string; actual_cost_microusd: number; id: string; input: { attemptId: string; slotId: string; batchId: string } }>("select id,state,actual_cost_microusd,input from public.jobs where id=any($1)", [admission.jobIds]);
-    expect(completed.rows).toHaveLength(6); expect(completed.rows.every(row => row.state === "succeeded" && row.actual_cost_microusd === 43)).toBe(true);
-    for (const [input] of createImage.mock.calls) { expect(input.images).toHaveLength(1); expect(input.images[0]!.reference).toEqual(uploaded.asset); }
+    expect(completed.rows).toHaveLength(6); expect(completed.rows.every(row => row.state === "succeeded" && row.actual_cost_microusd === 35)).toBe(true);
+    // Concepts are drawn fresh: the liked upload reaches them through its style note, never as an attached image.
+    for (const [input] of createImage.mock.calls) { expect(input.images).toHaveLength(0); expect(input.prompt).toContain('"references":[]'); }
     const conceptInput = completed.rows[0]!.input;
     const conceptSource = { kind: "concept", batchId: conceptInput.batchId, slotId: conceptInput.slotId, attemptId: conceptInput.attemptId };
     const conceptResult = identityAssetReceiptSchema.parse((await db.query<{ preview: unknown }>("select preview from public.logo_raster_results where job_id=$1", [completed.rows[0]!.id])).rows[0]!.preview);

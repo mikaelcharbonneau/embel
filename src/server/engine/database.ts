@@ -5,9 +5,10 @@ import { attachDatabasePool } from "@vercel/functions";
 import { Pool } from "pg";
 
 /** The only database functions the engine login may call (docs/generation-engine.md).
- * engine_save_names adds a naming run's checked names to the project with their output. */
-export type EngineFunction = "engine_claim" | "engine_check" | "engine_save_output" | "engine_save_names" | "engine_finish";
-const ENGINE_FUNCTIONS: readonly EngineFunction[] = ["engine_claim", "engine_check", "engine_save_output", "engine_save_names", "engine_finish"];
+ * engine_save_names adds a naming run's checked names to the project with their output;
+ * engine_logo_begin and engine_logo_save_image record a Logo run's concepts and refinements. */
+export type EngineFunction = "engine_claim" | "engine_check" | "engine_save_output" | "engine_save_names" | "engine_finish" | "engine_logo_begin" | "engine_logo_save_image";
+const ENGINE_FUNCTIONS: readonly EngineFunction[] = ["engine_claim", "engine_check", "engine_save_output", "engine_save_names", "engine_finish", "engine_logo_begin", "engine_logo_save_image"];
 
 let pool: Pool | null = null;
 

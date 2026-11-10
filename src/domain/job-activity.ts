@@ -27,6 +27,7 @@ const operationLabels: Record<JobActivityEntry["operation"], string> = {
   "ideas.explore": "Ideas", "identity.image": "Identity images", "identity.vector": "Vector output", "brand.export": "Brand export",
   "identity.logo_concept": "Logo concepts", "identity.logo_refine": "Logo refinement", "identity.logo_vectorize": "Logo vector",
   "identity.logo_vector_propose": "Vector logo", "identity.logo_directions": "Creative directions", "identity.logo_export": "Brand files",
+  "identity.logo_style_note": "Reading a liked image",
 };
 export const jobOperationLabel = (operation: JobActivityEntry["operation"]) => operationLabels[operation];
 export function jobActivityHref(job: Pick<JobActivityEntry, "projectId" | "operation">) {
@@ -34,6 +35,7 @@ export function jobActivityHref(job: Pick<JobActivityEntry, "projectId" | "opera
   const suffix: Partial<Record<JobActivityEntry["operation"], string>> = {
     "naming.generate": "/naming", "identity.image": "/logo/directions", "identity.logo_concept": "/logo", "identity.logo_refine": "/logo",
     "identity.logo_vector_propose": "/logo", "identity.logo_vectorize": "/logo", "identity.logo_directions": "/logo/directions", "identity.logo_export": "/logo/deliverables",
+    "identity.logo_style_note": "/logo",
   };
   return `/brands/account/${job.projectId}${suffix[job.operation] ?? ""}`;
 }

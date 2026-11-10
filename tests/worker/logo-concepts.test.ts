@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import sharp from "sharp";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
+import { IMAGE_MODEL } from "../../src/domain/providers";
 import { createLogoConceptHandler } from "../../worker/handlers/logo-concepts";
 import { runOneJob, type JobStore } from "../../worker/runner";
 import type { IdentityAssetStore } from "../../src/server/data/identity-asset-store";
@@ -30,19 +31,19 @@ function setup() {
   const unavailable = async (): Promise<never> => { throw new Error("Unavailable fixture operation"); };
   const assets: IdentityAssetStore = { publishLeasedAsset: publish, readLeasedAsset: unavailable, readOwnedAsset: unavailable, stageOwnedAsset: unavailable, publishOwnedUpload: unavailable };
   const ready = vi.fn(async () => undefined), resolve = vi.fn(async () => input);
-  const handler = createLogoConceptHandler({ producer: { produce }, assets, assertPolicyReady: ready, resolveInputs: resolve, recordProviderResponse: record });
+  const handler = createLogoConceptHandler({ model: IMAGE_MODEL, producer: { produce }, assets, assertPolicyReady: ready, resolveInputs: resolve, recordProviderResponse: record });
   return { job, input, observations, produce, publish, record, ready, resolve, handler };
 }
 describe("one durable concept child handler", () => {
   it("freezes one stable bounded step and publishes only verified monochrome bytes with retained response receipt", async () => {
     const f = setup(), steps = f.handler.steps(f.job);
-    expect(steps).toHaveLength(1); expect(steps[0]).toMatchObject({ key: `logo-preview-v1:${f.input.input.slotId}:${f.input.input.attemptId}`, maximumCostMicrousd: 2000, timeoutMs: 300000 });
+    expect(steps).toHaveLength(1); expect(steps[0]).toMatchObject({ key: `logo-preview-v1:${f.input.input.slotId}:${f.input.input.attemptId}`, maximumCostMicrousd: 2000, timeoutMs: 600000 });
     const result = await steps[0]!.execute({ job: f.job, signal: new AbortController().signal });
     expect(result).toMatchObject({ status: "succeeded", costMicrousd: 1000, result: { kind: "logo_concept", slotId: f.input.input.slotId, attemptId: f.input.input.attemptId, publicationId: id(711), providerResponseReceiptId: id(710) } });
     expect(f.produce.mock.calls[0]![2]).toBe(createHash("sha256").update(`${f.job.id}:${steps[0]!.key}`).digest("hex"));
     expect(f.observations[0]?.artifactHash).toBe(createHash("sha256").update(png).digest("hex")); expect(f.publish).toHaveBeenCalledTimes(1);
     const imageObservation = f.observations[0]!; if ("version" in imageObservation) throw new Error("Image must retain its legacy observation");
-    expect(imageObservation.normalizedPixelHash).toMatch(/^[a-f0-9]{64}$/); expect(imageObservation.normalizedPixelHash).not.toBe(f.observations[0]?.artifactHash);
+    expect(imageObservation.model).toBe(IMAGE_MODEL); expect(imageObservation.normalizedPixelHash).toMatch(/^[a-f0-9]{64}$/); expect(imageObservation.normalizedPixelHash).not.toBe(f.observations[0]?.artifactHash);
     expect(f.publish.mock.calls[0]![1].source.sourceId).toBe(f.input.input.attemptId);
     expect(f.publish.mock.calls[0]![1].inputRevisions).toEqual(f.input.inputRevisions);
   });

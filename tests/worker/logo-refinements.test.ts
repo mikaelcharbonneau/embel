@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import sharp from "sharp";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
+import { IMAGE_MODEL } from "../../src/domain/providers";
 import { createLogoRefinementHandler } from "../../worker/handlers/logo-refinements";
 import type { IdentityAssetStore } from "../../src/server/data/identity-asset-store";
 import type { LogoImageProducer } from "../../src/server/logo-creation/openai-logo-provider";
@@ -19,7 +20,7 @@ function setup() {
   const assets: IdentityAssetStore = { publishLeasedAsset: publication, readLeasedAsset: read, readOwnedAsset: unused, stageOwnedAsset: unused, publishOwnedUpload: unused };
   const recordProviderResponse = vi.fn<Parameters<typeof createLogoRefinementHandler>[0]["recordProviderResponse"]>(async (bound, observation) =>
     ({ ...observation, id: id(723), ownerId: bound.ownerId, projectId: bound.projectId, jobId: bound.id, leaseToken: bound.leaseToken }));
-  const handler = createLogoRefinementHandler({ producer: { produce }, assets, assertPolicyReady: async () => undefined, resolveInputs: async () => input,
+  const handler = createLogoRefinementHandler({ model: IMAGE_MODEL, producer: { produce }, assets, assertPolicyReady: async () => undefined, resolveInputs: async () => input,
     recordProviderResponse, loadGeneratedRaster: unused, vectorRefinement: null });
   return { input, job, produce, publication, read, handler, recordProviderResponse };
 }

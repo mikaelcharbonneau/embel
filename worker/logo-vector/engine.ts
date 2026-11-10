@@ -35,10 +35,20 @@ export async function traceLogoRaster(input: LogoVectorEngineInput): Promise<Log
   if (!(input.bytes instanceof Uint8Array) || !input.bytes.length || input.bytes.length > 33_554_432) throw new LogoVectorError("limit_exceeded", "Raster input exceeds the conversion byte limit.");
   const { raw, metadata, inspection } = await decodeIdentityRaster(input);
   const { width, height } = raw.info, rgbaHash = inspection.pixelHash;
+  // B/W reads each pixel as it shows on white, giving one opaque layer of the
+  // pixels darker than mid-gray, so a transparent background and its soft edges
+  // trace as crisp shapes rather than one faint layer per alpha level. For an
+  // opaque raster this is the plain luminance threshold. Poster keeps exact alpha.
+  const level = (i: number): number => {
+    const alpha = raw.data[i + 3]!;
+    if (settings.preset !== "bw") return alpha;
+    const luminance = 0.2126 * raw.data[i]! + 0.7152 * raw.data[i + 1]! + 0.0722 * raw.data[i + 2]!;
+    return luminance * alpha / 255 + 255 - alpha < 128 ? 255 : 0;
+  };
   const bounds = new Map<number, { x: number; y: number; right: number; bottom: number }>();
   for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
-    const i = (y * width + x) * 4, alpha = raw.data[i + 3]!;
-    if (!alpha || (settings.preset === "bw" && 0.2126 * raw.data[i]! + 0.7152 * raw.data[i + 1]! + 0.0722 * raw.data[i + 2]! >= 128)) continue;
+    const i = (y * width + x) * 4, alpha = level(i);
+    if (!alpha) continue;
     const b = bounds.get(alpha);
     if (b) { b.x = Math.min(b.x, x); b.y = Math.min(b.y, y); b.right = Math.max(b.right, x); b.bottom = Math.max(b.bottom, y); }
     else bounds.set(alpha, { x, y, right: x, bottom: y });
@@ -53,10 +63,8 @@ export async function traceLogoRaster(input: LogoVectorEngineInput): Promise<Log
     const layer = new Uint8Array(layerWidth * layerHeight * 4);
     for (let y = 0; y < layerHeight; y++) for (let x = 0; x < layerWidth; x++) {
       const i = ((y + b.y) * width + x + b.x) * 4, target = (y * layerWidth + x) * 4;
-      if (raw.data[i + 3] !== alpha) continue;
-      if (settings.preset === "bw") {
-        if (0.2126 * raw.data[i]! + 0.7152 * raw.data[i + 1]! + 0.0722 * raw.data[i + 2]! >= 128) continue;
-      } else { layer[target] = raw.data[i]!; layer[target + 1] = raw.data[i + 1]!; layer[target + 2] = raw.data[i + 2]!; }
+      if (level(i) !== alpha) continue;
+      if (settings.preset !== "bw") { layer[target] = raw.data[i]!; layer[target + 1] = raw.data[i + 1]!; layer[target + 2] = raw.data[i + 2]!; }
       layer[target + 3] = 255;
     }
     let svg: string;

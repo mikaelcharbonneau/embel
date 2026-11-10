@@ -1,17 +1,17 @@
 import { readFileSync } from "node:fs";
 import { CLOUD_LOGO_BINDING, CLOUD_LOGO_POLICY_IDENTITY, CLOUD_LOGO_PROJECT_ID, CLOUD_LOGO_RUNTIME, CLOUD_LOGO_STORAGE_USER_ID,
   CLOUD_LOGO_WORKER_ID, readCloudLogoConfiguration, type CloudLogoMode } from "../../worker/cloud-logo-configuration";
-import { IMAGE_MODEL } from "../../src/domain/providers";
+import { CAPPED_LOGO_IMAGE_MODEL } from "../../src/domain/providers";
 import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/logo-creation/openai-image-pricing";
 export const cloudLogoSecret = "synthetic-private-logo-cloud-value";
 export const cloudLogoRevision = "a".repeat(40);
 export function cloudLogoInput() {
   const concept = { operation: "identity.logo_concept", policyIdentity: CLOUD_LOGO_POLICY_IDENTITY, handlerVersion: "logo-image-v1",
-    provider: "openai", model: IMAGE_MODEL, engine: null, maxCostMicrousd: 2_000_000 };
+    provider: "openai", model: CAPPED_LOGO_IMAGE_MODEL, engine: null, maxCostMicrousd: 2_000_000 };
   return { version: 1, enabled: true, binding: { ...CLOUD_LOGO_BINDING }, workerId: CLOUD_LOGO_WORKER_ID,
     database: { host: "aws-0-us-east-1.pooler.supabase.com", port: 5432, database: "postgres", password: cloudLogoSecret },
     storage: { authUserId: CLOUD_LOGO_STORAGE_USER_ID, publishableKey: "sb_publishable_synthetic", sessionApproved: true },
-    image: { apiKey: cloudLogoSecret, model: IMAGE_MODEL, rateVersion: SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion, paidCallsApproved: true },
+    image: { apiKey: cloudLogoSecret, model: CAPPED_LOGO_IMAGE_MODEL, rateVersion: SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion, paidCallsApproved: true },
     operations: { concepts: concept, refinements: { ...concept, operation: "identity.logo_refine" } } };
 }
 export function cloudLogoEnv(): Record<string, string | undefined> {

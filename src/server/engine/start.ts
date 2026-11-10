@@ -1,11 +1,14 @@
 import "server-only";
 import type { z } from "zod";
 import { start } from "workflow/api";
+import { logoImagesGeneration, logoStyleNoteGeneration } from "@/workflows/logo";
 import { namingGeneration } from "@/workflows/naming";
 import { probeGeneration } from "@/workflows/probe";
 import { strategyGeneration } from "@/workflows/strategy";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
+import { buildLogoConceptsRunInput, buildLogoRefineRunInput, buildLogoStyleNoteRunInput } from "./logo";
+import { LOGO_CONCEPTS_KIND, LOGO_REFINE_KIND, LOGO_STYLE_NOTE_KIND } from "./logo-input";
 import { buildNamingRunInput, NAMING_KIND } from "./naming";
 import { admitGeneration, findGeneration, type GenerationRunRow, type startGenerationSchema } from "./runs";
 import { buildStrategyRunInput, STRATEGY_OPERATIONS } from "./strategy";
@@ -17,14 +20,20 @@ const workflows: Readonly<Record<string, (runId: string) => Promise<unknown>>> =
   "engine.probe": probeGeneration,
   ...Object.fromEntries(STRATEGY_OPERATIONS.map(operation => [operation, strategyGeneration])),
   [NAMING_KIND]: namingGeneration,
+  [LOGO_CONCEPTS_KIND]: logoImagesGeneration,
+  [LOGO_REFINE_KIND]: logoImagesGeneration,
+  [LOGO_STYLE_NOTE_KIND]: logoStyleNoteGeneration,
 };
 /** Kinds whose input the server freezes from the person's own saved data. The browser only
  * names what to answer: the project revision for Strategy; the kind of request, the saved
- * versions and the seed names for Naming. */
+ * versions and the seed names for Naming; the Logo workspace heads and what to draw for Logo. */
 const inputs: Readonly<Record<string, InputBuilder>> = {
   ...Object.fromEntries(STRATEGY_OPERATIONS.map(operation =>
     [operation, (auth, projectId, input) => buildStrategyRunInput(auth, projectId, operation, input)] satisfies [string, InputBuilder])),
   [NAMING_KIND]: buildNamingRunInput,
+  [LOGO_CONCEPTS_KIND]: buildLogoConceptsRunInput,
+  [LOGO_REFINE_KIND]: buildLogoRefineRunInput,
+  [LOGO_STYLE_NOTE_KIND]: buildLogoStyleNoteRunInput,
 };
 
 /** The run was admitted (and charged) but its workflow didn't start. Repeating the same

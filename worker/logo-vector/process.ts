@@ -24,13 +24,15 @@ const rasterObservationSchema = z.strictObject({
 const errorCodeSchema = z.enum(["invalid_geometry", "unsupported_svg", "limit_exceeded", "empty_artwork", "invalid_font", "font_rights_required", "unsupported_text", "unsupported_edit", "locked_component_changed", "unsupported_locked_refinement", "source_mismatch", "engine_unavailable", "conversion_failed", "cancelled", "timeout"]);
 const inspectionSchema = z.strictObject({ width: z.number().int().min(1).max(8192), height: z.number().int().min(1).max(8192), format: z.enum(["png","jpeg","webp"]), isMonochrome: z.boolean(), pixelHash: logoHashSchema, originalOrientation: z.number().int().min(1).max(8), outputColorSpace: z.literal("srgb") });
 const normalizedConceptSchema = z.strictObject({ pngBase64: z.string().min(4).max(Math.ceil(IMAGE_INPUT_LIMITS.outputBytes / 3) * 4) });
+const referenceOnWhiteSchema = z.strictObject({ imageBase64: z.string().min(4).max(120_000), mimeType: z.enum(["image/png", "image/jpeg"]) });
 const responseSchema = z.discriminatedUnion("status", [
   z.strictObject({ status: z.literal("ok"), output: z.strictObject({ document: logoVectorDocumentSchema, artifactHash: logoHashSchema, raster: rasterObservationSchema }) }),
   z.strictObject({ status: z.literal("inspected"), output: inspectionSchema }),
   z.strictObject({ status: z.literal("concept_normalized"), output: normalizedConceptSchema }),
+  z.strictObject({ status: z.literal("reference_flattened"), output: referenceOnWhiteSchema }),
   z.strictObject({ status: z.literal("error"), code: errorCodeSchema, message: z.string().min(1).max(300) }),
 ]);
-const headerSchema = z.strictObject({ mode: z.enum(["trace", "inspect", "concept-grayscale"]), mimeType: z.enum(["image/png", "image/jpeg", "image/webp"]), logoType: logoTypeSchema, settings: logoTraceSettingsSchema, byteLength: z.number().int().min(1).max(INPUT_LIMIT) });
+const headerSchema = z.strictObject({ mode: z.enum(["trace", "inspect", "concept-grayscale", "reference-on-white"]), mimeType: z.enum(["image/png", "image/jpeg", "image/webp"]), logoType: logoTypeSchema, settings: logoTraceSettingsSchema, byteLength: z.number().int().min(1).max(INPUT_LIMIT) });
 function launchChild(): ChildProcessWithoutNullStreams {
   // Fixed repository-owned entrypoint; no user URL/path, shell, credentials, or
   // inherited NODE_OPTIONS. The heap flag is not a native/WASM memory guarantee.
@@ -44,10 +46,10 @@ function launchChild(): ChildProcessWithoutNullStreams {
 }
 export type LogoVectorProcessOptions = { timeoutMs?: number; launch?: () => ChildProcessWithoutNullStreams };
 /** Injectable process launcher for resource-boundary tests; runtime uses the fixed child. */
-function createRasterProcessRunner(mode: "trace" | "inspect" | "concept-grayscale", options: LogoVectorProcessOptions = {}) {
+function createRasterProcessRunner(mode: "trace" | "inspect" | "concept-grayscale" | "reference-on-white", options: LogoVectorProcessOptions = {}) {
   const timeoutMs = options.timeoutMs ?? 60_000;
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 60_000) throw new Error("Invalid conversion deadline");
-  return (input: Pick<LogoVectorWorkInput, "logoType" | "settings"> & { source: { bytes: Uint8Array; mimeType: string } }, signal: AbortSignal): Promise<LogoVectorEngineOutput | IdentityRasterInspection | z.infer<typeof normalizedConceptSchema>> => new Promise((accept, reject) => {
+  return (input: Pick<LogoVectorWorkInput, "logoType" | "settings"> & { source: { bytes: Uint8Array; mimeType: string } }, signal: AbortSignal): Promise<LogoVectorEngineOutput | IdentityRasterInspection | z.infer<typeof normalizedConceptSchema> | z.infer<typeof referenceOnWhiteSchema>> => new Promise((accept, reject) => {
     if (signal.aborted) return reject(new LogoVectorError("cancelled", "Logo conversion was cancelled."));
     let child: ChildProcessWithoutNullStreams;
     try { child = (options.launch ?? launchChild)(); }
@@ -86,7 +88,7 @@ function createRasterProcessRunner(mode: "trace" | "inspect" | "concept-grayscal
       try {
         const result = responseSchema.parse(JSON.parse(Buffer.concat(chunks, size).toString("utf8")));
         if (result.status === "error") return reject(new LogoVectorError(result.code, result.message));
-        const expectedStatus = mode === "trace" ? "ok" : mode === "inspect" ? "inspected" : "concept_normalized";
+        const expectedStatus = mode === "trace" ? "ok" : mode === "inspect" ? "inspected" : mode === "reference-on-white" ? "reference_flattened" : "concept_normalized";
         if (result.status !== expectedStatus) throw new Error("Unexpected raster process response");
         accept(result.output);
       } catch { reject(new LogoVectorError("conversion_failed", "The isolated tracer returned an invalid result.")); }
@@ -112,6 +114,13 @@ export async function runLogoConceptGrayscaleProcess(input: { bytes: Uint8Array;
   if (!bytes.length || bytes.length > IMAGE_INPUT_LIMITS.outputBytes || bytes.toString("base64") !== result.pngBase64) throw new LogoVectorError("conversion_failed", "Normalized concept bytes are invalid.");
   return new Uint8Array(bytes);
 }
+const referenceOnWhite = createRasterProcessRunner("reference-on-white");
+export async function runLogoReferenceOnWhiteProcess(input: { bytes: Uint8Array; mimeType: string }, signal: AbortSignal): Promise<{ bytes: Uint8Array; mimeType: "image/png" | "image/jpeg" }> {
+  const result = referenceOnWhiteSchema.parse(await referenceOnWhite({ source: input, logoType: "abstract", settings: { preset: "bw", simplify: 0, filterSpeckle: 0, maxColors: 2 } }, signal));
+  const bytes = Buffer.from(result.imageBase64, "base64");
+  if (!bytes.length || bytes.length > 90_000 || bytes.toString("base64") !== result.imageBase64) throw new LogoVectorError("conversion_failed", "Reference bytes on white are invalid.");
+  return { bytes: new Uint8Array(bytes), mimeType: result.mimeType };
+}
 
 async function childMain(): Promise<void> {
   try {
@@ -127,8 +136,9 @@ async function childMain(): Promise<void> {
     if (bytes.length !== header.byteLength) throw new LogoVectorError("source_mismatch", "The raster process input is incomplete.");
     const output = header.mode === "trace" ? await (await import("./engine")).traceLogoRaster({ ...header, bytes })
       : header.mode === "inspect" ? await (await import("./raster")).inspectDecodedIdentityRaster({ bytes, mimeType: header.mimeType })
+      : header.mode === "reference-on-white" ? await (await import("./raster")).flattenDecodedLogoReference({ bytes, mimeType: header.mimeType })
       : await (await import("./raster")).normalizeDecodedLogoConcept({ bytes, mimeType: header.mimeType });
-    const response = JSON.stringify({ status: header.mode === "trace" ? "ok" : header.mode === "inspect" ? "inspected" : "concept_normalized", output });
+    const response = JSON.stringify({ status: header.mode === "trace" ? "ok" : header.mode === "inspect" ? "inspected" : header.mode === "reference-on-white" ? "reference_flattened" : "concept_normalized", output });
     if (Buffer.byteLength(response) > OUTPUT_LIMIT) throw new LogoVectorError("limit_exceeded", "Conversion output exceeds the 8 MiB limit.");
     process.stdout.write(response);
   } catch (error) {

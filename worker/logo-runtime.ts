@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { ClaimedJob } from "../src/domain/jobs";
-import { IMAGE_MODEL } from "../src/domain/providers";
+import { CAPPED_LOGO_IMAGE_MODEL } from "../src/domain/providers";
 import { LOGO_IMAGE_HANDLER_VERSION } from "../src/server/logo-creation/openai-logo-provider";
 import { LOGO_DIRECTIONS_HANDLER_VERSION } from "../src/features/identity-directions/server/propose-directions";
 import type { LogoWorkerConnection } from "../src/server/data/logo-jobs";
@@ -28,7 +28,7 @@ const assetsReady = (object: unknown) => methods(object, ["readLeasedAsset", "pu
 function qualified(capability: LogoWorkerCapability): boolean {
   switch (capability.operation) {
     case "identity.logo_concept": case "identity.logo_refine":
-      return capability.handlerVersion === LOGO_IMAGE_HANDLER_VERSION && capability.provider === "openai" && capability.model === IMAGE_MODEL && capability.engine === null && capability.maxCostMicrousd > 0;
+      return capability.handlerVersion === LOGO_IMAGE_HANDLER_VERSION && capability.provider === "openai" && capability.model === CAPPED_LOGO_IMAGE_MODEL && capability.engine === null && capability.maxCostMicrousd > 0;
     case "identity.logo_directions":
       return capability.handlerVersion === LOGO_DIRECTIONS_HANDLER_VERSION && capability.provider !== null && capability.model !== null && capability.engine === null;
     case "identity.logo_vectorize":

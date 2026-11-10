@@ -9,7 +9,7 @@ import { basename, dirname, isAbsolute, resolve } from "node:path";
 import type { PoolConfig } from "pg";
 import { decodeJwt } from "jose";
 import { z } from "zod";
-import { IMAGE_MODEL } from "../src/domain/providers";
+import { CAPPED_LOGO_IMAGE_MODEL } from "../src/domain/providers";
 import { SUNBURST_STANDARD_IMAGE_PRICING } from "../src/server/logo-creation/openai-image-pricing";
 import { qualifiedLogoGenerativeStorageCapability } from "./logo-generative-storage-authorization";
 import { qualifiedLogoProductionStorageCapability } from "./logo-production-storage-authorization";
@@ -27,7 +27,7 @@ const schema = z.strictObject({
   database: z.strictObject({ host: z.enum([DIRECT_HOST, POOLER_HOST]), port: z.literal(5432), database: z.literal("postgres"), password: secret }),
   storage: z.strictObject({ authUserId: uuid, publishableKey: z.string().regex(/^sb_publishable_[A-Za-z0-9_-]{1,500}$/),
     accessToken: z.string().max(16_384).regex(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/), sessionApproved: z.literal(true) }).optional(),
-  image: z.strictObject({ apiKey: secret, model: z.literal(IMAGE_MODEL), rateVersion: z.literal(SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion), paidCallsApproved: z.literal(true) }).optional(),
+  image: z.strictObject({ apiKey: secret, model: z.literal(CAPPED_LOGO_IMAGE_MODEL), rateVersion: z.literal(SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion), paidCallsApproved: z.literal(true) }).optional(),
   vectorProposal: logoVectorProposalConfigurationSchema.extend({ apiKey: secret }).optional(),
   operations: z.strictObject({ proposals: z.unknown().optional(), concepts: z.unknown().optional(), refinements: z.unknown().optional(), vector: z.unknown().optional(), exports: z.unknown().optional() }),
 });

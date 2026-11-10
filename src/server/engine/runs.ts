@@ -37,7 +37,8 @@ export function publicRun(run: GenerationRunRow, outputs: z.infer<typeof outputR
     id: run.id, kind: run.kind, status: run.status, credits: run.credits, errorCode: run.error_code,
     cancelRequested: run.cancel_requested_at !== null, createdAt: run.created_at, finishedAt: run.finished_at,
     inputRevision: run.input_revision,
-    outputs: outputs.filter(output => output.run_id === run.id).map(output => ({ key: output.output_key, output: output.output })),
+    // "sent.*" outputs mark a paid call as sent before it is sent; they are internal.
+    outputs: outputs.filter(output => output.run_id === run.id && !output.output_key.startsWith("sent.")).map(output => ({ key: output.output_key, output: output.output })),
   };
 }
 
@@ -96,7 +97,7 @@ export async function listGenerations(auth: AuthenticatedContext, project: strin
   const runs = z.array(runRowSchema).parse(data ?? []);
   if (!runs.length) return [];
   const outputs = await auth.client.from("generation_outputs").select("run_id,output_key,output,created_at")
-    .eq("owner_id", auth.userId).in("run_id", runs.map(run => run.id)).order("created_at", { ascending: true }).limit(400);
+    .eq("owner_id", auth.userId).in("run_id", runs.map(run => run.id)).not("output_key", "like", "sent.%").order("created_at", { ascending: true }).limit(400);
   databaseFailure(outputs.error);
   const rows = z.array(outputRowSchema).parse(outputs.data ?? []);
   return runs.map(run => publicRun(run, rows));

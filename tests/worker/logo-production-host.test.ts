@@ -166,15 +166,15 @@ describe("explicit dedicated production host", () => {
 
 import type { LogoGenerativeStorageAuthorization } from "../../worker/logo-generative-storage-authorization";
 import type { LogoProductionImageHostOperation } from "../../worker/logo-production-host";
-import { IMAGE_MODEL } from "../../src/domain/providers";
+import { CAPPED_LOGO_IMAGE_MODEL } from "../../src/domain/providers";
 import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/logo-creation/openai-image-pricing";
 function imageHostOperation(operation: "identity.logo_concept" | "identity.logo_refine"): LogoProductionImageHostOperation {
   const capability: LogoWorkerCapability = { operation, policyIdentity: "c".repeat(64), handlerVersion: "logo-image-v1",
-    provider: "openai", model: IMAGE_MODEL, engine: null, maxCostMicrousd: 2000 };
+    provider: "openai", model: CAPPED_LOGO_IMAGE_MODEL, engine: null, maxCostMicrousd: 2000 };
   const denied = vi.fn(async (): Promise<never> => { throw Error("No byte I/O expected in host construction"); });
   const auth: LogoGenerativeStorageAuthorization = { ownerId: binding.ownerId, capability,
     assertAvailable: vi.fn(async () => {}), authorizeRead: denied, authorizeWrite: denied, close: vi.fn() };
-  return { capability, authorization: auth, image: { apiKey: "synthetic-image-key", model: IMAGE_MODEL,
+  return { capability, authorization: auth, image: { apiKey: "synthetic-image-key", model: CAPPED_LOGO_IMAGE_MODEL,
     rateVersion: SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion, paidCallsApproved: true }, transport: { createImage: denied } };
 }
 describe("combined dedicated logo host", () => {

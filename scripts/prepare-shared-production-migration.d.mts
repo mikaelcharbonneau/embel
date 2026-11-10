@@ -14,7 +14,7 @@ export const PRODUCTION_ORIGIN: "https://fricsfwqibyhemknqgyf.supabase.co";
 export const PACKET_NAMES: SharedProductionPacketName[];
 export const PACKET_SHA256: Readonly<Record<SharedProductionPacketName, string>>;
 export const POST_INSTALL_PACKETS: readonly Readonly<{
-  name: "shared_storage_download_metadata.sql" | "shared_logo_storage_member.sql" | "shared_naming_brainstorm.sql" | "shared_naming_brainstorm_event_capacity.sql" | "shared_logo_raster_uncapped.sql" | "shared_logo_raster_recovery.sql" | "shared_identity_selected_logo_boards.sql" | "shared_identity_http_writer_permissions.sql" | "shared_naming_brainstorm_delivery_recovery.sql" | "shared_naming_lease_expiry.sql" | "shared_guided_journey_stages.sql" | "shared_naming_brainstorm_continuation.sql" | "shared_naming_generation.sql" | "shared_naming_cleanup.sql";
+  name: "shared_storage_download_metadata.sql" | "shared_logo_storage_member.sql" | "shared_naming_brainstorm.sql" | "shared_naming_brainstorm_event_capacity.sql" | "shared_logo_raster_uncapped.sql" | "shared_logo_raster_recovery.sql" | "shared_identity_selected_logo_boards.sql" | "shared_identity_http_writer_permissions.sql" | "shared_naming_brainstorm_delivery_recovery.sql" | "shared_naming_lease_expiry.sql" | "shared_guided_journey_stages.sql" | "shared_naming_brainstorm_continuation.sql" | "shared_naming_generation.sql" | "shared_naming_cleanup.sql" | "shared_logo_types_keep_concepts_after_boards.sql" | "shared_logo_style_notes.sql" | "shared_image_model_2_6.sql";
   sha256: string;
 }>[];
 export const INVENTORY_EXPRESSION: string;
