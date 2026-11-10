@@ -129,7 +129,7 @@ export function parseArguments(args) {
 export async function main(args, root = repositoryRoot) {
   const options = parseArguments(args);
   if (options.action === "help") {
-    console.log("Embel portable development\n  npm run dev:setup     Prepare this checkout (no Docker required)\n  npm run dev:up        Start local services and provision full shared database\n  npm run dev:doctor    Check local services and shared worker process\n  npm run dev:down      Stop this checkout's stack, retaining its data\n  npm run dev:branding Build and start the shared branding worker\n  npm run dev          Start the web interface\n\nsetup/up options: --web-port, --api-port, --db-port, --shadow-port, --mail-port\nup option: --proxy-health (exact loopback health probes in managed proxy environments)");
+    console.log("Embel portable development\n  npm run dev:setup     Prepare this checkout (no Docker required)\n  npm run dev:up        Start local services and provision full shared database\n  npm run dev:doctor    Check local services\n  npm run dev:down      Stop this checkout's stack, retaining its data\n  npm run dev          Start the web interface\n\nsetup/up options: --web-port, --api-port, --db-port, --shadow-port, --mail-port\nup option: --proxy-health (exact loopback health probes in managed proxy environments)");
     return;
   }
   if (options.action === "down") {
@@ -137,8 +137,6 @@ export async function main(args, root = repositoryRoot) {
     const state = path.join(root, ".embel-dev");
     if (!await readOptional(path.join(state, "settings.json"))) throw new DevelopmentError("This checkout has no managed development stack.");
     await selectLocalDocker();
-    const { stopSharedRuntime } = await import("./development/shared-runtime.mjs");
-    await stopSharedRuntime(root);
     await cli(root, state, ["stop", "--project-id", settings.projectId]);
     console.log("Stopped " + settings.projectId + "; local database and file volumes retained.");
     return;
@@ -188,12 +186,10 @@ export async function main(args, root = repositoryRoot) {
     await provisionDevelopmentSchema(root);
     await prepareSharedWeb(root, settings);
   }
-  const { sharedRuntimeStatus } = await import("./development/shared-runtime.mjs");
-  const worker = await sharedRuntimeStatus(root);
   const sharedHttpConfigured = Boolean(await readOptional(path.join(state, "shared-web.env")));
   const ambientHostedMarkers = Object.keys(process.env).filter(key => /^VERCEL(?:_|$)/.test(key));
-  console.log(JSON.stringify({ ...report, web: "http://127.0.0.1:" + settings.webPort, email: "http://127.0.0.1:" + settings.mailPort, sharedHttpConfigured, worker, ambientHostedMarkers,
-    generation: worker.ready ? "All three worker lanes qualified; this is not proof of a completed provider generation." : worker.running ? "Worker process running but not all three lanes are qualified." : "Run npm run dev:branding with the dedicated application provider key to configure and start the shared engine." }, null, 2));
+  console.log(JSON.stringify({ ...report, web: "http://127.0.0.1:" + settings.webPort, email: "http://127.0.0.1:" + settings.mailPort, sharedHttpConfigured, ambientHostedMarkers,
+    generation: "AI steps run on the generation engine inside the web app; set EMBEL_ENGINE_* and OPENAI_API_KEY to run them locally." }, null, 2));
   if (ambientHostedMarkers.length) throw new DevelopmentError("Hosted Vercel markers are present in this shell; use a local development shell for npm run dev.");
 }
 

@@ -275,7 +275,7 @@ describe("logo types after the first concepts", () => {
   it("installs the candidate's exact function bodies and runs again without change", async () => {
     const bodies = async () => (await db.query<{ name: string; hash: string }>(
       "select p.proname as name, encode(sha256(convert_to(p.prosrc,'UTF8')),'hex') as hash from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='fluid_private' and p.proname in ('logo_brief_same_except_types','logo_workspace_base_json') order by 1")).rows;
-    const manifest = JSON.parse(await readFile(new URL("../../worker/shared-pool/authority-manifest.json", import.meta.url), "utf8")) as { functions: { name: string; sha256: string }[] };
+    const manifest = JSON.parse(await readFile(new URL("../../scripts/development/shared-authority-manifest.json", import.meta.url), "utf8")) as { functions: { name: string; sha256: string }[] };
     const expected = ["logo_brief_same_except_types", "logo_workspace_base_json"].map(name => ({ name, hash: manifest.functions.find(fn => fn.name === name)!.sha256 }));
     expect(await bodies()).toEqual(expected);
     await db.exec(await readFile(new URL("../../supabase/migrations/20261110150000_logo_types_keep_concepts.sql", import.meta.url), "utf8"));

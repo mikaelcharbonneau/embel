@@ -16,7 +16,7 @@ import type { LogoType } from "@/domain/logo-workspace";
 import { deriveSavedLogoInputs, likedUploadNotes } from "@/server/data/logo-saved-inputs";
 import type { AuthenticatedContext } from "@/server/auth/context";
 import { buildLogoConceptPrompt } from "@/server/ai/logo-image-prompts";
-import { planSixConcepts } from "@/server/logo-creation/concept-plan";
+import { planSixConcepts } from "../fixtures/logo-concept-plan";
 import { syntheticResolvedLogoConcept } from "../fixtures/logo-creation";
 
 const ownerId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", projectId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";

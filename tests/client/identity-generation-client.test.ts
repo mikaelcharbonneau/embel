@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { createAccountIdentityClient } from "@/components/identity/account-identity-client";
 import { createIdentityDraftMemory } from "@/components/identity/identity-draft-memory";
 import { fixtureInput, fixtureId, fixtureOwner, fixtureProject } from "./project-identity-fixtures";
-import { batchState, generationIntent, ownerId, projectId } from "../worker/identity-generation-fixture";
+import { batchState, generationIntent, ownerId, projectId } from "../fixtures/identity-generation";
 function setup() {
   let current = true; const expire = vi.fn(), account = { status: "ready" as const, userId: ownerId, generation: 1 };
   const fetcher = vi.fn().mockResolvedValue(Response.json(batchState())); vi.stubGlobal("fetch", fetcher);

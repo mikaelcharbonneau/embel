@@ -11,7 +11,7 @@ import { POST as stop } from "@/app/api/projects/[projectId]/identity/batches/[b
 import { POST as close } from "@/app/api/projects/[projectId]/identity/batches/requests/[requestKey]/cancel/route";
 import { ApiError } from "@/server/http/errors";
 import { IMAGE_MODEL } from "@/domain/providers";
-import { batchState, generationIntent, ownerId, projectId, batchId } from "../worker/identity-generation-fixture";
+import { batchState, generationIntent, ownerId, projectId, batchId } from "../fixtures/identity-generation";
 const context = { params: Promise.resolve({ projectId, batchId, requestKey: generationIntent.idempotencyKey }) };
 function request(suffix = "", body?: unknown, query = "") { return new Request(`https://fixture.test/api/projects/${projectId}/identity/batches${suffix}${query}`, { method: body === undefined ? "GET" : "POST", headers: { origin: "https://fixture.test", "Content-Type": "application/json" }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) }); }
 beforeEach(() => {

@@ -133,7 +133,7 @@ describe.skipIf(nativeSkipped)("atomic shared production composition on native P
   expect(sql(`select exists(select 1 from fluid_private.shared_http_target where singleton and mode='hosted' and origin='${PRODUCTION_ORIGIN}') and exists(select 1 from fluid_private.shared_storage_target where singleton and origin='${PRODUCTION_ORIGIN}') and exists(select 1 from fluid_private.shared_service_actors where auth_user_id='cccccccc-cccc-4ccc-8ccc-cccccccccccc' and purpose='legacy_logo_storage') and exists(select 1 from pg_policy where polname='embel_shared_customer_storage_live');`)).toBe("t");
   expect(() => composeSharedProductionMigration({ target, catalog: readInventory() })).toThrow("existing_shared_install_unknown");
   // Logo types (migration 20261110150000 and its after-boards copy) end with the bodies the worker manifest reviewed.
-  const manifest = JSON.parse(readFileSync("worker/shared-pool/authority-manifest.json", "utf8")) as { functions: { name: string; sha256: string }[] };
+  const manifest = JSON.parse(readFileSync("scripts/development/shared-authority-manifest.json", "utf8")) as { functions: { name: string; sha256: string }[] };
   for (const fn of ["logo_brief_same_except_types", "logo_workspace_base_json", "shared_identity_selected_logo"]) {
    expect(sql(`select encode(sha256(convert_to(prosrc,'UTF8')),'hex') from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='fluid_private' and p.proname='${fn}'`)).toBe(manifest.functions.find(row => row.name === fn)!.sha256);
   }

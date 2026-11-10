@@ -7,13 +7,11 @@
     "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
   },
   "scripts": {
-    "local": "node scripts/local.mjs",
     "dev": "node scripts/development-web.mjs",
     "dev:setup": "node scripts/development.mjs setup",
     "dev:up": "node scripts/development.mjs up",
     "dev:down": "node scripts/development.mjs down",
     "dev:doctor": "node scripts/development.mjs doctor",
-    "dev:worker": "node scripts/development-worker.mjs",
     "test:setup": "node --test tests/setup/*.test.mjs",
     "build": "next build --webpack",
     "start": "next start --hostname 127.0.0.1 --port 3105",
@@ -23,14 +21,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:live": "vitest run --config vitest.live.config.ts",
-    "worker": "node --conditions=react-server --import tsx worker/index.ts",
     "check": "npm run typecheck && npm run lint && npm test && npm run build",
-    "build:api-text-worker": "node scripts/build-api-text-worker.mjs",
-    "build:logo-worker": "node scripts/build-logo-worker.mjs",
-    "package:logo-worker": "node scripts/package-logo-worker.mjs",
-    "build:account-worker": "node scripts/build-shared-worker.mjs",
-    "build:shared-worker": "node scripts/build-shared-worker.mjs",
-    "dev:branding": "node scripts/development-branding.mjs",
     "dev:secrets": "node scripts/development/secrets.mjs"
   },
   "dependencies": {
@@ -38,16 +29,12 @@
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.117.2",
     "@vercel/functions": "3.10.1",
-    "@vercel/oidc": "4.0.0",
-    "@vercel/queue": "0.8.0",
-    "@visioncortex/vtracer": "1.0.0-alpha.4",
     "botid": "1.5.12",
     "fflate": "0.8.3",
     "fontkit": "2.0.4",
     "geist": "1.7.2",
     "harfbuzzjs": "1.6.2",
     "img-fx": "0.5.1",
-    "jose": "6.2.12",
     "next": "16.4.4",
     "openai": "7.35.0",
     "parse5": "8.0.1",
@@ -82,10 +69,6 @@
     "vitest": "5.0.3"
   },
   "overrides": {
-    "@vercel/queue": {
-      "@vercel/oidc": "$@vercel/oidc",
-      "minimatch": "11.0.4"
-    },
     "@vercel/cli-config": {
       "zod": "$zod"
     },

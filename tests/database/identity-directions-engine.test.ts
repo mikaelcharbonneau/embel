@@ -8,7 +8,7 @@ import { createIdentityTransactionService, type IdentityConnectionFactory } from
 import { ENGINE_IDENTITY_POLICY_IDENTITY, ENGINE_IDENTITY_TEXT_POLICY, engineIdentityJobInputSchema } from "../../src/server/engine/identity-input";
 import { qualifySharedHttpConnection } from "../../src/server/shared-account/qualification";
 import { syntheticPng } from "../features/logo-vector/raster-fixtures";
-import { specification } from "../worker/identity-generation-fixture";
+import { specification } from "../fixtures/identity-generation";
 import { asRole, createTestDatabase, OWNER_A as MIGRATIONS_OWNER, resetFixture, seedProject, type TestDatabase } from "./local-supabase";
 import { sharedHttpRoles } from "./shared-account-fixture";
 import { createSharedIdentityFixture, hash, OWNER_A, OWNER_B, type SharedIdentityFixture } from "./shared-identity-generation-fixture";

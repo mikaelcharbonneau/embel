@@ -4,7 +4,7 @@ import { createIdentityDraftMemory } from "@/components/identity/identity-draft-
 import { AccountRequestError } from "@/components/workspace/account-api";
 import { identityBatchStateSchema, identityBatchRequestCloseSchema, type IdentityBatchState } from "@/domain/identity-jobs";
 import { IMAGE_MODEL } from "@/domain/providers";
-import { batchState, generationIntent, ownerId, projectId } from "../worker/identity-generation-fixture";
+import { batchState, generationIntent, ownerId, projectId } from "../fixtures/identity-generation";
 import { fixtureSystem } from "./project-identity-fixtures";
 
 function setup() {

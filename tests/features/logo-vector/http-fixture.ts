@@ -4,7 +4,6 @@ import { syntheticLogoWorkspace, syntheticResolvedLogoConcept, logoFixtureId as 
 import { syntheticConversionInput } from "./raster-fixtures";
 import { separatedLogoDocument } from "./fixtures";
 import { serializeLogoSvg } from "../../../src/features/logo-vector/model/svg";
-import { applyLogoManualEdit } from "../../../src/features/logo-vector/model/edits";
 import type { LogoManualCommand, LogoMutationReceipt, LogoStageRevision, LogoWorkspaceV2 } from "../../../src/domain/logo-workspace";
 import type { LogoManualEdit, LogoVectorDocument } from "../../../src/domain/logo-vector";
 import type { LogoVectorDetail } from "../../../src/domain/logo-deliverables";
@@ -69,7 +68,7 @@ export function createVectorHttpFixture(configuration: { applyEdit?(document: Lo
     if (request.method === "POST") {
       const body = await request.json(); state.posts.push({ path, body }); if (state.conflict) return json({}, 409);
       let stage: "vector" | "refinements" = "vector", vectorId = body.vectorRevisionId ?? state.currentVectorId;
-      if (path.endsWith("/edits")) { stage = "refinements"; const previous = details.get(body.baseVectorRevisionId)!; const next = detail(configuration.applyEdit ? await configuration.applyEdit(previous.document, body.edit) : applyLogoManualEdit(previous.document, body.edit), previous.revision.id); if (body.edit.kind === "locks") next.revision.locks = body.edit.componentIds.map((componentId: string) => ({ componentId, geometryHash: "a".repeat(64), appearanceHash: "a".repeat(64), transformHash: "a".repeat(64), textHash: "a".repeat(64), zOrderHash: "a".repeat(64), effectiveHash: "a".repeat(64) })); details.set(next.revision.id, next); vectorId = next.revision.id; }
+      if (path.endsWith("/edits")) { stage = "refinements"; const previous = details.get(body.baseVectorRevisionId)!; const next = detail(configuration.applyEdit ? await configuration.applyEdit(previous.document, body.edit) : (() => { throw new Error("The vector editor was removed; pass applyEdit."); })(), previous.revision.id); if (body.edit.kind === "locks") next.revision.locks = body.edit.componentIds.map((componentId: string) => ({ componentId, geometryHash: "a".repeat(64), appearanceHash: "a".repeat(64), transformHash: "a".repeat(64), textHash: "a".repeat(64), zOrderHash: "a".repeat(64), effectiveHash: "a".repeat(64) })); details.set(next.revision.id, next); vectorId = next.revision.id; }
       if (path.endsWith("/restore")) { stage = body.stage; const target = stages.get(body.revisionId)!; if ("vectorRevisionId" in target.payload) vectorId = target.payload.vectorRevisionId; }
       const stageId = id(ordinal++), revision = state.workspace.heads.stageRevisions[stage] + 1, approvalId = path.endsWith("/vector/accept") ? id(ordinal++) : null;
       const basis = { version: 2 as const, id: stageId, ownerId, projectId, revision, parentRevisionId: state.workspace.stages[stage]?.id ?? null, inputRevisions: initial.revision.inputRevisions, inputHash: "b".repeat(64), createdAt: "2026-10-07T00:00:01Z" };

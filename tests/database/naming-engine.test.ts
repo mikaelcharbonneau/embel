@@ -4,7 +4,7 @@ vi.mock("server-only", () => ({}));
 import { asRole } from "./local-supabase";
 import { createSharedWorkerFixture, OWNER_A, OWNER_B } from "./shared-worker-fixture";
 import { brainPreferences, brainReadinessFingerprint, brainRpc } from "./naming-brain-fixture";
-import { sharedSlotLeaseSchema, type SharedExecution } from "../../worker/shared-pool/contracts";
+import { sharedSlotLeaseSchema, type SharedExecution } from "../fixtures/shared-worker-contracts";
 import { namingClaimSchema, namingGenerationFeedSchema } from "../../src/domain/naming-generation";
 import { namingStrategyBasis, namingStrategyBasisSchema, namingStrategyKeyFromBasis } from "../../src/domain/project-naming";
 import { contextSnapshotSchema } from "../../src/domain/projects";

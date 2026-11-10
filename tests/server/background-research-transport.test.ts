@@ -2,7 +2,7 @@ import { expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { createOpenAIResponsesTransport } from "../../src/server/ai/openai-transport";
 import { evaluateStrategyResponse } from "../../src/server/ai/strategy-response";
-import { guidedJobFixture, guidedResearchResponse } from "../worker/guided-strategy-fixtures";
+import { guidedJobFixture, guidedResearchResponse } from "../fixtures/guided-strategy";
 
 it("requests consulted sources again when polling, preserving strict research verification", async () => {
   const job = guidedJobFixture();

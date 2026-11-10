@@ -4,7 +4,7 @@ vi.mock("server-only",()=>({}));
 import { createIdentityAssetStore } from "../../src/server/data/identity-asset-store";
 import type { ClaimedJob } from "../../src/domain/jobs";
 import type { AuthenticatedContext } from "../../src/server/auth/context";
-import { hash,id,jobInput,jobId,ownerId,projectId,leaseToken } from "../worker/identity-generation-fixture";
+import { hash,id,jobInput,jobId,ownerId,projectId,leaseToken } from "../fixtures/identity-generation";
 let bytes:Uint8Array;beforeAll(async()=>{bytes=new Uint8Array(await sharp({create:{width:1024,height:1024,channels:3,background:"#aa4477"}}).png().toBuffer());});
 function fixture(){const prepare=vi.fn(async()=>{throw Error("Fixture backend unavailable");}),resolve=vi.fn(async()=>{throw Error("Fixture backend unavailable");}),observe=vi.fn(async()=>{throw Error("Fixture backend unavailable");}),putIfAbsent=vi.fn(),read=vi.fn();
  const store=createIdentityAssetStore({backend:{prepare,resolve,observe},storage:{putIfAbsent,read}}),input=jobInput(hash(bytes)),job:ClaimedJob={id:jobId,ownerId,projectId,operation:"identity.image",input,inputRevision:1,leaseToken,status:"running",reservedCostMicrousd:0,actualCostMicrousd:0};

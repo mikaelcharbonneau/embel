@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { assertLogoComponentLocks, captureLogoComponentLocks, getVectorRefinementCapability } from "../../../src/features/logo-vector/model/locks";
-import { applyLogoManualEdit } from "../../../src/features/logo-vector/model/edits";
+import { applyLogoManualEdit } from "../../fixtures/logo-vector/edits";
 import { separatedLogoDocument } from "./fixtures";
 
 describe("authoritative geometry lock comparison", () => {

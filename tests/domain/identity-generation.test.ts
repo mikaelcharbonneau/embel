@@ -1,7 +1,7 @@
 import { describe,expect,it } from "vitest";
 import { identityAvailabilitySchema,identityBatchRequestCloseSchema,identityBatchStateSchema,identityGenerationCapabilitySchema,identityGenerationIntentSchema,identityGenerationJobInputSchema } from "../../src/domain/identity-jobs";
 import { IMAGE_MODEL } from "../../src/domain/providers";
-import { batchState,capability,generationIntent,jobInput,ownerId,projectId } from "../worker/identity-generation-fixture";
+import { batchState,capability,generationIntent,jobInput,ownerId,projectId } from "../fixtures/identity-generation";
 describe("Identity generation contracts",()=>{
  it("accepts explicit uncapped v2 consent without a browser amount or provider authority",()=>{expect(identityGenerationIntentSchema.parse(generationIntent)).toEqual(generationIntent);expect(identityGenerationIntentSchema.safeParse({...generationIntent,acceptedMaxCostMicrousd:1}).success).toBe(false);});
  it("requires all four captured head observations",()=>{const {expectedIdentityRevision,...without}=generationIntent;expect(expectedIdentityRevision).toBe(0);expect(identityGenerationIntentSchema.safeParse(without).success).toBe(false);});

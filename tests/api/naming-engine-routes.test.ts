@@ -17,7 +17,7 @@ import { contextSnapshotSchema } from "../../src/domain/projects";
 
 // The Naming routes while naming.generate is enabled. Synthetic rows only; no workflow runs.
 const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", project = "11111111-1111-4111-8111-111111111111";
-const runId = "22222222-2222-4222-8222-222222222222", candidate = "44444444-4444-4444-8444-444444444444", legacyJob = "66666666-6666-4666-8666-666666666666";
+const runId = "22222222-2222-4222-8222-222222222222", candidate = "44444444-4444-4444-8444-444444444444";
 const at = "2026-11-09T12:00:00.123456+00:00", context = contextSnapshotSchema.parse({ description: "Synthetic naming engine route fixture" });
 const engineRun = (state = "running", kind = "initial") => ({ runId, jobId: runId, kind, state, target: 100, savedCount: 1, errorCode: null, usage: null, createdAt: at, finishedAt: null });
 /** A name an engine run saved: brainstorm origin version 2, no old batch. */
@@ -133,12 +133,5 @@ describe("the Naming routes on the generation engine", () => {
     expect(rpcCalls("cancel_generation")).toEqual([["cancel_generation", { p_run_id: runId }]]);
     expect(rpcCalls("stop_naming_run")).toHaveLength(0);
     expect((await response.json()).feed.engine).toBe(true);
-  });
-
-  it("stop an old-path run that is still working when the engine was switched on", async () => {
-    rows.jobs = [{ id: legacyJob }];
-    expect((await stopRoute(request({}), params())).status).toBe(200);
-    expect(rpcCalls("cancel_generation")).toHaveLength(0);
-    expect(rpcCalls("stop_naming_run")).toEqual([["stop_naming_run", { p_project: project }]]);
   });
 });

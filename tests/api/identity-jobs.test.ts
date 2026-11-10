@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 const mocks = vi.hoisted(() => ({ auth: vi.fn(), from: vi.fn(), rpc: vi.fn(), eq: vi.fn() }));
 vi.mock("../../src/server/auth/context", () => ({ getAuthenticatedContext: mocks.auth }));
-// The shared worker path, as with Creative directions' engine kind off (tests/server/identity-engine-switch.test.ts covers it on).
+// Creative directions with the engine kind off: the step is unavailable (tests/server/identity-engine-switch.test.ts covers it on).
 vi.mock("../../src/server/engine/identity", async original => ({ ...await original<object>(), identityEngineEnabled: async () => false, findIdentityDirectionsRun: async () => null }));
 import { POST } from "../../src/app/api/projects/[projectId]/identity/batches/route";
 import { getIdentityAvailability } from "../../src/server/data/identity-jobs";
@@ -27,7 +27,7 @@ describe("Identity unavailable admission boundary — local fixtures", () => {
   });
   afterEach(() => { vi.unstubAllEnvs(); });
   it("reports the exact requested image model without claiming account access", async () => {
-    expect(await getIdentityAvailability(await mocks.auth(), projectId)).toEqual({ ownerId: owner, projectId, status: "unavailable", operation: "identity.image", requestedModel: IMAGE_MODEL, reason: "pipeline_not_implemented" });
+    expect(await getIdentityAvailability(await mocks.auth(), projectId)).toEqual({ ownerId: owner, projectId, status: "unavailable", operation: "identity.image", requestedModel: IMAGE_MODEL, reason: "runtime_unavailable" });
     expect(mocks.eq).toHaveBeenCalledWith("owner_id", owner);
   });
   it("returns503 for a valid intent and never admits or dispatches a job", async () => {

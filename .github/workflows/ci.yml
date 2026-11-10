@@ -77,60 +77,17 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-  worker-builds:
-    name: Worker bundles
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: "22.22.2"
-          cache: npm
-      - run: npm ci --no-audit --no-fund
-      - run: npm run build:shared-worker
-      - run: npm run build:logo-worker
-      - run: npm run build:api-text-worker
-
-  portable-development:
-    name: Portable local services and native worker
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci --no-audit --no-fund
-      - run: npm run dev:up
-      - run: npm run test:setup
-        env:
-          EMBEL_TEST_PORTABLE_SQL: "1"
-      - run: npm run dev:branding -- --build-only
-      - run: npm run dev:doctor
-      - run: npm run dev:down
-        if: ${{ always() }}
-
   ci:
     name: CI
     if: ${{ always() }}
-    needs: [quality, unit, worker-builds, portable-development]
+    needs: [quality, unit]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
       QUALITY_RESULT: ${{ needs.quality.result }}
       UNIT_RESULT: ${{ needs.unit.result }}
-      WORKER_RESULT: ${{ needs.worker-builds.result }}
-      PORTABLE_RESULT: ${{ needs.portable-development.result }}
     steps:
       - name: Require every check to pass
         run: |
           test "$QUALITY_RESULT" = success
           test "$UNIT_RESULT" = success
-          test "$WORKER_RESULT" = success
-          test "$PORTABLE_RESULT" = success

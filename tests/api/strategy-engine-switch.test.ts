@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// The Strategy screens' switch: with every Strategy kind enabled, the overview says so and
-// offers the engine's operations; otherwise the old worker's readiness applies unchanged.
+// The Strategy screens' stop switch: with every Strategy kind enabled the overview offers the
+// engine's operations; with any kind off the step is unavailable and nothing falls back.
 vi.mock("server-only", () => ({}));
 const doubles = vi.hoisted(() => ({ auth: vi.fn(), rpc: vi.fn(), from: vi.fn() }));
 vi.mock("../../src/server/auth/context", () => ({ getAuthenticatedContext: doubles.auth }));
@@ -32,12 +32,11 @@ beforeEach(() => {
 });
 
 describe("the Strategy engine switch", () => {
-  it("keeps the old path, unchanged, while any Strategy kind is disabled", async () => {
+  it("shows the step as unavailable while any Strategy kind is disabled, without the old worker's readiness", async () => {
     catalog(false);
     const body = strategyOverviewResponseSchema.parse(await (await overview(new Request(`https://fluid.example/api/projects/${project}/strategy`), params())).json());
-    expect(body).not.toHaveProperty("engine");
-    expect(body.availability).toEqual({ status: "unavailable", operations: [], reason: "worker_unavailable" });
-    expect(doubles.rpc).toHaveBeenCalledWith(expect.stringMatching(/strategy_availability$/u), expect.anything());
+    expect(body.availability).toEqual({ status: "unavailable", operations: [], reason: "generation_unavailable" });
+    expect(doubles.rpc).not.toHaveBeenCalledWith(expect.stringMatching(/strategy_availability$/u), expect.anything());
   });
   it("offers every engine operation and marks the overview once all kinds are enabled", async () => {
     catalog(true);
