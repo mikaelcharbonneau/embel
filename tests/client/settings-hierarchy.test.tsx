@@ -84,7 +84,10 @@ describe("Settings keeps only working options", () => {
     const signOut = account.querySelector('[aria-label="Sign out"]')!;
     expect(signOut.querySelector("button")?.textContent).toBe("Sign out");
     expect(account.querySelector(".sg-save")!.compareDocumentPosition(signOut) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-    expect([...account.querySelectorAll("button")].map(button => button.textContent)).toEqual(["Cancel", "Save changes", "Sign out"]);
+    expect([...account.querySelectorAll("button")].map(button => button.textContent)).toEqual(["Cancel", "Save changes", "Sign out", "Download", "Delete account"]);
+    const data = account.querySelector('[aria-labelledby="account-data-title"]')!;
+    expect(data.textContent).toContain("Download my data");
+    expect(data.querySelector("button.danger")?.textContent).toBe("Delete account");
     fixture.profile = { ...fixture.profile, busy: true }; await render();
     expect(account.querySelector('input[autocomplete="name"]')).toBe(name); expect(name.disabled).toBe(true);
     expect(account.querySelector('select[aria-label="Date format"]')).toBe(format); expect(format.disabled).toBe(true);

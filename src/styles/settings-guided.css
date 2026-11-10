@@ -71,3 +71,7 @@
   .settings-guided .sg-save { align-items: flex-start; flex-direction: column; gap: 12px; }
   .settings-guided .setting-row { flex-wrap: wrap; }
 }
+
+/* Your data: download and delete. */
+.settings-guided .sg-account-data .sg-row .button { flex-shrink: 0; }
+.settings-guided .sg-account-data-error { color: var(--danger); }
