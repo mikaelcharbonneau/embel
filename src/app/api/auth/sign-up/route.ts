@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { captchaOptions, captchaTokenField } from "@/server/auth/captcha";
 import { createAuthTransitionClient } from "@/server/auth/client";
 import { isConfirmedAuthResult } from "@/server/auth/confirmation";
 import { signUpFailure } from "@/server/auth/failure";
@@ -10,6 +11,7 @@ export const dynamic = "force-dynamic";
 const credentialsSchema = z.strictObject({
   email: z.string().trim().max(320).pipe(z.email()),
   password: z.string().min(12).max(1024),
+  captchaToken: captchaTokenField,
 });
 const confirmation = { authenticated: false, confirmationRequired: true } as const;
 
@@ -17,10 +19,10 @@ export async function POST(request: Request) {
   try {
     const origin = getApplicationOrigin();
     assertMutationOrigin(request, origin);
-    const credentials = await readJson(request, credentialsSchema, 8192);
+    const { captchaToken, ...credentials } = await readJson(request, credentialsSchema, 8192);
     const { client, commitCookies } = await createAuthTransitionClient(request.signal);
     const { data, error } = await client.auth.signUp({
-      ...credentials, options: { emailRedirectTo: `${origin}/auth/callback` },
+      ...credentials, options: { emailRedirectTo: `${origin}/auth/callback`, ...captchaOptions(captchaToken) },
     }).catch(() => { throw new ApiError("integration_unavailable"); });
     // Both provider duplicate errors and obfuscated duplicate-user successes
     // have the same public response as a new email awaiting confirmation.

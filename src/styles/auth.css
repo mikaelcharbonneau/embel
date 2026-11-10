@@ -41,3 +41,7 @@
   .auth-account-access .preview-badge { display: none; }
   .auth-signout-dialog { padding: 22px; }
 }
+
+/* Cloudflare Turnstile (shown only when a site key is configured). */
+.auth-captcha { margin-top: 20px; min-height: 65px; }
+.auth-captcha + .auth-submit { margin-top: 16px; }

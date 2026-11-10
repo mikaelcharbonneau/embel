@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const knownCodes = ["weak_password", "same_password", "recovery_required", "auth_rate_limited", "integration_unavailable", "invalid_input", "forbidden_origin"] as const;
+const knownCodes = ["weak_password", "same_password", "recovery_required", "auth_rate_limited", "integration_unavailable", "invalid_input", "forbidden_origin", "captcha_failed"] as const;
 type KnownCode = (typeof knownCodes)[number];
 const errorBodySchema = z.object({ error: z.object({ code: z.string() }) });
 
@@ -26,8 +26,8 @@ async function post(path: string, body: string, success: z.ZodType): Promise<voi
   if (!success.safeParse(value).success) throw new PasswordResetRequestError(502);
 }
 
-export function requestPasswordResetEmail(email: string): Promise<void> {
-  return post("/api/auth/password-reset", JSON.stringify({ email }), z.strictObject({ requested: z.literal(true) }));
+export function requestPasswordResetEmail(email: string, captchaToken?: string): Promise<void> {
+  return post("/api/auth/password-reset", JSON.stringify({ email, ...(captchaToken ? { captchaToken } : {}) }), z.strictObject({ requested: z.literal(true) }));
 }
 
 export function saveNewPassword(password: string): Promise<void> {
@@ -36,6 +36,7 @@ export function saveNewPassword(password: string): Promise<void> {
 
 export function resetEmailErrorMessage(error: unknown): string {
   if (error instanceof PasswordResetRequestError) {
+    if (error.code === "captcha_failed") return "The security check didn't pass. Please try again.";
     if (error.status === 429) return "Too many reset requests. Wait a few minutes before asking for another link.";
     if (error.status === 503) return "Password reset is unavailable right now. Please try again shortly.";
     if (error.status === 403) return "This request couldn't be verified. Refresh the page and try again.";

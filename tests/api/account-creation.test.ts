@@ -15,7 +15,7 @@ const session = { user, access_token: "inert-access-fixture", refresh_token: "in
 const pending = { authenticated: false, confirmationRequired: true };
 const actions = [
   { name: "sign-up", handler: signUp, body: credentials, limit: 8192, call: doubles.signUp },
-  { name: "resend-confirmation", handler: resend, body: { email: credentials.email }, limit: 2048, call: doubles.resend },
+  { name: "resend-confirmation", handler: resend, body: { email: credentials.email }, limit: 4096, call: doubles.resend },
 ];
 function request(name = "sign-up", body: unknown = credentials, headers: Record<string, string> = {}) {
   return new Request(`${origin}/api/auth/${name}`, { method: "POST", headers: { origin, "content-type": "application/json", ...headers }, body: JSON.stringify(body) });
