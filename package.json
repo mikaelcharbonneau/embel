@@ -41,7 +41,7 @@
     "@vercel/oidc": "4.0.0",
     "@vercel/queue": "0.8.0",
     "@visioncortex/vtracer": "1.0.0-alpha.4",
-    "botid": "1.5.13",
+    "botid": "1.5.12",
     "fflate": "0.8.3",
     "fontkit": "2.0.4",
     "geist": "1.7.2",
