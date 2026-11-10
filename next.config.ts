@@ -86,6 +86,16 @@ const nextConfig: NextConfig = {
     "/api/assets/*/logo-export": logoRuntimeFiles,
   },
   turbopack: { root: process.cwd() },
+  // Skew Protection gives each Vercel build a new deployment id, and next/font
+  // writes it into the font CSS (?dpl=) and the font class name. Next's webpack
+  // cache key ignores that id (vercel/next.js#100642), so a restored build cache
+  // paired stale font CSS with fresh server HTML and pages fell back to Times.
+  webpack(config, { config: next }) {
+    if (next.deploymentId && config.cache && typeof config.cache === "object") {
+      config.cache.version = `${config.cache.version ?? ""}|${next.deploymentId}`;
+    }
+    return config;
+  },
   poweredByHeader: false,
   reactStrictMode: true,
   async headers() {
