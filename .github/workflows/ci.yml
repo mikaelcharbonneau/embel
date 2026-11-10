@@ -107,6 +107,12 @@ jobs:
         run: npx playwright install-deps chromium
       - name: Start the local Supabase stack
         run: npm run dev:up
+      - name: Run the abuse test against the local stack
+        # tests/qa/abuse-local-stack.test.ts: a signed-in script calling PostgREST and Storage
+        # directly and in parallel (architecture review M3). Local test accounts only.
+        env:
+          EMBEL_ABUSE_LOCAL_STACK: "1"
+        run: npx vitest run tests/qa/abuse-local-stack.test.ts
       - name: Run the journey
         run: npm run test:journey
       - name: Keep the trace, report and server log
