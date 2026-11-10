@@ -116,6 +116,56 @@ jobs:
       - run: npm run dev:down
         if: ${{ always() }}
 
+  # The whole brand journey in a browser against the local stack and a stand-in AI
+  # provider (tests/journey). Not part of the required CI result yet.
+  journey:
+    name: Full journey browser test
+    if: ${{ github.event_name != 'push' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Read the Playwright version
+        id: playwright
+        run: echo "version=$(node -p 'require("@playwright/test/package.json").version')" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        id: browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
+      - name: Install Chromium
+        if: ${{ steps.browsers.outputs.cache-hit != 'true' }}
+        run: npx playwright install --with-deps chromium
+      - name: Install Chromium system dependencies
+        if: ${{ steps.browsers.outputs.cache-hit == 'true' }}
+        run: npx playwright install-deps chromium
+      - name: Start the local Supabase stack
+        run: npm run dev:up
+      - name: Run the journey
+        run: npm run test:journey
+      - name: Keep the trace, report and server log
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: journey-playwright
+          path: |
+            test-results/
+            playwright-report/journey/
+          if-no-files-found: warn
+          retention-days: 7
+      - run: npm run dev:down
+        if: ${{ always() }}
+
   ci:
     name: CI
     if: ${{ always() }}

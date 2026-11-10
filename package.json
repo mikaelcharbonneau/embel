@@ -22,6 +22,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:journey": "playwright test -c playwright.journey.config.ts",
     "test:live": "vitest run --config vitest.live.config.ts",
     "worker": "node --conditions=react-server --import tsx worker/index.ts",
     "check": "npm run typecheck && npm run lint && npm test && npm run build",

@@ -7,6 +7,7 @@ import { decodeLogoImageReply, logoImageReplyUsage, logoImageRequestBody, readLo
   type LogoImageUsage } from "../logo-creation/openai-image-transport";
 import { LOGO_IMAGE_REQUESTS } from "../logo-creation/openai-logo-provider";
 import { EngineProviderError } from "./openai";
+import { engineOpenAIOrigin, OPENAI_ORIGIN } from "./provider-origin";
 
 // Logo images on the generation engine: the Images API request #212 configures
 // (gpt-image-2.6-sunburst, low quality and low complexity, transparent PNG, 1024 x 1024), one
@@ -70,8 +71,8 @@ function retryAfter(headers: Headers): number | null {
  * - uncertain: a timeout, a dropped connection, 408/409/504. OpenAI may have drawn
  *   (and charged) it, and there is no way to look it up.
  */
-export function createEngineImages(options: { apiKey: string; fetch?: typeof fetch; timeoutMs?: number }): EngineImages {
-  const fetcher = options.fetch ?? fetch, timeoutMs = options.timeoutMs ?? IMAGE_TIMEOUT_MS;
+export function createEngineImages(options: { apiKey: string; fetch?: typeof fetch; timeoutMs?: number; origin?: string }): EngineImages {
+  const fetcher = options.fetch ?? fetch, timeoutMs = options.timeoutMs ?? IMAGE_TIMEOUT_MS, origin = options.origin ?? OPENAI_ORIGIN;
   return { async draw(raw, clientRequestId) {
     const signal = AbortSignal.timeout(timeoutMs);
     let request;
@@ -84,7 +85,7 @@ export function createEngineImages(options: { apiKey: string; fetch?: typeof fet
     const { endpoint, body, contentType } = logoImageRequestBody(request);
     let response: Response;
     try {
-      response = await fetcher(`https://api.openai.com/v1/images/${endpoint}`, { method: "POST", redirect: "error", signal, body,
+      response = await fetcher(`${origin}/v1/images/${endpoint}`, { method: "POST", redirect: "error", signal, body,
         headers: { Authorization: `Bearer ${options.apiKey}`, Accept: "application/json", "X-Client-Request-Id": clientRequestId, ...(contentType ? { "Content-Type": contentType } : {}) } });
     } catch (error) {
       throw new EngineProviderError(connectFailure(error) ? "retry" : "uncertain", null);
@@ -119,6 +120,6 @@ export function engineImages(): EngineImages {
   if (shared) return shared;
   const key = z.string().trim().min(16).max(500).regex(/^[^\s]+$/u).safeParse(process.env.OPENAI_API_KEY);
   if (!key.success) throw new Error("provider_unconfigured");
-  shared = createEngineImages({ apiKey: key.data });
+  shared = createEngineImages({ apiKey: key.data, origin: engineOpenAIOrigin() });
   return shared;
 }
