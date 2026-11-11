@@ -2,19 +2,23 @@ import { readFileSync } from "node:fs";
 import { getVercelPreviewOrigin, getVercelProductionOrigin } from "../src/server/preview-origin.mjs";
 
 try {
-  const config = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
-  // Only inspect the two explicit public inputs. Never enumerate environment
-  // values or print supplied values, including on failure.
+  // Each Vercel environment has one database: production builds must use the production
+  // project and previews the staging project (scripts/deployment-targets.json), so a preview
+  // can never read or write production data. Only the two explicit public inputs are
+  // inspected; environment values are never enumerated or printed, including on failure.
+  const targets = JSON.parse(readFileSync(new URL("./deployment-targets.json", import.meta.url), "utf8"));
+  const target = targets[process.env.VERCEL_ENV === "production" ? "production" : "preview"];
   for (const name of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"]) {
-    const expected = config.env?.[name];
-    if (
-      typeof expected !== "string" ||
-      expected.length === 0 ||
-      config.build?.env?.[name] !== expected ||
-      process.env[name] !== expected
-    ) {
+    const expected = target?.[name];
+    if (typeof expected !== "string" || expected.length === 0 || process.env[name] !== expected) {
       throw new Error(`Missing or mismatched public configuration: ${name}.`);
     }
+  }
+  if (
+    targets.preview?.NEXT_PUBLIC_SUPABASE_URL === targets.production?.NEXT_PUBLIC_SUPABASE_URL ||
+    targets.preview?.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY === targets.production?.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  ) {
+    throw new Error("Missing or mismatched public configuration: NEXT_PUBLIC_SUPABASE_URL.");
   }
   const validateOrigin = process.env.VERCEL_ENV === "production" ? getVercelProductionOrigin : getVercelPreviewOrigin;
   validateOrigin({

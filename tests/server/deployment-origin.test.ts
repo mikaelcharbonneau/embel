@@ -72,15 +72,16 @@ describe("deployment origins", () => {
 });
 
 describe("deployment preflight", () => {
-  const config = JSON.parse(readFileSync(new URL("../../vercel.json", import.meta.url), "utf8"));
+  const targets = JSON.parse(readFileSync(new URL("../../scripts/deployment-targets.json", import.meta.url), "utf8"));
   function preflight(env: Record<string, string | undefined>) {
+    const target = targets[env.VERCEL_ENV === "production" ? "production" : "preview"];
     return spawnSync(process.execPath, ["scripts/preview-preflight.mjs"], {
       cwd: new URL("../../", import.meta.url),
       encoding: "utf8",
       env: {
         NODE_ENV: "test",
-        NEXT_PUBLIC_SUPABASE_URL: config.env.NEXT_PUBLIC_SUPABASE_URL,
-        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: config.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+        NEXT_PUBLIC_SUPABASE_URL: target.NEXT_PUBLIC_SUPABASE_URL,
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: target.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         ...env,
       },
     });
@@ -89,6 +90,24 @@ describe("deployment preflight", () => {
     const result = preflight(env);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("Embel deployment preflight passed.");
+  });
+  it("keeps previews on staging: a preview built against the production database fails", () => {
+    expect(targets.preview.NEXT_PUBLIC_SUPABASE_URL).not.toBe(targets.production.NEXT_PUBLIC_SUPABASE_URL);
+    const result = preflight({
+      ...preview,
+      NEXT_PUBLIC_SUPABASE_URL: targets.production.NEXT_PUBLIC_SUPABASE_URL,
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: targets.production.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("Missing or mismatched public configuration");
+  });
+  it("keeps production on the production database", () => {
+    const result = preflight({
+      ...production,
+      NEXT_PUBLIC_SUPABASE_URL: targets.preview.NEXT_PUBLIC_SUPABASE_URL,
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: targets.preview.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    });
+    expect(result.status).toBe(1);
   });
   it.each([
     { ...production, APP_ORIGIN: undefined },
