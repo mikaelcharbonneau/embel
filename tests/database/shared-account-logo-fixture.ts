@@ -180,6 +180,10 @@ export async function createSharedLogoFixture() {
           });
           return Response.json({ Id: randomUUID(), Key: input.split("/storage/v1/object/")[1] });
         }
+        // Like hosted Storage: staged objects are readable only through the authenticated route.
+        if (!input.includes("/storage/v1/object/authenticated/"))
+          return Response.json({ statusCode: "404" }, { status: 400 });
+        input = input.replace("/storage/v1/object/authenticated/", "/storage/v1/object/");
         const value = objects.get(input);
         return value
           ? new Response(new Uint8Array(value.bytes).buffer, { headers: { "content-type": value.mime } })

@@ -331,6 +331,10 @@ describe("shared web authority actual restricted SQL (synthetic verified PostgRE
           storage.set(input, new Uint8Array(init.body as Uint8Array));
           return Response.json({ Id: randomUUID(), Key: input.split("/storage/v1/object/")[1] });
         }
+        // Like hosted Storage: staged objects are readable only through the authenticated route.
+        if (!input.includes("/storage/v1/object/authenticated/"))
+          return Response.json({ statusCode: "404" }, { status: 400 });
+        input = input.replace("/storage/v1/object/authenticated/", "/storage/v1/object/");
         const bytes = storage.get(input);
         return bytes
           ? new Response(new Uint8Array(bytes).buffer, { headers: { "content-type": "text/plain" } })

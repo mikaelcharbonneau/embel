@@ -48,7 +48,7 @@ describe("shared Home Storage remains customer JWT and exact selected target", (
       bytes: new TextEncoder().encode("brief"),
     });
     const [url, init] = fetch.mock.calls[0]!;
-    expect(url).toBe(`${staging}/storage/v1/object/fluid-assets/${path}`);
+    expect(url).toBe(`${staging}/storage/v1/object/authenticated/fluid-assets/${path}`);
     expect(new Headers(init!.headers).get("authorization")).toBe("Bearer inert.customer.token");
     expect(init).toMatchObject({ redirect: "error", cache: "no-store", credentials: "omit" });
     await expect(storage.read(path.replace(owner, "dddddddd-dddd-4ddd-8ddd-dddddddddddd"))).rejects.toMatchObject({
@@ -72,14 +72,14 @@ describe("shared Home Storage remains customer JWT and exact selected target", (
       sharedSupabaseOrigin: staging,
     });
     await expect(
-      transport(`${staging}/storage/v1/object/fluid-assets/${path}`, {
+      transport(`${staging}/storage/v1/object/authenticated/fluid-assets/${path}`, {
         method: "GET",
         headers: { authorization: "Bearer caller" },
       }),
     ).rejects.toMatchObject({ code: "integration_unavailable" });
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://fricsfwqibyhemknqgyf.supabase.co");
     await expect(
-      transport(`${staging}/storage/v1/object/fluid-assets/${path}`, { method: "GET" }),
+      transport(`${staging}/storage/v1/object/authenticated/fluid-assets/${path}`, { method: "GET" }),
     ).rejects.toMatchObject({ code: "integration_unavailable" });
     expect(fetch).not.toHaveBeenCalled();
   });
@@ -103,7 +103,7 @@ describe("shared Home Storage remains customer JWT and exact selected target", (
         sharedSupabaseOrigin: local,
       });
       await storage.read(path);
-      expect(fetch.mock.calls[0]![0]).toBe(`${local}/storage/v1/object/fluid-assets/${path}`);
+      expect(fetch.mock.calls[0]![0]).toBe(`${local}/storage/v1/object/authenticated/fluid-assets/${path}`);
       vi.stubEnv("VERCEL", "1");
       await expect(storage.read(path)).rejects.toMatchObject({ code: "integration_unavailable" });
       expect(fetch).toHaveBeenCalledOnce();

@@ -6,6 +6,7 @@ import { createLogoOwnerStorageTransport } from "@/server/runtime/logo-owner-sto
 const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
   project = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const path = `https://fricsfwqibyhemknqgyf.supabase.co/storage/v1/object/fluid-assets/${owner}/${project}/cccccccc-cccc-4ccc-8ccc-cccccccccccc/dddddddd-dddd-4ddd-8ddd-dddddddddddd`;
+const readPath = path.replace("/object/fluid-assets/", "/object/authenticated/fluid-assets/");
 const token = "synthetic-request-token",
   publishableKey = "sb_publishable_synthetic";
 function fixture() {
@@ -50,7 +51,14 @@ describe("request-only authenticated logo Storage transport", () => {
     expect(new Headers(init?.headers).get("apikey")).toBe(publishableKey);
     expect(new Headers(init?.headers).get("x-upsert")).toBe("false");
     expect(init?.signal).toBeInstanceOf(AbortSignal);
-    await transport(path, { method: "GET" });
+    await transport(readPath, { method: "GET" });
+    expect(f.fetcher.mock.calls[1]![0]).toBe(readPath);
+    // Each method is fenced to its own route: no plain-route reads, no uploads to the read route.
+    await expect(transport(path, { method: "GET" })).rejects.toMatchObject({ code: "integration_unavailable" });
+    await expect(transport(readPath, { method: "POST", headers: { "x-upsert": "false" }, body })).rejects.toMatchObject(
+      { code: "integration_unavailable" },
+    );
+    expect(f.fetcher).toHaveBeenCalledTimes(2);
     expect(f.getSession).toHaveBeenCalledTimes(1);
     expect(f.getUser).toHaveBeenCalledTimes(1);
   });
@@ -108,7 +116,7 @@ describe("request-only authenticated logo Storage transport", () => {
     const f = fixture();
     f.fetcher.mockResolvedValue(new Response(null, { status: 401 }));
     const transport = await createLogoOwnerStorageTransport(f.auth, project, f.dependencies);
-    expect((await transport(path, { method: "GET" })).status).toBe(401);
+    expect((await transport(readPath, { method: "GET" })).status).toBe(401);
     expect(f.getSession).toHaveBeenCalledTimes(1);
     expect(f.getUser).toHaveBeenCalledTimes(1);
     expect(f.fetcher).toHaveBeenCalledTimes(1);

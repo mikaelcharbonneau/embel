@@ -52,14 +52,17 @@ export async function createLogoOwnerStorageTransport(
     dependencies.sharedSupabaseOrigin === undefined
       ? LOGO_SUPABASE_ORIGIN
       : qualifySharedSupabaseOrigin(dependencies.sharedSupabaseOrigin);
-  const prefix = `${origin}/storage/v1/object/fluid-assets/${owner}/${projectId}/`;
+  // POST uploads to the object route; GET reads through the authenticated route.
+  const uploadPrefix = `${origin}/storage/v1/object/fluid-assets/${owner}/${projectId}/`;
+  const readPrefix = `${origin}/storage/v1/object/authenticated/fluid-assets/${owner}/${projectId}/`;
   return async (url, init) => {
     active(requestSignal);
     active(init.signal ?? undefined);
     try {
       if (dependencies.sharedSupabaseOrigin !== undefined)
         qualifySharedSupabaseOrigin(dependencies.sharedSupabaseOrigin);
-      if (!url.startsWith(prefix) || !["GET", "POST"].includes(init.method ?? "")) throw unavailable();
+      const prefix = init.method === "GET" ? readPrefix : init.method === "POST" ? uploadPrefix : null;
+      if (!prefix || !url.startsWith(prefix)) throw unavailable();
       const members = url.slice(prefix.length).split("/");
       if (members.length !== 2 || members.some((member) => logoId(member) !== member)) throw unavailable();
       const headers = new Headers(init.headers);

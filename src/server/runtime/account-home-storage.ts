@@ -54,18 +54,15 @@ export async function createAccountHomeStorageTransport(
     dependencies.sharedSupabaseOrigin === undefined
       ? LOGO_SUPABASE_ORIGIN
       : qualifySharedSupabaseOrigin(dependencies.sharedSupabaseOrigin);
-  const prefix = `${origin}/storage/v1/object/fluid-assets/${ownerId}/home/`;
+  // POST uploads to the object route; GET reads through the authenticated route.
+  const uploadPrefix = `${origin}/storage/v1/object/fluid-assets/${ownerId}/home/`;
+  const readPrefix = `${origin}/storage/v1/object/authenticated/fluid-assets/${ownerId}/home/`;
   return async (url, init) => {
     try {
       if (dependencies.sharedSupabaseOrigin !== undefined)
         qualifySharedSupabaseOrigin(dependencies.sharedSupabaseOrigin);
-      if (
-        requestSignal?.aborted ||
-        init.signal?.aborted ||
-        !url.startsWith(prefix) ||
-        !["GET", "POST"].includes(init.method ?? "")
-      )
-        throw unavailable();
+      const prefix = init.method === "GET" ? readPrefix : init.method === "POST" ? uploadPrefix : null;
+      if (requestSignal?.aborted || init.signal?.aborted || !prefix || !url.startsWith(prefix)) throw unavailable();
       const parts = url.slice(prefix.length).split("/");
       if (parts.length !== 2 || parts.some((part) => !z.uuid().safeParse(part).success || part !== part.toLowerCase()))
         throw unavailable();

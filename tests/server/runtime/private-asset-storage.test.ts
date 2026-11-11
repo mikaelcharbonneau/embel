@@ -22,6 +22,8 @@ const requestKey = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
 const path = `${ownerId}/${projectId}/${assetId}/${versionId}`;
 const homePath = `${ownerId}/home/${assetId}/${versionId}`;
 const endpoint = "https://fricsfwqibyhemknqgyf.supabase.co/storage/v1/object/fluid-assets/";
+// Reads go through the authenticated download route, which owner-staging RLS requires.
+const readEndpoint = "https://fricsfwqibyhemknqgyf.supabase.co/storage/v1/object/authenticated/fluid-assets/";
 const bytes = new TextEncoder().encode('{"version":1}');
 const mimeType = "application/json";
 const contentHash = createHash("sha256").update(bytes).digest("hex");
@@ -40,6 +42,9 @@ function fixture(overrides: Partial<SupabasePrivateAssetStorageDependencies> = {
   const calls: FetchCall[] = [];
   const transport = async (url: string, init: RequestInit): Promise<Response> => {
     calls.push({ url, init });
+    if (init.method === "GET" ? !url.startsWith(readEndpoint) : url.startsWith(readEndpoint))
+      return json({ statusCode: "404", error: "not_found" }, 400);
+    url = url.replace("/object/authenticated/", "/object/");
     const saved = objects.get(url);
     if (init.method === "POST") {
       if (saved) return json({ code: "ResourceAlreadyExists", message: "Already stored" }, 409);
@@ -93,7 +98,7 @@ describe("concrete private object REST contract", () => {
     expect(await f.storage.read(path)).toEqual({ bytes, mimeType });
     expect(f.calls.map((c) => [c.url, c.init.method])).toEqual([
       [endpoint + path, "POST"],
-      [endpoint + path, "GET"],
+      [readEndpoint + path, "GET"],
     ]);
     for (const { init } of f.calls) {
       expect(init.redirect).toBe("error");

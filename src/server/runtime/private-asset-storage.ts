@@ -11,7 +11,12 @@ import { qualifySharedSupabaseOrigin } from "./shared-supabase-origin";
 // Hosted calls retain the approved project and private bucket. The separate
 // server-owned development seam below accepts only the gated loopback target;
 // browser input never selects an endpoint, bucket or credential.
-const OBJECT_ENDPOINT = "https://fricsfwqibyhemknqgyf.supabase.co/storage/v1/object/fluid-assets/";
+const STORAGE_ORIGIN = "https://fricsfwqibyhemknqgyf.supabase.co";
+// Uploads use the object route; reads use the authenticated download route
+// (what storage-js download() calls). Owner-staging RLS admits staged reads only
+// for the `object.get_authenticated` operation, so the plain GET route is denied.
+const uploadEndpoint = (origin: string) => `${origin}/storage/v1/object/fluid-assets/`;
+const readEndpoint = (origin: string) => `${origin}/storage/v1/object/authenticated/fluid-assets/`;
 const ACK_MAX_BYTES = 16_384;
 const HOME_MAX_BYTES = 10_485_760;
 const DEFAULT_DEADLINE_MS = 10_000;
@@ -87,7 +92,7 @@ function discard(response: Response) {
  * https://supabase.com/docs/guides/storage/uploads/standard-uploads
  * https://supabase.com/docs/guides/storage/debugging/error-codes
  *
- * POST + x-upsert:false is create-only. GET reads the original private object;
+ * POST + x-upsert:false is create-only. GET /object/authenticated reads the original private object;
  * no public URL, signed URL, transform, overwrite, delete, or cleanup is exposed.
  * The SDK upload does not expose a per-call AbortSignal, and its ordinary Blob
  * download buffers before bounds can be checked, so this uses the same REST
@@ -112,15 +117,15 @@ export function createSupabasePrivateAssetStorage(
   if (dependencies && (!parsed?.success || typeof dependencies.transport !== "function")) throw unavailable();
   const scope = parsed?.success ? Object.freeze(parsed.data) : null;
   const transport = dependencies?.transport;
-  let objectEndpoint = OBJECT_ENDPOINT;
+  let storageOrigin = STORAGE_ORIGIN;
   if (dependencies?.sharedSupabaseOrigin !== undefined) {
     if (dependencies.developmentSupabaseUrl !== undefined) throw unavailable();
-    objectEndpoint = `${qualifySharedSupabaseOrigin(dependencies.sharedSupabaseOrigin)}/storage/v1/object/fluid-assets/`;
+    storageOrigin = qualifySharedSupabaseOrigin(dependencies.sharedSupabaseOrigin);
   }
   if (dependencies?.developmentSupabaseUrl !== undefined) {
     const development = readDevelopmentConfiguration();
     if (!development || development.supabaseUrl !== dependencies.developmentSupabaseUrl) throw unavailable();
-    objectEndpoint = `${development.supabaseUrl}/storage/v1/object/fluid-assets/`;
+    storageOrigin = development.supabaseUrl;
   }
   const ceiling = scope?.kind === "home" ? HOME_MAX_BYTES : ASSET_MAX_FILE_BYTES;
   const maxBytes = dependencies?.maxFileBytes ?? ceiling;
@@ -135,7 +140,7 @@ export function createSupabasePrivateAssetStorage(
   )
     throw unavailable();
 
-  function objectUrl(path: string) {
+  function objectUrl(path: string, mode: "upload" | "read") {
     if (!scope || !transport) throw unavailable();
     if (
       dependencies?.developmentSupabaseUrl !== undefined &&
@@ -154,7 +159,7 @@ export function createSupabasePrivateAssetStorage(
       !logoUuidSchema.safeParse(parts[3]).success
     )
       throw new ApiError("not_found");
-    return objectEndpoint + path;
+    return (mode === "read" ? readEndpoint : uploadEndpoint)(storageOrigin) + path;
   }
 
   async function bounded<T>(
@@ -298,7 +303,7 @@ export function createSupabasePrivateAssetStorage(
 
   return {
     async putIfAbsent(path, input, mimeType, signal) {
-      const url = objectUrl(path);
+      const url = objectUrl(path, "upload");
       if (signal?.aborted) throw unavailable();
       if (!(input instanceof Uint8Array) || !input.byteLength || input.byteLength > maxBytes || !mime(mimeType))
         throw new ApiError("invalid_input");
@@ -344,7 +349,7 @@ export function createSupabasePrivateAssetStorage(
       });
     },
     async read(path, signal) {
-      const url = objectUrl(path);
+      const url = objectUrl(path, "read");
       return bounded(signal, async (operationSignal, active) => {
         const response = await request(
           url,
