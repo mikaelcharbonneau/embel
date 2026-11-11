@@ -1,6 +1,6 @@
 # Suggested edits to AGENTS.md
 
-_November 10, 2026. For the owner to approve. `AGENTS.md` itself was not changed._
+_November 10, 2026. Applied to `AGENTS.md` on November 11, 2026 (owner approved all 11); kept for history._
 
 Each item says what to change and why.
 
