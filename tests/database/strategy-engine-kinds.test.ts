@@ -57,10 +57,13 @@ const catalog = () =>
   );
 
 describe("Strategy generation kinds", () => {
-  it("lists every Strategy operation at one credit, disabled until released", async () => {
+  it("lists every Strategy operation with its credits, disabled until released", async () => {
     const kinds = (await catalog()).filter((kind) => kind.kind.startsWith("strategy."));
     expect(kinds.map((kind) => kind.kind)).toEqual(operations);
-    expect(kinds.every((kind) => kind.credits === 1 && !kind.enabled)).toBe(true);
+    // Competitor research costs 2 credits (November 11); every other Strategy step costs 1.
+    expect(
+      kinds.every((kind) => kind.credits === (kind.kind === "strategy.competitors" ? 2 : 1) && !kind.enabled),
+    ).toBe(true);
     const limits = Object.fromEntries(
       (
         await db.query<{ kind: string; max_per_day: number }>(
@@ -78,14 +81,14 @@ describe("Strategy generation kinds", () => {
     });
   });
 
-  it("refuses a disabled Strategy kind, then charges one credit once it is enabled", async () => {
+  it("refuses a disabled Strategy kind, then charges its credits once it is enabled", async () => {
     const project = await seedProject(db);
     expect((await failure(() => start(project.id, "strategy.competitors", key(1)))).message).toContain(
       "generation_unavailable",
     );
     await db.exec("update fluid_private.generation_kinds set enabled = true where kind like 'strategy.%'");
     const run = await start(project.id, "strategy.competitors", key(2));
-    expect(run).toMatchObject({ credits: 1, input: { revision: 1 } });
+    expect(run).toMatchObject({ credits: 2, input: { revision: 1 } });
     const balance = await asRole(
       db,
       "authenticated",
@@ -93,7 +96,7 @@ describe("Strategy generation kinds", () => {
       async () =>
         (await db.query<{ s: { balance: number } }>("select public.get_credit_summary() as s")).rows[0]!.s.balance,
     );
-    expect(balance).toBe(29);
+    expect(balance).toBe(28);
     expect((await catalog()).filter((kind) => kind.kind.startsWith("strategy.")).every((kind) => kind.enabled)).toBe(
       true,
     );
