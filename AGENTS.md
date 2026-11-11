@@ -1,16 +1,17 @@
 # Embel working agreement
 
-User-confirmed preferences, updated November 6, 2026. Embel helps people turn product
+User-confirmed preferences, updated November 11, 2026. Embel helps people turn product
 ideas into usable branding. It has no customers yet. Prioritize a reliable,
 complete branding journey and a professional interface.
 
 ## Current authority
 
-Follow the user's latest instructions and this agreement. Dated decisions,
-plans, specifications and handoffs preserve history; their old approval limits,
-mandatory skills, design freezes and stopping instructions are superseded where
-conflicting. Read relevant documentation as needed. Validate technical
-dependencies when changing them.
+Follow the user's latest instructions and this agreement. Current documentation
+is indexed in `docs/README.md`; start with `docs/architecture.md` and
+`docs/generation-engine.md`. Older records live in `docs/archive/` and preserve
+history only: they carry no authority, and their approval limits and stopping
+instructions are superseded. Read relevant documentation as needed. Validate
+technical dependencies when changing them.
 
 ## Standing permissions
 
@@ -19,10 +20,17 @@ dependencies when changing them.
   without asking again. Necessary routine configuration and compatible database
   updates may use existing authorized access. Keep a rollback path and report
   what went live.
+- Releases: production deploys are made by the release lead from a clean clone of
+  `main` (`vercel deploy --prod --scope embel`); skew protection is on. Database
+  changes are applied by the release lead (by hand, or with the Release database
+  workflow in `docs/database-release.md` once its secrets exist), and checked
+  against the migration file after applying. Report what went live.
 - Use existing application services, credentials and AI credits for focused
   verification. Report tests, results and observed usage; distinguish estimated
   costs from confirmed charges.
 - Choose, test and explain application AI models on already connected services.
+  Current logo images: `gpt-image-2.6-sunburst` at low quality and low complexity
+  on a transparent background (Creative direction boards: medium quality, opaque).
 - Follow the November 6 redesign: a floating pill navigation, rounder corners
   and a neutral ink accent. Do not use magenta. Improve the layout, labels and
   interaction flow as needed; old references and pixel specifications do not
@@ -54,8 +62,19 @@ dependencies when changing them.
   Each direction shows the logo, colors, typography and example uses. Choosing
   a direction leads to the final brand board and downloadable logo files, color
   palette, font links, social profile images, post templates and banners.
-- No fixed monetary caps that stop generation. Show usage and prevent accidental
-  duplicate requests; retain normal cancellation and timeouts.
+- All AI work runs on the generation engine: Vercel Workflow inside the web app
+  (`docs/generation-engine.md`). The old worker, its daemon, the API-text worker
+  and ChatGPT-plan mode no longer exist; do not add separate workers or job
+  systems.
+- Generation is limited in `start_generation`, where every path meets: monthly
+  plan credits, a per-kind daily limit per account, one active run per project
+  and kind, and a global daily cost cap. Show remaining credits (never dollar
+  estimates) and prevent accidental duplicate requests; retain normal
+  cancellation and timeouts.
+- Plans (November 10): Free / Pro / Studio at $0 / $7.99 / $27.99 USD a month with
+  30 / 150 / 500 monthly credits, sold through Stripe Managed Payments (Stripe is
+  the merchant of record; `docs/payments.md`). Credit prices per step live in
+  `fluid_private.generation_kinds`.
 - Do not show cost estimates anywhere in the app (November 6). One deliberate
   click starts the request; no extra confirmation screen is required. Server
   admission, duplicate prevention and recorded usage stay in place.
@@ -69,15 +88,23 @@ dependencies when changing them.
 - Save meaningful account edits automatically. Show Saved only after confirmation
   and provide recovery after failures. Never invent successful AI output,
   availability, legal clearance, real vectors or usable downloads.
-- Use durable background jobs for long AI work, with cancellation, bounded retries
-  and retained partial results. Recover uncertain outcomes using the original
-  request identity; never blindly repeat possibly completed paid work. Provide
-  useful recovery instead of indefinite blocking.
+- Long AI work runs as engine workflows, which provide cancellation, bounded
+  retries and retained partial results. Recover uncertain outcomes using the
+  original request or response id; never blindly repeat possibly completed paid
+  work. Provide useful recovery instead of indefinite blocking.
+- Stop switches: one kind with `fluid_private.generation_kinds.enabled`, all
+  generation with `fluid_private.engine_settings.paused`
+  (`docs/emergency-stop.md`).
+- Abuse protections are standing requirements: BotID on routes that start paid AI
+  work, WAF rate limits on those routes, the Turnstile CAPTCHA on sign-up (off
+  until a Cloudflare key is set), and new database functions private by default
+  with explicit grants (`docs/security-rate-limits.md`).
 - Preserve truthful request/billing evidence during active work. Deliberate
   test-data cleanup is allowed; fabricated success or refunds are not.
 - Retire old implementations after handling their callers and data dependencies.
   Old identifiers and formats are migration concerns, not permanent retention
-  requirements for unused code.
+  requirements for unused code. The old worker's code and database objects are
+  gone.
 
 ## Implementation and verification
 
@@ -88,6 +115,11 @@ of UI modules. Consult relevant official guidance and skills for the change.
 Check current main. Use coordinated parallel agents when useful, with disjoint
 ownership and lead integration. Identify the revision actually deployed and
 align the working checkout with it.
+
+Required checks before merging: typecheck, lint, format check, unit and
+integration tests, the "Database migrations" job (the database is built from
+`supabase/migrations`) and the full-journey browser test (`npm run test:journey`).
+New AI features go through the generation engine.
 
 Report material failures or untested limits.
 Use isolated browser sessions. Preserve external reference provenance.

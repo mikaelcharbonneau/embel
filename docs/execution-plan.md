@@ -45,7 +45,7 @@ Status as of November 10, 2026. Waves C and D are unchanged.
 | B4 CI builds the DB and applies migrations | Sonnet, high | done (#236); release workflow inert until the owner adds secrets |
 | B5 Account deletion and data export | Opus, high | done (#234), live |
 | B6 Dead code, switches, Node 24, formatter | Sonnet, medium | done (#237); formatter pass still to do |
-| B7 README and docs | Sonnet, medium | done (this PR); AGENTS.md edits wait for the owner ([suggestions](agents-md-suggestions.md)) |
+| B7 README and docs | Sonnet, medium | done (#238); AGENTS.md updated November 11 ([suggestions, archived](archive/agents-md-suggestions.md)) |
 
 ### Wave C: launch needs
 

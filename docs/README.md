@@ -17,7 +17,6 @@ the document.
 - [architecture-review.md](architecture-review.md): the November 9 review (issues S1 to S12, M1 and
   others) and the plan it led to.
 - [execution-plan.md](execution-plan.md): who does which remaining task, and where each stands.
-- [agents-md-suggestions.md](agents-md-suggestions.md): proposed edits to AGENTS.md, waiting for the owner.
 - [brand-journey-redesign-plan-20261106.md](brand-journey-redesign-plan-20261106.md): the current
   interface design (floating pill navigation, neutral ink accent).
 
