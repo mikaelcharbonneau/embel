@@ -39,7 +39,11 @@ export function formatMonthlyPrice(cents: number) {
 }
 
 export const checkoutRequestSchema = z.strictObject({ plan: paidPlanSchema });
-export const portalRequestSchema = z.strictObject({ plan: paidPlanSchema.optional() });
+export const portalRequestSchema = z.strictObject({
+  plan: paidPlanSchema.optional(),
+  /** Opens the portal straight on cancelling the current plan (at the end of the paid period). */
+  action: z.literal("cancel").optional(),
+});
 export const billingRedirectResponseSchema = z.strictObject({ url: z.url({ protocol: /^https$/u }) });
 
 /** The signed-in person's plan, credits and subscription. Never a payment detail. */

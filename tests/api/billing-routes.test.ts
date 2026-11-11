@@ -192,6 +192,38 @@ describe("portal", () => {
     });
   });
 
+  it("opens straight on cancelling the plan at the period end", async () => {
+    store = fakeStore({
+      customerId: "cus_Existing",
+      subscription: { id: "sub_1", planId: "pro", status: "active", cancelAtPeriodEnd: false, live: true },
+    });
+    expect((await portal(request("portal", { action: "cancel" }))).status).toBe(200);
+    expect(stripe.billingPortal.sessions.create.mock.calls[0]![0]).toMatchObject({
+      customer: "cus_Existing",
+      flow_data: {
+        type: "subscription_cancel",
+        subscription_cancel: { subscription: "sub_1" },
+        after_completion: { type: "redirect", redirect: { return_url: `${ORIGIN}/plans?portal=updated` } },
+      },
+    });
+  });
+
+  it("refuses to cancel without a live plan, twice, or together with a plan change", async () => {
+    store = fakeStore({
+      customerId: "cus_Existing",
+      subscription: { id: "sub_1", planId: "pro", status: "active", cancelAtPeriodEnd: true, live: true },
+    });
+    expect((await portal(request("portal", { action: "cancel" }))).status).toBe(409);
+    store = fakeStore({
+      customerId: "cus_Existing",
+      subscription: { id: "sub_1", planId: "pro", status: "canceled", cancelAtPeriodEnd: false, live: false },
+    });
+    expect((await portal(request("portal", { action: "cancel" }))).status).toBe(409);
+    expect((await portal(request("portal", { action: "cancel", plan: "studio" }))).status).toBe(422);
+    expect((await portal(request("portal", { action: "delete" }))).status).toBe(422);
+    expect(stripe.billingPortal.sessions.create).not.toHaveBeenCalled();
+  });
+
   it("has nothing to manage without a customer, and checks origin and account", async () => {
     expect((await portal(request("portal", {}))).status).toBe(404);
     expect((await portal(request("portal", {}, { "X-Embel-Account": B }))).status).toBe(401);

@@ -77,15 +77,28 @@ export async function startCheckout(
  * The Stripe customer portal: cancel at period end, switch between Pro and Studio, update the
  * payment method and see invoices (Managed Payments supports the portal; customers can also
  * manage the same subscription from Link). With `plan`, it opens straight on the confirmation
- * of that plan change.
+ * of that plan change. With `cancel`, it opens straight on cancelling the plan at the end of the
+ * paid period: the portal home does not offer cancellation for Managed Payments subscriptions.
  */
-export async function startPortal(deps: BillingDependencies, ownerId: string, plan?: PaidPlanId): Promise<string> {
+export async function startPortal(
+  deps: BillingDependencies,
+  ownerId: string,
+  plan?: PaidPlanId,
+  cancel = false,
+): Promise<string> {
   const state = await deps.store.ownerState(ownerId);
   if (!state.customerId) throw new ApiError("not_found");
   const returnUrl = `${deps.origin}/plans`;
   let flow: Stripe.BillingPortal.SessionCreateParams.FlowData | undefined;
   const subscription = state.subscription;
-  if (plan && subscription?.live && subscription.planId !== plan) {
+  if (cancel) {
+    if (!subscription?.live || subscription.cancelAtPeriodEnd) throw new ApiError("conflict");
+    flow = {
+      type: "subscription_cancel",
+      subscription_cancel: { subscription: subscription.id },
+      after_completion: { type: "redirect", redirect: { return_url: `${returnUrl}?portal=updated` } },
+    };
+  } else if (plan && subscription?.live && subscription.planId !== plan) {
     const [current, price] = await Promise.all([
       deps.stripe.subscriptions.retrieve(subscription.id),
       priceForPlan(deps.stripe, plan),
