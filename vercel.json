@@ -1,14 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "node scripts/preview-preflight.mjs && npm run build",
-  "env": {
-    "NEXT_PUBLIC_SUPABASE_URL": "https://fricsfwqibyhemknqgyf.supabase.co",
-    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_kJtesoe93LXaPTJ_xNz53Q_tQ0E6fdO"
-  },
-  "build": {
-    "env": {
-      "NEXT_PUBLIC_SUPABASE_URL": "https://fricsfwqibyhemknqgyf.supabase.co",
-      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_kJtesoe93LXaPTJ_xNz53Q_tQ0E6fdO"
-    }
-  }
+  "buildCommand": "node scripts/preview-preflight.mjs && npm run build"
 }

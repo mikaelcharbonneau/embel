@@ -1,0 +1,10 @@
+{
+  "production": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://fricsfwqibyhemknqgyf.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_kJtesoe93LXaPTJ_xNz53Q_tQ0E6fdO"
+  },
+  "preview": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://vmypwqmodhkincyszrrt.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_VZY7hPInW7aMtzRsCx8YRQ_kCkTeK5E"
+  }
+}
