@@ -27,6 +27,8 @@ vi.mock("@/components/workspace/account-session", () => ({
   AccountStatus: () => createElement("p", null, "Synthetic account status"),
 }));
 vi.mock("@/components/workspace/account-profile-provider", () => ({ useAccountProfile: () => fixture.profile }));
+// The plan card reads /api/billing; its own behavior is covered with the Plans page.
+vi.mock("@/components/billing/plan-credits-card", () => ({ PlanCreditsCard: () => null }));
 vi.mock("@/components/workspace/account-access", () => ({
   AccountAccess: () => createElement("button", { type: "button", onClick: fixture.checkAccount }, "Sign out"),
 }));

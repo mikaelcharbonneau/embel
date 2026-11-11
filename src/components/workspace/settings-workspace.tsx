@@ -6,6 +6,7 @@ import { AccountAccess } from "./account-access";
 import { RecordedUsageSection } from "./recorded-usage";
 import { AccountProfileEditor } from "./account-profile-editor";
 import { AccountDataControls } from "./account-data-controls";
+import { PlanCreditsCard } from "@/components/billing/plan-credits-card";
 
 // Settings always opens on Account, so links to removed categories
 // (for example ?category=security) land there.
@@ -100,6 +101,7 @@ function AccountSettings() {
   return (
     <>
       <AccountProfileEditor />
+      <PlanCreditsCard />
       <section className="sg-card sg-session" aria-label={signedIn ? "Sign out" : "Sign in"}>
         <div className="sg-row">
           <div className="sg-row-copy">

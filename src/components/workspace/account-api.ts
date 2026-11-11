@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { PROJECT_MUTATION_MAX_BYTES } from "@/domain/project-api";
+import { announceOutOfCredits } from "@/components/billing/out-of-credits";
 
 export class AccountRequestError extends Error {
   constructor(
@@ -81,7 +82,10 @@ export async function accountRequest<T>(
     },
     ...(body === undefined ? {} : { body }),
   });
-  if (!response.ok) throw new AccountRequestError(response.status, await safeAccountErrorCode(response));
+  if (!response.ok) {
+    if (response.status === 402) announceOutOfCredits();
+    throw new AccountRequestError(response.status, await safeAccountErrorCode(response));
+  }
   let result: unknown;
   try {
     result = await response.json();

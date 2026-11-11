@@ -51,8 +51,8 @@ Status as of November 10, 2026. Waves C and D are unchanged.
 
 | Task | Model, effort | Status |
 |---|---|---|
-| C1 Payments with a merchant of record | Opus, high | needs owner's account and prices |
-| C2 Plans page | Sonnet, medium | needs prices |
+| C1 Payments with a merchant of record | Opus, high | built: Stripe Managed Payments ([payments.md](payments.md)); release steps pending lead |
+| C2 Plans page | Sonnet, medium | built with C1 (`/plans`) |
 | C3 Staging DB | Sonnet, medium | about $10/month, needs approval |
 | C4 Email sender | lead guides owner | needs owner |
 | C5 Sentry | Sonnet, medium | postponed by owner |

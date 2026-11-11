@@ -34,6 +34,7 @@ the document.
 - [account-creation.md](account-creation.md): sign-up, email confirmation and the callback.
 - [account-profile-settings.md](account-profile-settings.md): name, time zone and date format.
 - [account-deletion.md](account-deletion.md): deleting an account and exporting its data.
+- [payments.md](payments.md): paid plans with Stripe Managed Payments, the Plans page and the release steps.
 - [project-deletion.md](project-deletion.md): recoverable project deletion (the lock and job sections are historical).
 - [recoverable-error-boundaries.md](recoverable-error-boundaries.md): what shows when a screen fails to render.
 

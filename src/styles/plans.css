@@ -1,0 +1,180 @@
+/* Plans page and the out-of-credits prompt. Neutral ink, rounded cards (November 6 redesign). */
+.plans-page.page {
+  max-width: calc(var(--page-max) + var(--page-gutter) * 2);
+  padding: 40px var(--page-gutter) 48px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.plans-heading h1 {
+  margin: 0;
+  font-size: var(--text-2xl);
+  line-height: 36px;
+  letter-spacing: -0.5px;
+  font-weight: 500;
+}
+.plans-heading p {
+  margin: 4px 0 0;
+  color: var(--secondary);
+  font-size: var(--text-md);
+  line-height: 20px;
+}
+.plans-current {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: end;
+  gap: 8px 40px;
+  padding: 20px 24px;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+.plans-current > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.plans-current-label {
+  color: var(--secondary);
+  font-size: var(--text-sm);
+}
+.plans-current strong {
+  font-size: var(--text-xl);
+  font-weight: 500;
+}
+.plans-current p {
+  margin: 0;
+  color: var(--secondary);
+  font-size: var(--text-md);
+  justify-self: end;
+  text-align: right;
+}
+.plans-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.plans-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  min-width: 0;
+}
+.plans-card[data-current] {
+  border-color: var(--text);
+}
+.plans-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.plans-card h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 500;
+}
+.plans-badge {
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+.plans-price {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.plans-price strong {
+  font-size: 32px;
+  line-height: 40px;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+}
+.plans-price span {
+  color: var(--secondary);
+  font-size: var(--text-md);
+}
+.plans-credits {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-md);
+  font-weight: 500;
+}
+.plans-description,
+.plans-hint {
+  margin: 0;
+  color: var(--secondary);
+  font-size: var(--text-md);
+  line-height: 20px;
+  flex: 1;
+}
+.plans-card .button {
+  margin-top: auto;
+  width: 100%;
+}
+.plans-message,
+.plans-footnote {
+  margin: 0;
+  color: var(--secondary);
+  font-size: var(--text-sm);
+  line-height: 18px;
+}
+.plans-error {
+  color: var(--danger);
+}
+.plans-notice {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  font-size: var(--text-md);
+}
+.plans-notice-positive {
+  background: var(--positive-soft);
+  color: var(--positive);
+}
+
+.out-of-credits-prompt {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 40;
+  width: min(380px, calc(100vw - 48px));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: 0 12px 32px rgb(25 25 25 / 0.12);
+}
+.out-of-credits-copy strong {
+  font-size: var(--text-md);
+  font-weight: 500;
+}
+.out-of-credits-copy p {
+  margin: 4px 0 0;
+  color: var(--secondary);
+  font-size: var(--text-sm);
+  line-height: 18px;
+}
+.out-of-credits-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

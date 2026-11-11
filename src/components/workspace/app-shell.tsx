@@ -12,6 +12,7 @@ import { AccountProfileProvider, useAccountProfile } from "./account-profile-pro
 import { AccountAccess, AccountAccessNotice } from "./account-access";
 import { GenerationActivity } from "./generation-activity";
 import { SignedOutActions } from "@/components/auth/signed-out-actions";
+import { OutOfCreditsPrompt } from "@/components/billing/out-of-credits-prompt";
 
 // Library is the existing /assets page under the redesign's name.
 const primary: NavItem[] = [
@@ -116,6 +117,7 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
         </ProjectHeaderContext.Provider>
         {isHome && moreBelow && <div className="home-bottom-fade" aria-hidden="true" />}
       </div>
+      {session.status === "ready" && <OutOfCreditsPrompt pathname={pathname} />}
     </div>
   );
 }
@@ -208,6 +210,10 @@ function WorkspaceAccountMenu({ pathname }: { pathname: string }) {
             <Link href="/settings">
               <Icon name="settings" size={18} />
               <span>Account settings</span>
+            </Link>
+            <Link href="/plans">
+              <Icon name="layers" size={18} />
+              <span>Plans and credits</span>
             </Link>
             <GenerationActivity labeled />
           </div>

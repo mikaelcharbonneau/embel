@@ -439,6 +439,14 @@ describe("independent database boundary attacks", () => {
       "public.account_deletion_complete(uuid)",
       "public.account_deletions_pending(interval, integer)",
       "public.orphaned_storage_objects(text, integer)",
+      // 20261111100000_stripe_billing: the billing routes and the Stripe webhook (service_role only).
+      "public.billing_link_customer(uuid, text)",
+      "public.billing_owner_state(uuid)",
+      "public.billing_owner_for_customer(text)",
+      "public.billing_event_seen(text)",
+      "public.billing_record_event(text, text)",
+      "public.billing_apply_subscription(uuid, text, text, text, text, timestamp with time zone, timestamp with time zone, boolean, timestamp with time zone)",
+      "public.billing_apply_invoice(uuid, text, text, text, timestamp with time zone, timestamp with time zone)",
     ]);
     // The baseline grants the worker helpers by name to production's roles, so a login
     // created afterwards executes nothing.

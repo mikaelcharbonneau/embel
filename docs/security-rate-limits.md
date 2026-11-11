@@ -16,7 +16,7 @@ protection in front of it.
 Protected routes (all `POST`): `/api/projects/{id}/generations` (Strategy, Naming, Logo and
 every other engine kind), `.../naming/feed/ensure`, `.../naming/steering`, `.../logo/requests`
 (the older Logo admission path), `.../strategy` and `.../identity/batches` (the older Strategy and
-Identity paths, which still start paid work). `logo/engine` is read-only (GET) and starts nothing.
+Identity paths, which still start paid work). `logo/engine` is read-only (GET) and starts nothing. `/api/billing/checkout` (starting a paid Stripe checkout, [payments.md](payments.md)) is in the same list.
 
 **Fail open.** If BotID errors, is unreachable or takes longer than 3 seconds, the request goes
 through and `botid_check_failed` is logged with `logServerError`. Reason: BotID is an extra layer;

@@ -22,6 +22,9 @@ Steps, each safe to repeat:
 
 1. Check the typed email and the session's sign-in time (the `amr` timestamp in the access token).
 2. Ask running and queued generations to stop, with the person's own login (`cancel_generation`).
+   Then cancel the account's Stripe subscriptions at once (best effort, logged; see
+   [payments.md](payments.md#account-deletion)). The billing records are purged in step 4 like any
+   owner table.
 3. `account_deletion_begin`: open (or reopen) the deletion receipt.
 4. `account_deletion_purge`: one database transaction that copies the accounting amounts (below),
    then deletes every row with the person's `owner_id` (or `auth_user_id`) in the `public` and
