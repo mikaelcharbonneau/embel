@@ -84,7 +84,7 @@ describe("identity directions engine on a database built from migrations alone",
           "select kind, credits, enabled, max_per_day, max_running_minutes from fluid_private.generation_kinds where kind = 'identity.directions'",
         )
       ).rows,
-    ).toEqual([{ kind: "identity.directions", credits: 3, enabled: false, max_per_day: 10, max_running_minutes: 35 }]);
+    ).toEqual([{ kind: "identity.directions", credits: 6, enabled: false, max_per_day: 10, max_running_minutes: 35 }]);
   });
 
   it("grants the person-facing functions to signed-in people and the round writers to the engine login only", async () => {
@@ -414,7 +414,7 @@ describe("identity directions engine with the selected-logo board packet", () =>
     const before = await balance(OWNER_A);
     const first = await start(p);
     expect(first.run).toMatchObject({
-      credits: 3,
+      credits: 6,
       status: "queued",
       input: { version: 1, batchId: first.batch.batchId },
     });
@@ -424,13 +424,13 @@ describe("identity directions engine with the selected-logo board packet", () =>
       fulfillment: { status: "pending", acceptedCount: 0 },
       sourceLogoCurrent: true,
     });
-    expect(await balance(OWNER_A)).toBe(before - 3);
+    expect(await balance(OWNER_A)).toBe(before - 6);
     // A replay returns the same round and charges nothing.
     const replay = await start(p);
     expect(replay.run.id).toBe(first.run.id);
     expect([first.replayed, replay.replayed]).toEqual([false, true]);
     expect(replay.batch.batchId).toBe(first.batch.batchId);
-    expect(await balance(OWNER_A)).toBe(before - 3);
+    expect(await balance(OWNER_A)).toBe(before - 6);
     // The batch's job is the engine's: running under the run's lease, no shared admission.
     const job = (
       await f.db.query<{ state: string; lease_token: string; input: unknown; admitted: boolean }>(
@@ -523,11 +523,11 @@ describe("identity directions engine with the selected-logo board packet", () =>
       prior: [boardSpecification(1).components],
     });
 
-    // The run keeps one credit per delivered board and closes its job.
+    // The run keeps two credits (6 credits / 3 boards) per delivered board and closes its job.
     expect(await engine("engine_finish", [run.id, "succeeded", "provider_rejected"])).toMatchObject({
       status: "succeeded",
     });
-    expect(await balance(OWNER_A)).toBe(before - 1);
+    expect(await balance(OWNER_A)).toBe(before - 2);
     const closed = await batchState(OWNER_A, p.projectId, batch.batchId);
     expect(closed).toMatchObject({
       status: "partial",
@@ -561,7 +561,7 @@ describe("identity directions engine with the selected-logo board packet", () =>
         await engine("engine_identity_save_board", [run.id, n, await board(OWNER_A, p.projectId, n), `req_${n}`, 1000]),
       ).toMatchObject({ state: "succeeded" });
     await engine("engine_finish", [run.id, "succeeded", null]);
-    expect(await balance(OWNER_A)).toBe(before - 3);
+    expect(await balance(OWNER_A)).toBe(before - 6);
     expect(await batchState(OWNER_A, p.projectId, batch.batchId)).toMatchObject({
       status: "succeeded",
       terminal: true,
@@ -583,7 +583,7 @@ describe("identity directions engine with the selected-logo board packet", () =>
     expect(
       await engine("engine_identity_save_board", [run.id, 2, await board(OWNER_A, p.projectId, 2), "req_2", 2000]),
     ).toEqual({ state: "discarded", code: "run_stopped" });
-    expect(await balance(OWNER_A)).toBe(before - 1);
+    expect(await balance(OWNER_A)).toBe(before - 2);
     expect(await batchState(OWNER_A, p.projectId, batch.batchId)).toMatchObject({
       status: "cancelled",
       terminal: true,
@@ -625,7 +625,7 @@ describe("identity directions engine with the selected-logo board packet", () =>
       terminal: true,
       fulfillment: { acceptedCount: 1 },
     });
-    expect(await balance(OWNER_A)).toBe(before - 1);
+    expect(await balance(OWNER_A)).toBe(before - 2);
   });
 
   it("closes an unconfirmed request: a tombstone before admission, a stop after it", async () => {

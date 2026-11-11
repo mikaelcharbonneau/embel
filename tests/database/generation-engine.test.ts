@@ -294,8 +294,8 @@ describe("access", () => {
     );
     expect(catalog.plans.map((plan) => [plan.id, plan.monthlyCredits])).toEqual([
       ["free", 30],
-      ["pro", 300],
-      ["studio", 1000],
+      ["pro", 150],
+      ["studio", 500],
     ]);
     expect(catalog.kinds.map((kind) => kind.kind)).toContain("engine.probe");
     expect(
