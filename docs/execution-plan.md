@@ -51,19 +51,19 @@ Status as of November 10, 2026. Waves C and D are unchanged.
 
 | Task | Model, effort | Status |
 |---|---|---|
-| C1 Payments with a merchant of record | Opus, high | built: Stripe Managed Payments ([payments.md](payments.md)); release steps pending lead |
-| C2 Plans page | Sonnet, medium | built with C1 (`/plans`) |
-| C3 Staging DB | Sonnet, medium | about $10/month, needs approval |
-| C4 Email sender | lead guides owner | needs owner |
+| C1 Payments with a merchant of record | Opus, high | live in the Stripe sandbox (#244, #245); switch to live keys at launch ([payments.md](payments.md)) |
+| C2 Plans page | Sonnet, medium | live (`/plans`), with Cancel plan (#245) |
+| C3 Staging DB | Sonnet, medium | project `embel-staging` created (Nov 11); schema and preview switch need the owner's DB password or CLI login |
+| C4 Email sender | lead guides owner | done: Resend via Supabase, branded emails (#242) |
 | C5 Sentry | Sonnet, medium | postponed by owner |
 
 ### Wave D: pre-launch checks
 
 | Task | Model, effort | Status |
 |---|---|---|
-| D Pre-launch: abuse test | Opus, high | — |
-| D Pre-launch: payment test mode | Sonnet, medium | — |
-| D Pre-launch: backup restore drill | lead | — |
+| D Pre-launch: abuse test | Opus, high | done (#239); one hole fixed |
+| D Pre-launch: payment test mode | Sonnet, medium | done Nov 11: checkout, upgrade, downgrade, re-upgrade, cancel, end (local app, sandbox) |
+| D Pre-launch: backup restore drill | lead | with the owner present (dashboard-only; a mis-click could restore over production) |
 | D Pre-launch: raise the $50/day cap | lead | — |
 
 ## Dependencies
