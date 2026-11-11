@@ -91,17 +91,28 @@ describe("Plans page", () => {
   it("offers Manage and Switch once subscribed", async () => {
     summary = proSummary;
     await render();
-    expect(buttons()).toEqual(["Manage plan", "Switch to Studio"]);
-    expect(host.textContent).toContain("To return to Free, cancel your plan from Manage plan.");
+    expect(buttons()).toEqual(["Manage plan", "Cancel plan", "Switch to Studio"]);
+    expect(host.textContent).toContain("To return to Free, use Cancel plan on your current plan.");
     const manage = [...host.querySelectorAll("button")].find((button) => button.textContent === "Manage plan")!;
     await act(async () => manage.click());
     const portal = requests.find((request) => request.path === "/api/billing/portal")!;
     expect(JSON.parse(String(portal.init.body))).toEqual({});
   });
 
+  it("opens the cancellation of the current plan with one click", async () => {
+    summary = proSummary;
+    await render();
+    const cancel = [...host.querySelectorAll("button")].find((button) => button.textContent === "Cancel plan")!;
+    await act(async () => cancel.click());
+    const portal = requests.find((request) => request.path === "/api/billing/portal")!;
+    expect(JSON.parse(String(portal.init.body))).toEqual({ action: "cancel" });
+    expect((portal.init.headers as Record<string, string>)["X-Embel-Account"]).toBe(fixture.session.userId);
+  });
+
   it("explains a cancellation at the period end and the return states", async () => {
     summary = { ...proSummary, subscription: { ...proSummary.subscription, cancelAtPeriodEnd: true } };
     await render("checkout_success");
+    expect(buttons()).not.toContain("Cancel plan");
     expect(host.textContent).toContain("Your plan ends on December");
     expect(host.textContent).toContain("Thank you. Your Pro plan is active.");
     await act(async () => root.unmount());

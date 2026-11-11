@@ -14,10 +14,11 @@ export async function POST(request: Request) {
   try {
     assertMutationOrigin(request);
     if (new URL(request.url).search) throw new ApiError("invalid_input");
-    const { plan } = await readJson(request, portalRequestSchema, 1024);
+    const { plan, action } = await readJson(request, portalRequestSchema, 1024);
+    if (plan && action) throw new ApiError("invalid_input");
     const { user } = await getVerifiedAccountContext(request.signal);
     assertExpectedAccount(request, user.id);
-    return privateJson({ url: await startPortal(billingDependencies(), user.id, plan) });
+    return privateJson({ url: await startPortal(billingDependencies(), user.id, plan, action === "cancel") });
   } catch (error) {
     return errorResponse(error);
   }

@@ -64,7 +64,8 @@ export function PlansWorkspace({ returnState = null }: { returnState?: PlansRetu
   );
 }
 
-type Busy = { plan: PlanId; action: "checkout" | "portal" } | null;
+type PlanChoice = "checkout" | "portal" | "cancel";
+type Busy = { plan: PlanId; action: PlanChoice } | null;
 
 function OwnedPlans({ account, returnState }: { account: VerifiedAccount; returnState: PlansReturnState }) {
   const [summary, setSummary] = useState<BillingSummary | null>(null);
@@ -112,14 +113,20 @@ function OwnedPlans({ account, returnState }: { account: VerifiedAccount; return
   }, [load, returnState]);
 
   const choose = useCallback(
-    async (plan: PlanId, action: "checkout" | "portal") => {
+    async (plan: PlanId, action: PlanChoice) => {
       if (inFlight.current) return;
       inFlight.current = true;
       setBusy({ plan, action });
       setError(null);
       try {
         // Manage opens the portal home; another paid plan opens straight on that change.
-        const body = action === "checkout" || (plan !== "free" && plan !== currentPlan) ? { plan } : {};
+        // Cancel opens straight on cancelling the current plan at the end of its paid period.
+        const body =
+          action === "cancel"
+            ? { action: "cancel" as const }
+            : action === "checkout" || (plan !== "free" && plan !== currentPlan)
+              ? { plan }
+              : {};
         const { url } = await accountRequest(
           action === "checkout" ? "/api/billing/checkout" : "/api/billing/portal",
           billingRedirectResponseSchema,
@@ -152,7 +159,7 @@ function OwnedPlans({ account, returnState }: { account: VerifiedAccount; return
       <PlanGrid summary={summary} busy={busy} onChoose={summary ? choose : null} signedIn />
       <p className="plans-footnote">
         Prices are in US dollars, billed monthly. Taxes are added at checkout where they apply. Payments are processed
-        by Stripe through Link, which handles receipts and billing support. Cancel anytime from Manage plan; your plan
+        by Stripe through Link, which handles receipts and billing support. Cancel anytime with Cancel plan; your plan
         stays active until the end of the period you paid for.
       </p>
     </>
@@ -227,7 +234,7 @@ function PlanGrid({
 }: {
   summary: BillingSummary | null;
   busy: Busy;
-  onChoose: ((plan: PlanId, action: "checkout" | "portal") => void) | null;
+  onChoose: ((plan: PlanId, action: PlanChoice) => void) | null;
   signedIn: boolean;
 }) {
   const subscription = summary?.subscription ?? null;
@@ -261,6 +268,7 @@ function PlanGrid({
               id={id}
               current={current}
               subscribed={Boolean(subscription)}
+              cancelling={Boolean(subscription?.cancelAtPeriodEnd)}
               busy={busy}
               onChoose={onChoose}
               signedIn={signedIn}
@@ -276,6 +284,7 @@ function PlanAction({
   id,
   current,
   subscribed,
+  cancelling,
   busy,
   onChoose,
   signedIn,
@@ -283,15 +292,16 @@ function PlanAction({
   id: PlanId;
   current: boolean;
   subscribed: boolean;
+  cancelling: boolean;
   busy: Busy;
-  onChoose: ((plan: PlanId, action: "checkout" | "portal") => void) | null;
+  onChoose: ((plan: PlanId, action: PlanChoice) => void) | null;
   signedIn: boolean;
 }) {
   const disabled = !onChoose || busy !== null;
   const pending = busy?.plan === id;
   if (id === "free") {
     if (!subscribed) return null;
-    return <p className="plans-hint">To return to Free, cancel your plan from Manage plan.</p>;
+    return <p className="plans-hint">To return to Free, use Cancel plan on your current plan.</p>;
   }
   if (!signedIn) {
     return (
@@ -309,9 +319,16 @@ function PlanAction({
   }
   if (subscribed && current) {
     return (
-      <button type="button" className="button secondary" disabled={disabled} onClick={() => onChoose(id, "portal")}>
-        {pending ? "Opening…" : "Manage plan"}
-      </button>
+      <div className="plans-actions">
+        <button type="button" className="button secondary" disabled={disabled} onClick={() => onChoose(id, "portal")}>
+          {pending && busy?.action === "portal" ? "Opening…" : "Manage plan"}
+        </button>
+        {!cancelling && (
+          <button type="button" className="button secondary" disabled={disabled} onClick={() => onChoose(id, "cancel")}>
+            {pending && busy?.action === "cancel" ? "Opening…" : "Cancel plan"}
+          </button>
+        )}
+      </div>
     );
   }
   if (subscribed) {
