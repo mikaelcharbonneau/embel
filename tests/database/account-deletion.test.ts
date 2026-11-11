@@ -10,6 +10,7 @@ import {
   seedProject,
   type TestDatabase,
 } from "./local-supabase";
+import { reviewedStrategy } from "../fixtures/reviewed-strategy";
 
 // Synthetic local accounts on the complete migrated PGlite schema. No live
 // Supabase service, Storage API or Auth API is involved.
@@ -128,6 +129,73 @@ async function seedAccount(owner: string) {
   return { project, paid, active };
 }
 
+/** A project whose brand name was chosen through the database's own functions,
+ * with a transformed variant and saved Identity preferences. Each forms a
+ * foreign-key cycle between tables: the naming session points at the chosen
+ * selection, which points at its candidate, which points back at the session;
+ * a transformed candidate and its transform point at each other's tables; the
+ * Identity session points at its preferences, which point back at it.
+ * Optionally moved to the trash afterwards. */
+async function seedChosenName(owner: string, { trashed = false } = {}) {
+  const context = reviewedStrategy({ description: "Chosen name fixture" });
+  const project = await asRole(db, "authenticated", owner, async () => {
+    const project = (
+      await db.query<{ id: string }>("select * from public.create_project('complete_brand','Named',$1::jsonb,$2)", [
+        JSON.stringify(context),
+        HASH,
+      ])
+    ).rows[0]!.id;
+    const imported = (
+      await db.query<{ r: { entry: { candidate: { id: string } } } }>(
+        "select public.import_local_name($1,1,$2::jsonb,$3::jsonb,'cedar',$4) as r",
+        [
+          project,
+          JSON.stringify({
+            id: crypto.randomUUID(),
+            value: "Cedar",
+            createdAt: "2026-11-11T12:00:00Z",
+            origin: "manual",
+            history: [],
+          }),
+          JSON.stringify(context),
+          `deletion-name-${owner.slice(0, 8)}-${trashed ? "trash" : "live"}`,
+        ],
+      )
+    ).rows[0]!.r;
+    const tag = `${owner.slice(0, 8)}-${trashed ? "trash" : "live"}`;
+    await db.query("select public.persist_name_transform($1,$2,null,$3::jsonb,$4::jsonb,$5)", [
+      project,
+      imported.entry.candidate.id,
+      JSON.stringify({ kind: "tweaks", seed: "Cedar", operations: ["uppercase"] }),
+      JSON.stringify({
+        candidates: [{ value: "CEDAR", identityKey: "cedar", explanation: "Uppercase." }],
+        truncated: false,
+        notes: [],
+      }),
+      `deletion-transform-${tag}`,
+    ]);
+    await db.query("select public.select_project_name($1,$2,1,false)", [project, imported.entry.candidate.id]);
+    await db.query("select public.set_identity_preferences($1,$2::jsonb)", [
+      project,
+      JSON.stringify({
+        expectedPreferencesRevision: 0,
+        preferences: { version: 1, creativeLocale: "en", notes: "", avoidanceNotes: "" },
+      }),
+    ]);
+    return project;
+  });
+  if (trashed) {
+    // Moved to the trash the way the server does it (choosing the name made revision 2).
+    await db.query("select set_config('request.jwt.claim.sub', $1, false)", [owner]);
+    try {
+      await db.query("select * from public.set_project_deleted($1,2,0,true)", [project]);
+    } finally {
+      await db.query("select set_config('request.jwt.claim.sub', '', false)");
+    }
+  }
+  return project;
+}
+
 beforeAll(async () => {
   db = await createTestDatabase();
   // The shared fixture gives storage.objects created_at like the real table.
@@ -232,6 +300,44 @@ describe("account purge", () => {
       "completed",
     );
     expect(await ownedSnapshot(OWNER_B)).toEqual(otherBefore);
+  });
+
+  it("removes a person who chose and transformed names and saved Identity preferences, live and in the trash", async () => {
+    await seedChosenName(OWNER_A);
+    await seedChosenName(OWNER_A, { trashed: true });
+    await seedChosenName(OWNER_B);
+    const selected = await db.query<{ n: number }>(
+      "select count(*)::int as n from public.naming_sessions where owner_id = $1 and current_selection_id is not null",
+      [OWNER_A],
+    );
+    expect(selected.rows[0]!.n).toBe(2);
+    expect(
+      (await db.query("select 1 from public.projects where owner_id = $1 and deleted_at is not null", [OWNER_A])).rows,
+    ).toHaveLength(1);
+    const otherBefore = await ownedSnapshot(OWNER_B);
+
+    await call("select public.account_deletion_begin($1) as r", [OWNER_A]);
+    const purged = await call<{ tables: Record<string, number> }>("select public.account_deletion_purge($1) as r", [
+      OWNER_A,
+    ]);
+    expect(purged.tables).toMatchObject({
+      "public.name_candidates": 4,
+      "public.name_transforms": 2,
+      "public.name_selections": 2,
+      "public.naming_sessions": 2,
+      "public.identity_preferences": 2,
+      "public.identity_sessions": 2,
+    });
+    expect(await ownedRows(OWNER_A)).toEqual({});
+    expect(await ownedSnapshot(OWNER_B)).toEqual(otherBefore);
+
+    // Outside the purge the session still cannot point at a selection that does not exist.
+    const dangling = await failure(() =>
+      db.query("update public.naming_sessions set current_selection_id = gen_random_uuid() where owner_id = $1", [
+        OWNER_B,
+      ]),
+    );
+    expect(dangling.code).toBe("23503");
   });
 
   it("keeps history immutable outside the purge, even with the purge setting forged", async () => {
