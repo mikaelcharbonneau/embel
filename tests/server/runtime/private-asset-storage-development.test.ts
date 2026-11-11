@@ -21,7 +21,9 @@ it("uses the exact local endpoint only under the explicit matching development g
     developmentSupabaseUrl: "http://127.0.0.1:54321",
   });
   expect(await storage.read(path)).toMatchObject({ mimeType: "text/plain" });
-  expect(transport.mock.calls[0]![0]).toBe(`http://127.0.0.1:54321/storage/v1/object/fluid-assets/${path}`);
+  expect(transport.mock.calls[0]![0]).toBe(
+    `http://127.0.0.1:54321/storage/v1/object/authenticated/fluid-assets/${path}`,
+  );
   vi.stubEnv("EMBEL_DEVELOPMENT_ENABLED", "false");
   await expect(storage.read(path)).rejects.toMatchObject({ code: "integration_unavailable" });
   expect(transport).toHaveBeenCalledOnce();
@@ -46,6 +48,6 @@ it("retains the hosted default and rejects cross-origin, hosted and disabled ove
   ).toThrow();
   await createSupabasePrivateAssetStorage({ transport, scope: { kind: "home", ownerId } }).read(path);
   expect(transport.mock.calls[0]![0]).toBe(
-    `https://fricsfwqibyhemknqgyf.supabase.co/storage/v1/object/fluid-assets/${path}`,
+    `https://fricsfwqibyhemknqgyf.supabase.co/storage/v1/object/authenticated/fluid-assets/${path}`,
   );
 });

@@ -149,7 +149,7 @@ describe("separate finite Logo verifier and purpose-bound customer delegation", 
       fetch,
       sharedSupabaseOrigin: staging,
     });
-    const path = `${staging}/storage/v1/object/fluid-assets/${owner}/${project}/cccccccc-cccc-4ccc-8ccc-cccccccccccc/dddddddd-dddd-4ddd-8ddd-dddddddddddd`;
+    const path = `${staging}/storage/v1/object/authenticated/fluid-assets/${owner}/${project}/cccccccc-cccc-4ccc-8ccc-cccccccccccc/dddddddd-dddd-4ddd-8ddd-dddddddddddd`;
     await transport(path, { method: "GET" });
     expect(new Headers(fetch.mock.calls[0]![1]!.headers).get("authorization")).toBe("Bearer inert.customer.token");
     await expect(transport(path.replace(project, owner), { method: "GET" })).rejects.toMatchObject({
