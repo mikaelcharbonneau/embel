@@ -1,26 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { accountProjectSchema } from "@/domain/project-api";
-import {
-  DEFAULT_SUBSCRIPTION_LIMITS,
-  strategyJobSchema,
-  strategyOverviewResponseSchema,
-  type StrategyJob,
-} from "@/domain/strategy-jobs";
+import { strategyJobSchema, strategyOverviewResponseSchema, type StrategyJob } from "@/domain/strategy-jobs";
 import { accountProjectDraft } from "@/components/workspace/project-draft-adapter";
 import {
   canContinueStrategy,
   forgetStrategyIntent,
-  formatStrategyCap,
   promptStrategyPlan,
   readStrategyIntent,
   rememberStrategyIntent,
   rememberStrategyPlan,
   strategyIntentPlan,
-  strategyAllowanceLabel,
   strategyAvailabilityMessage,
-  strategyIdempotencyKey,
   strategyJobMatchesRequest,
-  strategyRequestPayload,
   strategyResultApplication,
   verifyStrategyJobs,
 } from "@/components/workspace/account-strategy-client";
@@ -75,7 +66,6 @@ function job() {
       },
     ],
   });
-  if (parsed.billingMode === "chatgpt_subscription") throw new Error("Expected API fixture");
   return parsed;
 }
 const availability = {
@@ -126,7 +116,6 @@ describe("account strategy availability messages", () => {
   it.each([
     ["runtime_disabled", "AI is not enabled in this workspace."],
     ["worker_unavailable", "AI replies are unavailable right now."],
-    ["subscription_unavailable", "The ChatGPT connection is unavailable."],
     ["quota_unavailable", "The current AI request limit is unavailable."],
     [
       "request_unresolved",
@@ -169,13 +158,6 @@ describe("account strategy availability messages", () => {
 });
 
 describe("account strategy admission", () => {
-  it("keeps idempotency stable across remounts while separating revisions and operations", () => {
-    const key = strategyIdempotencyKey(projectId, 3, "strategy.reformulate");
-    expect(key).toBe(strategyIdempotencyKey(projectId, 3, "strategy.reformulate"));
-    expect(key).not.toBe(strategyIdempotencyKey(projectId, 4, "strategy.reformulate"));
-    expect(key).not.toBe(strategyIdempotencyKey(projectId, 3, "strategy.competitors"));
-    expect(key).toMatch(/^[A-Za-z0-9._:-]{16,128}$/);
-  });
   it("rejects a mixed-owner or mixed-project overview before any output is displayed", () => {
     const valid = strategyOverviewResponseSchema.parse({ availability, jobs: [job()] });
     expect(verifyStrategyJobs(valid.jobs, owner, projectId)).toBe(true);
@@ -271,11 +253,6 @@ describe("account strategy admission", () => {
       }),
     ).toBe(false);
   });
-  it("never rounds a disclosed maximum below the actual cap", () => {
-    expect(formatStrategyCap(122880)).toBe("$0.13");
-    expect(formatStrategyCap(3142880)).toBe("$3.15");
-    expect(formatStrategyCap(1)).toBe("$0.01");
-  });
   it("persists only scoped cost consent and prevents reuse by another account or revision", () => {
     const values = new Map<string, string>();
     vi.stubGlobal("window", {
@@ -311,164 +288,6 @@ describe("account strategy admission", () => {
   });
 });
 
-describe("ChatGPT subscription request admission", () => {
-  const limits = { ...DEFAULT_SUBSCRIPTION_LIMITS };
-  const policyIdentity = "a".repeat(64);
-  const subscriptionIntent = {
-    ownerId: owner,
-    projectId,
-    revision: 3,
-    billingMode: "chatgpt_subscription" as const,
-    reformulationLimits: limits,
-    competitorsLimits: limits,
-    reformulationPolicyIdentity: policyIdentity,
-    competitorsPolicyIdentity: policyIdentity,
-  };
-  function subscriptionJob() {
-    const result = job();
-    return strategyJobSchema.parse({
-      ...result,
-      billingMode: "chatgpt_subscription",
-      policyIdentity,
-      results: result.results.map((item) => ({
-        ...item,
-        output: { ...item.output, billingMode: "chatgpt_subscription", usage: null },
-      })),
-    });
-  }
-  const subscriptionAvailability = {
-    status: "available" as const,
-    operations: [
-      {
-        operation: "strategy.competitors" as const,
-        billingMode: "chatgpt_subscription" as const,
-        limits,
-        policyIdentity,
-      },
-      {
-        operation: "strategy.reformulate" as const,
-        billingMode: "chatgpt_subscription" as const,
-        limits,
-        policyIdentity,
-      },
-    ],
-  };
-  it("uses a different stable request identity for subscription and API billing", () => {
-    const paid = strategyIdempotencyKey(projectId, 3, "strategy.reformulate", "openai_api");
-    const subscription = strategyIdempotencyKey(projectId, 3, "strategy.reformulate", "chatgpt_subscription");
-    expect(subscription).not.toBe(paid);
-    expect(subscription).toBe(strategyIdempotencyKey(projectId, 3, "strategy.reformulate", "chatgpt_subscription"));
-  });
-  it("continues the accepted subscription chain without treating plan use as money", () => {
-    const overview = strategyOverviewResponseSchema.parse({
-      availability: subscriptionAvailability,
-      jobs: [appliedJob(subscriptionJob())],
-    });
-    expect(canContinueStrategy(subscriptionIntent, appliedWorkspace, overview)).toBe(true);
-    expect(canContinueStrategy(subscriptionIntent, workspace, overview)).toBe(false);
-    expect(canContinueStrategy(intent, appliedWorkspace, overview)).toBe(false);
-    expect(canContinueStrategy(subscriptionIntent, appliedWorkspace, { ...overview, availability })).toBe(false);
-    expect(canContinueStrategy(subscriptionIntent, appliedWorkspace, { ...overview, jobs: [appliedJob()] })).toBe(
-      false,
-    );
-    expect(
-      canContinueStrategy(subscriptionIntent, appliedWorkspace, {
-        ...overview,
-        availability: {
-          ...subscriptionAvailability,
-          operations: subscriptionAvailability.operations.map((item) => ({
-            ...item,
-            limits: { ...limits, maxRequestsPerHour: limits.maxRequestsPerHour + 1 },
-          })),
-        },
-      }),
-    ).toBe(false);
-  });
-  it("binds automatic continuation and accepted replies to the exact selected policy", () => {
-    const overview = strategyOverviewResponseSchema.parse({
-      availability: subscriptionAvailability,
-      jobs: [appliedJob(subscriptionJob())],
-    });
-    for (const operation of ["strategy.reformulate", "strategy.competitors"]) {
-      const changed = {
-        ...subscriptionAvailability,
-        operations: subscriptionAvailability.operations.map((item) =>
-          item.operation === operation ? { ...item, policyIdentity: "b".repeat(64) } : item,
-        ),
-      };
-      expect(canContinueStrategy(subscriptionIntent, appliedWorkspace, { ...overview, availability: changed })).toBe(
-        false,
-      );
-    }
-    const changedJob = strategyJobSchema.parse({ ...appliedJob(subscriptionJob()), policyIdentity: "b".repeat(64) });
-    expect(canContinueStrategy(subscriptionIntent, appliedWorkspace, { ...overview, jobs: [changedJob] })).toBe(false);
-    expect(
-      strategyJobMatchesRequest(changedJob, "strategy.reformulate", 3, {
-        billingMode: "chatgpt_subscription",
-        limits,
-        policyIdentity,
-      }),
-    ).toBe(false);
-  });
-  it("stores accepted policy identities and rejects legacy subscription consent without them", () => {
-    const values = new Map<string, string>();
-    vi.stubGlobal("window", {
-      sessionStorage: {
-        getItem: (key: string) => values.get(key) ?? null,
-        setItem: (key: string, value: string) => values.set(key, value),
-      },
-    });
-    const scoped = { ...subscriptionIntent, revision: 31 };
-    rememberStrategyIntent(scoped);
-    expect(JSON.parse([...values.values()][0]!)).toEqual([scoped]);
-    values.set(
-      "fluid.strategy-consent.v1",
-      JSON.stringify([
-        {
-          ownerId: owner,
-          projectId,
-          revision: 32,
-          billingMode: "chatgpt_subscription",
-          reformulationLimits: limits,
-          competitorsLimits: limits,
-        },
-      ]),
-    );
-    expect(readStrategyIntent(owner, projectId, 32)).toBeNull();
-  });
-  it("omits currency from subscription requests and disclosures while retaining API caps", () => {
-    const allowance = { billingMode: "chatgpt_subscription" as const, limits, policyIdentity };
-    expect(strategyRequestPayload(projectId, 3, "strategy.reformulate", allowance)).toEqual({
-      billingMode: "chatgpt_subscription",
-      acceptedPolicyIdentity: policyIdentity,
-      operation: "strategy.reformulate",
-      expectedRevision: 3,
-      idempotencyKey: strategyIdempotencyKey(projectId, 3, "strategy.reformulate", "chatgpt_subscription"),
-    });
-    const label = strategyAllowanceLabel(allowance);
-    expect(label).toContain("ChatGPT plan limits apply");
-    expect(label).toContain(`${limits.maxRequestsPerHour} requests per hour`);
-    expect(label).not.toMatch(/\$|free|remaining/i);
-    expect(
-      strategyRequestPayload(projectId, 3, "strategy.reformulate", {
-        billingMode: "openai_api",
-        maximumCostMicrousd: 123456,
-      }),
-    ).toHaveProperty("acceptedMaxCostMicrousd", 123456);
-  });
-  it("never bundles different billing modes into one accepted prompt plan", () => {
-    expect(
-      promptStrategyPlan({
-        status: "available",
-        operations: [
-          { operation: "strategy.reformulate", billingMode: "chatgpt_subscription", limits, policyIdentity },
-          { operation: "strategy.competitors", maximumCostMicrousd: 100000 },
-        ],
-      }),
-    ).toBeNull();
-  });
-});
-
 describe("response-only API consent", () => {
   const responseAvailability = {
     status: "available" as const,
@@ -485,20 +304,6 @@ describe("response-only API consent", () => {
         status: "available",
         operations: [{ operation: "strategy.competitors", maximumCostMicrousd: 100000 }],
       }),
-    ).toBeNull();
-  });
-  it("does not fall back to response-only for mixed billing or incomplete subscription plans", () => {
-    const subscription = {
-      operation: "strategy.competitors" as const,
-      billingMode: "chatgpt_subscription" as const,
-      limits: DEFAULT_SUBSCRIPTION_LIMITS,
-      policyIdentity: "a".repeat(64),
-    };
-    expect(
-      promptStrategyPlan({ status: "available", operations: [...responseAvailability.operations, subscription] }),
-    ).toBeNull();
-    expect(
-      promptStrategyPlan({ status: "available", operations: [{ ...subscription, operation: "strategy.reformulate" }] }),
     ).toBeNull();
   });
   it("stores no research allowance and never continues after acceptance or later readiness", async () => {

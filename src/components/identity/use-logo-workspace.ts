@@ -15,7 +15,7 @@ import {
   type LogoStageRevision,
   type LogoWorkspaceV2,
 } from "@/domain/logo-workspace";
-import { logoGenerationIntentSchema, type LogoGenerationIntent, type LogoRequestState } from "@/domain/logo-jobs";
+import type { LogoRequestState } from "@/domain/logo-jobs";
 import { AccountRequestError, accountErrorMessage } from "@/components/workspace/account-api";
 import { useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import {
@@ -43,15 +43,13 @@ const sameScope = (a: Scope, b: Scope) =>
   a.injected === b.injected;
 type Activity = { scope: Scope; busy: boolean; error: string | null; failed: boolean; editableSave?: boolean };
 const same = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
-const unresolved = (record: LogoDraftRecord) =>
-  !!(record.pendingIntent || record.pendingExport || record.pendingMutation);
+const unresolved = (record: LogoDraftRecord) => !!(record.pendingExport || record.pendingMutation);
 const empty = (): LogoDraftRecord => ({
   workspace: null,
   base: null,
   brief: { name: "", activity: "", audience: "", personality: "", logoTypes: [] },
   references: [],
   dirty: false,
-  pendingIntent: null,
   pendingExport: null,
   pendingMutation: null,
   conflict: false,
@@ -199,11 +197,6 @@ export function useLogoWorkspace({
     [account, isCurrent, memory, projectId],
   );
   const record = useSyncExternalStore(memory.subscribe, snapshot, () => null);
-  const proposal = useSyncExternalStore(
-    memory.subscribe,
-    () => memory.getVectorProposal(projectId),
-    () => null,
-  );
   const visible = !!(account && isCurrent(account));
   const busy = !!(visible && scope && activity && sameScope(activity.scope, scope) && activity.busy);
   const saving = busy && activity?.editableSave === true;
@@ -333,11 +326,7 @@ export function useLogoWorkspace({
             previous.vectorDraft ||
             previous.directionDraft ||
             previous.conflict ||
-            unresolved(previous) ||
-            (memory.getVectorProposal(projectId) &&
-              (memory.getVectorProposal(projectId)!.dirty ||
-                memory.getVectorProposal(projectId)!.pendingGeneration ||
-                memory.getVectorProposal(projectId)!.pendingApplication))) &&
+            unresolved(previous)) &&
           !discard
         ) {
           result = "draft_blocked";
@@ -385,17 +374,7 @@ export function useLogoWorkspace({
       const value = memory.get(projectId);
       if (
         !value ||
-        (!value.dirty &&
-          !value.vectorDraft &&
-          !value.directionDraft &&
-          !value.conflict &&
-          !unresolved(value) &&
-          !(
-            memory.getVectorProposal(projectId) &&
-            (memory.getVectorProposal(projectId)!.dirty ||
-              memory.getVectorProposal(projectId)!.pendingGeneration ||
-              memory.getVectorProposal(projectId)!.pendingApplication)
-          ))
+        (!value.dirty && !value.vectorDraft && !value.directionDraft && !value.conflict && !unresolved(value))
       ) {
         void reload(false);
         return;
@@ -447,20 +426,6 @@ export function useLogoWorkspace({
   }
   function setReferenceDraft(selections: LogoReferenceSelection[]): void {
     edit((value) => ({ ...value, references: selections, dirty: true }));
-  }
-  function retainIntent(intent: LogoGenerationIntent): void {
-    if (!editable()) return;
-    const parsed = logoGenerationIntentSchema.safeParse(intent);
-    if (!parsed.success) throw new AccountRequestError(422);
-    const value = memory.get(projectId);
-    if (!value?.workspace || value.dirty || value.conflict || value.pendingMutation || value.pendingExport)
-      throw new AccountRequestError(409);
-    memory.set(projectId, { ...value, pendingIntent: parsed.data });
-  }
-  function clearIntent(requestKey: string): void {
-    if (!editable()) return;
-    const value = memory.get(projectId);
-    if (value?.pendingIntent?.requestKey === requestKey) memory.set(projectId, { ...value, pendingIntent: null });
   }
 
   async function applyMutation(
@@ -561,7 +526,7 @@ export function useLogoWorkspace({
           }
         }
         if (value.workspace.capabilities.save.status !== "available") throw new AccountRequestError(503);
-        if (value.pendingIntent || value.pendingExport || value.conflict) throw new AccountRequestError(409);
+        if (value.pendingExport || value.conflict) throw new AccountRequestError(409);
         if (!value.pendingMutation) {
           // Store original bodies/keys before sending. Acknowledgement alone does
           // not clear pending until its exact reference snapshot is readable.
@@ -694,9 +659,6 @@ export function useLogoWorkspace({
     !unresolved(record) &&
     !record.vectorDraft &&
     !record.directionDraft &&
-    !proposal?.dirty &&
-    !proposal?.pendingGeneration &&
-    !proposal?.pendingApplication &&
     record.workspace?.stages.brief_references &&
     record.workspace.capabilities.save.status === "available" &&
     loaded &&
@@ -727,19 +689,13 @@ export function useLogoWorkspace({
     stagePayloads,
     referenceSnapshot,
     draft: visible ? record : null,
-    dirty: !!(visible && (record?.dirty || record?.vectorDraft || record?.directionDraft || proposal?.dirty)),
-    pending: !!(
-      visible &&
-      (busy || (record && unresolved(record)) || proposal?.pendingGeneration || proposal?.pendingApplication)
-    ),
+    dirty: !!(visible && (record?.dirty || record?.vectorDraft || record?.directionDraft)),
+    pending: !!(visible && (busy || (record && unresolved(record)))),
     saving,
     autoSaveReady,
     error,
     canEdit: !!(visible && client && (!busy || saving) && record),
     client,
-    pendingIntent: visible ? (record?.pendingIntent ?? null) : null,
-    retainIntent,
-    clearIntent,
     setBriefDraft,
     setReferenceDraft,
     reload,

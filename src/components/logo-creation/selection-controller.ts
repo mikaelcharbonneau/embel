@@ -79,14 +79,7 @@ export async function selectLogoCandidate(
     draft = input.memory.get(input.projectId);
   if (!draft?.workspace || !draft.base || draft.workspace.capabilities.save.status !== "available")
     throw new AccountRequestError(503);
-  if (
-    draft.dirty ||
-    draft.vectorDraft ||
-    draft.directionDraft ||
-    draft.conflict ||
-    draft.pendingIntent ||
-    draft.pendingExport
-  )
+  if (draft.dirty || draft.vectorDraft || draft.directionDraft || draft.conflict || draft.pendingExport)
     throw new AccountRequestError(409);
   if (draft.pendingMutation) {
     const pending = draft.pendingMutation.command;

@@ -295,42 +295,31 @@ describe("Logo brief and reference autosave", () => {
     expect(f.writes).toHaveLength(1);
   });
 
-  it.each(["vector", "direction", "proposal"] as const)(
+  it.each(["vector", "direction"] as const)(
     "does not queue brief autosave while a protected %s draft remains",
     async (kind) => {
       const f = fixture();
       await mount(f);
       await act(async () => {
-        if (kind === "proposal")
-          memory.setVectorProposal(f.workspace.projectId, {
-            baseVectorRevisionId: id(400),
-            instruction: "Make the symbol larger",
-            targetComponentIds: ["symbol"],
-            dirty: true,
-            pendingGeneration: null,
-            pendingApplication: null,
-            selectedProposalId: null,
-          });
-        else
-          memory.set(f.workspace.projectId, {
-            ...state.draft!,
-            ...(kind === "vector"
-              ? {
-                  vectorDraft: {
-                    baseVectorRevisionId: id(400),
-                    edit: { kind: "rotation", componentId: "symbol", degrees: 15 },
-                  },
-                }
-              : {
-                  directionDraft: {
-                    approvedLogoId: id(400),
-                    paletteVersionId: id(401),
-                    typographyVersionId: id(402),
-                    graphicsVersionId: id(403),
-                    reviewedConsistencyHash: null,
-                  },
-                }),
-          });
+        memory.set(f.workspace.projectId, {
+          ...state.draft!,
+          ...(kind === "vector"
+            ? {
+                vectorDraft: {
+                  baseVectorRevisionId: id(400),
+                  edit: { kind: "rotation", componentId: "symbol", degrees: 15 },
+                },
+              }
+            : {
+                directionDraft: {
+                  approvedLogoId: id(400),
+                  paletteVersionId: id(401),
+                  typographyVersionId: id(402),
+                  graphicsVersionId: id(403),
+                  reviewedConsistencyHash: null,
+                },
+              }),
+        });
       });
       expect(state.dirty).toBe(true);
       expect(state.autoSaveReady).toBe(false);
@@ -339,8 +328,7 @@ describe("Logo brief and reference autosave", () => {
       expect(state.autoSaveReady).toBe(false);
       expect(f.writes).toHaveLength(0);
       await act(async () => {
-        if (kind === "proposal") memory.setVectorProposal(f.workspace.projectId, null);
-        else memory.set(f.workspace.projectId, { ...state.draft!, vectorDraft: null, directionDraft: null });
+        memory.set(f.workspace.projectId, { ...state.draft!, vectorDraft: null, directionDraft: null });
       });
       expect(state.autoSaveReady).toBe(true);
       await tick(LOGO_AUTOSAVE_DELAY_MS);

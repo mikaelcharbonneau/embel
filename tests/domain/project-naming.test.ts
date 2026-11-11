@@ -9,9 +9,6 @@ import {
   initialNamingPreferences,
   nameIdentityKey,
   nameSelectionSchema,
-  namingBatchSchema,
-  namingBatchTarget,
-  namingExclusionSnapshotSchema,
   namingPreferencesSchema,
   nameTransformSchema,
   namingSessionSchema,
@@ -73,22 +70,6 @@ const completeContext = () =>
     positioning: "A garden together.",
     intake: { ...context().intake, audienceReviewedAt: at, personalityReviewedAt: at, positioningReviewedAt: at },
   });
-const batch = () => ({
-  id: batchId,
-  ownerId,
-  projectId,
-  contextRevision: 4,
-  strategyBasis: namingStrategyBasis(context()),
-  strategyKey: namingStrategyKey(context()),
-  preferencesVersion: 1,
-  preferences: preferences(),
-  favoritesSnapshot: [{ candidateId: id(9), value: "Cedar" }],
-  acceptedPolicyIdentity: "a".repeat(64),
-  targetCount: 100,
-  sequence: 1,
-  jobId,
-  createdAt: at,
-});
 const candidate = () => ({
   id: candidateId,
   ownerId,
@@ -109,43 +90,24 @@ const candidate = () => ({
     value: "Cedar",
     batchId,
     jobId,
-    stepKey: "names",
+    stepKey: "prepare",
+    version: 2,
+    handlerVersion: "naming-brain-v1",
+    runId: id(7),
+    sourceArtifactId: id(8),
+    sourceStageKey: "creation",
+    protocol: "openai_responses",
+    sessionId: null,
+    turnId: null,
+    agentId: null,
     provider: "openai",
-    billingMode: "chatgpt_subscription",
+    billingMode: "openai_api",
     model: "fixture-model",
+    providerItemId: "fixture-item",
     responseId: "fixture-response",
     requestId: null,
     generatedAt: at,
   },
-});
-
-describe("stored name exclusion snapshots", () => {
-  it("bounds and freezes every stored candidate without dropping duplicate identities", () => {
-    const rows = Array.from({ length: 10_000 }, (_, n) => ({
-      candidateId: id(n + 100),
-      value: "Cedar",
-      identityKey: "cedar",
-    }));
-    const parsed = namingExclusionSnapshotSchema.parse(rows);
-    expect(parsed).toHaveLength(10_000);
-    expect(Object.isFrozen(parsed)).toBe(true);
-    expect(Object.isFrozen(parsed[0])).toBe(true);
-    expect(namingExclusionSnapshotSchema.safeParse([...rows, { ...rows[0]!, candidateId: id(20_000) }]).success).toBe(
-      false,
-    );
-    expect(namingExclusionSnapshotSchema.safeParse([rows[0], rows[0]]).success).toBe(false);
-  });
-  it("fails canonical wrong value/key pairs and preserves valid empty manual identities", () => {
-    expect(namingExclusionSnapshotSchema.safeParse([{ candidateId, value: "Cedar", identityKey: "elm" }]).success).toBe(
-      false,
-    );
-    expect(namingExclusionSnapshotSchema.parse([{ candidateId, value: "!!!", identityKey: "" }])[0]!.identityKey).toBe(
-      "",
-    );
-    expect(namingExclusionSnapshotSchema.safeParse([{ candidateId, value: "Cedar", identityKey: "" }]).success).toBe(
-      false,
-    );
-  });
 });
 
 describe("project naming preferences and readiness", () => {
@@ -264,32 +226,6 @@ describe("name identity keys", () => {
 });
 
 describe("immutable project naming records", () => {
-  it("fixes initial and continuation targets to distinct, positive batch sequences", () => {
-    expect(namingBatchTarget(1)).toBe(250);
-    expect(namingBatchTarget(2)).toBe(50);
-    expect(() => namingBatchTarget(0)).toThrow();
-    expect(namingBatchSchema.safeParse(batch()).success).toBe(true);
-    expect(namingBatchSchema.safeParse({ ...batch(), targetCount: 250 }).success).toBe(true);
-    expect(namingBatchSchema.safeParse({ ...batch(), targetCount: 50 }).success).toBe(false);
-    expect(namingBatchSchema.safeParse({ ...batch(), sequence: 2, targetCount: 250 }).success).toBe(false);
-    expect(
-      namingBatchSchema.safeParse({ ...batch(), sequence: 2, targetCount: 50, id: id(10), jobId: id(11) }).success,
-    ).toBe(true);
-    expect(namingBatchSchema.safeParse({ ...batch(), sequence: 2 }).success).toBe(false);
-    expect(namingBatchSchema.safeParse({ ...batch(), strategyKey: "forged" }).success).toBe(false);
-  });
-  it("copies and freezes the exact preference and favorite snapshots", () => {
-    const raw = batch();
-    const parsed = namingBatchSchema.parse(raw);
-    raw.preferences.notes = "Later edit";
-    raw.favoritesSnapshot[0]!.value = "Later favorite value";
-    expect(parsed.preferences.notes).toBe("Simple and warm.");
-    expect(parsed.favoritesSnapshot[0]!.value).toBe("Cedar");
-    expect(Object.isFrozen(parsed)).toBe(true);
-    expect(Object.isFrozen(parsed.preferences)).toBe(true);
-    expect(Object.isFrozen(parsed.favoritesSnapshot)).toBe(true);
-    expect(Object.isFrozen(parsed.favoritesSnapshot[0])).toBe(true);
-  });
   it("binds generated value, identity and references without treating a favorite as selection", () => {
     expect(projectNameCandidateSchema.safeParse(candidate()).success).toBe(true);
     expect(projectNameCandidateSchema.safeParse({ ...candidate(), identityKey: "elm" }).success).toBe(false);

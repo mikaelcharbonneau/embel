@@ -51,7 +51,6 @@ function setup(existing = false) {
     dirty: false,
     conflict: false,
     pendingMutation: null,
-    pendingIntent: null,
     pendingExport: null,
   });
   let source: LogoSavedInputs = logoSavedInputsSchema.parse({

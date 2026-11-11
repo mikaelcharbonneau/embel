@@ -5,19 +5,12 @@ import { expect, test, type Page, type Route } from "@playwright/test";
 import { accountProjectSchema, type AccountProject } from "../../src/domain/project-api";
 import { contextSnapshotSchema, type ProjectScope } from "../../src/domain/projects";
 import { namingSourceSchema, transformNames, type NameTransformInput } from "../../src/domain/naming";
-import {
-  getNamingFulfillment,
-  projectNamingOverviewSchema,
-  type NamingBatchEntry,
-  type NamingJob,
-} from "../../src/domain/naming-jobs";
+import { projectNamingOverviewSchema } from "../../src/domain/naming-jobs";
 import {
   namingPreferencesV1Schema,
-  emptyNamingRejectionCounts,
   getNamingReadiness,
   initialNamingPreferences,
   nameIdentityKey,
-  namingBatchTarget,
   namingStrategyBasis,
   namingStrategyKey,
   type CurrentNameSelection,
@@ -25,7 +18,52 @@ import {
   type NamingSession,
   type ProjectNameEntry,
 } from "../../src/domain/project-naming";
-import { DEFAULT_SUBSCRIPTION_LIMITS } from "../../src/domain/strategy-jobs";
+
+// The retired worker's batch, job and fulfillment shapes. The app no longer parses them (Naming runs
+// on the generation engine and the overview only checks ownership), so this mock keeps them as plain
+// test types.
+type NamingBatchEntry = {
+  batch: {
+    id: string;
+    sequence: number;
+    targetCount: number;
+    contextRevision: number;
+    strategyBasis: ProjectNameEntry["candidate"]["strategyBasis"];
+    strategyKey: string;
+    createdAt: string;
+    [key: string]: unknown;
+  };
+  result: Record<string, unknown> | null;
+};
+type NamingJob = { id: string; [key: string]: unknown };
+const namingBatchTarget = (sequence: number) => (sequence === 1 ? 250 : 50);
+const getNamingFulfillment = (targetCount: number, acceptedCount: number, rejections: Record<string, number>) => ({
+  status: acceptedCount === targetCount ? "complete" : acceptedCount > 0 ? "partial" : "none",
+  targetCount,
+  acceptedCount,
+  rejections,
+  message:
+    acceptedCount === targetCount
+      ? null
+      : `${acceptedCount} of ${targetCount} requested names passed validation and project-history checks. No names were added to fill the shortfall.`,
+});
+const emptyNamingRejectionCounts = () => ({
+  invalid_candidate: 0,
+  empty_identity: 0,
+  below_minimum: 0,
+  above_maximum: 0,
+  duplicate_response: 0,
+  duplicate_history: 0,
+  over_target: 0,
+});
+const DEFAULT_SUBSCRIPTION_LIMITS = {
+  maxInputBytes: 131_072,
+  maxOutputBytes: 262_144,
+  deadlineMs: 240_000,
+  maxObservedWebSearchCalls: 2,
+  maxRequestsPerHour: 20,
+  maxQueuedJobs: 3,
+};
 
 // All accounts, provider output and database responses in this suite are intercepted local fixtures.
 const ownerId = "aaaaaaaa-1111-4111-8111-111111111111";
@@ -230,10 +268,20 @@ async function fixtures(page: Page, scope: ProjectScope = "complete_brand") {
             value,
             batchId: item.batch.id,
             jobId: job.id,
-            stepKey: "response",
+            stepKey: "prepare",
+            version: 2,
+            handlerVersion: "naming-brain-v1",
+            runId: uuid("99999999", item.batch.sequence),
+            sourceArtifactId: uuid("88888888", item.batch.sequence),
+            sourceStageKey: "creation",
+            protocol: "openai_responses",
+            sessionId: null,
+            turnId: null,
+            agentId: null,
             provider: "openai",
-            billingMode: "chatgpt_subscription",
+            billingMode: "openai_api",
             model: "synthetic-model",
+            providerItemId: `synthetic-item-${item.batch.sequence}`,
             responseId: `synthetic-response-${item.batch.sequence}`,
             requestId: null,
             generatedAt: when,

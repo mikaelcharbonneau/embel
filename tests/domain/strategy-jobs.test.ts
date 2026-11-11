@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  applyStrategyJobSchema,
-  applyStrategyJobResponseSchema,
-  enqueueStrategyJobSchema,
+  strategyAssistantHistorySchema,
   strategyAvailabilitySchema,
   strategyJobInputSchema,
   strategyJobResultSchema,
@@ -45,35 +43,6 @@ const result = {
 };
 
 describe("strategy job contracts", () => {
-  const request = {
-    operation: "strategy.reformulate",
-    expectedRevision: 1,
-    idempotencyKey: "fixture-request-0001",
-    acceptedMaxCostMicrousd: 122_880,
-  };
-  it("accepts only a revision, bounded cap, operation and idempotency key from a caller", () => {
-    expect(enqueueStrategyJobSchema.parse(request)).toEqual(request);
-    for (const extra of [
-      { ownerId: "forged" },
-      { model: "forged" },
-      { context },
-      { prompt: "forged" },
-      { policy },
-      { output: result },
-    ]) {
-      expect(enqueueStrategyJobSchema.safeParse({ ...request, ...extra }).success).toBe(false);
-    }
-  });
-  it.each([
-    { expectedRevision: 0 },
-    { operation: "identity.image" },
-    { idempotencyKey: "short" },
-    { idempotencyKey: "spaces are not safe" },
-    { acceptedMaxCostMicrousd: -1 },
-    { acceptedMaxCostMicrousd: 0.1 },
-  ])("rejects malformed enqueue field %j", (invalid) => {
-    expect(enqueueStrategyJobSchema.safeParse({ ...request, ...invalid }).success).toBe(false);
-  });
   it("binds versioned policy and full saved context to the accepted cap", () => {
     expect(
       strategyJobInputSchema.parse({ version: 1, context, policy, acceptedMaxCostMicrousd: 122_880 }).context,
@@ -141,20 +110,6 @@ describe("strategy job contracts", () => {
         }).success,
       ).toBe(false);
     }
-    const project = {
-      id: job.project_id,
-      owner_id: job.owner_id,
-      scope: "complete_brand",
-      title: "Local fixture",
-      current_revision: 2,
-      created_at: job.created_at,
-      context,
-    };
-    expect(applyStrategyJobResponseSchema.safeParse({ project, application }).success).toBe(true);
-    expect(applyStrategyJobResponseSchema.safeParse({ project }).success).toBe(false);
-    expect(
-      applyStrategyJobResponseSchema.safeParse({ project: { ...project, current_revision: 3 }, application }).success,
-    ).toBe(false);
   });
   it("never lets a model approve competitor or audience choices, or invent audience sources", () => {
     const competitor = {
@@ -207,15 +162,54 @@ describe("strategy job contracts", () => {
       }).success,
     ).toBe(false);
   });
-  it("keeps apply input source-bound and availability honest", () => {
-    expect(applyStrategyJobSchema.safeParse({ expectedRevision: 1, stepKey: "proposal" }).success).toBe(true);
-    expect(applyStrategyJobSchema.safeParse({ expectedRevision: 1, stepKey: "proposal", output: result }).success).toBe(
-      false,
-    );
+  it("keeps availability honest", () => {
     expect(strategyAvailabilitySchema.safeParse({ status: "available", operations: [] }).success).toBe(false);
     expect(
       strategyAvailabilitySchema.safeParse({ status: "unavailable", operations: [], reason: "worker_unavailable" })
         .success,
     ).toBe(true);
+    expect(
+      strategyAvailabilitySchema.safeParse({
+        status: "unavailable",
+        operations: [],
+        reason: "subscription_unavailable",
+      }).success,
+    ).toBe(false);
+    expect(
+      strategyAvailabilitySchema.safeParse({
+        status: "available",
+        operations: [
+          { operation: "strategy.reformulate", billingMode: "chatgpt_subscription", policyIdentity: "a".repeat(64) },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+  it("validates server history: source identity, uniqueness, chronology, size and full typed proposals", () => {
+    const entry = {
+      jobId: crypto.randomUUID(),
+      ownerId: crypto.randomUUID(),
+      projectId: crypto.randomUUID(),
+      stepKey: "respond",
+      inputRevision: 1,
+      completedAt: "2026-10-03T12:00:00Z",
+      output: result,
+    };
+    const history = (entries: unknown[]) => ({ entries, truncated: false });
+    expect(strategyAssistantHistorySchema.parse(history([entry])).entries).toEqual([entry]);
+    for (const entries of [
+      [entry, entry],
+      [{ ...entry, ownerId: "untrusted-owner" }],
+      [{ ...entry, output: { ...result, reasoning: "synthetic forbidden reasoning" } }],
+      [{ ...entry, output: { ...result, proposal: { ...result.proposal, approved: true } } }],
+      [entry, { ...entry, jobId: crypto.randomUUID(), completedAt: "2026-10-04T12:00:00Z" }],
+      Array.from({ length: 6 }, () => ({ ...entry, jobId: crypto.randomUUID() })),
+      Array.from({ length: 5 }, () => ({
+        ...entry,
+        jobId: crypto.randomUUID(),
+        output: { ...result, proposal: { ...result.proposal, message: "é".repeat(6000) } },
+      })),
+    ]) {
+      expect(strategyAssistantHistorySchema.safeParse(history(entries)).success).toBe(false);
+    }
   });
 });

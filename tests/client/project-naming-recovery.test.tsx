@@ -3,7 +3,6 @@ import { act, createElement, useLayoutEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { accountProjectSchema } from "@/domain/project-api";
-import { DEFAULT_SUBSCRIPTION_LIMITS } from "@/domain/strategy-jobs";
 import {
   getNamingReadiness,
   initialNamingPreferences,
@@ -28,8 +27,7 @@ vi.mock("@/components/workspace/account-session", () => ({
   useAccountSession: () => ({ drafts: mock.memory, isCurrent: mock.current, expire: mock.expire }),
 }));
 const projectId = "bbbbbbbb-1111-4111-8111-111111111111",
-  when = "2026-10-04T10:00:00.000Z",
-  policyIdentity = "a".repeat(64);
+  when = "2026-10-04T10:00:00.000Z";
 const base = `/api/projects/${projectId}/naming`;
 const id = (index: number) => `eeeeeeee-1111-4111-8111-${String(index).padStart(12, "0")}`;
 const deferred = <T,>() => {
@@ -158,13 +156,7 @@ beforeEach(() => {
     currentSelection: null,
     batches: { ...owned, items: [], nextCursor: null },
     candidates: { ...owned, items: [], nextCursor: null },
-    availability: {
-      status: "available",
-      operation: "naming.generate",
-      billingMode: "chatgpt_subscription",
-      policyIdentity,
-      limits: { ...DEFAULT_SUBSCRIPTION_LIMITS, maxObservedWebSearchCalls: 0 },
-    },
+    availability: { status: "unavailable", operation: "naming.generate", reason: "naming_policy_unavailable" },
     jobs: [],
     screening: {
       domains: { status: "not_checked", reason: "integration_unavailable" },

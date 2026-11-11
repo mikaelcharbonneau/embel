@@ -5,7 +5,7 @@ import { useProjectLogoEvidence } from "@/components/workspace/project-workspace
 import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import type { LogoRasterSource } from "@/domain/logo-workspace";
 import { logoUuidSchema } from "@/domain/logo-vector";
-import type { LogoConceptBatch, LogoQuoteRequest } from "@/domain/logo-jobs";
+import type { LogoConceptBatch, LogoRunRequest } from "@/domain/logo-jobs";
 import { brandTextReadiness } from "@/domain/brand-board-fonts";
 import { IMAGE_INPUT_LIMITS } from "@/domain/logo-image-limits";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
@@ -313,7 +313,7 @@ function OwnedLogoCreation({
     void batchHistory?.refresh();
     setBatchReload((value) => value + 1);
     const retained = memory.get(projectId);
-    if (retained && !retained.pendingIntent && !retained.dirty) void reloadWorkspace(false);
+    if (retained && !retained.dirty) void reloadWorkspace(false);
   }, [activeConceptRunId, batchHistory, memory, projectId, reloadWorkspace]);
 
   const editing = workspace.canEdit && !savedInputsBusy && !selectionState.busy;
@@ -418,7 +418,7 @@ function OwnedLogoCreation({
         },
       }
     : null;
-  const conceptsRequest: LogoQuoteRequest | null =
+  const conceptsRequest: LogoRunRequest | null =
     !activeBatch &&
     !batchId &&
     !savedBatchLoading &&
@@ -790,7 +790,7 @@ function OwnedLogoCreation({
   function discardAndReload() {
     if (!canDiscard || requestRead.current) return;
     const latest = memory.get(projectId);
-    if (!latest || latest.pendingMutation || latest.pendingIntent || latest.pendingExport) return;
+    if (!latest || latest.pendingMutation || latest.pendingExport) return;
     setConfirmReload(false);
     void workspace.reload(true);
   }

@@ -13,7 +13,6 @@ import {
   type FontRightsEvidence,
   type PermittedFont,
 } from "@/domain/logo-directions";
-import { logoDirectionsJobInputSchema } from "@/domain/logo-jobs";
 import type { AuthenticatedContext } from "@/server/auth/context";
 import { ApiError } from "@/server/http/errors";
 import { readLogoFontRecord } from "@/server/data/logo-workspace";
@@ -231,31 +230,6 @@ export function createLeasedFontResolver(dependencies: LeasedFontResolverDepende
     return checkFont(record, asset.bytes, asset.mimeType, purpose, license, signal);
   };
 }
-/** A standalone export record lacks frozen membership. Use the injected factory with its source loader. */
-export async function resolveLeasedFont(
-  job: ClaimedJob,
-  record: FontRecord,
-  purpose: FontPurpose,
-  store: IdentityAssetStore,
-  signal: AbortSignal,
-): Promise<PermittedFont> {
-  const input = logoDirectionsJobInputSchema.safeParse(job.input);
-  if (
-    !input.success ||
-    job.operation !== input.data.operation ||
-    input.data.ownerId !== job.ownerId ||
-    input.data.projectId !== job.projectId ||
-    !input.data.fontVersionIds.includes(record.id)
-  )
-    throw new ApiError("not_found");
-  // A matching ID does not establish the exact saved record. The direct production
-  // entrypoint remains unavailable until its immutable source loader is configured.
-  void purpose;
-  void store;
-  active(signal);
-  throw new ApiError("integration_unavailable");
-}
-
 /** Uploaded declarations remain unreviewed; known family names never promote them. */
 export function describeUploadedFontRights(input: {
   id: string;

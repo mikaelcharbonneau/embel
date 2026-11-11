@@ -36,7 +36,6 @@ const reasons = [
   ["budget_unavailable", "No AI requests are available for this account."],
   ["worker_unavailable", "AI replies are unavailable right now."],
   ["runtime_disabled", "AI is not enabled in this workspace."],
-  ["subscription_unavailable", "The ChatGPT connection is unavailable."],
   ["quota_unavailable", "The current AI request limit is unavailable."],
   [
     "request_unresolved",

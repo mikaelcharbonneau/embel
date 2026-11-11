@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useGenerationEstimate, type LogoEngineStarter } from "@/components/logo-creation/use-generation-estimate";
 import { logoDrawingSlotIds, logoRefineRequestStatus, logoRunBatchId, logoUndrawnSlotIds } from "@/domain/logo-engine";
 import type { GenerationRun } from "@/domain/generations";
-import type { LogoConceptBatch, LogoQuoteRequest } from "@/domain/logo-jobs";
+import type { LogoConceptBatch, LogoRunRequest } from "@/domain/logo-jobs";
 
 // The Logo screens start work on the generation engine; with its Logo kinds off nothing starts.
 let root: Root, host: HTMLDivElement;
@@ -29,21 +29,21 @@ const heads = {
   workspaceRevision: 1,
   stageRevisions: { brief_references: 1, concepts: 0, vector: 0, refinements: 0, directions: 0, deliverables: 0 },
 };
-const request: LogoQuoteRequest = {
+const request: LogoRunRequest = {
   operation: "concepts",
   expected: heads,
   briefRevisionId: "eeeeeeee-5555-4555-8555-555555555555",
   referenceSnapshotId: "eeeeeeee-5555-4555-8555-555555555556",
 };
 const probe: { current: ReturnType<typeof useGenerationEstimate> | null } = { current: null };
-function Probe({ value, engine }: { value: LogoQuoteRequest | null; engine: LogoEngineStarter | null }) {
+function Probe({ value, engine }: { value: LogoRunRequest | null; engine: LogoEngineStarter | null }) {
   const estimate = useGenerationEstimate(value, engine);
   useLayoutEffect(() => {
     probe.current = estimate;
   });
   return null;
 }
-async function render(value: LogoQuoteRequest | null, engine: LogoEngineStarter | null) {
+async function render(value: LogoRunRequest | null, engine: LogoEngineStarter | null) {
   await act(async () => root.render(createElement(Probe, { value, engine })));
 }
 

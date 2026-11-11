@@ -1,12 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import {
-  RECORDED_USAGE_LIMIT,
-  recordedTokensSchema,
-  recordedUsageOperationSchema,
-  recordedUsageSchema,
-} from "@/domain/recorded-usage";
-import { strategyUsageSchema, subscriptionUsageSchema } from "@/domain/strategy-jobs";
+import { RECORDED_USAGE_LIMIT, recordedUsageOperationSchema, recordedUsageSchema } from "@/domain/recorded-usage";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 import { getNamingUsage } from "./naming-generation";
@@ -16,7 +10,7 @@ const jobSchema = z.object({
   owner_id: z.uuid(),
   project_id: z.uuid(),
   operation: recordedUsageOperationSchema,
-  billing_mode: z.enum(["openai_api", "chatgpt_subscription"]),
+  billing_mode: z.string(),
   state: z.literal("succeeded"),
   finished_at: z.iso.datetime({ offset: true }),
 });
@@ -33,17 +27,19 @@ function verified<T>(schema: z.ZodType<T>, value: unknown): T {
   if (!parsed.success) throw new ApiError("integration_unavailable");
   return parsed.data;
 }
+/** Old step receipts record input and output tokens separately (cached input is already part of
+ * input), whichever mode made them; together they are the request total. */
+const receiptUsageSchema = z.object({
+  inputTokens: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+  outputTokens: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+});
 function recordedTokens(value: unknown) {
-  const subscription = subscriptionUsageSchema.safeParse(value);
-  if (subscription.success) return recordedTokensSchema.parse(subscription.data);
-  const api = strategyUsageSchema.safeParse(value);
-  if (!api.success) return null;
-  // API-mode receipts record input and output separately; together they are the
-  // request total (cached input is already part of input).
-  const totalTokens = api.data.inputTokens + api.data.outputTokens;
+  const usage = receiptUsageSchema.safeParse(value);
+  if (!usage.success) return null;
+  const totalTokens = usage.data.inputTokens + usage.data.outputTokens;
   return {
-    inputTokens: api.data.inputTokens,
-    outputTokens: api.data.outputTokens,
+    inputTokens: usage.data.inputTokens,
+    outputTokens: usage.data.outputTokens,
     totalTokens: Number.isSafeInteger(totalTokens) ? totalTokens : null,
   };
 }

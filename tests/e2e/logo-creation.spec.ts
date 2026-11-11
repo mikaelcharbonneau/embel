@@ -9,16 +9,12 @@ import {
   syntheticLogoWorkspace,
   syntheticResolvedLogoConcept,
   logoFixtureId as id,
+  type LogoCostQuote,
+  type LogoGenerationIntent,
+  type LogoQuoteRequest,
 } from "../fixtures/logo-creation";
 import { IMAGE_MODEL } from "../../src/domain/providers";
-import { logoCostQuoteSchema } from "../../src/domain/logo-jobs";
-import type {
-  LogoCostQuote,
-  LogoGenerationIntent,
-  LogoQuoteRequest,
-  LogoRequestState,
-  LogoConceptBatch,
-} from "../../src/domain/logo-jobs";
+import type { LogoRequestState, LogoConceptBatch } from "../../src/domain/logo-jobs";
 import {
   logoStageRevisionSchema,
   type LogoBriefDraft,
@@ -384,7 +380,7 @@ async function setup(
       };
       delete rawQuote.maxCostMicrousd;
       delete rawQuote.externalProviderCostMicrousd;
-      const quote = logoCostQuoteSchema.parse({
+      const quote: LogoCostQuote = {
         ...rawQuote,
         version: 3,
         billingMode: "openai_api",
@@ -393,7 +389,7 @@ async function setup(
         model: IMAGE_MODEL,
         handlerVersion: "logo-image-v1",
         estimatedCostMicrousd: scenario === "unknown_estimate" ? null : rawQuote.estimatedCostMicrousd,
-      });
+      } as unknown as LogoCostQuote;
       state.quote = quote;
       state.issuedQuotes.set(quote.id, quote);
       if (state.quoteGate) await state.quoteGate;

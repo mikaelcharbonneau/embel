@@ -4,7 +4,7 @@ import { sharedImageModelSchema } from "./providers";
 import { identityLogoSourceSchema } from "./identity-logo-source";
 import { brandBoardApplicationDesignSchema } from "./brand-board-design";
 import { logoRasterSourceSchema } from "./logo-workspace";
-import { logoVectorProposalUsageSchema } from "./logo-vector-proposal-jobs";
+import { logoTextUsageSchema } from "./logo-text-usage";
 import {
   identityComponentsSchema,
   identityInputSnapshotSchema,
@@ -519,7 +519,7 @@ export const identityGenerationObservationSchema = z
     observedAt: timestamp,
     responseComplete: z.boolean(),
     serviceTier: z.string().min(1).max(100).nullable(),
-    usage: z.union([logoVectorProposalUsageSchema, imageUsage]).nullable(),
+    usage: z.union([logoTextUsageSchema, imageUsage]).nullable(),
     billing: z.discriminatedUnion("status", [
       z.strictObject({ status: z.literal("recorded"), confirmedMicrousd: moneySchema }),
       z.strictObject({ status: z.literal("unknown"), confirmedMicrousd: z.null() }),
