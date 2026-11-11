@@ -9,29 +9,11 @@ import {
   type ProjectScope,
 } from "./projects";
 import { accountProjectSchema, accountProjectSummarySchema } from "./project-api";
-import {
-  getNamingPreferencesReadiness,
-  namingApproachSchema,
-  namingPreferencesV2Schema,
-} from "./naming-brain-preferences";
+import { namingApproachSchema, namingPreferencesV2Schema } from "./naming-brain-preferences";
 import { namingChatCheckpointSchema } from "./naming-chat-checkpoint";
-
-export const NAMING_INITIAL_TARGET = 250;
-/** Immutable first batches admitted before the 250-name correction remain readable. */
-export const NAMING_LEGACY_INITIAL_TARGET = 100;
-export const NAMING_MAX_BATCH_SIZE = NAMING_INITIAL_TARGET;
-/** Reversible implementation choice for subsequent explicitly requested batches. */
-export const NAMING_CONTINUATION_TARGET = 50;
 export const NAMING_MAX_PAGE_SIZE = 100;
 export const NAMING_MAX_TRANSFORM_HISTORY = 32;
 export const NAMING_MUTATION_MAX_BYTES = 32_768;
-export const NAMING_MAX_SNAPSHOT_ENTRIES = 10_000;
-export const namingTargetCountSchema = z.union([
-  z.literal(NAMING_INITIAL_TARGET),
-  z.literal(NAMING_LEGACY_INITIAL_TARGET),
-  z.literal(NAMING_CONTINUATION_TARGET),
-]);
-export type NamingTargetCount = z.infer<typeof namingTargetCountSchema>;
 const revisionSchema = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 const counterSchema = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const timestampSchema = z.iso.datetime({ offset: true });
@@ -40,7 +22,6 @@ const idempotencyKeySchema = z
   .min(16)
   .max(128)
   .regex(/^[A-Za-z0-9._:-]+$/);
-const policyIdentitySchema = z.string().regex(/^[0-9a-f]{64}$/);
 const ownershipFields = { ownerId: z.uuid(), projectId: z.uuid() };
 
 /** Zod clones input; freezing the parsed graph prevents later in-memory snapshot edits. */
@@ -50,22 +31,6 @@ function freezeSnapshot<T>(value: T): Readonly<T> {
     Object.freeze(value);
   }
   return value;
-}
-
-export function namingBatchTarget(sequence: number): NamingTargetCount {
-  revisionSchema.parse(sequence);
-  return sequence === 1 ? NAMING_INITIAL_TARGET : NAMING_CONTINUATION_TARGET;
-}
-
-/** Stored contracts accept the original first target; new admission uses namingBatchTarget. */
-export function isNamingBatchTargetCompatible(sequence: number, targetCount: NamingTargetCount): boolean {
-  return (
-    Number.isSafeInteger(sequence) &&
-    sequence > 0 &&
-    (sequence === 1
-      ? targetCount === NAMING_INITIAL_TARGET || targetCount === NAMING_LEGACY_INITIAL_TARGET
-      : targetCount === NAMING_CONTINUATION_TARGET)
-  );
 }
 
 export const namingPreferencesV1Schema = z
@@ -87,8 +52,8 @@ export const namingPreferencesV1Schema = z
 export const namingPreferencesSchema = z
   .union([namingPreferencesV1Schema, namingPreferencesV2Schema])
   .transform(freezeSnapshot);
-export type NamingPreferencesV1 = z.infer<typeof namingPreferencesV1Schema>;
 export type NamingPreferences = z.infer<typeof namingPreferencesSchema>;
+type NamingPreferencesV1 = z.infer<typeof namingPreferencesV1Schema>;
 
 /** An unsaved starting suggestion, never an invented preference revision or answer. */
 export function initialNamingPreferences(context: ContextSnapshot): NamingPreferencesV1 {
@@ -263,156 +228,9 @@ export const generatedNameProposalSchema = z.strictObject({
   rationale: z.string().trim().min(1).max(2000),
   caution: z.string().trim().min(1).max(2000).optional(),
 });
-export type GeneratedNameProposal = z.infer<typeof generatedNameProposalSchema>;
-export const acceptedGeneratedNameSchema = generatedNameProposalSchema
-  .extend({
-    identityKey: nameIdentityKeySchema.refine(
-      (value) => value.length > 0,
-      "Generated names require a nonempty identity",
-    ),
-  })
-  .superRefine((value, ctx) => {
-    const name = nameValueSchema.safeParse(value.value);
-    if (name.success && nameIdentityKey(name.data) !== value.identityKey)
-      ctx.addIssue({ code: "custom", path: ["identityKey"], message: "Identity must match the name" });
-  })
-  .transform(freezeSnapshot);
-export type AcceptedGeneratedName = z.infer<typeof acceptedGeneratedNameSchema>;
-export const namingRejectionCountsSchema = z.strictObject({
-  invalid_candidate: counterSchema,
-  empty_identity: counterSchema,
-  below_minimum: counterSchema,
-  above_maximum: counterSchema,
-  duplicate_response: counterSchema,
-  duplicate_history: counterSchema,
-  over_target: counterSchema,
-});
-export type NamingRejectionCounts = z.infer<typeof namingRejectionCountsSchema>;
-export function emptyNamingRejectionCounts(): NamingRejectionCounts {
-  return {
-    invalid_candidate: 0,
-    empty_identity: 0,
-    below_minimum: 0,
-    above_maximum: 0,
-    duplicate_response: 0,
-    duplicate_history: 0,
-    over_target: 0,
-  };
-}
-
-export const namingFavoritesSnapshotSchema = z
-  .array(z.strictObject({ candidateId: z.uuid(), value: nameValueSchema }))
-  .max(NAMING_MAX_SNAPSHOT_ENTRIES)
-  .refine((rows) => new Set(rows.map((row) => row.candidateId)).size === rows.length, {
-    message: "Favorite candidate IDs must be unique",
-  })
-  .transform(freezeSnapshot);
-/** Verify stored Unicode identities in JS; SQL freezes values without approximating V1 normalization. */
-export const namingExclusionSnapshotSchema = z
-  .array(
-    z
-      .strictObject({
-        candidateId: z.uuid(),
-        value: nameValueSchema,
-        identityKey: nameIdentityKeySchema,
-      })
-      .superRefine((entry, ctx) => {
-        const value = nameValueSchema.safeParse(entry.value);
-        if (value.success && nameIdentityKey(value.data) !== entry.identityKey)
-          ctx.addIssue({
-            code: "custom",
-            path: ["identityKey"],
-            message: "Exclusion identity must match its historical name value",
-          });
-      }),
-  )
-  .max(NAMING_MAX_SNAPSHOT_ENTRIES)
-  .refine((rows) => new Set(rows.map((row) => row.candidateId)).size === rows.length, {
-    message: "Exclusion candidate IDs must be unique",
-  })
-  .transform(freezeSnapshot);
-export type NamingExclusionSnapshot = z.infer<typeof namingExclusionSnapshotSchema>;
 const strategyFields = { strategyBasis: namingStrategyBasisSchema, strategyKey: strategyKeySchema };
-export const legacyNamingBatchSchema = z
-  .strictObject({
-    id: z.uuid(),
-    ...ownershipFields,
-    contextRevision: revisionSchema,
-    ...strategyFields,
-    preferencesVersion: revisionSchema,
-    preferences: namingPreferencesV1Schema,
-    favoritesSnapshot: namingFavoritesSnapshotSchema,
-    acceptedPolicyIdentity: policyIdentitySchema,
-    targetCount: namingTargetCountSchema,
-    sequence: revisionSchema,
-    jobId: z.uuid(),
-    createdAt: timestampSchema,
-  })
-  .superRefine((batch, ctx) => {
-    if (!isNamingBatchTargetCompatible(batch.sequence, batch.targetCount))
-      ctx.addIssue({
-        code: "custom",
-        path: ["targetCount"],
-        message: "Target must match the initial or continuation sequence",
-      });
-    const basis = namingStrategyBasisSchema.safeParse(batch.strategyBasis);
-    if (basis.success && batch.strategyKey !== namingStrategyKeyFromBasis(basis.data))
-      ctx.addIssue({ code: "custom", path: ["strategyKey"], message: "Strategy key must match its frozen basis" });
-  })
-  .transform(freezeSnapshot);
-export type LegacyNamingBatch = z.infer<typeof legacyNamingBatchSchema>;
-export const namingBrainBatchSchema = z
-  .strictObject({
-    version: z.literal(2),
-    handlerVersion: z.literal("naming-brain-v1"),
-    billingMode: z.literal("openai_api"),
-    runId: z.uuid(),
-    id: z.uuid(),
-    ...ownershipFields,
-    contextRevision: revisionSchema,
-    ...strategyFields,
-    preferencesVersion: revisionSchema,
-    preferences: namingPreferencesV2Schema,
-    favoritesSnapshot: namingFavoritesSnapshotSchema,
-    acceptedPolicyIdentity: policyIdentitySchema,
-    targetCount: z.literal(100),
-    sequence: revisionSchema,
-    jobId: z.uuid(),
-    createdAt: timestampSchema,
-  })
-  .superRefine((batch, ctx) => {
-    if (batch.strategyKey !== namingStrategyKeyFromBasis(batch.strategyBasis))
-      ctx.addIssue({ code: "custom", path: ["strategyKey"], message: "Strategy key must match its frozen basis" });
-    if (!getNamingPreferencesReadiness(batch.preferences).ready)
-      ctx.addIssue({
-        code: "custom",
-        path: ["preferences"],
-        message: "An admitted Naming brain batch requires ready saved choices",
-      });
-  })
-  .transform(freezeSnapshot);
-export type NamingBrainBatch = z.infer<typeof namingBrainBatchSchema>;
-export const namingBatchSchema = z.union([legacyNamingBatchSchema, namingBrainBatchSchema]);
-export type NamingBatch = z.infer<typeof namingBatchSchema>;
 
 const rootFields = { ...ownershipFields, candidateId: z.uuid(), contextRevision: revisionSchema };
-export const generatedNamingOriginV1Schema = z.strictObject({
-  kind: z.literal("generated"),
-  ...rootFields,
-  value: nameValueSchema.refine(
-    (value) => value.replace(/[\p{P}\s]/gu, "").length > 0,
-    "Generated ancestry requires a nonempty identity",
-  ),
-  batchId: z.uuid(),
-  jobId: z.uuid(),
-  stepKey: z.string().min(1).max(200),
-  provider: z.literal("openai"),
-  billingMode: z.literal("chatgpt_subscription"),
-  model: z.string().min(1).max(150),
-  responseId: z.string().min(1).max(300),
-  requestId: z.string().min(1).max(300).nullable(),
-  generatedAt: timestampSchema,
-});
 const generatedV2Fields = {
   kind: z.literal("generated"),
   version: z.literal(2),
@@ -454,10 +272,7 @@ export const generatedNamingOriginV2Schema = z.discriminatedUnion("protocol", [
   }),
 ]);
 export type GeneratedNamingOriginV2 = z.infer<typeof generatedNamingOriginV2Schema>;
-export const generatedNamingOriginSchema = z.discriminatedUnion("billingMode", [
-  generatedNamingOriginV1Schema,
-  generatedNamingOriginV2Schema,
-]);
+export const generatedNamingOriginSchema = generatedNamingOriginV2Schema;
 /** Future initial ideation has a distinct honest provenance contract. It is not
  * a researched/verified Naming brain artifact and cannot acquire such claims. */
 export const brainstormNamingOriginSchema = z.discriminatedUnion("version", [

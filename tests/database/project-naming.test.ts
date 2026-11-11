@@ -4,7 +4,8 @@ import {
   namingStrategyKeyFromBasis,
   projectNameCandidateSchema,
 } from "../../src/domain/project-naming";
-import { namingBatchDetailResponseSchema, projectNamingOverviewSchema } from "../../src/domain/naming-jobs";
+import { z } from "zod";
+import { projectNamingOverviewSchema } from "../../src/domain/naming-jobs";
 import { asRole, createTestDatabase, HASH, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from "./local-supabase";
 import { seedGeneratedNames } from "./retired-worker-fixture";
 import { reviewedStrategy } from "../fixtures/reviewed-strategy";
@@ -14,6 +15,8 @@ import { reviewedStrategy } from "../fixtures/reviewed-strategy";
 const context = reviewedStrategy({ description: "Explicit local naming fixture" });
 const preferences = { version: 1, creativeLocale: "en", notes: "", minimumGraphemes: null, maximumGraphemes: null };
 const at = "2026-10-04T12:00:00Z";
+// Only the saved candidate ids of a finished old-worker batch are read back from the database.
+const batchDetailSchema = z.object({ result: z.object({ candidateIds: z.array(z.uuid()) }).nullable() });
 function normalize(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(normalize);
   if (!value || typeof value !== "object") return value;
@@ -67,7 +70,7 @@ describe("project Naming database boundaries (local fixture only)", () => {
   async function generate() {
     await save();
     const { batchId } = await seedGeneratedNames(db, OWNER_A, project, ["Cedar", "Elm"]);
-    const detail = namingBatchDetailResponseSchema.parse(normalize(await rpc("get_naming_batch", [project, batchId])));
+    const detail = batchDetailSchema.parse(normalize(await rpc("get_naming_batch", [project, batchId])));
     return { ids: detail.result!.candidateIds };
   }
   async function importName(

@@ -4,6 +4,9 @@ import sharp from "sharp";
 import {
   syntheticLogoBatch,
   syntheticLogoQuote,
+  type LogoCostQuote,
+  type LogoGenerationIntent,
+  type LogoQuoteRequest,
   syntheticLogoWorkspace,
   syntheticResolvedLogoConcept,
   logoFixtureId as id,
@@ -12,9 +15,6 @@ import { syntheticRasterRefinement } from "./logo-refinement-history";
 import {
   logoRasterRefinementSchema,
   logoOperationSchema,
-  type LogoCostQuote,
-  type LogoGenerationIntent,
-  type LogoQuoteRequest,
   type LogoRequestState,
   type LogoRasterRefinement,
 } from "../../src/domain/logo-jobs";

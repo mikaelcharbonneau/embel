@@ -7,11 +7,8 @@ import {
   rememberStrategyPlan,
   readStrategyIntent,
   strategyIntentPlan,
-  strategyRequestPayload,
-  strategyAllowanceLabel,
   strategyAllowanceWithin,
   strategyJobMatchesRequest,
-  strategyPromptCost,
 } from "@/components/workspace/account-strategy-client";
 
 const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -45,27 +42,10 @@ beforeEach(() => {
   window.localStorage.clear();
 });
 
-it("uses future policy consent and idempotency without a monetary field; legacy bodies stay exact", () => {
+it("offers the engine's uncapped policy consent without a monetary field", () => {
   const plan = promptStrategyPlan(available())!;
   expect(isUncappedStrategyAllowance(plan.reformulation)).toBe(true);
-  expect(strategyPromptCost(plan)).toBeNull();
-  expect(strategyAllowanceLabel(plan.reformulation)).toBe("OpenAI API usage");
-  expect(strategyRequestPayload(project, 3, "strategy.reformulate", plan.reformulation)).toEqual({
-    operation: "strategy.reformulate",
-    expectedRevision: 3,
-    idempotencyKey: `strategy.managed.v3:${project}:3:strategy.reformulate`,
-    billingMode: "openai_api",
-    spendControl: "uncapped",
-    acceptedPolicyIdentity: response,
-  });
-  expect(
-    strategyRequestPayload(project, 3, "strategy.reformulate", { billingMode: "openai_api", maximumCostMicrousd: 100 }),
-  ).toEqual({
-    operation: "strategy.reformulate",
-    expectedRevision: 3,
-    idempotencyKey: `strategy.v1:${project}:3:strategy.reformulate`,
-    acceptedMaxCostMicrousd: 100,
-  });
+  expect(plan.reformulation).toEqual({ billingMode: "openai_api", spendControl: "uncapped", policyIdentity: response });
 });
 
 it("retains the exact two-operation policy consent across browser storage reads", () => {

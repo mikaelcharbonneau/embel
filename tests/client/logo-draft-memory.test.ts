@@ -50,7 +50,6 @@ const draft = (saved = false): LogoDraftRecord => ({
   brief: structuredClone(brief),
   references: [],
   dirty: true,
-  pendingIntent: null,
   pendingExport: null,
   pendingMutation: null,
   conflict: false,
@@ -123,7 +122,7 @@ describe("provider-owned logo drafts", () => {
     expect(() => store.set(projectId, { ...value, pendingMutation: forged } as unknown as LogoDraftRecord)).toThrow();
     expect(store.get(projectId)).toBeNull();
   });
-  it("retains export options and generation/manual intents under their original keys", () => {
+  it("retains export options and manual intents under their original keys", () => {
     const store = memory(),
       value = draft(true);
     value.dirty = false;
@@ -147,16 +146,8 @@ describe("provider-owned logo drafts", () => {
     expect(() =>
       store.set(projectId, { ...value, pendingExport: { ...value.pendingExport!, pngLongEdge: 512 } }),
     ).toThrow();
-    store.set(projectId, {
-      ...value,
-      pendingExport: null,
-      pendingIntent: { requestKey, quoteId: id(9), acceptedMaxCostMicrousd: 7, expected: heads },
-    });
-    expect(store.hasUnsaved()).toBe(true);
-    const current = store.get(projectId)!;
-    expect(() =>
-      store.set(projectId, { ...current, pendingIntent: { ...current.pendingIntent!, quoteId: id(10) } }),
-    ).toThrow();
+    store.set(projectId, { ...value, pendingExport: null });
+    expect(store.hasUnsaved()).toBe(false);
   });
   it("requires strict durable bodies even when the editable draft is incomplete", () => {
     const store = memory(),
@@ -242,28 +233,25 @@ describe("provider-owned logo drafts", () => {
     expect(store.get(id(101))?.workspace?.projectId).toBe(id(101));
   });
 
-  it("preserves edits, pending requests and vector proposal drafts while making room", () => {
+  it("preserves edits and pending requests while making room", () => {
     const store = memory(),
-      pending = { requestKey, quoteId: id(9), acceptedMaxCostMicrousd: 7, expected: heads };
+      pending = {
+        requestKey,
+        expected: heads,
+        approvedLogoId: id(5),
+        directionApprovalId: id(6),
+        variantSetId: id(7),
+        pngLongEdge: 4096 as const,
+        socialSelections: [{ kind: "avatar" as const, presetId: "square" }],
+      };
     store.set(id(101), savedDraft(id(101), true));
-    store.set(id(102), { ...savedDraft(id(102)), pendingIntent: pending });
+    store.set(id(102), { ...savedDraft(id(102)), pendingExport: pending });
     store.set(id(103), savedDraft(id(103)));
-    const proposal = {
-      baseVectorRevisionId: id(400),
-      instruction: "Make the symbol larger",
-      targetComponentIds: ["symbol"],
-      dirty: true,
-      pendingGeneration: null,
-      pendingApplication: null,
-      selectedProposalId: null,
-    };
-    store.setVectorProposal(id(103), proposal);
     for (let n = 4; n <= 21; n++) store.set(id(100 + n), savedDraft(id(100 + n)));
     expect(store.get(id(101))?.dirty).toBe(true);
-    expect(store.get(id(102))?.pendingIntent).toEqual(pending);
-    expect(store.get(id(103))).not.toBeNull();
-    expect(store.getVectorProposal(id(103))).toEqual(proposal);
-    expect(store.get(id(104))).toBeNull();
+    expect(store.get(id(102))?.pendingExport).toEqual(pending);
+    expect(store.get(id(103))).toBeNull();
+    expect(store.get(id(104))).not.toBeNull();
     expect(store.get(id(121))).not.toBeNull();
     expect(store.hasUnsaved()).toBe(true);
   });

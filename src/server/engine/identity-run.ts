@@ -5,7 +5,7 @@ import { supportedBrandBoardTypography } from "@/domain/brand-board-fonts";
 import { identitySystemSpecificationSchema, type IdentitySystemSpecification } from "@/domain/identity-jobs";
 import { IMAGE_INPUT_LIMITS } from "@/domain/logo-image-limits";
 import type { VerifiedAssetBytes } from "@/domain/logo-deliverables";
-import { logoVectorProposalUsageCost, logoVectorProposalUsageSchema } from "@/domain/logo-vector-proposal-jobs";
+import { logoTextUsageCost, logoTextUsageSchema } from "@/domain/logo-text-usage";
 import { IMAGE_MODEL } from "@/domain/providers";
 import { createIdentitySpecificationRequest, identityBoardPrompt } from "../ai/identity-direction-requests";
 import type { ResponsesRequest } from "../ai/openai-transport";
@@ -260,13 +260,13 @@ export async function pollSpecification(
 export function specificationCost(body: unknown): number {
   const usage = record(record(body)?.usage),
     details = record(usage?.input_tokens_details);
-  const parsed = logoVectorProposalUsageSchema.safeParse({
+  const parsed = logoTextUsageSchema.safeParse({
     inputTokens: usage?.input_tokens,
     cachedInputTokens: details?.cached_tokens ?? 0,
     cacheWriteInputTokens: details?.cache_write_tokens ?? 0,
     outputTokens: usage?.output_tokens,
   });
-  return parsed.success ? logoVectorProposalUsageCost(parsed.data) : 0;
+  return parsed.success ? logoTextUsageCost(parsed.data) : 0;
 }
 
 /**
@@ -296,7 +296,7 @@ export function specificationFromResponse(
     return { code: "invalid_output" };
   const usage = record(value.usage),
     details = record(usage?.input_tokens_details);
-  const parsedUsage = logoVectorProposalUsageSchema.safeParse({
+  const parsedUsage = logoTextUsageSchema.safeParse({
     inputTokens: usage?.input_tokens,
     cachedInputTokens: details?.cached_tokens,
     cacheWriteInputTokens: details?.cache_write_tokens,

@@ -41,7 +41,6 @@ describe("logo provider and hook SSR privacy", () => {
       brief: { name: "Private draft", activity: "", audience: "", personality: "", logoTypes: [] },
       references: [],
       dirty: true,
-      pendingIntent: null,
       pendingExport: null,
       pendingMutation: null,
       conflict: false,
@@ -53,7 +52,6 @@ describe("logo provider and hook SSR privacy", () => {
       expect(result.workspace).toBeNull();
       expect(result.canEdit).toBe(false);
       expect(result.client).toBeNull();
-      expect(result.pendingIntent).toBeNull();
       expect(result.stagePayloads).toBeNull();
       return createElement("span", null, result.status);
     }
@@ -252,7 +250,6 @@ it("rejects stale hydration after another consumer replaces memory with dirty wo
     brief: { ...fixture.brief, name: "Keep this dirty work" },
     references: [],
     dirty: true,
-    pendingIntent: null,
     pendingExport: null,
     pendingMutation: null,
     conflict: false,

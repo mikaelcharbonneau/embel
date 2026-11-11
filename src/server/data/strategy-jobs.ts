@@ -6,7 +6,7 @@ import {
   strategyJobResultSchema,
   strategyJobSummarySchema,
   strategyOverviewResponseSchema,
-  subscriptionPolicyIdentitySchema,
+  policyIdentitySchema,
   type StrategyJob,
 } from "@/domain/strategy-jobs";
 import type { AuthenticatedContext } from "../auth/context";
@@ -26,7 +26,7 @@ async function readJobSummaries(auth: AuthenticatedContext, projectId: string, j
   });
   databaseError(error);
   const rows = parseStored(z.array(z.unknown()).max(jobId === null ? 64 : 1), data);
-  return rows.map((row) => ownSummary(auth, projectId, row));
+  return rows.flatMap((row) => ownSummary(auth, projectId, row) ?? []);
 }
 const stepSchema = z.object({
   job_id: z.uuid(),
@@ -58,36 +58,34 @@ function resourceId(id: string) {
   return id;
 }
 
-/** Old requests carry their billing mode and contract fields; ChatGPT-plan requests still display. */
+/**
+ * Old requests carry their billing mode and contract fields. Requests made in the retired
+ * ChatGPT-plan mode (production still holds a few) have no engine equivalent and are
+ * skipped; every other row must parse or the read fails.
+ */
 function ownSummary(auth: AuthenticatedContext, projectId: string, value: unknown) {
   const raw = parseStored(z.record(z.string(), z.unknown()), value);
-  if (
-    raw.billing_mode !== undefined &&
-    raw.billing_mode !== "openai_api" &&
-    raw.billing_mode !== "chatgpt_subscription"
-  )
+  if (raw.billing_mode === "chatgpt_subscription") return null;
+  if (raw.billing_mode !== undefined && raw.billing_mode !== "openai_api")
     throw new ApiError("integration_unavailable");
-  const mode = raw.billing_mode ?? raw.billingMode;
   const uncapped = z
     .object({
       input_version: z.literal(3),
       input_spend_control: z.literal("uncapped"),
-      input_policy_identity: subscriptionPolicyIdentitySchema,
+      input_policy_identity: policyIdentitySchema,
     })
     .safeParse(raw);
   if (raw.input_version === 3 && !uncapped.success) throw new ApiError("integration_unavailable");
   const job = parseStored(
     strategyJobSummarySchema,
-    mode === "chatgpt_subscription"
-      ? { ...raw, billingMode: mode, policyIdentity: raw.policy_identity ?? raw.policyIdentity }
-      : uncapped.success
-        ? {
-            ...raw,
-            billingMode: "openai_api",
-            spendControl: "uncapped",
-            policyIdentity: uncapped.data.input_policy_identity,
-          }
-        : raw,
+    uncapped.success
+      ? {
+          ...raw,
+          billingMode: "openai_api",
+          spendControl: "uncapped",
+          policyIdentity: uncapped.data.input_policy_identity,
+        }
+      : raw,
   );
   if (job.owner_id !== auth.userId || job.project_id !== projectId) throw new ApiError("not_found");
   return job;

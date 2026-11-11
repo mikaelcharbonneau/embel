@@ -1,10 +1,8 @@
 import { z } from "zod";
 import { jobStatusSchema, moneySchema } from "./jobs";
 import { audienceSegmentSchema, competitorSchema, contextSnapshotSchema, personalitySchema } from "./projects";
-import { accountProjectResponseSchema } from "./project-api";
 import { guidedReplySchema } from "./guided-interview";
 
-export const STRATEGY_JOB_MUTATION_MAX_BYTES = 2_048;
 export const strategyOperationSchema = z.enum([
   "strategy.reformulate",
   "strategy.competitors",
@@ -14,6 +12,8 @@ export const strategyOperationSchema = z.enum([
   "strategy.slogan",
 ]);
 export type StrategyOperation = z.infer<typeof strategyOperationSchema>;
+/** SHA-256 hex of the frozen request policy; the browser echoes it back with a run. */
+export const policyIdentitySchema = z.string().regex(/^[0-9a-f]{64}$/);
 
 /** Operator-owned policy, copied into immutable job input. Never browser input. */
 const strategyPolicyFields = {
@@ -53,76 +53,6 @@ export const strategyJobPolicySchema = z
       });
   });
 export type StrategyJobPolicy = z.infer<typeof strategyJobPolicySchema>;
-
-/** Application stop/rate limits; these do not claim remaining ChatGPT plan quota. */
-export const subscriptionLimitsSchema = z.strictObject({
-  maxInputBytes: z.number().int().min(1024).max(1_048_576),
-  maxOutputBytes: z.number().int().min(1024).max(1_048_576),
-  deadlineMs: z.number().int().min(1000).max(300_000),
-  maxObservedWebSearchCalls: z.number().int().min(0).max(10),
-  maxRequestsPerHour: z.number().int().min(1).max(100),
-  maxQueuedJobs: z.number().int().min(1).max(10),
-});
-export type SubscriptionLimits = z.infer<typeof subscriptionLimitsSchema>;
-export const DEFAULT_SUBSCRIPTION_LIMITS: SubscriptionLimits = {
-  maxInputBytes: 131_072,
-  maxOutputBytes: 262_144,
-  deadlineMs: 240_000,
-  maxObservedWebSearchCalls: 2,
-  maxRequestsPerHour: 20,
-  maxQueuedJobs: 3,
-};
-export const chatGPTStrategyPolicySchema = z.strictObject({
-  version: z.literal(1),
-  billingMode: z.literal("chatgpt_subscription"),
-  handlerVersion: z.literal("strategy-chatgpt-v1"),
-  registrationId: z.string().min(1).max(300),
-  model: z.string().min(1).max(150),
-  limits: subscriptionLimitsSchema,
-});
-export type ChatGPTStrategyPolicy = z.infer<typeof chatGPTStrategyPolicySchema>;
-
-const enqueueAPIJobSchema = z.strictObject({
-  operation: strategyOperationSchema,
-  expectedRevision: z.number().int().positive(),
-  idempotencyKey: z
-    .string()
-    .min(16)
-    .max(128)
-    .regex(/^[A-Za-z0-9._:-]+$/),
-  acceptedMaxCostMicrousd: moneySchema,
-  billingMode: z.literal("openai_api").optional(),
-});
-export const subscriptionPolicyIdentitySchema = z.string().regex(/^[0-9a-f]{64}$/);
-export const enqueueSubscriptionJobSchema = z.strictObject({
-  operation: strategyOperationSchema,
-  expectedRevision: z.number().int().positive(),
-  idempotencyKey: z
-    .string()
-    .min(16)
-    .max(128)
-    .regex(/^[A-Za-z0-9._:-]+$/),
-  billingMode: z.literal("chatgpt_subscription"),
-  acceptedPolicyIdentity: subscriptionPolicyIdentitySchema,
-});
-export const enqueueUncappedStrategyJobSchema = z.strictObject({
-  operation: strategyOperationSchema,
-  expectedRevision: z.number().int().positive(),
-  idempotencyKey: z
-    .string()
-    .min(16)
-    .max(128)
-    .regex(/^[A-Za-z0-9._:-]+$/),
-  billingMode: z.literal("openai_api"),
-  spendControl: z.literal("uncapped"),
-  acceptedPolicyIdentity: subscriptionPolicyIdentitySchema,
-});
-export const enqueueStrategyJobSchema = z.union([
-  enqueueAPIJobSchema,
-  enqueueSubscriptionJobSchema,
-  enqueueUncappedStrategyJobSchema,
-]);
-export type EnqueueStrategyJob = z.infer<typeof enqueueStrategyJobSchema>;
 
 export const strategyUsageSchema = z
   .strictObject({
@@ -228,79 +158,24 @@ const apiStrategyJobResultSchema = z.discriminatedUnion("operation", [
   }),
   z.strictObject({ ...resultCommon, operation: z.literal("strategy.slogan"), proposal: sloganProposalSchema }),
 ]);
-export const subscriptionUsageSchema = z
-  .strictObject({
-    inputTokens: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
-    outputTokens: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
-    totalTokens: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
-  })
-  .refine((value) => value.inputTokens + value.outputTokens === value.totalTokens, {
-    message: "Token totals must match provider usage",
-  });
-const subscriptionResultCommon = {
-  version: z.literal(1),
-  provider: z.literal("openai"),
-  billingMode: z.literal("chatgpt_subscription"),
-  model: z.string().min(1).max(150),
-  responseId: z.string().min(1).max(300),
-  requestId: z.string().min(1).max(300).nullable(),
-  generatedAt: z.iso.datetime({ offset: true }),
-  usage: subscriptionUsageSchema.nullable(),
-  guidance: guidedReplySchema.optional(),
-};
-export const chatGPTStrategyResultSchema = z.discriminatedUnion("operation", [
-  z.strictObject({
-    ...subscriptionResultCommon,
-    operation: z.literal("strategy.reformulate"),
-    proposal: reformulationProposalSchema,
-  }),
-  z.strictObject({
-    ...subscriptionResultCommon,
-    operation: z.literal("strategy.competitors"),
-    proposal: competitorsProposalSchema,
-  }),
-  z.strictObject({
-    ...subscriptionResultCommon,
-    operation: z.literal("strategy.audience"),
-    proposal: audienceProposalSchema,
-  }),
-  z.strictObject({
-    ...subscriptionResultCommon,
-    operation: z.literal("strategy.personality"),
-    proposal: personalityProposalSchema,
-  }),
-  z.strictObject({
-    ...subscriptionResultCommon,
-    operation: z.literal("strategy.positioning"),
-    proposal: positioningProposalSchema,
-  }),
-  z.strictObject({
-    ...subscriptionResultCommon,
-    operation: z.literal("strategy.slogan"),
-    proposal: sloganProposalSchema,
-  }),
-]);
-export type ChatGPTStrategyResult = z.infer<typeof chatGPTStrategyResultSchema>;
-export const strategyJobResultSchema = z
-  .union([apiStrategyJobResultSchema, chatGPTStrategyResultSchema])
-  .superRefine((result, ctx) => {
-    if (!result.guidance) return;
-    if (result.operation !== "strategy.reformulate" && result.operation !== `strategy.${result.guidance.stage}`)
-      ctx.addIssue({
-        code: "custom",
-        path: ["guidance", "stage"],
-        message: "Guidance must match its requested operation",
-      });
-    if (
-      (result.guidance.kind === "accepted" || result.guidance.kind === "redirect") &&
-      result.operation !== "strategy.reformulate"
-    )
-      ctx.addIssue({
-        code: "custom",
-        path: ["guidance", "kind"],
-        message: "Only a reply to an actual user message may accept a custom decision or change stage",
-      });
-  });
+export const strategyJobResultSchema = apiStrategyJobResultSchema.superRefine((result, ctx) => {
+  if (!result.guidance) return;
+  if (result.operation !== "strategy.reformulate" && result.operation !== `strategy.${result.guidance.stage}`)
+    ctx.addIssue({
+      code: "custom",
+      path: ["guidance", "stage"],
+      message: "Guidance must match its requested operation",
+    });
+  if (
+    (result.guidance.kind === "accepted" || result.guidance.kind === "redirect") &&
+    result.operation !== "strategy.reformulate"
+  )
+    ctx.addIssue({
+      code: "custom",
+      path: ["guidance", "kind"],
+      message: "Only a reply to an actual user message may accept a custom decision or change stage",
+    });
+});
 export type StrategyJobResult = z.infer<typeof strategyJobResultSchema>;
 
 export const STRATEGY_ASSISTANT_HISTORY_MAX_ENTRIES = 5;
@@ -355,7 +230,7 @@ export const strategyJobInputSchema = z
       policy: strategyJobPolicySchema,
       assistantHistory: strategyAssistantHistorySchema,
       spendControl: z.literal("uncapped"),
-      policyIdentity: subscriptionPolicyIdentitySchema,
+      policyIdentity: policyIdentitySchema,
     }),
   ])
   .superRefine((input, ctx) => {
@@ -379,24 +254,6 @@ export const strategyJobInputSchema = z
       });
   });
 export type StrategyJobInput = z.infer<typeof strategyJobInputSchema>;
-const subscriptionJobInputFields = {
-  billingMode: z.literal("chatgpt_subscription"),
-  context: contextSnapshotSchema,
-  policy: chatGPTStrategyPolicySchema,
-};
-export const chatGPTStrategyJobInputSchema = z.union([
-  z.strictObject({ version: z.literal(1), ...subscriptionJobInputFields }).transform((input) => ({
-    ...input,
-    assistantHistory: { entries: [], truncated: false } as StrategyAssistantHistory,
-  })),
-  z.strictObject({
-    version: z.literal(2),
-    ...subscriptionJobInputFields,
-    assistantHistory: strategyAssistantHistorySchema,
-  }),
-]);
-export type ChatGPTStrategyJobInput = z.infer<typeof chatGPTStrategyJobInputSchema>;
-
 const jobSummaryFields = {
   id: z.uuid(),
   owner_id: z.uuid(),
@@ -413,7 +270,7 @@ const jobSummaryFields = {
   created_at: z.string(),
   finished_at: z.string().nullable(),
 };
-const apiJobSummarySchema = z
+export const strategyJobSummarySchema = z
   .object({
     ...jobSummaryFields,
     dispatchState: z.enum(["published", "dispatch_pending", "already_processing"]).optional(),
@@ -423,19 +280,12 @@ const apiJobSummarySchema = z
     reserved_cost_microusd: moneySchema,
     actual_cost_microusd: moneySchema,
     spendControl: z.literal("uncapped").optional(),
-    policyIdentity: subscriptionPolicyIdentitySchema.optional(),
+    policyIdentity: policyIdentitySchema.optional(),
   })
   .refine(
     (job) => (job.spendControl === "uncapped") === (job.policyIdentity !== undefined),
     "Uncapped summaries require the exact policy identity",
   );
-const subscriptionJobSummarySchema = z.object({
-  ...jobSummaryFields,
-  billingMode: z.literal("chatgpt_subscription"),
-  policyIdentity: subscriptionPolicyIdentitySchema,
-  partialText: z.string().max(1_048_576).optional(),
-});
-export const strategyJobSummarySchema = z.union([apiJobSummarySchema, subscriptionJobSummarySchema]);
 /** Server-owned proof of the exact immutable result accepted into a revision. */
 export const strategyJobApplicationSchema = z
   .strictObject({
@@ -461,40 +311,29 @@ const resultFields = {
     )
     .max(20),
 };
-export const strategyJobSchema = z
-  .union([apiJobSummarySchema.safeExtend(resultFields), subscriptionJobSummarySchema.extend(resultFields)])
-  .superRefine((job, ctx) => {
-    if (job.results.some((result) => result.output.operation !== job.operation)) {
-      ctx.addIssue({ code: "custom", path: ["results"], message: "Result operation must match the job" });
-    }
-    if (new Set(job.results.map((result) => result.stepKey)).size !== job.results.length) {
-      ctx.addIssue({ code: "custom", path: ["results"], message: "Duplicate result step" });
-    }
-    if (
-      job.results.some(
-        (result) =>
-          ("billingMode" in result.output ? result.output.billingMode : "openai_api") !==
-          (job.billingMode ?? "openai_api"),
-      )
-    ) {
-      ctx.addIssue({ code: "custom", path: ["results"], message: "Result billing mode must match the job" });
-    }
-    if (
-      job.results.some(
-        (result) =>
-          result.application &&
-          (result.application.jobId !== job.id ||
-            result.application.stepKey !== result.stepKey ||
-            result.application.inputRevision !== job.input_revision),
-      )
-    ) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["results"],
-        message: "Application must match its job, step and input revision",
-      });
-    }
-  });
+export const strategyJobSchema = strategyJobSummarySchema.safeExtend(resultFields).superRefine((job, ctx) => {
+  if (job.results.some((result) => result.output.operation !== job.operation)) {
+    ctx.addIssue({ code: "custom", path: ["results"], message: "Result operation must match the job" });
+  }
+  if (new Set(job.results.map((result) => result.stepKey)).size !== job.results.length) {
+    ctx.addIssue({ code: "custom", path: ["results"], message: "Duplicate result step" });
+  }
+  if (
+    job.results.some(
+      (result) =>
+        result.application &&
+        (result.application.jobId !== job.id ||
+          result.application.stepKey !== result.stepKey ||
+          result.application.inputRevision !== job.input_revision),
+    )
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["results"],
+      message: "Application must match its job, step and input revision",
+    });
+  }
+});
 export type StrategyJob = z.infer<typeof strategyJobSchema>;
 export const strategyJobResponseSchema = z.strictObject({ job: strategyJobSchema });
 
@@ -514,14 +353,8 @@ export const strategyAvailabilitySchema = z
             operation: strategyOperationSchema,
             billingMode: z.literal("openai_api"),
             spendControl: z.literal("uncapped"),
-            policyIdentity: subscriptionPolicyIdentitySchema,
+            policyIdentity: policyIdentitySchema,
             interviewVersion: z.literal(1),
-          }),
-          z.strictObject({
-            operation: strategyOperationSchema,
-            billingMode: z.literal("chatgpt_subscription"),
-            policyIdentity: subscriptionPolicyIdentitySchema,
-            limits: subscriptionLimitsSchema,
           }),
         ]),
       )
@@ -532,7 +365,6 @@ export const strategyAvailabilitySchema = z
         "runtime_disabled",
         "worker_unavailable",
         "budget_unavailable",
-        "subscription_unavailable",
         "quota_unavailable",
         "request_unresolved",
         "request_active",
@@ -556,14 +388,3 @@ export const strategyOverviewResponseSchema = z.strictObject({
 });
 export type StrategyOverview = z.infer<typeof strategyOverviewResponseSchema>;
 export const strategyRuntimeResponseSchema = z.strictObject({ availability: strategyAvailabilitySchema });
-
-export const applyStrategyJobSchema = z.strictObject({
-  expectedRevision: z.number().int().positive(),
-  stepKey: z.string().min(1).max(200),
-});
-export const applyStrategyJobResponseSchema = accountProjectResponseSchema
-  .extend({ application: strategyJobApplicationSchema })
-  .refine((value) => value.project.current_revision === value.application.appliedRevision, {
-    message: "Applied project revision must match its receipt",
-    path: ["application", "appliedRevision"],
-  });

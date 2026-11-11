@@ -24,12 +24,9 @@ const receipt = (n = 20) => ({
 import {
   logoConceptPlanSchema,
   logoConceptBatchSchema,
-  logoQuoteRequestSchema,
-  logoGenerationIntentSchema,
+  logoRunRequestSchema,
   logoConceptAttemptSchema,
   logoRasterRefinementSchema,
-  logoCostQuoteSchema,
-  LOGO_CONCEPT_OPERATION,
 } from "../../src/domain/logo-jobs";
 const plan = () => ({
   version: 1,
@@ -52,7 +49,6 @@ describe("V2 job boundaries", () => {
       false,
     );
     expect(logoConceptPlanSchema.safeParse({ ...p, coveredTypes: ["mascot"] }).success).toBe(false);
-    expect(LOGO_CONCEPT_OPERATION).toBe("identity.logo_concept");
   });
   it("binds batch slots to the frozen plan", () => {
     const p = plan();
@@ -75,30 +71,21 @@ describe("V2 job boundaries", () => {
         .success,
     ).toBe(false);
   });
-  it("discriminates priced operations and rejects browser execution evidence", () => {
+  it("discriminates run requests and rejects browser execution evidence", () => {
     const q = {
       operation: "refine_preview",
       expected: heads,
       source: { kind: "refinement", rasterRevisionId: id(4) },
       instruction: "Simplify",
     };
-    expect(logoQuoteRequestSchema.safeParse(q).success).toBe(true);
+    expect(logoRunRequestSchema.safeParse(q).success).toBe(true);
     for (const bad of [
       { ...q, operation: "retry_failed" },
       { ...q, ownerId },
       { ...q, provider: "invented" },
       { ...q, source: { kind: "refinement", rasterRevisionId: id(4), jobId: id(5) } },
     ])
-      expect(logoQuoteRequestSchema.safeParse(bad).success).toBe(false);
-    expect(
-      logoGenerationIntentSchema.safeParse({
-        requestKey: id(3),
-        quoteId: id(4),
-        expected: heads,
-        acceptedMaxCostMicrousd: 0,
-        rightsEvidenceId: id(6),
-      }).success,
-    ).toBe(false);
+      expect(logoRunRequestSchema.safeParse(bad).success).toBe(false);
   });
   it("keeps verified partial output visible while billing remains uncertain", () => {
     const a = {
@@ -148,34 +135,6 @@ describe("V2 job boundaries", () => {
       }).success,
     ).toBe(false);
   });
-  it("does not make a local vector quote a paid provider quote", () => {
-    const q = {
-      id: id(3),
-      ownerId,
-      projectId,
-      request: {
-        operation: "vectorize",
-        expected: heads,
-        source: { kind: "refinement", rasterRevisionId: id(4) },
-        settings: { preset: "bw", simplify: 0, filterSpeckle: 0, maxColors: 2 },
-      },
-      inputHash: hash,
-      expected: heads,
-      policyIdentity: hash,
-      handlerVersion: "1",
-      provider: null,
-      model: null,
-      engine: { id: "trace", version: "1", artifactHash: hash, settingsHash: hash },
-      estimatedCostMicrousd: 0,
-      maxCostMicrousd: 0,
-      externalProviderCostMicrousd: 0,
-      expiresAt: at,
-      conceptPlan: null,
-      targetSlotIds: [],
-    };
-    expect(logoCostQuoteSchema.safeParse(q).success).toBe(true);
-    expect(logoCostQuoteSchema.safeParse({ ...q, externalProviderCostMicrousd: 1 }).success).toBe(false);
-  });
 });
 
 import {
@@ -183,9 +142,6 @@ import {
   logoConceptJobInputSchema,
   logoConceptSlotSchema,
   logoRequestStateSchema,
-  logoDirectionPublicationReceiptSchema,
-  logoExportJobInputSchema,
-  logoProviderResponseReceiptSchema,
 } from "../../src/domain/logo-jobs";
 describe("job source and recovery fences", () => {
   it("does not release uncertain expense as a confirmed free success", () => {
@@ -225,24 +181,6 @@ describe("job source and recovery fences", () => {
       acceptedPreview: receipt(),
     };
     expect(logoConceptSlotSchema.safeParse(slot).success).toBe(false);
-  });
-  it("keeps exactly three distinct staged direction IDs", () => {
-    const r = {
-      id: id(3),
-      ownerId,
-      projectId,
-      jobId: id(4),
-      inputHash: hash,
-      directionIds: [id(5), id(6), id(7)],
-      publicationState: "staged",
-    };
-    expect(logoDirectionPublicationReceiptSchema.safeParse(r).success).toBe(true);
-    expect(logoDirectionPublicationReceiptSchema.safeParse({ ...r, directionIds: [id(5), id(5), id(7)] }).success).toBe(
-      false,
-    );
-    expect(logoDirectionPublicationReceiptSchema.safeParse({ ...r, publicationState: "committed" }).success).toBe(
-      false,
-    );
   });
   it("binds resolved concept reference membership, not just snapshot ID", () => {
     const input = {
@@ -306,43 +244,6 @@ describe("job source and recovery fences", () => {
         inputRevisions: [{ stage: "brief_references", id: brief.id, revision: brief.revision }],
       }).success,
     ).toBe(true);
-  });
-  it("keeps export jobs distinct from priced generation admissions", () => {
-    const j = {
-      version: 2,
-      ownerId,
-      projectId,
-      requestKey: id(3),
-      policyIdentity: hash,
-      handlerVersion: "1",
-      inputHash: hash,
-      operation: "identity.logo_export",
-      approvedLogoId: id(4),
-      directionApprovalId: id(5),
-      variantSetId: id(6),
-      variantReviewId: id(7),
-      sourceSnapshotHash: hash,
-    };
-    expect(logoExportJobInputSchema.safeParse(j).success).toBe(true);
-    expect(logoExportJobInputSchema.safeParse({ ...j, quoteId: id(8) }).success).toBe(false);
-  });
-  it("keeps provider observation bound to a lease and exact hashes", () => {
-    const observation = {
-      provider: "provider",
-      model: "model",
-      providerRequestId: null,
-      responseHash: hash,
-      observedAt: at,
-      billing: { status: "unknown", confirmedMicrousd: null },
-      artifactHash: hash,
-      id: id(3),
-      ownerId,
-      projectId,
-      jobId: id(4),
-      leaseToken: id(5),
-    };
-    expect(logoProviderResponseReceiptSchema.safeParse(observation).success).toBe(true);
-    expect(logoProviderResponseReceiptSchema.safeParse({ ...observation, leaseToken: "invented" }).success).toBe(false);
   });
 });
 
@@ -430,9 +331,9 @@ it("retains exact reference order from the frozen concept snapshot", () => {
   ).toBe(false);
 });
 
-import { logoResolvedRefinementInputSchema, logoResolvedDirectionInputSchema } from "../../src/domain/logo-jobs";
+import { logoResolvedRefinementInputSchema } from "../../src/domain/logo-jobs";
 describe("F2: complete maximum reference loader projections", () => {
-  it("retains the entire resolved snapshot through concept, refinement and direction inputs", () => {
+  it("retains the entire resolved snapshot through concept and refinement inputs", () => {
     const referenceSnapshot = {
       version: 2,
       id: id(9),
@@ -532,49 +433,6 @@ describe("F2: complete maximum reference loader projections", () => {
         brief,
         referenceSnapshot,
         basePreview: asset(),
-      }).success,
-    ).toBe(true);
-    const logo = {
-      version: 1,
-      viewBox: [0, 0, 100, 100],
-      components: [
-        {
-          id: "symbol",
-          role: "symbol",
-          editingKind: "geometry",
-          paths: [
-            {
-              id: "p1",
-              d: "M 0 0 L 10 0 L 10 10 Z",
-              fill: { color: "#000000", opacity: 1 },
-              stroke: null,
-              fillRule: "nonzero",
-            },
-          ],
-          transform: { x: 0, y: 0, scale: 1, rotation: 0 },
-        },
-      ],
-    };
-    const approvedLogo = {
-      id: id(12),
-      ownerId,
-      projectId,
-      vectorRevisionId: id(13),
-      stageRevisionId: id(14),
-      approvedAt: at,
-    };
-    expect(
-      logoResolvedDirectionInputSchema.safeParse({
-        inputRevisions: [
-          { stage: "brief_references", id: brief.id, revision: brief.revision },
-          { stage: "vector", id: approvedLogo.stageRevisionId, revision: 1 },
-        ],
-        approvedLogo,
-        logo,
-        brief,
-        references: referenceSnapshot,
-        permittedFonts: [],
-        targetCount: 3,
       }).success,
     ).toBe(true);
   });
@@ -687,24 +545,5 @@ describe("bounded concept batch discovery", () => {
         items: Array.from({ length: 51 }, (_, i) => ({ ...summary, id: id(100 + i), requestKey: id(200 + i) })),
       }).success,
     ).toBe(false);
-  });
-});
-
-import { logoExportPartialStepOutputSchema } from "../../src/domain/logo-jobs";
-import { stepOutcomeSchema } from "../../src/domain/jobs";
-describe("partial export is a known failed result, not a completed pack", () => {
-  it("retains a strict partial publication pointer in failed step evidence", () => {
-    const result = { version: 2, kind: "logo_export_partial", publicationId: id(99) };
-    expect(logoExportPartialStepOutputSchema.parse(result)).toEqual(result);
-    expect(
-      stepOutcomeSchema.parse({
-        status: "failed",
-        code: "export_file_failed",
-        result,
-        costMicrousd: 0,
-        providerRequestId: null,
-      }),
-    ).toMatchObject({ status: "failed", result });
-    expect(logoExportPartialStepOutputSchema.safeParse({ ...result, kind: "logo_export" }).success).toBe(false);
   });
 });

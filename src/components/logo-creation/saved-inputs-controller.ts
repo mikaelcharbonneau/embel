@@ -5,14 +5,14 @@ import type {
   LogoReferenceSelection,
   LogoStageRevision,
 } from "@/domain/logo-workspace";
-import type { LogoQuoteRequest } from "@/domain/logo-jobs";
+import type { LogoRunRequest } from "@/domain/logo-jobs";
 import type { LogoDraftRecord } from "../identity/logo-draft-memory";
 import { AccountRequestError, accountErrorMessage } from "../workspace/account-api";
 
 export type LogoSavedInputPreparation =
   | { status: "obsolete" }
   | { status: "blocked"; message: string; source?: LogoSavedInputs }
-  | { status: "prepared"; request: LogoQuoteRequest; source: LogoSavedInputs; used: "brand" | "current" }
+  | { status: "prepared"; request: LogoRunRequest; source: LogoSavedInputs; used: "brand" | "current" }
   /** checkOnly: whether preparing would change the saved brief or liked images. */
   | { status: "checked"; source: LogoSavedInputs; outdated: boolean };
 
@@ -50,7 +50,6 @@ export const logoDraftHasProtectedWork = (draft: LogoDraftRecord) =>
   !!draft.vectorDraft ||
   !!draft.directionDraft ||
   !!draft.pendingMutation ||
-  !!draft.pendingIntent ||
   !!draft.pendingExport;
 const blockedEdits = "Your logo changes haven’t finished saving. They’re kept. Refresh logo inputs once they’re saved.";
 const changed = "Your brand or logo brief changed. Refresh logo inputs to continue.";

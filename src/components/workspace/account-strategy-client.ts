@@ -4,14 +4,11 @@ import {
   strategyJobResultSchema,
   strategyJobSchema,
   strategyOperationSchema,
-  subscriptionLimitsSchema,
-  subscriptionPolicyIdentitySchema,
-  type EnqueueStrategyJob,
+  policyIdentitySchema,
   type StrategyJob,
   type StrategyJobApplication,
   type StrategyOperation,
   type StrategyOverview,
-  type SubscriptionLimits,
 } from "@/domain/strategy-jobs";
 import { accountDraftChanged, type AccountWorkspace } from "./account-draft-memory";
 import { AccountRequestError } from "./account-api";
@@ -25,21 +22,10 @@ export const strategyLabels: Record<StrategyOperation, string> = {
   "strategy.positioning": "Positioning proposal",
   "strategy.slogan": "Slogan proposal",
 };
-export function formatStrategyCap(microusd: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
-    Math.ceil(microusd / 10_000) / 100,
-  );
-}
-export type StrategyBillingMode = "openai_api" | "chatgpt_subscription";
 type BoundedAPIAllowance = { billingMode: "openai_api"; spendControl?: undefined; maximumCostMicrousd: number };
 type UncappedAPIAllowance = { billingMode: "openai_api"; spendControl: "uncapped"; policyIdentity: string };
 type APIAllowance = BoundedAPIAllowance | UncappedAPIAllowance;
-type SubscriptionAllowance = {
-  billingMode: "chatgpt_subscription";
-  limits: SubscriptionLimits;
-  policyIdentity: string;
-};
-export type StrategyAllowance = APIAllowance | SubscriptionAllowance;
+export type StrategyAllowance = APIAllowance;
 export type StrategyPromptPlan =
   | { kind: "response_only"; billingMode: "openai_api"; reformulation: APIAllowance }
   | {
@@ -47,37 +33,14 @@ export type StrategyPromptPlan =
       billingMode: "openai_api";
       reformulation: APIAllowance;
       competitors: APIAllowance;
-    }
-  | {
-      kind: "response_and_competitors";
-      billingMode: "chatgpt_subscription";
-      reformulation: SubscriptionAllowance;
-      competitors: SubscriptionAllowance;
     };
 export function isUncappedStrategyAllowance(allowance: StrategyAllowance): allowance is UncappedAPIAllowance {
   return allowance.billingMode === "openai_api" && allowance.spendControl === "uncapped";
-}
-export function strategyIdempotencyKey(
-  projectId: string,
-  revision: number,
-  operation: StrategyOperation,
-  billingMode: StrategyBillingMode = "openai_api",
-  spendControl?: "uncapped",
-) {
-  const prefix =
-    billingMode === "chatgpt_subscription"
-      ? "strategy.chatgpt.v1"
-      : spendControl === "uncapped"
-        ? "strategy.managed.v3"
-        : "strategy.v1";
-  return `${prefix}:${projectId}:${revision}:${operation}`;
 }
 export function strategyAllowance(
   operation: StrategyOverview["availability"]["operations"][number] | undefined,
 ): StrategyAllowance | null {
   if (!operation) return null;
-  if (operation.billingMode === "chatgpt_subscription")
-    return { billingMode: operation.billingMode, limits: operation.limits, policyIdentity: operation.policyIdentity };
   if ("maximumCostMicrousd" in operation)
     return { billingMode: "openai_api", maximumCostMicrousd: operation.maximumCostMicrousd };
   return { billingMode: "openai_api", spendControl: "uncapped", policyIdentity: operation.policyIdentity };
@@ -90,8 +53,6 @@ export function promptStrategyPlan(availability: StrategyOverview["availability"
   const competitors = strategyAllowance(
     availability.operations.find((item) => item.operation === "strategy.competitors"),
   );
-  if (reformulation?.billingMode === "chatgpt_subscription" && competitors?.billingMode === "chatgpt_subscription")
-    return { kind: "response_and_competitors", billingMode: "chatgpt_subscription", reformulation, competitors };
   if (
     reformulation?.billingMode === "openai_api" &&
     competitors?.billingMode === "openai_api" &&
@@ -126,7 +87,6 @@ export function strategyAvailabilityMessage(
         : "The AI worker is not ready. Recheck after it is connected.",
     runtime_disabled: "AI is not enabled in this workspace.",
     budget_unavailable: "No AI requests are available for this account.",
-    subscription_unavailable: "The ChatGPT connection is unavailable.",
     quota_unavailable: "The current AI request limit is unavailable. Recheck when capacity is available.",
     request_unresolved:
       "A previous request needs review before another can start. Check its status before trying again.",
@@ -135,49 +95,6 @@ export function strategyAvailabilityMessage(
   return context === "project"
     ? `${reasons[availability.reason!]} You can still edit and save your project.`
     : `${reasons[availability.reason!]} No AI request was sent. Your prompt is kept.`;
-}
-export function strategyRequestPayload(
-  projectId: string,
-  revision: number,
-  operation: StrategyOperation,
-  allowance: StrategyAllowance,
-): EnqueueStrategyJob {
-  const common = {
-    operation,
-    expectedRevision: revision,
-    idempotencyKey: strategyIdempotencyKey(
-      projectId,
-      revision,
-      operation,
-      allowance.billingMode,
-      isUncappedStrategyAllowance(allowance) ? "uncapped" : undefined,
-    ),
-  };
-  return allowance.billingMode === "chatgpt_subscription"
-    ? { ...common, billingMode: "chatgpt_subscription", acceptedPolicyIdentity: allowance.policyIdentity }
-    : isUncappedStrategyAllowance(allowance)
-      ? {
-          ...common,
-          billingMode: "openai_api",
-          spendControl: "uncapped",
-          acceptedPolicyIdentity: allowance.policyIdentity,
-        }
-      : { ...common, acceptedMaxCostMicrousd: allowance.maximumCostMicrousd };
-}
-export function strategyAllowanceLabel(allowance: StrategyAllowance) {
-  return allowance.billingMode === "chatgpt_subscription"
-    ? `ChatGPT plan limits apply. Embel allows up to ${allowance.limits.maxRequestsPerHour} requests per hour and ${allowance.limits.maxQueuedJobs} queued requests.`
-    : isUncappedStrategyAllowance(allowance)
-      ? "OpenAI API usage"
-      : `OpenAI · up to ${formatStrategyCap(allowance.maximumCostMicrousd)}`;
-}
-/** Legacy monetary consent only; uncapped plans have no synthetic ceiling. */
-export function strategyPromptCost(plan: StrategyPromptPlan): number | null {
-  if (plan.billingMode !== "openai_api" || !("maximumCostMicrousd" in plan.reformulation)) return null;
-  if (plan.kind === "response_only") return plan.reformulation.maximumCostMicrousd;
-  return "maximumCostMicrousd" in plan.competitors
-    ? plan.reformulation.maximumCostMicrousd + plan.competitors.maximumCostMicrousd
-    : null;
 }
 export function strategyAllowanceWithin(current: StrategyAllowance, accepted: StrategyAllowance) {
   if (current.billingMode === "openai_api" && accepted.billingMode === "openai_api") {
@@ -189,15 +106,7 @@ export function strategyAllowanceWithin(current: StrategyAllowance, accepted: St
       );
     return current.maximumCostMicrousd <= accepted.maximumCostMicrousd;
   }
-  if (
-    current.billingMode !== "chatgpt_subscription" ||
-    accepted.billingMode !== "chatgpt_subscription" ||
-    current.policyIdentity !== accepted.policyIdentity
-  )
-    return false;
-  return (Object.keys(current.limits) as (keyof SubscriptionLimits)[]).every(
-    (key) => current.limits[key] <= accepted.limits[key],
-  );
+  return false;
 }
 export function verifyStrategyJobs(jobs: StrategyJob[], ownerId: string, projectId: string) {
   return jobs.every((job) => job.owner_id === ownerId && job.project_id === projectId);
@@ -219,23 +128,10 @@ export function strategyJobMatchesRequest(
   if (isUncappedStrategyAllowance(allowance))
     return "spendControl" in job && job.spendControl === "uncapped" && job.policyIdentity === allowance.policyIdentity;
   if ("spendControl" in job && job.spendControl === "uncapped") return false;
-  return allowance.billingMode === "chatgpt_subscription"
-    ? job.billingMode === "chatgpt_subscription" && job.policyIdentity === allowance.policyIdentity
-    : job.billingMode !== "chatgpt_subscription" && job.reserved_cost_microusd <= allowance.maximumCostMicrousd;
+  return job.reserved_cost_microusd <= allowance.maximumCostMicrousd;
 }
 export function strategyJobActive(job: StrategyJob) {
   return ["queued", "running", "partial", "cancel_requested"].includes(job.state);
-}
-export function strategyCanRetryDelivery(job: StrategyJob, revision: number) {
-  return (
-    job.billingMode !== "chatgpt_subscription" &&
-    job.state === "queued" &&
-    !job.cancel_requested_at &&
-    job.input_revision === revision &&
-    job.results.length === 0 &&
-    job.dispatchState === "dispatch_pending" &&
-    job.canRetryDelivery === true
-  );
 }
 export function strategyApplicationMatchesResult(
   job: StrategyJob,
@@ -328,15 +224,15 @@ const uncappedIntent = z.strictObject({
   billingMode: z.literal("openai_api"),
   spendControl: z.literal("uncapped"),
   kind: z.literal("response_and_competitors"),
-  reformulationPolicyIdentity: subscriptionPolicyIdentitySchema,
-  competitorsPolicyIdentity: subscriptionPolicyIdentitySchema,
+  reformulationPolicyIdentity: policyIdentitySchema,
+  competitorsPolicyIdentity: policyIdentitySchema,
 });
 const uncappedResponseIntent = z.strictObject({
   ...intentScope,
   billingMode: z.literal("openai_api"),
   spendControl: z.literal("uncapped"),
   kind: z.literal("response_only"),
-  reformulationPolicyIdentity: subscriptionPolicyIdentitySchema,
+  reformulationPolicyIdentity: policyIdentitySchema,
 });
 const intentSchema = z.union([
   uncappedIntent,
@@ -353,15 +249,6 @@ const intentSchema = z.union([
     kind: z.literal("response_only"),
     billingMode: z.literal("openai_api"),
     reformulationCap: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
-  }),
-  z.strictObject({
-    ...intentScope,
-    kind: z.literal("response_and_competitors").optional(),
-    billingMode: z.literal("chatgpt_subscription"),
-    reformulationLimits: subscriptionLimitsSchema,
-    competitorsLimits: subscriptionLimitsSchema,
-    reformulationPolicyIdentity: subscriptionPolicyIdentitySchema,
-    competitorsPolicyIdentity: subscriptionPolicyIdentitySchema,
   }),
 ]);
 export type StrategyIntent = z.infer<typeof intentSchema>;
@@ -418,27 +305,12 @@ export function strategyIntentPlan(intent: StrategyIntent): StrategyPromptPlan {
       billingMode: "openai_api",
       reformulation: { billingMode: "openai_api", maximumCostMicrousd: intent.reformulationCap },
     };
-  return intent.billingMode === "chatgpt_subscription"
-    ? {
-        kind: "response_and_competitors",
-        billingMode: "chatgpt_subscription",
-        reformulation: {
-          billingMode: "chatgpt_subscription",
-          limits: intent.reformulationLimits,
-          policyIdentity: intent.reformulationPolicyIdentity,
-        },
-        competitors: {
-          billingMode: "chatgpt_subscription",
-          limits: intent.competitorsLimits,
-          policyIdentity: intent.competitorsPolicyIdentity,
-        },
-      }
-    : {
-        kind: "response_and_competitors",
-        billingMode: "openai_api",
-        reformulation: { billingMode: "openai_api", maximumCostMicrousd: intent.reformulationCap },
-        competitors: { billingMode: "openai_api", maximumCostMicrousd: intent.competitorsCap },
-      };
+  return {
+    kind: "response_and_competitors",
+    billingMode: "openai_api",
+    reformulation: { billingMode: "openai_api", maximumCostMicrousd: intent.reformulationCap },
+    competitors: { billingMode: "openai_api", maximumCostMicrousd: intent.competitorsCap },
+  };
 }
 export function rememberStrategyPlan(
   scope: { ownerId: string; projectId: string; revision: number },
@@ -474,16 +346,7 @@ export function rememberStrategyPlan(
       });
     return;
   }
-  if (plan.billingMode === "chatgpt_subscription")
-    rememberStrategyIntent({
-      ...scope,
-      billingMode: plan.billingMode,
-      reformulationLimits: plan.reformulation.limits,
-      competitorsLimits: plan.competitors.limits,
-      reformulationPolicyIdentity: plan.reformulation.policyIdentity,
-      competitorsPolicyIdentity: plan.competitors.policyIdentity,
-    });
-  else if ("maximumCostMicrousd" in plan.reformulation && "maximumCostMicrousd" in plan.competitors)
+  if ("maximumCostMicrousd" in plan.reformulation && "maximumCostMicrousd" in plan.competitors)
     rememberStrategyIntent({
       ...scope,
       billingMode: plan.billingMode,
@@ -541,12 +404,6 @@ export function canContinueStrategy(
   );
   const plan = strategyIntentPlan(intent);
   if (plan.kind === "response_only" || !current || !strategyAllowanceWithin(current, plan.competitors)) return false;
-  if (plan.billingMode === "chatgpt_subscription") {
-    const currentResponse = strategyAllowance(
-      overview.availability.operations.find((item) => item.operation === "strategy.reformulate"),
-    );
-    if (!currentResponse || !strategyAllowanceWithin(currentResponse, plan.reformulation)) return false;
-  }
   return (
     overview.jobs.some(
       (job) =>

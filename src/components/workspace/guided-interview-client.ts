@@ -19,10 +19,7 @@ export function guidedAllowance(
 ): StrategyAllowance | null {
   if (availability?.status !== "available") return null;
   return strategyAllowance(
-    availability.operations.find(
-      (item) =>
-        item.operation === operation && item.billingMode !== "chatgpt_subscription" && item.interviewVersion === 1,
-    ),
+    availability.operations.find((item) => item.operation === operation && item.interviewVersion === 1),
   );
 }
 

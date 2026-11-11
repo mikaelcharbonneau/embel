@@ -29,7 +29,6 @@ function setup() {
     references: [],
     dirty: false,
     conflict: false,
-    pendingIntent: null,
     pendingExport: null,
     pendingMutation: null,
   });

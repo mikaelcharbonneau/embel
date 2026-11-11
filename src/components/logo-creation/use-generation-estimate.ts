@@ -1,6 +1,6 @@
 "use client";
 
-import type { LogoQuoteRequest } from "@/domain/logo-jobs";
+import type { LogoRunRequest } from "@/domain/logo-jobs";
 
 /** Logo work runs on the generation engine: one deliberate click starts the run.
  * `errorKey` names the request whose start failed, so only its action explains why. */
@@ -8,13 +8,13 @@ export type LogoEngineStarter = {
   busy: boolean;
   error: string | null;
   errorKey: string | null;
-  start(request: LogoQuoteRequest): void;
+  start(request: LogoRunRequest): void;
   clearError(): void;
 };
 
 /** One Logo action bound to the exact saved inputs it would draw from. Without the
  * engine (its Logo kinds turned off, or not read yet) nothing can start. */
-export function useGenerationEstimate(request: LogoQuoteRequest | null, engine: LogoEngineStarter | null) {
+export function useGenerationEstimate(request: LogoRunRequest | null, engine: LogoEngineStarter | null) {
   const key = request ? JSON.stringify(request) : null;
   const ready = Boolean(engine && key && !engine.busy);
   return {
@@ -26,7 +26,7 @@ export function useGenerationEstimate(request: LogoQuoteRequest | null, engine: 
       engine?.clearError();
     },
     start() {
-      if (ready && key) engine!.start(JSON.parse(key) as LogoQuoteRequest);
+      if (ready && key) engine!.start(JSON.parse(key) as LogoRunRequest);
     },
   };
 }

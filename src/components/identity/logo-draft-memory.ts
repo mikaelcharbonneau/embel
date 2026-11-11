@@ -1,10 +1,5 @@
 import { z } from "zod";
 import {
-  logoVectorProposalSessionSchema,
-  proposalSessionUnsaved,
-  type LogoVectorProposalSession,
-} from "@/features/logo-vector/model/proposal-session";
-import {
   logoExpectedHeadsSchema,
   logoManualCommandSchema,
   logoReferenceSelectionSchema,
@@ -12,7 +7,6 @@ import {
   logoWorkspaceV2Schema,
   type LogoBriefDraft,
 } from "@/domain/logo-workspace";
-import { logoGenerationIntentSchema } from "@/domain/logo-jobs";
 import { logoExportIntentSchema } from "@/domain/logo-deliverables";
 import {
   freezeLogoRecord,
@@ -58,7 +52,6 @@ const recordSchema = z.strictObject({
     })
     .nullable()
     .optional(),
-  pendingIntent: logoGenerationIntentSchema.nullable(),
   pendingExport: logoExportIntentSchema.nullable(),
   pendingMutation: z.strictObject({ requestKey: logoUuidSchema, command: logoManualCommandSchema }).nullable(),
   conflict: z.boolean(),
@@ -71,8 +64,6 @@ export interface LogoDraftMemory {
   subscribe(listener: () => void): () => void;
   get(projectId: string): LogoDraftRecord | null;
   set(projectId: string, record: LogoDraftRecord): void;
-  getVectorProposal(projectId: string): LogoVectorProposalSession | null;
-  setVectorProposal(projectId: string, value: LogoVectorProposalSession | null): void;
 }
 const same = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
 const unsaved = (value: LogoDraftRecord) =>
@@ -80,7 +71,7 @@ const unsaved = (value: LogoDraftRecord) =>
   value.conflict ||
   !!value.vectorDraft ||
   !!value.directionDraft ||
-  !!(value.pendingIntent || value.pendingExport || value.pendingMutation);
+  !!(value.pendingExport || value.pendingMutation);
 const bytes = (value: unknown) => new TextEncoder().encode(JSON.stringify(value)).byteLength;
 const bindingSchema = z.strictObject({ ownerId: logoUuidSchema, generation: logoCounterSchema });
 const MAX_RECORD_BYTES = 524_288,
@@ -91,44 +82,30 @@ const MAX_RECORD_BYTES = 524_288,
 export function createLogoDraftMemory(): LogoDraftMemory {
   let owner: string | null = null;
   let verified: z.infer<typeof bindingSchema> | null = null;
-  let proposals = new Map<string, LogoVectorProposalSession>();
   let records = new Map<string, LogoDraftRecord>();
   const listeners = new Set<() => void>();
   const notify = () => {
     for (const listener of listeners) listener();
   };
   const key = (projectId: string) => logoUuidSchema.parse(projectId);
-  function commit(
-    nextRecords: Map<string, LogoDraftRecord>,
-    nextProposals: Map<string, LogoVectorProposalSession>,
-    protectedKey: string,
-  ) {
-    let total =
-      [...nextRecords.values()].reduce((size, row) => size + bytes(row), 0) +
-      [...nextProposals.values()].reduce((size, row) => size + bytes(row), 0);
-    // Saved baselines can be read again. Keep every edit and unresolved request,
-    // including proposal work whose corresponding workspace is otherwise clean.
+  function commit(nextRecords: Map<string, LogoDraftRecord>, protectedKey: string) {
+    let total = [...nextRecords.values()].reduce((size, row) => size + bytes(row), 0);
+    // Saved baselines can be read again. Keep every edit and unresolved request.
     for (const [id, row] of nextRecords) {
       if (nextRecords.size <= MAX_RECORDS && total <= MAX_TOTAL_BYTES) break;
-      const proposal = nextProposals.get(id) ?? null;
-      if (id === protectedKey || unsaved(row) || proposalSessionUnsaved(proposal)) continue;
-      total -= bytes(row) + (proposal ? bytes(proposal) : 0);
+      if (id === protectedKey || unsaved(row)) continue;
+      total -= bytes(row);
       nextRecords.delete(id);
-      nextProposals.delete(id);
     }
     // Plan eviction on copies so a rejected write cannot discard other work.
     if (nextRecords.size > MAX_RECORDS || total > MAX_TOTAL_BYTES) throw new AccountRequestError(413);
     records = nextRecords;
-    proposals = nextProposals;
     notify();
   }
   return {
     bind(input) {
       const next = input === null ? null : bindingSchema.parse(input);
-      if (next && owner !== null && next.ownerId !== owner) {
-        records.clear();
-        proposals.clear();
-      }
+      if (next && owner !== null && next.ownerId !== owner) records.clear();
       if (next) owner = next.ownerId;
       if (same(next, verified)) return;
       verified = next;
@@ -136,12 +113,11 @@ export function createLogoDraftMemory(): LogoDraftMemory {
     },
     clear() {
       records.clear();
-      proposals.clear();
       owner = null;
       verified = null;
       notify();
     },
-    hasUnsaved: () => [...records.values()].some(unsaved) || [...proposals.values()].some(proposalSessionUnsaved),
+    hasUnsaved: () => [...records.values()].some(unsaved),
     subscribe(listener) {
       listeners.add(listener);
       return () => {
@@ -150,28 +126,6 @@ export function createLogoDraftMemory(): LogoDraftMemory {
     },
     get(projectId) {
       return verified ? (records.get(key(projectId)) ?? null) : null;
-    },
-    getVectorProposal(projectId) {
-      return verified ? (proposals.get(logoUuidSchema.parse(projectId)) ?? null) : null;
-    },
-    setVectorProposal(projectId, input) {
-      if (!verified) throw new AccountRequestError(401);
-      const slot = logoUuidSchema.parse(projectId),
-        previous = proposals.get(slot);
-      if (input === null) {
-        if (proposals.delete(slot)) notify();
-        return;
-      }
-      if (records.get(slot)?.workspace?.ownerId !== verified.ownerId) throw new AccountRequestError(422);
-      const value = logoVectorProposalSessionSchema.parse(input),
-        quote = value.pendingGeneration?.quote;
-      if (quote && (quote.ownerId !== verified.ownerId || quote.projectId !== slot)) throw new AccountRequestError(422);
-      for (const field of ["pendingGeneration", "pendingApplication"] as const)
-        if (previous?.[field] && value[field] && !same(previous[field], value[field]))
-          throw new AccountRequestError(409);
-      if (bytes(value) > MAX_RECORD_BYTES) throw new AccountRequestError(413);
-      if (previous && same(previous, value)) return;
-      commit(new Map(records), new Map(proposals).set(slot, freezeLogoRecord(value)), slot);
     },
     set(projectId, input) {
       if (!verified) throw new AccountRequestError(401);
@@ -189,16 +143,16 @@ export function createLogoDraftMemory(): LogoDraftMemory {
         throw new AccountRequestError(422);
       if (value.pendingMutation && value.pendingMutation.requestKey !== value.pendingMutation.command.body.requestKey)
         throw new AccountRequestError(422);
-      for (const intent of [value.pendingIntent, value.pendingExport, value.pendingMutation?.command.body]) {
+      for (const intent of [value.pendingExport, value.pendingMutation?.command.body]) {
         if (intent && !same(intent.expected, value.base)) throw new AccountRequestError(422);
       }
       const previous = records.get(slot);
-      for (const field of ["pendingIntent", "pendingExport", "pendingMutation"] as const) {
+      for (const field of ["pendingExport", "pendingMutation"] as const) {
         if (previous?.[field] && value[field] && !same(previous[field], value[field]))
           throw new AccountRequestError(409);
       }
       if (previous && same(previous, value)) return;
-      commit(new Map(records).set(slot, freezeLogoRecord(value)), new Map(proposals), slot);
+      commit(new Map(records).set(slot, freezeLogoRecord(value)), slot);
     },
   };
 }

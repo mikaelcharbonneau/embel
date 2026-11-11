@@ -3,12 +3,7 @@ import { expect, test, type Page, type Route } from "@playwright/test";
 import { accountProjectSchema, updateProjectInputSchema, type AccountProject } from "../../src/domain/project-api";
 import type { ContextSnapshot, GuidedStage, GuidedTurn } from "../../src/domain/projects";
 import { guidedReplySchema, type GuidedReply } from "../../src/domain/guided-interview";
-import {
-  enqueueStrategyJobSchema,
-  strategyJobSchema,
-  type StrategyJob,
-  type StrategyOperation,
-} from "../../src/domain/strategy-jobs";
+import { strategyJobSchema, type StrategyJob, type StrategyOperation } from "../../src/domain/strategy-jobs";
 import {
   getNamingReadiness,
   nameIdentityKey,
@@ -20,6 +15,19 @@ import { projectNamingOverviewSchema } from "../../src/domain/naming-jobs";
 import { namingGenerationFeedSchema } from "../../src/domain/naming-generation";
 import { captureUiEvidence } from "./ui-evidence";
 import { emptyLogoWorkspace } from "../fixtures/empty-logo-workspace";
+
+// The body the retired Strategy enqueue route took. The app now starts Strategy runs through
+// /generations, so this mock keeps the old shape as a plain test type.
+type EnqueueStrategyJob = {
+  operation: StrategyOperation;
+  expectedRevision: number;
+  idempotencyKey: string;
+  acceptedMaxCostMicrousd?: number;
+  billingMode?: string;
+  spendControl?: string;
+  acceptedPolicyIdentity?: string;
+};
+const enqueueStrategyJobSchema = { parse: (value: unknown) => value as EnqueueStrategyJob };
 
 // Dedicated headless-browser fixtures. Every API response is intercepted, and
 // non-local requests are blocked before they can reach a host or a provider.

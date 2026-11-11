@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { logoStyleNoteApiPolicySchema } from "@/domain/logo-jobs";
 import { LOGO_STYLE_NOTE_VERSION, logoStyleNoteSchema } from "@/domain/logo-style-notes";
-import { logoVectorProposalUsageCost, logoVectorProposalUsageSchema } from "@/domain/logo-vector-proposal-jobs";
+import { logoTextUsageCost, logoTextUsageSchema } from "@/domain/logo-text-usage";
 import type { ResponsesRequest } from "../ai/openai-transport";
 import { OPENAI_STRATEGY_MODEL } from "../ai/config";
 import { createStyleNoteRequest, type StyleNoteImage } from "../ai/style-note-request";
@@ -160,13 +160,13 @@ const record_ = (value: unknown): Record<string, unknown> | null =>
 export function styleNoteCost(body: unknown): number {
   const usage = record_(record_(body)?.usage),
     details = record_(usage?.input_tokens_details);
-  const parsed = logoVectorProposalUsageSchema.safeParse({
+  const parsed = logoTextUsageSchema.safeParse({
     inputTokens: usage?.input_tokens,
     cachedInputTokens: details?.cached_tokens ?? 0,
     cacheWriteInputTokens: details?.cache_write_tokens ?? 0,
     outputTokens: usage?.output_tokens,
   });
-  return parsed.success ? logoVectorProposalUsageCost(parsed.data) : 0;
+  return parsed.success ? logoTextUsageCost(parsed.data) : 0;
 }
 /** The note text of a completed response, or null when it carries none. */
 export function styleNoteFromResponse(body: unknown): z.infer<typeof logoStyleNoteSchema> | null {

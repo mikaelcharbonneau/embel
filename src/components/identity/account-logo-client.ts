@@ -86,55 +86,6 @@ async function readBytes(response: Response, maximum: number, signal: AbortSigna
   return bytes;
 }
 
-const admissionRejectionEnvelopeSchema = z.strictObject({
-  error: z.strictObject({ code: z.enum(["conflict", "not_found"]), message: z.string().max(1000) }),
-  rejection: z.strictObject({
-    status: z.literal("rejected"),
-    ownerId: V.logoUuidSchema,
-    projectId: V.logoUuidSchema,
-    requestKey: V.logoUuidSchema,
-    quoteId: V.logoUuidSchema,
-  }),
-});
-/** Only an exact authenticated durable rejection envelope can produce this error.
- * A generic status code, missing request read or transport failure cannot. */
-export class AccountLogoAdmissionRejectedError extends AccountRequestError {
-  constructor(
-    status: 409 | 404,
-    readonly rejection: z.infer<typeof admissionRejectionEnvelopeSchema>["rejection"],
-  ) {
-    super(status);
-    this.name = "AccountLogoAdmissionRejectedError";
-  }
-}
-async function admissionRejection(
-  response: Response,
-  signal: AbortSignal,
-  binding: { ownerId: string; projectId: string },
-  intent: J.LogoGenerationIntent,
-): Promise<AccountLogoAdmissionRejectedError | null> {
-  if (![409, 404].includes(response.status) || mime(response.headers.get("content-type")) !== "application/json")
-    return null;
-  try {
-    const bytes = await readBytes(response, 4096, signal);
-    const parsed = admissionRejectionEnvelopeSchema.safeParse(
-      JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)),
-    );
-    if (!parsed.success || parsed.data.error.code !== (response.status === 409 ? "conflict" : "not_found")) return null;
-    const proof = parsed.data.rejection;
-    if (
-      proof.ownerId !== binding.ownerId ||
-      proof.projectId !== binding.projectId ||
-      proof.requestKey !== intent.requestKey ||
-      proof.quoteId !== intent.quoteId
-    )
-      return null;
-    return new AccountLogoAdmissionRejectedError(response.status as 409 | 404, proof);
-  } catch {
-    return null;
-  }
-}
-
 export class AccountLogoInitializationRejectedError extends AccountRequestError {
   constructor(readonly rejection: LogoInitializationRejection) {
     super(409);
@@ -269,7 +220,6 @@ export function createAccountLogoClient(
       form?: FormData;
       signal?: AbortSignal;
       maximum?: number;
-      admission?: J.LogoGenerationIntent;
       initialization?: InitializeExistingBrandLogoInput;
       exportAdmission?: D.LogoExportIntent;
     } = {},
@@ -299,13 +249,11 @@ export function createAccountLogoClient(
         return null;
       }
       if (!response.ok) {
-        const rejection = options.admission
-          ? await admissionRejection(response, signal, binding, options.admission)
-          : options.initialization
-            ? await initializationRejection(response, signal, binding, options.initialization)
-            : options.exportAdmission
-              ? await exportAdmissionRejection(response, signal, binding, options.exportAdmission)
-              : null;
+        const rejection = options.initialization
+          ? await initializationRejection(response, signal, binding, options.initialization)
+          : options.exportAdmission
+            ? await exportAdmissionRejection(response, signal, binding, options.exportAdmission)
+            : null;
         if (!current() || signal.aborted) return null;
         throw rejection ?? new AccountRequestError(response.status);
       }
@@ -658,26 +606,6 @@ export function createAccountLogoClient(
       (value, body) =>
         value.revision.stage === "deliverables" && value.revision.payload.variantSetId === body.variantSetId,
     ),
-    async quoteLogoOperation(input: J.LogoQuoteRequest, signal?: AbortSignal) {
-      if (!current() || signal?.aborted) return null;
-      const body = parse(J.logoQuoteRequestSchema, input, W.LOGO_MUTATION_MAX_BYTES);
-      return request(
-        `${project()}/quotes`,
-        J.logoCostQuoteSchema,
-        (value) => owned(value) && same(value.request, body),
-        { method: "POST", body, signal },
-      );
-    },
-    async admitLogoOperation(input: J.LogoGenerationIntent, signal?: AbortSignal) {
-      if (!current() || signal?.aborted) return null;
-      const body = parse(J.logoGenerationIntentSchema, input, W.LOGO_MUTATION_MAX_BYTES);
-      return request(
-        `${project()}/requests`,
-        J.logoDispatchReceiptSchema,
-        (value) => owned(value) && value.requestKey === body.requestKey && value.operation !== "identity.logo_export",
-        { method: "POST", body, signal, admission: body },
-      );
-    },
     async readLogoRequest(requestKey: string, signal?: AbortSignal) {
       if (!current() || signal?.aborted) return null;
       const key = parse(V.logoUuidSchema, requestKey);

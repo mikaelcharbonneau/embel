@@ -31,11 +31,20 @@ export function syntheticLogoBrief(overrides: Partial<LogoBriefDraft> = {}): Log
 }
 
 import { logoWorkspaceV2Schema, logoReferenceRegistrationSchema } from "../../src/domain/logo-workspace";
-import {
-  logoConceptBatchSchema,
-  legacyLogoCostQuoteSchema as logoCostQuoteSchema,
-  type LogoConceptAttempt,
-} from "../../src/domain/logo-jobs";
+import { logoConceptBatchSchema, type LogoConceptBatch, type LogoRunRequest } from "../../src/domain/logo-jobs";
+
+type LogoConceptAttempt = LogoConceptBatch["slots"][number]["attempts"][number];
+/** TEST ONLY: the quote, admission and request shapes that the browser-test mocks of the retired
+ * quote and admission routes still send. The app no longer calls those routes (Logo runs start on
+ * the generation engine), so these are plain test types, not domain schemas. */
+export type LogoQuoteRequest = LogoRunRequest | { operation: "vectorize"; expected: unknown; [key: string]: unknown };
+export type LogoGenerationIntent = {
+  requestKey: string;
+  quoteId: string;
+  expected: unknown;
+  acceptedMaxCostMicrousd?: number;
+};
+export type LogoCostQuote = { id: string; request: LogoQuoteRequest; expected: unknown; [key: string]: unknown };
 
 export const LOGO_TEST_FIXTURE_LABEL = "Test fixture — no live uploads, generation, saving or charges.";
 const fixtureId = (value: number) => `00000000-0000-4000-8000-${String(value).padStart(12, "0")}`;
@@ -173,9 +182,9 @@ export function syntheticLogoBatch(
     }),
   });
 }
-export function syntheticLogoQuote() {
+export function syntheticLogoQuote(): LogoCostQuote {
   const batch = syntheticLogoBatch();
-  return logoCostQuoteSchema.parse({
+  return {
     id: fixtureId(150),
     ...fixtureScope,
     request: {
@@ -197,7 +206,7 @@ export function syntheticLogoQuote() {
     expiresAt: "2026-10-06T12:00:00Z",
     conceptPlan: batch.plan,
     targetSlotIds: batch.slots.map((slot) => slot.id),
-  });
+  };
 }
 
 import {
