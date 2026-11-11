@@ -24,6 +24,8 @@ also be 24.x.
 | `FLUID_NAMECOM_API_TOKEN` | Name.com API token for live domain availability checks. | Vercel, Production (secret) |
 | `FLUID_NAMECOM_USERNAME` | Name.com API username. | Vercel, Production |
 | `FLUID_NAMECOM_CHECKS_ENABLED` | `true` turns on the Name.com domain checks. | Vercel, Production |
+| `STRIPE_SECRET_KEY` | Server-only Stripe secret key (`sk_test_…` / `rk_test_…`; live keys are refused unless `VERCEL_ENV=production`). Checkout, customer portal, webhook re-reads and subscription cancellation on account deletion ([payments.md](payments.md)). | Vercel (secret) |
+| `STRIPE_WEBHOOK_SECRET` | Server-only signing secret (`whsec_…`) of the Stripe webhook endpoint `/api/billing/stripe-webhook`. Without it the endpoint answers 503 and Stripe retries. | Vercel, Production (secret) |
 
 ## Optional (off or defaulted when unset)
 
@@ -56,6 +58,11 @@ also be 24.x.
 | `DOCKER_HOST`, `DOCKER_CONTEXT`, `CI`, `TMPDIR`, `PATH` | Standard variables read by the local launcher and test tooling. | Shell |
 
 Local development always runs the shared lanes (`dev:up` sets `EMBEL_SHARED_ACCOUNT_HTTP_ENABLED=true`).
+
+## Present in Vercel but not read
+
+`STRIPE_PUBLISHABLE_KEY` and `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`: Stripe Checkout and the customer portal are
+hosted pages the app redirects to, so no browser key is needed. They are public values and harmless to keep.
 
 ## Removed
 

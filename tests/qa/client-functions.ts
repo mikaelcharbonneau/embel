@@ -168,4 +168,6 @@ export const userFunctions = new Set([
   // limit (auth.uid()) and the catalog list of tables the export reads.
   "public.admit_account_export()",
   "public.account_export_tables()",
+  // 20261111100000_stripe_billing: the caller's own plan, credits and subscription state.
+  "public.get_billing_summary()",
 ]);

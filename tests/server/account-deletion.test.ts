@@ -218,6 +218,23 @@ describe("the signed-in deletion", () => {
     expect(context.client.auth.signOut).toHaveBeenCalledWith({ scope: "local" });
   });
 
+  it("cancels the account's Stripe subscriptions before its records are purged", async () => {
+    const context = contextFor(30);
+    const { admin, calls } = fakeAdmin(filesOf(3));
+    const cancelBilling = vi.fn(async (_admin: unknown, owner: string) => {
+      calls.push(`cancelBilling:${owner}`);
+      return 1;
+    });
+    await deleteSignedInAccount(
+      context as unknown as DeletionContext,
+      "owner@example.invalid",
+      admin as never,
+      cancelBilling,
+    );
+    expect(cancelBilling).toHaveBeenCalledWith(admin, A);
+    expect(calls.indexOf(`cancelBilling:${A}`)).toBeLessThan(calls.indexOf(`account_deletion_purge:${A}`));
+  });
+
   it("does nothing for a wrong email or an old sign-in", async () => {
     for (const [context, email, code] of [
       [contextFor(30), "someone@example.invalid", "confirmation_mismatch"],

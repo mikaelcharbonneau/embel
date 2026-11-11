@@ -31,7 +31,9 @@ export type ApiErrorCode =
   | "reauthentication_required"
   | "confirmation_mismatch"
   | "deletion_incomplete"
-  | "export_rate_limited";
+  | "export_rate_limited"
+  | "billing_active"
+  | "invalid_signature";
 
 const failures = {
   unauthenticated: [401, "Sign in to continue."],
@@ -71,6 +73,8 @@ const failures = {
     "Account deletion didn't finish. Some of your data may already be deleted. Try again to finish it.",
   ],
   export_rate_limited: [429, "You can download your data 3 times a day. Try again tomorrow."],
+  billing_active: [409, "You already have a paid plan. Use Manage plan to change or cancel it."],
+  invalid_signature: [400, "The request signature could not be verified."],
 } as const;
 
 export class ApiError extends Error {

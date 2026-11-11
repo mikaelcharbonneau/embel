@@ -3,6 +3,7 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { z } from "zod";
 import { getVerifiedAccountContext } from "../auth/context";
 import { ApiError, logServerError } from "../http/errors";
+import { cancelSubscriptionsForDeletion } from "../billing/account-deletion";
 import { accountAdminClient } from "./admin";
 
 /** Deleting an account needs a sign-in from the last 15 minutes. */
@@ -179,15 +180,18 @@ export async function cancelActiveGenerations(client: SupabaseClient, ownerId: s
   return cancelled;
 }
 
-/** The whole request: confirmation, freshness, stopping work, deleting, signing out. */
+/** The whole request: confirmation, freshness, stopping work and billing, deleting, signing out. */
 export async function deleteSignedInAccount(
   context: DeletionContext,
   confirmEmail: string,
   admin: SupabaseClient = accountAdminClient(),
+  cancelBilling: (admin: SupabaseClient, ownerId: string) => Promise<number> = cancelSubscriptionsForDeletion,
 ) {
   assertConfirmationEmail(context.user, confirmEmail);
   assertFreshSignIn(context.claims);
   await cancelActiveGenerations(context.client, context.user.id);
+  // Before the purge removes the account's link to its Stripe customer.
+  await cancelBilling(admin, context.user.id);
   try {
     await runAccountDeletion(context.user.id, supabaseDeletionStore(admin));
   } catch (error) {

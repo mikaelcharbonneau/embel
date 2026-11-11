@@ -55,3 +55,20 @@ export function getApplicationOrigin(env: Environment = process.env): string {
     throw new ApiError("integration_unavailable");
   }
 }
+
+/** The Stripe secret key (server only). Test keys work everywhere; a live key is refused
+ * outside Vercel production so a preview or a laptop can never charge real cards. */
+export function getStripeSecretKey(env: Environment = process.env): string {
+  const key = env.STRIPE_SECRET_KEY?.trim();
+  const match = key ? /^(?:sk|rk)_(test|live)_[A-Za-z0-9]{10,500}$/u.exec(key) : null;
+  if (!key || !match) throw new ApiError("integration_unavailable");
+  if (match[1] === "live" && env.VERCEL_ENV !== "production") throw new ApiError("integration_unavailable");
+  return key;
+}
+
+/** The signing secret of the Stripe webhook endpoint (server only). */
+export function getStripeWebhookSecret(env: Environment = process.env): string {
+  const secret = env.STRIPE_WEBHOOK_SECRET?.trim();
+  if (!secret || !/^whsec_[A-Za-z0-9+/=_-]{10,500}$/u.test(secret)) throw new ApiError("integration_unavailable");
+  return secret;
+}

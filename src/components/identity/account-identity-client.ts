@@ -38,6 +38,7 @@ import {
   type UpdateIdentityPreferences,
 } from "@/domain/project-identity";
 import { AccountRequestError } from "@/components/workspace/account-api";
+import { announceOutOfCredits } from "@/components/billing/out-of-credits";
 import {
   identityBatchOverviewSchema,
   identityBatchRequestLookupSchema,
@@ -237,7 +238,10 @@ export function createAccountIdentityClient(
             invalidate();
             return null;
           }
-          if (!response.ok) throw new AccountRequestError(response.status);
+          if (!response.ok) {
+            if (response.status === 402) announceOutOfCredits();
+            throw new AccountRequestError(response.status);
+          }
           if (mimeBase(response.headers.get("content-type") ?? "") !== "application/json")
             throw new AccountRequestError(502);
           const bytes = await readBytes(response, IDENTITY_JSON_MAX_BYTES, signal);

@@ -17,15 +17,8 @@ export function assertMutationOrigin(request: Request, allowedOrigin = getApplic
 }
 
 /** Bound the actual streamed bytes as Content-Length can be absent or false. */
-export async function readJson<T extends z.ZodType>(
-  request: Request,
-  schema: T,
-  maxBytes = 32_768,
-): Promise<z.output<T>> {
+export async function readBoundedBytes(request: Request, maxBytes: number): Promise<Uint8Array> {
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 1) throw new ApiError("internal_error");
-  if (request.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase() !== "application/json") {
-    throw new ApiError("invalid_input");
-  }
   const declared = request.headers.get("content-length");
   if (declared && (!/^\d+$/.test(declared) || Number(declared) > maxBytes)) throw new ApiError("body_too_large");
   if (!request.body) throw new ApiError("invalid_input");
@@ -52,6 +45,19 @@ export async function readJson<T extends z.ZodType>(
     bytes.set(chunk, offset);
     offset += chunk.length;
   }
+  return bytes;
+}
+
+export async function readJson<T extends z.ZodType>(
+  request: Request,
+  schema: T,
+  maxBytes = 32_768,
+): Promise<z.output<T>> {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1) throw new ApiError("internal_error");
+  if (request.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase() !== "application/json") {
+    throw new ApiError("invalid_input");
+  }
+  const bytes = await readBoundedBytes(request, maxBytes);
   let json: unknown;
   try {
     json = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
