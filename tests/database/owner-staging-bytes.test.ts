@@ -84,10 +84,17 @@ describe("real byte-verification gates over disposable Storage RLS transport", (
       },
       async read(path: string) {
         reads++;
-        const visible = await run("storage.object.get_authenticated", () =>
-          db.query("select name from storage.objects where bucket_id='fluid-assets' and name=$1", [path]),
-        );
-        if (visible.rows.length !== 1 || !objects.has(path)) throw new Error("Storage object is unavailable");
+        const select = () =>
+          db.query("select name from storage.objects where bucket_id='fluid-assets' and name=$1", [path]);
+        // Hosted Storage looks up object info before serving a private download:
+        // both operations of the authenticated download pair must admit the read.
+        const info = await run("object.get_authenticated_info", select);
+        const visible = await run("storage.object.get_authenticated", select);
+        // Staged objects stay closed to every other route (signed URLs, listing).
+        for (const op of ["storage.object.sign", "storage.object.list"])
+          if ((await run(op, select)).rows.length) throw new Error(`Staged object leaked through ${op}`);
+        if (info.rows.length !== 1 || visible.rows.length !== 1 || !objects.has(path))
+          throw new Error("Storage object is unavailable");
         return damageBytes(objects.get(path)!, damage);
       },
     };
