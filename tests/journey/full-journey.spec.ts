@@ -12,8 +12,8 @@ const PROMPT =
 const GENERATION = 180_000;
 /** Credits each step's runs charge (fluid_private.generation_kinds): five Strategy turns
  * (competitors, audience, positioning, personality, slogan), one naming round, six logo
- * concepts and three creative directions. */
-const EXPECTED_CHARGE = 5 + 1 + 6 + 3;
+ * concepts and one creative directions round (6 credits, two per board). */
+const EXPECTED_CHARGE = 5 + 1 + 6 + 6;
 // Money amounts or estimate wording; credits are fine, costs and prices are never shown.
 const COST_ESTIMATE =
   /[$€£]\s?\d|\b\d+(?:[.,]\d+)?\s?(?:USD|EUR|CAD|dollars?|cents?)\b|\bcost estimates?\b|\bestimated (?:cost|price)\b|\bthis will cost\b/iu;
