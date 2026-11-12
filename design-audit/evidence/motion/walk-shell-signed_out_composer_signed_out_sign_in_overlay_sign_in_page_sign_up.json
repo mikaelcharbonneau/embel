@@ -1,0 +1,612 @@
+[
+ {
+  "scenario": "signed-out-composer",
+  "width": 1440,
+  "account": "signed-out",
+  "steps": [
+   {
+    "label": "focus-composer",
+    "frames": [
+     "shell__signed-out-composer__1440__00-focus-composer-33ms.jpg",
+     "shell__signed-out-composer__1440__01-focus-composer-122ms.jpg",
+     "shell__signed-out-composer__1440__02-focus-composer-401ms.jpg"
+    ],
+    "entries": [
+     "    12 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    27 ms  pointerdown textarea",
+     "    28 ms  focus       textarea"
+    ]
+   },
+   {
+    "label": "type-first-characters",
+    "frames": [
+     "shell__signed-out-composer__1440__03-type-first-characters-291ms.jpg",
+     "shell__signed-out-composer__1440__04-type-first-characters-309ms.jpg",
+     "shell__signed-out-composer__1440__05-type-first-characters-501ms.jpg"
+    ],
+    "entries": [
+     "     4 ms  key         char",
+     "    11 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    35 ms  shift       0.0034 (after input) div.home-examples",
+     "    42 ms  key         char",
+     "    77 ms  key         char",
+     "   112 ms  key         char",
+     "   147 ms  key         char",
+     "   182 ms  key         char",
+     "   215 ms  key         char",
+     "   250 ms  key         char"
+    ]
+   },
+   {
+    "label": "click-starter-chip",
+    "frames": [
+     "shell__signed-out-composer__1440__06-click-starter-chip-26ms.jpg",
+     "shell__signed-out-composer__1440__07-click-starter-chip-121ms.jpg",
+     "shell__signed-out-composer__1440__08-click-starter-chip-401ms.jpg",
+     "shell__signed-out-composer__1440__09-click-starter-chip-901ms.jpg"
+    ],
+    "entries": [
+     "    22 ms  pointerdown button",
+     "    23 ms  focus       button",
+     "    25 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    38 ms  shift       0.0034 (after input) div.home-examples"
+    ]
+   },
+   {
+    "label": "open-add-files-popover",
+    "frames": [
+     "shell__signed-out-composer__1440__10-open-add-files-popover-6ms.jpg",
+     "shell__signed-out-composer__1440__11-open-add-files-popover-121ms.jpg",
+     "shell__signed-out-composer__1440__12-open-add-files-popover-402ms.jpg"
+    ],
+    "entries": [
+     "     4 ms  pointerdown summary[Add files or images]",
+     "     4 ms  focus       summary[Add files or images]",
+     "     6 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[\"details.home-input-popover.home-files-popover\"],\"live\":[\"File attachments are currently unavailable. You can keep writing your \"],\"imgsPending\":0}"
+    ]
+   }
+  ],
+  "notes": [
+   "send button after typing: {\"disabled\":false,\"ariaDisabled\":null,\"bg\":\"rgb(25, 25, 25)\",\"transition\":\"0s\"}",
+   "prompt after chip: \"A neighborhood coffee shop serving carefully sourced coffee and simple seasonal \"",
+   "popover open after Escape: 0"
+  ]
+ },
+ {
+  "scenario": "signed-out-composer",
+  "width": 390,
+  "account": "signed-out",
+  "steps": [
+   {
+    "label": "focus-composer",
+    "frames": [
+     "shell__signed-out-composer__390__00-focus-composer-24ms.jpg",
+     "shell__signed-out-composer__390__01-focus-composer-122ms.jpg",
+     "shell__signed-out-composer__390__02-focus-composer-401ms.jpg"
+    ],
+    "entries": [
+     "    24 ms  pointerdown textarea",
+     "    24 ms  focus       textarea",
+     "    42 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "type-first-characters",
+    "frames": [
+     "shell__signed-out-composer__390__03-type-first-characters-297ms.jpg",
+     "shell__signed-out-composer__390__04-type-first-characters-313ms.jpg",
+     "shell__signed-out-composer__390__05-type-first-characters-501ms.jpg"
+    ],
+    "entries": [
+     "     5 ms  key         char",
+     "    13 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    53 ms  shift       0.0231 (after input) div.home-examples",
+     "    53 ms  key         char",
+     "    88 ms  key         char",
+     "   123 ms  key         char",
+     "   158 ms  key         char",
+     "   192 ms  key         char",
+     "   227 ms  key         char",
+     "   261 ms  key         char"
+    ]
+   },
+   {
+    "label": "click-starter-chip",
+    "frames": [
+     "shell__signed-out-composer__390__06-click-starter-chip-38ms.jpg",
+     "shell__signed-out-composer__390__07-click-starter-chip-120ms.jpg",
+     "shell__signed-out-composer__390__08-click-starter-chip-401ms.jpg",
+     "shell__signed-out-composer__390__09-click-starter-chip-901ms.jpg"
+    ],
+    "entries": [
+     "    34 ms  pointerdown button",
+     "    34 ms  focus       button",
+     "    37 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    50 ms  shift       0.0522 (after input) div.home-examples, div.conversation-composer-footer"
+    ]
+   },
+   {
+    "label": "open-add-files-popover",
+    "frames": [
+     "shell__signed-out-composer__390__10-open-add-files-popover-5ms.jpg",
+     "shell__signed-out-composer__390__11-open-add-files-popover-120ms.jpg",
+     "shell__signed-out-composer__390__12-open-add-files-popover-403ms.jpg"
+    ],
+    "entries": [
+     "     3 ms  pointerdown summary[Add files or images]",
+     "     3 ms  focus       summary[Add files or images]",
+     "     4 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[\"details.home-input-popover.home-files-popover\"],\"live\":[\"File attachments are currently unavailable. You can keep writing your \"],\"imgsPending\":0}",
+     "     6 ms  shift       0.1090 (after input) details.home-input-popover.home-files-popover, div.conversation-start-notice, div.home-examples"
+    ]
+   }
+  ],
+  "notes": [
+   "send button after typing: {\"disabled\":false,\"ariaDisabled\":null,\"bg\":\"rgb(25, 25, 25)\",\"transition\":\"0s\"}",
+   "prompt after chip: \"A neighborhood coffee shop serving carefully sourced coffee and simple seasonal \"",
+   "popover open after Escape: 0"
+  ]
+ },
+ {
+  "scenario": "signed-out-sign-in-overlay",
+  "width": 1440,
+  "account": "signed-out",
+  "steps": [
+   {
+    "label": "send-prompt-signed-out",
+    "frames": [
+     "shell__signed-out-sign-in-overlay__1440__00-send-prompt-signed-out-76ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__01-send-prompt-signed-out-129ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__02-send-prompt-signed-out-201ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__03-send-prompt-signed-out-451ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__04-send-prompt-signed-out-1001ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__05-send-prompt-signed-out-2001ms.jpg"
+    ],
+    "entries": [
+     "     9 ms  shift       0.0034 div.home-examples",
+     "    28 ms  pointerdown button.button.primary",
+     "    29 ms  focus       button.button.primary",
+     "    41 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    71 ms  shift       0.0011 (after input) p.field-hint, div.home-examples, button.text-link",
+     "    82 ms  shift       0.0011 (after input) p.field-hint, div.home-examples, button.text-link",
+     "    90 ms  url         /sign-in",
+     "    90 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":3}",
+     "    95 ms  focus       button.icon-button.auth-overlay-close[Close sign-in]",
+     "    98 ms  focus       button.button.primary",
+     "    99 ms  focus       button.icon-button.auth-overlay-close[Close sign-in]",
+     "    99 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[\"dialog.auth-overlay\"],\"details\":[],\"live\":[],\"imgsPending\":3}",
+     "   100 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[\"dialog.auth-overlay\"],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   112 ms  shift       0.0478 (after input) dialog.auth-overlay"
+    ]
+   },
+   {
+    "label": "escape-closes-overlay",
+    "frames": [
+     "shell__signed-out-sign-in-overlay__1440__06-escape-closes-overlay-13ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__07-escape-closes-overlay-81ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__08-escape-closes-overlay-201ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__09-escape-closes-overlay-601ms.jpg"
+    ],
+    "entries": [
+     "     1 ms  key         Escape",
+     "    12 ms  url         /",
+     "    12 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    14 ms  focus       button.button.primary"
+    ]
+   },
+   {
+    "label": "open-overlay-from-pill",
+    "frames": [
+     "shell__signed-out-sign-in-overlay__1440__10-open-overlay-from-pill-24ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__11-open-overlay-from-pill-81ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__12-open-overlay-from-pill-202ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__13-open-overlay-from-pill-452ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__14-open-overlay-from-pill-1001ms.jpg"
+    ],
+    "entries": [
+     "    18 ms  pointerdown a.button.small",
+     "    18 ms  focus       a.button.small",
+     "    22 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    55 ms  url         /sign-in",
+     "    56 ms  focus       button.icon-button.auth-overlay-close[Close sign-in]",
+     "    57 ms  focus       a.button.small",
+     "    58 ms  focus       button.icon-button.auth-overlay-close[Close sign-in]",
+     "    58 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[\"dialog.auth-overlay\"],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "switch-to-create-account",
+    "frames": [
+     "shell__signed-out-sign-in-overlay__1440__15-switch-to-create-account-36ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__16-switch-to-create-account-82ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__17-switch-to-create-account-200ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__18-switch-to-create-account-451ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__19-switch-to-create-account-1002ms.jpg"
+    ],
+    "entries": [
+     "    25 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[\"dialog.auth-overlay\"],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    32 ms  pointerdown a.text-link",
+     "    32 ms  focus       a.text-link",
+     "   349 ms  url         /sign-up",
+     "   349 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   352 ms  focus       button.icon-button.auth-overlay-close[Close account creation]",
+     "   353 ms  focus       button.icon-button.auth-overlay-close[Close account creation]",
+     "   355 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[\"dialog.auth-overlay\"],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "backdrop-click-closes",
+    "frames": [
+     "shell__signed-out-sign-in-overlay__1440__20-backdrop-click-closes-2ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__21-backdrop-click-closes-80ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__22-backdrop-click-closes-202ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__23-backdrop-click-closes-602ms.jpg"
+    ],
+    "entries": [
+     "     2 ms  pointerdown dialog.auth-overlay",
+     "     2 ms  focus       dialog.auth-overlay",
+     "     9 ms  url         /",
+     "    10 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   }
+  ],
+  "notes": [
+   "dialog styles: {\"cls\":\"auth-overlay\",\"animation\":\"none\",\"transition\":\"0s\",\"backdrop\":\"rgba(25, 25, 25, 0.333)\",\"backdropFilter\":\"blur(3px)\",\"focus\":\"BUTTON\"}",
+   "after escape: {\"dialogs\":0,\"url\":\"/\",\"prompt\":74,\"focus\":\"BUTTON\"}",
+   "after backdrop click: {\"dialogs\":0,\"url\":\"/\"}"
+  ]
+ },
+ {
+  "scenario": "signed-out-sign-in-overlay",
+  "width": 390,
+  "account": "signed-out",
+  "steps": [
+   {
+    "label": "send-prompt-signed-out",
+    "frames": [
+     "shell__signed-out-sign-in-overlay__390__00-send-prompt-signed-out-46ms.jpg",
+     "shell__signed-out-sign-in-overlay__390__01-send-prompt-signed-out-89ms.jpg",
+     "shell__signed-out-sign-in-overlay__390__02-send-prompt-signed-out-201ms.jpg",
+     "shell__signed-out-sign-in-overlay__390__03-send-prompt-signed-out-452ms.jpg",
+     "shell__signed-out-sign-in-overlay__390__04-send-prompt-signed-out-1001ms.jpg",
+     "shell__signed-out-sign-in-overlay__390__05-send-prompt-signed-out-2000ms.jpg"
+    ],
+    "entries": [
+     "     1 ms  shift       0.0321 div.home-examples, div.conversation-composer-footer",
+     "    36 ms  pointerdown button.button.primary",
+     "    37 ms  focus       button.button.primary",
+     "    45 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    80 ms  shift       0.0118 (after input) div.home-examples, p.field-hint, button.text-link",
+     "    89 ms  shift       0.0118 (after input) div.home-examples, p.field-hint, button.text-link",
+     "    96 ms  url         /sign-in",
+     "    96 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":3}",
+     "    99 ms  focus       button.icon-button.auth-overlay-close[Close sign-in]",
+     "   100 ms  focus       button.button.primary",
+     "   101 ms  focus       button.icon-button.auth-overlay-close[Close sign-in]",
+     "   103 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[\"dialog.auth-overlay\"],\"details\":[],\"live\":[],\"imgsPending\":3}",
+     "   107 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[\"dialog.auth-overlay\"],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "escape-closes-overlay",
+    "frames": [
+     "shell__signed-out-sign-in-overlay__390__06-escape-closes-overlay-14ms.jpg",
+     "shell__signed-out-sign-in-overlay__390__07-escape-closes-overlay-80ms.jpg",
+     "shell__signed-out-sign-in-overlay__390__08-escape-closes-overlay-202ms.jpg",
+     "shell__signed-out-sign-in-overlay__390__09-escape-closes-overlay-602ms.jpg"
+    ],
+    "entries": [
+     "     1 ms  key         Escape",
+     "    14 ms  url         /",
+     "    15 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    15 ms  focus       button.button.primary"
+    ]
+   },
+   {
+    "label": "open-overlay-from-pill",
+    "frames": [
+     "shell__signed-out-sign-in-overlay__390__10-open-overlay-from-pill-38ms.jpg",
+     "shell__signed-out-sign-in-overlay__390__11-open-overlay-from-pill-81ms.jpg",
+     "shell__signed-out-sign-in-overlay__390__12-open-overlay-from-pill-201ms.jpg",
+     "shell__signed-out-sign-in-overlay__390__13-open-overlay-from-pill-452ms.jpg",
+     "shell__signed-out-sign-in-overlay__390__14-open-overlay-from-pill-1001ms.jpg"
+    ],
+    "entries": [
+     "    21 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    25 ms  pointerdown a.button.small",
+     "    26 ms  focus       a.button.small",
+     "    67 ms  url         /sign-in",
+     "    68 ms  focus       button.icon-button.auth-overlay-close[Close sign-in]",
+     "    69 ms  focus       a.button.small",
+     "    69 ms  focus       button.icon-button.auth-overlay-close[Close sign-in]",
+     "    71 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[\"dialog.auth-overlay\"],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "switch-to-create-account",
+    "frames": [
+     "shell__signed-out-sign-in-overlay__390__15-switch-to-create-account-34ms.jpg",
+     "shell__signed-out-sign-in-overlay__390__16-switch-to-create-account-80ms.jpg",
+     "shell__signed-out-sign-in-overlay__390__17-switch-to-create-account-201ms.jpg",
+     "shell__signed-out-sign-in-overlay__390__18-switch-to-create-account-451ms.jpg",
+     "shell__signed-out-sign-in-overlay__390__19-switch-to-create-account-1001ms.jpg"
+    ],
+    "entries": [
+     "    11 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[\"dialog.auth-overlay\"],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    30 ms  pointerdown a.text-link",
+     "    30 ms  focus       a.text-link",
+     "    60 ms  url         /sign-up",
+     "    60 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    61 ms  focus       button.icon-button.auth-overlay-close[Close account creation]",
+     "    63 ms  focus       button.icon-button.auth-overlay-close[Close account creation]",
+     "    64 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[\"dialog.auth-overlay\"],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "backdrop-click-closes",
+    "frames": [
+     "shell__signed-out-sign-in-overlay__390__20-backdrop-click-closes-2ms.jpg",
+     "shell__signed-out-sign-in-overlay__390__21-backdrop-click-closes-82ms.jpg",
+     "shell__signed-out-sign-in-overlay__390__22-backdrop-click-closes-202ms.jpg",
+     "shell__signed-out-sign-in-overlay__390__23-backdrop-click-closes-600ms.jpg"
+    ],
+    "entries": [
+     "     1 ms  pointerdown dialog.auth-overlay",
+     "     2 ms  focus       dialog.auth-overlay",
+     "    10 ms  url         /",
+     "    11 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   }
+  ],
+  "notes": [
+   "dialog styles: {\"cls\":\"auth-overlay\",\"animation\":\"none\",\"transition\":\"0s\",\"backdrop\":\"rgba(25, 25, 25, 0.333)\",\"backdropFilter\":\"blur(3px)\",\"focus\":\"BUTTON\"}",
+   "after escape: {\"dialogs\":0,\"url\":\"/\",\"prompt\":74,\"focus\":\"BUTTON\"}",
+   "after backdrop click: {\"dialogs\":0,\"url\":\"/\"}"
+  ]
+ },
+ {
+  "scenario": "sign-in-page",
+  "width": 1440,
+  "account": "signed-out",
+  "steps": [
+   {
+    "label": "load",
+    "frames": [
+     "shell__sign-in-page__1440__00-load-101ms.jpg",
+     "shell__sign-in-page__1440__01-load-402ms.jpg",
+     "shell__sign-in-page__1440__02-load-901ms.jpg",
+     "shell__sign-in-page__1440__03-load-1601ms.jpg",
+     "shell__sign-in-page__1440__04-load-2601ms.jpg"
+    ],
+    "entries": [
+     "    57 ms  state       {\"h1\":\"Sign in to Embel\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Checking your account…\"],\"imgsPending\":1}",
+     "   131 ms  state       {\"h1\":\"Sign in to Embel\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Checking your account…\"],\"imgsPending\":0}",
+     "   212 ms  state       {\"h1\":\"Sign in to Embel\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   219 ms  shift       0.0063 div.journey-module__MmLfbq__capsule.journey-module__MmLfbq__navCapsule, div.auth-guided-browser, p.auth-mode-switch"
+    ]
+   },
+   {
+    "label": "toggle-show-password",
+    "frames": [
+     "shell__sign-in-page__1440__05-toggle-show-password-38ms.jpg",
+     "shell__sign-in-page__1440__06-toggle-show-password-121ms.jpg",
+     "shell__sign-in-page__1440__07-toggle-show-password-402ms.jpg"
+    ],
+    "entries": [
+     "    35 ms  pointerdown button.auth-password-toggle[Show password]",
+     "    35 ms  focus       button.auth-password-toggle[Show password]",
+     "    37 ms  state       {\"h1\":\"Sign in to Embel\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "submit-wrong-password",
+    "frames": [
+     "shell__sign-in-page__1440__08-submit-wrong-password-38ms.jpg",
+     "shell__sign-in-page__1440__09-submit-wrong-password-620ms.jpg",
+     "shell__sign-in-page__1440__10-submit-wrong-password-649ms.jpg",
+     "shell__sign-in-page__1440__11-submit-wrong-password-1202ms.jpg",
+     "shell__sign-in-page__1440__12-submit-wrong-password-2403ms.jpg",
+     "shell__sign-in-page__1440__13-submit-wrong-password-3200ms.jpg",
+     "shell__sign-in-page__1440__14-submit-wrong-password-4501ms.jpg",
+     "shell__sign-in-page__1440__15-submit-wrong-password-6502ms.jpg"
+    ],
+    "entries": [
+     "    18 ms  state       {\"h1\":\"Sign in to Embel\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    30 ms  pointerdown button.button.primary",
+     "    30 ms  focus       button.button.primary",
+     "    37 ms  state       {\"h1\":\"Sign in to Embel\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\"],\"imgsPending\":0}",
+     "    44 ms  shift       0.0033 (after input) div.journey-module__MmLfbq__capsule.journey-module__MmLfbq__navCapsule",
+     "    59 ms  animation   auth-spin on span.auth-progress (0.8s linear xinfinite)",
+     "  2628 ms  state       {\"h1\":\"Sign in to Embel\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"We couldn't sign you in with those details. Check your email and passw\"],\"imgsPending\":1}",
+     "  2629 ms  shift       0.0027 div.auth-guided-browser, p.auth-mode-switch",
+     "  2668 ms  state       {\"h1\":\"Sign in to Embel\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"We couldn't sign you in with those details. Check your email and passw\"],\"imgsPending\":0}"
+    ]
+   }
+  ],
+  "notes": [
+   "after wrong password: {\"alert\":\"We couldn't sign you in with those details. Check your email and password and try again.\",\"password\":0,\"focus\":\"BODY\"}"
+  ]
+ },
+ {
+  "scenario": "sign-in-page",
+  "width": 390,
+  "account": "signed-out",
+  "steps": [
+   {
+    "label": "load",
+    "frames": [
+     "shell__sign-in-page__390__00-load-101ms.jpg",
+     "shell__sign-in-page__390__01-load-402ms.jpg",
+     "shell__sign-in-page__390__02-load-901ms.jpg",
+     "shell__sign-in-page__390__03-load-1602ms.jpg",
+     "shell__sign-in-page__390__04-load-2601ms.jpg"
+    ],
+    "entries": [
+     "    48 ms  state       {\"h1\":\"Sign in to Embel\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Checking your account…\"],\"imgsPending\":1}",
+     "   116 ms  state       {\"h1\":\"Sign in to Embel\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Checking your account…\"],\"imgsPending\":0}",
+     "   205 ms  state       {\"h1\":\"Sign in to Embel\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   211 ms  shift       0.0061 (after input) div.auth-guided-browser, p.auth-mode-switch, div.journey-module__MmLfbq__end"
+    ]
+   },
+   {
+    "label": "toggle-show-password",
+    "frames": [
+     "shell__sign-in-page__390__05-toggle-show-password-30ms.jpg",
+     "shell__sign-in-page__390__06-toggle-show-password-121ms.jpg",
+     "shell__sign-in-page__390__07-toggle-show-password-402ms.jpg"
+    ],
+    "entries": [
+     "    19 ms  state       {\"h1\":\"Sign in to Embel\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    28 ms  pointerdown button.auth-password-toggle[Show password]",
+     "    28 ms  focus       button.auth-password-toggle[Show password]"
+    ]
+   },
+   {
+    "label": "submit-wrong-password",
+    "frames": [
+     "shell__sign-in-page__390__08-submit-wrong-password-38ms.jpg",
+     "shell__sign-in-page__390__09-submit-wrong-password-101ms.jpg",
+     "shell__sign-in-page__390__10-submit-wrong-password-402ms.jpg",
+     "shell__sign-in-page__390__11-submit-wrong-password-1201ms.jpg",
+     "shell__sign-in-page__390__12-submit-wrong-password-2401ms.jpg",
+     "shell__sign-in-page__390__13-submit-wrong-password-3201ms.jpg",
+     "shell__sign-in-page__390__14-submit-wrong-password-4501ms.jpg",
+     "shell__sign-in-page__390__15-submit-wrong-password-6501ms.jpg"
+    ],
+    "entries": [
+     "     3 ms  state       {\"h1\":\"Sign in to Embel\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    28 ms  pointerdown button.button.primary",
+     "    28 ms  focus       button.button.primary",
+     "    38 ms  state       {\"h1\":\"Sign in to Embel\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\"],\"imgsPending\":0}",
+     "    58 ms  shift       0.0003 (after input) div.journey-module__MmLfbq__end",
+     "    74 ms  animation   auth-spin on span.auth-progress (0.8s linear xinfinite)",
+     "  2624 ms  state       {\"h1\":\"Sign in to Embel\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"We couldn't sign you in with those details. Check your email and passw\"],\"imgsPending\":1}",
+     "  2628 ms  shift       0.0138 div.auth-guided-browser, p.auth-mode-switch",
+     "  2652 ms  state       {\"h1\":\"Sign in to Embel\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"We couldn't sign you in with those details. Check your email and passw\"],\"imgsPending\":0}"
+    ]
+   }
+  ],
+  "notes": [
+   "after wrong password: {\"alert\":\"We couldn't sign you in with those details. Check your email and password and try again.\",\"password\":0,\"focus\":\"BODY\"}"
+  ]
+ },
+ {
+  "scenario": "sign-up-and-forgot",
+  "width": 1440,
+  "account": "signed-out",
+  "steps": [
+   {
+    "label": "submit-invalid-sign-up",
+    "frames": [
+     "shell__sign-up-and-forgot__1440__00-submit-invalid-sign-up-35ms.jpg",
+     "shell__sign-up-and-forgot__1440__01-submit-invalid-sign-up-309ms.jpg",
+     "shell__sign-up-and-forgot__1440__02-submit-invalid-sign-up-501ms.jpg",
+     "shell__sign-up-and-forgot__1440__03-submit-invalid-sign-up-1201ms.jpg"
+    ],
+    "entries": [
+     "    16 ms  state       {\"h1\":\"Create your Embel account\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    23 ms  pointerdown button.button.primary",
+     "    23 ms  focus       button.button.primary",
+     "    23 ms  focus       input"
+    ]
+   },
+   {
+    "label": "submit-forgot-password",
+    "frames": [
+     "shell__sign-up-and-forgot__1440__04-submit-forgot-password-27ms.jpg",
+     "shell__sign-up-and-forgot__1440__05-submit-forgot-password-151ms.jpg",
+     "shell__sign-up-and-forgot__1440__06-submit-forgot-password-601ms.jpg",
+     "shell__sign-up-and-forgot__1440__07-submit-forgot-password-1501ms.jpg",
+     "shell__sign-up-and-forgot__1440__08-submit-forgot-password-2201ms.jpg",
+     "shell__sign-up-and-forgot__1440__09-submit-forgot-password-3002ms.jpg"
+    ],
+    "entries": [
+     "     7 ms  state       {\"h1\":\"Reset your password\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    23 ms  pointerdown button.button.primary",
+     "    24 ms  focus       button.button.primary",
+     "    27 ms  state       {\"h1\":\"Reset your password\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    55 ms  animation   auth-spin on span.auth-progress (0.8s linear xinfinite)",
+     "  1831 ms  state       {\"h1\":\"Check your email\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"If an account uses this address, a reset link will arrive shortly. Ope\"],\"imgsPending\":0}",
+     "  1831 ms  shift       0.0019 div.auth-guided-browser, p.auth-mode-switch"
+    ]
+   },
+   {
+    "label": "not-found",
+    "frames": [
+     "shell__sign-up-and-forgot__1440__10-not-found-202ms.jpg",
+     "shell__sign-up-and-forgot__1440__11-not-found-801ms.jpg",
+     "shell__sign-up-and-forgot__1440__12-not-found-2002ms.jpg"
+    ],
+    "entries": [
+     "   100 ms  state       {\"h1\":\"\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   164 ms  state       {\"h1\":\"Page not found\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\"],\"imgsPending\":1}",
+     "   173 ms  state       {\"h1\":\"Page not found\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\"],\"imgsPending\":0}",
+     "   190 ms  state       {\"h1\":\"Page not found\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   199 ms  shift       0.0033 div.journey-module__MmLfbq__capsule.journey-module__MmLfbq__navCapsule"
+    ]
+   }
+  ],
+  "notes": [
+   "validation: {\"alerts\":[],\"invalid\":[\"FORM\",\"FIELDSET\",\"password\",\"confirmPassword\"],\"focus\":\"password\"}"
+  ]
+ },
+ {
+  "scenario": "sign-up-and-forgot",
+  "width": 390,
+  "account": "signed-out",
+  "steps": [
+   {
+    "label": "submit-invalid-sign-up",
+    "frames": [
+     "shell__sign-up-and-forgot__390__00-submit-invalid-sign-up-39ms.jpg",
+     "shell__sign-up-and-forgot__390__01-submit-invalid-sign-up-152ms.jpg",
+     "shell__sign-up-and-forgot__390__02-submit-invalid-sign-up-501ms.jpg",
+     "shell__sign-up-and-forgot__390__03-submit-invalid-sign-up-1201ms.jpg"
+    ],
+    "entries": [
+     "    30 ms  pointerdown button.button.primary",
+     "    31 ms  focus       button.button.primary",
+     "    31 ms  focus       input",
+     "    46 ms  state       {\"h1\":\"Create your Embel account\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "submit-forgot-password",
+    "frames": [
+     "shell__sign-up-and-forgot__390__04-submit-forgot-password-23ms.jpg",
+     "shell__sign-up-and-forgot__390__05-submit-forgot-password-151ms.jpg",
+     "shell__sign-up-and-forgot__390__06-submit-forgot-password-601ms.jpg",
+     "shell__sign-up-and-forgot__390__07-submit-forgot-password-1502ms.jpg",
+     "shell__sign-up-and-forgot__390__08-submit-forgot-password-2201ms.jpg",
+     "shell__sign-up-and-forgot__390__09-submit-forgot-password-3001ms.jpg"
+    ],
+    "entries": [
+     "     4 ms  state       {\"h1\":\"Reset your password\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    19 ms  pointerdown button.button.primary",
+     "    20 ms  focus       button.button.primary",
+     "    22 ms  state       {\"h1\":\"Reset your password\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    50 ms  animation   auth-spin on span.auth-progress (0.8s linear xinfinite)",
+     "  1830 ms  state       {\"h1\":\"Check your email\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"If an account uses this address, a reset link will arrive shortly. Ope\"],\"imgsPending\":0}",
+     "  1831 ms  shift       0.0047 div.auth-guided-browser, p.auth-mode-switch"
+    ]
+   },
+   {
+    "label": "not-found",
+    "frames": [
+     "shell__sign-up-and-forgot__390__10-not-found-202ms.jpg",
+     "shell__sign-up-and-forgot__390__11-not-found-802ms.jpg",
+     "shell__sign-up-and-forgot__390__12-not-found-2002ms.jpg"
+    ],
+    "entries": [
+     "   102 ms  state       {\"h1\":\"\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   163 ms  state       {\"h1\":\"Page not found\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\"],\"imgsPending\":1}",
+     "   172 ms  state       {\"h1\":\"Page not found\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\"],\"imgsPending\":0}",
+     "   187 ms  state       {\"h1\":\"Page not found\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   188 ms  shift       0.0003 (after input) div.journey-module__MmLfbq__end"
+    ]
+   }
+  ],
+  "notes": [
+   "validation: {\"alerts\":[],\"invalid\":[\"FORM\",\"FIELDSET\",\"password\",\"confirmPassword\"],\"focus\":\"password\"}"
+  ]
+ }
+]

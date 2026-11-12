@@ -1,0 +1,543 @@
+
+=== open-kestrel-from-projects @1440 (audit-pro)
+  note: scrollers after open: [{"cls":"project-workspace-content","top":0,"height":6316,"view":828,"behavior":"auto"},{"cls":"kit-code","top":0,"height":672,"view":220,"behavior":"auto"}]
+  note: pill controls: ["a:Embel home","summary:Project: Kestrel Analytics. Switch proje","a:","a:","a:","a:Strategy , complete","a:Voice , complete","a:Identity , complete","summary:Account menu","a:","a:","button:","button:Close","button:","button:","button:","a:Overview","a:Logo","a:Colors","a:Typography","a:Voice","a:Imagery"]
+  -- click-project-card  [10 frame(s)]
+         20 ms  pointerdown a.project-card-module__yo1VFG__link[View brand kit · Kestrel Analy]
+         20 ms  focus       a.project-card-module__yo1VFG__link[View brand kit · Kestrel Analy]
+         41 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         94 ms  url         /brands/account/3a39586e-13f3-42e6-b72b-f4d33b3105a7/logo/deliverables
+         94 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Loading project…","Loading your chosen direction…"],"imgsPending":0}
+        102 ms  shift       0.0029 (after input) div.journey-module__MmLfbq__capsule.journey-module__MmLfbq__projectCapsule
+        146 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading your chosen direction…"],"imgsPending":0}
+        151 ms  shift       0.0127 (after input) div.journey-module__MmLfbq__capsule.journey-module__MmLfbq__projectCapsule
+        582 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Preparing your files…","Preparing…","Preparing…","Preparing…"],"imgsPending":0}
+       1063 ms  longtask    98 ms
+       1254 ms  longtask    182 ms
+       1491 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Ready to download."],"imgsPending":8}
+       1496 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Ready to download."],"imgsPending":2}
+       1496 ms  shift       0.0542 section.kit-card, figure.kit-image, p.brand-assets-module__GHEyxG__status
+       1502 ms  shift       0.3229 section.kit-card, figcaption.brand-assets-module__GHEyxG__caption
+       1542 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Ready to download."],"imgsPending":0}
+  -- pill-step-strategy  [6 frame(s)]
+         10 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Ready to download."],"imgsPending":0}
+         23 ms  pointerdown a.journey-module__MmLfbq__step
+         23 ms  focus       a.journey-module__MmLfbq__step
+        240 ms  url         /brands/account/3a39586e-13f3-42e6-b72b-f4d33b3105a7?view=strategy#journey-strategy
+        242 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":43}
+        247 ms  scroll      div.guided-interview-scroll[Conversation] top=2618
+        272 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":42}
+        272 ms  longtask    66 ms
+        272 ms  shift       0.0000 (after input) li, li, li
+        297 ms  shift       0.0543 (after input) article.inspiration-brand[Avelo], article.inspiration-brand[Avoova], div.inspiration-continue-inline
+        304 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":41}
+        370 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":40}
+        400 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":35}
+        401 ms  shift       0.0000 (after input) li
+        410 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":31}
+        446 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":22}
+        447 ms  scroll      div.guided-interview-scroll[Conversation] top=2361
+        447 ms  transition  opacity on button.inspiration-heart.inspiration-brand-like[Like the whole Aurox brand] (0.12s, 0.12s ease, ease [transform, opacity])  [x8 in this step]
+        447 ms  animation   embel-flow-enter on section.strategy-summary.flow-enter (0.16s ease-out x1)  [x7 in this step]
+        449 ms  shift       0.0207 (after input) div.inspiration-feed, div.inspiration-continue-inline, article.inspiration-brand[Aurox]
+        510 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":19}
+        560 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":17}
+        610 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":13}
+        648 ms  focus       section.guided-journey-section[Strategy]
+        657 ms  state       {"h1":"Logo","busy":2,"dialogs":[],"details":[],"live":["Saved","6 types chosen","Getting ready…","Loading saved concepts…","Loading saved logo details…"],"imgsPending":5}
+        658 ms  scroll      div.guided-interview-scroll[Conversation] top=24
+        677 ms  shift       0.0201 section.guided-journey-section[Voice], article.guided-assistant-message.flow-enter[Your name], span
+        680 ms  shift       0.0000 li, li
+        761 ms  state       {"h1":"Logo","busy":2,"dialogs":[],"details":[],"live":["Saved","6 types chosen","Getting ready…","Loading saved concepts…","Loading saved logo details…"],"imgsPending":4}
+       1003 ms  state       {"h1":"Logo","busy":2,"dialogs":[],"details":[],"live":["Saved","6 types chosen","Getting ready…","Loading saved concepts…","Loading saved logo details…"],"imgsPending":3}
+       1019 ms  state       {"h1":"Logo","busy":2,"dialogs":[],"details":[],"live":["Saved","6 types chosen","Complete your saved logo inputs to continue.","Loading saved concepts…","Loading saved logo details…"],"imgsPending":3}
+       1026 ms  state       {"h1":"Logo","busy":2,"dialogs":[],"details":[],"live":["Saved","6 types chosen","Complete your saved logo inputs to continue.","Loading saved concepts…","Loading saved logo details…"],"imgsPending":2}
+       1610 ms  state       {"h1":"Logo","busy":2,"dialogs":[],"details":[],"live":["Saved","6 types chosen","Complete your saved logo inputs to continue.","Loading saved concepts…","Loading saved logo details…"],"imgsPending":0}
+       1636 ms  transition  border-top-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 1: Editorial Soft Sh] (0.12s ease [border-color])  [x3 in this step]
+       1636 ms  transition  border-bottom-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 1: Editorial Soft Sh] (0.12s ease [border-color])  [x3 in this step]
+       1636 ms  transition  border-left-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 1: Editorial Soft Sh] (0.12s ease [border-color])  [x3 in this step]
+       1636 ms  transition  border-right-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 1: Editorial Soft Sh] (0.12s ease [border-color])  [x3 in this step]
+       1753 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Loading your chosen logo…","Choose a logo concept to begin.","3 of 3 ready"],"imgsPending":0}
+       1776 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Loading your chosen logo…","Loading your chosen logo…","3 of 3 ready"],"imgsPending":0}
+       1895 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Loading your chosen logo…","3 of 3 ready"],"imgsPending":0}
+       2009 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","3 of 3 ready"],"imgsPending":0}
+       2030 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","3 of 3 ready"],"imgsPending":1}
+       2060 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","3 of 3 ready"],"imgsPending":0}
+       2073 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","3 of 3 ready"],"imgsPending":1}
+       2111 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Editorial Soft Shapes chosen 3 of 3 ready"],"imgsPending":0}
+     … 4 more
+  -- pill-step-voice  [6 frame(s)]
+         23 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Editorial Soft Shapes chosen 3 of 3 ready"],"imgsPending":0}
+         35 ms  pointerdown a.journey-module__MmLfbq__step
+         35 ms  focus       a.journey-module__MmLfbq__step
+         35 ms  focus       section.guided-journey-section[Voice]
+         61 ms  scroll      div.guided-interview-scroll[Conversation] top=398
+         93 ms  shift       0.0000 (after input) li
+  -- pill-step-identity  [6 frame(s)]
+         32 ms  pointerdown a.journey-module__MmLfbq__step
+         32 ms  focus       a.journey-module__MmLfbq__step
+         32 ms  focus       section.guided-journey-section.flow-enter[Identity]
+         57 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Editorial Soft Shapes chosen 3 of 3 ready"],"imgsPending":0}
+         58 ms  scroll      div.guided-interview-scroll[Conversation] top=912
+         89 ms  shift       0.0000 (after input) li
+  -- pill-step-assets  [6 frame(s)]
+          3 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Editorial Soft Shapes chosen 3 of 3 ready"],"imgsPending":0}
+         31 ms  pointerdown a.journey-module__MmLfbq__step.journey-module__MmLfbq__stepNext
+         31 ms  focus       a.journey-module__MmLfbq__step.journey-module__MmLfbq__stepNext
+         93 ms  url         /brands/account/3a39586e-13f3-42e6-b72b-f4d33b3105a7/logo/deliverables
+         93 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading your chosen direction…"],"imgsPending":0}
+        106 ms  shift       0.0000 (after input) li
+        772 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Preparing your files…","Preparing…","Preparing…","Preparing…"],"imgsPending":0}
+       1290 ms  longtask    111 ms
+       1569 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Ready to download."],"imgsPending":8}
+       1572 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Ready to download."],"imgsPending":2}
+       1573 ms  shift       0.0542 section.kit-card, figure.kit-image, p.brand-assets-module__GHEyxG__status
+       1579 ms  shift       0.3229 section.kit-card, figcaption.brand-assets-module__GHEyxG__caption
+       1603 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Ready to download."],"imgsPending":0}
+  -- browser-back-to-projects  [4 frame(s)]
+        556 ms  state       {"h1":"Your projects.","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":0}
+        777 ms  state       {"h1":"Projects.","busy":3,"dialogs":[],"details":[],"live":["Checking account…","Loading your projects…","Checking recovery availability…"],"imgsPending":1}
+        785 ms  state       {"h1":"Projects.","busy":3,"dialogs":[],"details":[],"live":["Checking account…","Loading your projects…"],"imgsPending":1}
+        796 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)  [x50 in this step]
+        858 ms  state       {"h1":"Projects.","busy":3,"dialogs":[],"details":[],"live":["Checking account…","Loading your projects…"],"imgsPending":0}
+        935 ms  state       {"h1":"Projects.","busy":1,"dialogs":[],"details":[],"live":["Loading your projects…"],"imgsPending":0}
+        952 ms  state       {"h1":"Projects.","busy":3,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+       1446 ms  shift       0.0023 span.project-card-module__yo1VFG__next, span.project-card-module__yo1VFG__next
+       1470 ms  state       {"h1":"Projects.","busy":2,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+       1492 ms  state       {"h1":"Projects.","busy":2,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+       1493 ms  state       {"h1":"Projects.","busy":1,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+       1497 ms  shift       0.0018 span.project-card-module__yo1VFG__next
+       1508 ms  state       {"h1":"Projects.","busy":1,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+       1534 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+       1558 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+
+=== kestrel-direct-load @1440 (audit-pro)
+  note: controls: ["a:Skip to content","a:Embel home","summary:Project: Kestrel Analytics. Switch project","a:","a:Strategy , complete","a:Voice , complete","a:4 Assets , next step","summary:Account menu","button:","button:Edit brief","button:Edit strategy","button:Edit your answer: Which personality feels ri","button:Change name","button:Edit your answer: Which slogan do you like?","button:Browse","button:Liked · 2","button:Brands","button:Logos","button:Colors","button:Typefaces","button:Socials","button:Visuals","button:Archi-Tex Open brand","button:Unlike the whole Archi-Tex brand","button:Open Archi-Tex: logo","button:Like Archi-Tex logo","button:Open Archi-Tex: colors","button:Like Archi-Tex colors","button:Open Archi-Tex: typefaces","button:Like Archi-Tex typefaces","button:Open Archi-Tex: socials","button:Like Archi-Tex socials","button:Open Archi-Tex: visuals","button:Like Archi-Tex visuals","button:Asteor Open brand","button:Like the whole Asteor brand","button:Open Asteor: logo","button:Like Asteor logo","button:Open Asteor: colors","button:Like Asteor colors","button:Open Asteor: typefaces","button:Like Asteor typefaces","button:Open Asteor: socials","button:Like Asteor socials","button:Open Asteor: visuals","button:Like Asteor visuals","button:Astrix Builders Open brand","button:Like the whole Astrix Builders brand","button:Open Astrix Builders: logo","button:Like Astrix Builders logo","button:Open Astrix Builders: colors","button:Like Astrix Builders colors","button:Open Astrix Builders: typefaces","button:Like Astrix Builders typefaces","button:Open Astrix Builders: socials","button:Like Astrix Builders socials","button:Open Astrix Builders: visuals","button:Like Astrix Builders visuals","button:Auraic Open brand","button:Like the whole Auraic brand","button:Open Auraic: logo","button:Like Auraic logo","button:Open Auraic: colors","button:Like Auraic colors","button:Open Auraic: typefaces","button:Like Auraic typefaces","button:Open Auraic: socials","button:Like Auraic socials","button:Open Auraic: visuals","button:Like Auraic visuals","button:Aurox Open brand","button:Like the whole Aurox brand","button:Open Aurox: logo","button:Like Aurox logo","button:Open Aurox: colors","button:Like Aurox colors","button:Open Aurox: typefaces","button:Like Aurox typefaces","button:Open Aurox: socials","button:Like Aurox socials","button:Open Aurox: visuals","button:Like Aurox visuals","button:AutoNex Open brand","button:Like the whole AutoNex brand","button:Open AutoNex: logo","button:Like AutoNex logo","button:Open AutoNex: colors","button:Like AutoNex colors","button:Open AutoNex: typefaces","button:Like AutoNex typefaces"]
+  note: images: {"total":59,"lazy":49,"blob":9,"withTransition":40,"withBgPlaceholder":18}
+  note: brand menu after Escape: 0
+  note: controls after change name: ["a:Skip to content","a:Embel home","summary:Project: Kestrel Analytics. Switch project","a:","a:Strategy , complete","a:Identity , complete","a:4 Assets , next step","summary:Account menu","button:","button:Edit brief","button:Edit strategy","button:Edit your answer: Which personality feels ri","button:Naming choices Real words, Blended words, In","button:All 100","button:Saved 0","button:Gellakas Choose this name","button:Favorite Gellakas","button:Inspect name Gellakas","button:Mellakaz Choose this name","button:Favorite Mellakaz","button:Inspect name Mellakaz","button:Rellakaf Choose this name","button:Favorite Rellakaf","button:Inspect name Rellakaf","button:Dillakap Choose this name","button:Favorite Dillakap","button:Inspect name Dillakap","button:Nillakab Choose this name","button:Favorite Nillakab","button:Inspect name Nillakab","button:Vellakal Choose this name","button:Favorite Vellakal","button:Inspect name Vellakal","button:Sillakag Choose this name","button:Favorite Sillakag","button:Inspect name Sillakag","button:Killakat Choose this name","button:Favorite Killakat","button:Inspect name Killakat","button:Polakab Choose this name","button:Favorite Polakab","button:Inspect name Polakab","button:Gulakar Choose this name","button:Favorite Gulakar","button:Inspect name Gulakar","button:Zillakam Choose this name","button:Favorite Zillakam","button:Inspect name Zillakam","button:Mulakav Choose this name","button:Favorite Mulakav","button:Inspect name Mulakav","button:Bulakam Choose this name","button:Favorite Bulakam","button:Inspect name Bulakam","button:Tolakag Choose this name","button:Favorite Tolakag","button:Inspect name Tolakag","button:Rulakad Choose this name","button:Favorite Rulakad","button:Inspect name Rulakad","button:Lolakat Choose this name","button:Favorite Lolakat","button:Inspect name Lolakat","button:Damakan Choose this name","button:Favorite Damakan","button:Inspect name Damakan","button:Pemakab Remakad Choose this name","button:Favorite Pemakab Remakad","button:Inspect name Pemakab Remakad","button:Kestrel Analytics Chosen name","button:Favorite Kestrel Analytics","button:Inspect name Kestrel Analytics","button:Lemakat Memakav Choose this name","button:Favorite Lemakat Memakav","button:Inspect name Lemakat Memakav","button:Femakap Gemakar Choose this name","button:Favorite Femakap Gemakar","button:Inspect name Femakap Gemakar","button:Vulakak Choose this name","button:Favorite Vulakak","button:Inspect name Vulakak","button:Samakaf Tamakag Choose this name","button:Favorite Samakaf Tamakag","button:Inspect name Samakaf Tamakag","button:Zamakal Bemakam Choose this name","button:Favorite Zamakal Bemakam","button:Inspect name Zamakal Bemakam","button:Rimakad Choose this name","button:Favorite Rimakad","button:Inspect name Rimakad"]
+  -- direct-load  [8 frame(s)]
+        141 ms  state       {"h1":"Project workspace","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":1}
+        157 ms  state       {"h1":"Project workspace","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":0}
+        296 ms  state       {"h1":"Account project","busy":2,"dialogs":[],"details":[],"live":["Loading project…","Checking account…"],"imgsPending":0}
+        302 ms  shift       0.0029 div.journey-module__MmLfbq__capsule.journey-module__MmLfbq__projectCapsule
+        363 ms  state       {"h1":"Account project","busy":0,"dialogs":[],"details":[],"live":["Loading project…"],"imgsPending":0}
+        440 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":43}
+        447 ms  scroll      div.guided-interview-scroll[Conversation] top=2618
+        450 ms  longtask    71 ms
+        451 ms  shift       0.0126 div.journey-module__MmLfbq__capsule.journey-module__MmLfbq__projectCapsule
+        494 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":40}
+        495 ms  shift       0.0540 article.inspiration-brand[Avelo], article.inspiration-brand[Avoova], div.inspiration-continue-inline
+        495 ms  scroll      div.guided-interview-scroll[Conversation] top=2427
+        495 ms  animation   embel-flow-enter on section.strategy-summary.flow-enter (0.16s ease-out x1)  [x7 in this step]
+        496 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":38}
+        497 ms  shift       0.0000 li
+        547 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":29}
+        549 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":26}
+        589 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":19}
+        612 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":19}
+        613 ms  transition  opacity on button.inspiration-heart.inspiration-brand-like[Unlike the whole Archi-Tex bra] (0.12s, 0.12s ease, ease [transform, opacity])  [x8 in this step]
+        615 ms  shift       0.0206 div.inspiration-feed, div.inspiration-continue-inline, article.inspiration-brand[Aurox]
+        617 ms  scroll      div.guided-interview-scroll[Conversation] top=2361
+        639 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":14}
+        657 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":13}
+        659 ms  shift       0.0063 div.inspiration-continue-inline, footer.inspiration-footer
+        690 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":5}
+        843 ms  scroll      div.guided-interview-scroll[Conversation] top=2838
+        918 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":6}
+        939 ms  state       {"h1":"Skip to content Kestrel Analytics Strate","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":5}
+       1239 ms  state       {"h1":"Logo","busy":2,"dialogs":[],"details":[],"live":["Saved","Choose at least one type","Getting ready…","Loading saved concepts…","Loading saved logo details…"],"imgsPending":5}
+       1498 ms  state       {"h1":"Logo","busy":2,"dialogs":[],"details":[],"live":["Saved","Choose at least one type","Complete your saved logo inputs to continue.","Loading saved concepts…","Loading saved logo details…"],"imgsPending":5}
+       1858 ms  state       {"h1":"Logo","busy":2,"dialogs":[],"details":[],"live":["Saved","6 types chosen","Complete your saved logo inputs to continue.","Loading saved concepts…","Loading saved logo details…"],"imgsPending":5}
+       2060 ms  state       {"h1":"Logo","busy":1,"dialogs":[],"details":[],"live":["Saved","Loading saved logo details… 6 of 6 concepts ready","Loading saved logo details…","Loading your chosen logo…","3 of 3 ready"],"imgsPending":5}
+       2079 ms  state       {"h1":"Logo","busy":1,"dialogs":[],"details":[],"live":["Saved","Loading saved logo details… 6 of 6 concepts ready","Loading saved logo details…","3 of 3 ready"],"imgsPending":5}
+       2162 ms  state       {"h1":"Logo","busy":1,"dialogs":[],"details":[],"live":["Saved","Loading saved logo details… 6 of 6 concepts ready","Loading saved logo details…","Editorial Soft Shapes chosen 3 of 3 ready"],"imgsPending":5}
+       2162 ms  transition  border-top-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 1: Editorial Soft Sh] (0.12s ease [border-color])  [x2 in this step]
+       2162 ms  transition  border-bottom-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 1: Editorial Soft Sh] (0.12s ease [border-color])  [x2 in this step]
+       2162 ms  transition  border-left-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 1: Editorial Soft Sh] (0.12s ease [border-color])  [x2 in this step]
+       2162 ms  transition  border-right-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 1: Editorial Soft Sh] (0.12s ease [border-color])  [x2 in this step]
+       2563 ms  state       {"h1":"Logo","busy":1,"dialogs":[],"details":[],"live":["Saved","Loading saved logo details… 6 of 6 concepts ready","Loading saved logo details…","Editorial Soft Shapes chosen 3 of 3 ready"],"imgsPending":6}
+       2580 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Loading your chosen logo…","Editorial Soft Shapes chosen 3 of 3 ready"],"imgsPending":5}
+       2696 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Loading your chosen logo…","Editorial Soft Shapes chosen 3 of 3 ready"],"imgsPending":6}
+       2739 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Loading your chosen logo…","Editorial Soft Shapes chosen 3 of 3 ready"],"imgsPending":5}
+       2814 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Loading your chosen logo…","Editorial Soft Shapes chosen 3 of 3 ready"],"imgsPending":6}
+       2825 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Editorial Soft Shapes chosen 3 of 3 ready"],"imgsPending":5}
+     … 6 more
+  -- open-brand-menu  [3 frame(s)]
+         31 ms  pointerdown summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary[Project: Kestrel Analytics. Sw]
+         32 ms  focus       summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary[Project: Kestrel Analytics. Sw]
+         35 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":["details.journey-module__MmLfbq__tools"],"live":["Saved","Logo chosen 6 of 6 concepts ready","Editorial Soft Shapes chosen 3 of 3 ready"],"imgsPending":5}
+  -- change-name  [6 frame(s)]
+          5 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Editorial Soft Shapes chosen 3 of 3 ready"],"imgsPending":5}
+         16 ms  scroll      div.guided-interview-scroll[Conversation] top=322
+         78 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Editorial Soft Shapes chosen 3 of 3 ready"],"imgsPending":2}
+         88 ms  pointerdown button.button.secondary
+         89 ms  focus       button.button.secondary
+        127 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Opening naming choices…","Logo chosen 6 of 6 concepts ready","Editorial Soft Shapes chosen 3 of 3 ready"],"imgsPending":3}
+        135 ms  animation   guided-thinking-pulse on img (1.5s ease-in-out xinfinite)
+        135 ms  shift       0.0000 (after input) li
+        135 ms  shift       0.0220 (after input) section.guided-journey-section.flow-enter[Identity], article.guided-assistant-message.flow-enter[Embel response]
+        136 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Opening naming choices…","Logo chosen 6 of 6 concepts ready","Editorial Soft Shapes chosen 3 of 3 ready"],"imgsPending":0}
+       1360 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Saved","Your name: Kestrel Analytics · Next: Slogan (optional)","Logo chosen 6 of 6 concepts ready","Editorial Soft Shapes chosen 3 of 3 ready"],"imgsPending":2}
+       1368 ms  longtask    129 ms
+       1369 ms  shift       0.1847 section.guided-journey-section.flow-enter[Identity], article.guided-assistant-message.flow-enter[Embel response]
+       1369 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Saved","Your name: Kestrel Analytics · Next: Slogan (optional)","Logo chosen 6 of 6 concepts ready","Editorial Soft Shapes chosen 3 of 3 ready"],"imgsPending":0}
+       1376 ms  shift       0.0032 ?
+       1383 ms  animation   embel-flow-enter on article.guided-assistant-message.guided-names-message[Names] (0.16s ease-out x1)  [x3 in this step]
+       1865 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Your name: Kestrel Analytics · Next: Slogan (optional)","Logo chosen 6 of 6 concepts ready","Editorial Soft Shapes chosen 3 of 3 ready"],"imgsPending":0}
+       1871 ms  shift       0.2939 article.guided-assistant-message.guided-names-message[Names], div.guided-names-footer, article.project-naming-card.naming-chat-module___u92QG__compactCard
+
+=== strategy-choice-cards @1440 (audit-free)
+  note: controls: ["a:Skip to content","a:Embel home","summary:Project: Untitled brand. Switch project","a:","a:Strategy , complete","summary:Account menu","button:","button:Edit brief","button:Edit strategy","input:on","button:Continue","button:Send prompt"]
+  note: after check: {"continueDisabled":[false],"selectedCards":1}
+  note: spokesmith controls: ["a:Skip to content","a:Embel home","summary:Project: Untitled brand. Switch project","a:","summary:Account menu","button:","button:Edit brief","input:on","a:Visit website for Velo Express Mobile (opens","a:Velo Express Mobile (opens in a new tab)","a:Visit website for Atelier Roue Libre (opens ","a:Atelier Roue Libre (opens in a new tab)","a:Visit website for FixMyRide (opens in a new ","a:FixMyRide (opens in a new tab)","button:Add a competitor","button:Suggest more","button:Continue","button:Send prompt"]
+  -- direct-load-brightsmile  [5 frame(s)]
+        112 ms  state       {"h1":"Project workspace","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":1}
+        121 ms  state       {"h1":"Project workspace","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":0}
+        268 ms  state       {"h1":"Account project","busy":2,"dialogs":[],"details":[],"live":["Loading project…","Checking account…"],"imgsPending":0}
+        277 ms  shift       0.0029 div.journey-module__MmLfbq__capsule.journey-module__MmLfbq__projectCapsule
+        332 ms  state       {"h1":"Account project","busy":0,"dialogs":[],"details":[],"live":["Loading project…"],"imgsPending":0}
+        405 ms  state       {"h1":"Skip to content Untitled brand Strategy ","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":3}
+        412 ms  shift       0.0120 div.journey-module__MmLfbq__capsule.journey-module__MmLfbq__projectCapsule
+        420 ms  animation   embel-flow-enter on section.strategy-summary.flow-enter (0.16s ease-out x1)  [x2 in this step]
+        509 ms  state       {"h1":"Skip to content Untitled brand Strategy ","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":2}
+        525 ms  state       {"h1":"Skip to content Untitled brand Strategy ","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":1}
+        530 ms  state       {"h1":"Skip to content Untitled brand Strategy ","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":0}
+        583 ms  scroll      div.guided-interview-scroll[Conversation] top=497
+  -- hover-choice  [3 frame(s)]
+         17 ms  transition  border-top-color on div.guided-choice-card (0.12s, 0.12s ease, ease [border-color, background-color])
+         17 ms  transition  background-color on div.guided-choice-card (0.12s, 0.12s ease, ease [border-color, background-color])
+         17 ms  transition  border-bottom-color on div.guided-choice-card (0.12s, 0.12s ease, ease [border-color, background-color])
+         17 ms  transition  border-left-color on div.guided-choice-card (0.12s, 0.12s ease, ease [border-color, background-color])
+         17 ms  transition  border-right-color on div.guided-choice-card (0.12s, 0.12s ease, ease [border-color, background-color])
+         24 ms  state       {"h1":"Skip to content Untitled brand Strategy ","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":0}
+  -- check-choice  [4 frame(s)]
+          4 ms  pointerdown input
+          5 ms  focus       input
+         13 ms  state       {"h1":"Skip to content Untitled brand Strategy ","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":0}
+         13 ms  transition  border-top-color on div.guided-choice-card.is-selected (0.12s, 0.12s ease, ease [border-color, background-color])
+         14 ms  transition  background-color on div.guided-choice-card.is-selected (0.12s, 0.12s ease, ease [border-color, background-color])
+         14 ms  transition  border-bottom-color on div.guided-choice-card.is-selected (0.12s, 0.12s ease, ease [border-color, background-color])
+         14 ms  transition  border-left-color on div.guided-choice-card.is-selected (0.12s, 0.12s ease, ease [border-color, background-color])
+         14 ms  transition  border-right-color on div.guided-choice-card.is-selected (0.12s, 0.12s ease, ease [border-color, background-color])
+  -- check-competitor  [4 frame(s)]
+          4 ms  pointerdown input
+          4 ms  focus       input
+         10 ms  state       {"h1":"Skip to content Untitled brand Strategy ","busy":0,"dialogs":[],"details":[],"live":["Saved","1 selected"],"imgsPending":0}
+         10 ms  transition  border-top-color on div.guided-choice-card.is-selected (0.12s, 0.12s ease, ease [border-color, background-color])  [x2 in this step]
+         10 ms  transition  background-color on div.guided-choice-card.is-selected (0.12s, 0.12s ease, ease [border-color, background-color])
+         10 ms  transition  border-bottom-color on div.guided-choice-card.is-selected (0.12s, 0.12s ease, ease [border-color, background-color])  [x2 in this step]
+         10 ms  transition  border-left-color on div.guided-choice-card.is-selected (0.12s, 0.12s ease, ease [border-color, background-color])  [x2 in this step]
+         10 ms  transition  border-right-color on div.guided-choice-card.is-selected (0.12s, 0.12s ease, ease [border-color, background-color])  [x2 in this step]
+         11 ms  shift       0.0000 (after input) span.guided-choice-count
+  -- uncheck-competitor  [3 frame(s)]
+          2 ms  pointerdown input
+          8 ms  state       {"h1":"Skip to content Untitled brand Strategy ","busy":0,"dialogs":[],"details":[],"live":["Saved","0 selected"],"imgsPending":0}
+          9 ms  transition  border-top-color on div.guided-choice-card (0.12s, 0.12s ease, ease [border-color, background-color])
+          9 ms  transition  background-color on div.guided-choice-card (0.12s, 0.12s ease, ease [border-color, background-color])
+          9 ms  transition  border-bottom-color on div.guided-choice-card (0.12s, 0.12s ease, ease [border-color, background-color])
+          9 ms  transition  border-left-color on div.guided-choice-card (0.12s, 0.12s ease, ease [border-color, background-color])
+          9 ms  transition  border-right-color on div.guided-choice-card (0.12s, 0.12s ease, ease [border-color, background-color])
+          9 ms  shift       0.0000 (after input) span.guided-choice-count
+
+=== inspiration-gallery @1440 (audit-free)
+  note: gallery controls: ["Browse","Liked · 0","Brands","Logos","Colors","Typefaces","Socials","Visuals","Archi-Tex\nOpen brand","Like the whole Archi-Tex brand","Open Archi-Tex: logo","Like Archi-Tex logo","Open Archi-Tex: colors","Like Archi-Tex colors","Open Archi-Tex: typefaces","Like Archi-Tex typefaces"]
+  note: after like: {"pressed":1,"live":["Saved","Saved"]}
+  note: brand detail dialog: {"cls":"inspiration-detail inspiration-brand-overlay","size":"1320x727","animation":"none","transition":"0s","backdrop":"rgba(25, 25, 25, 0.4)","focus":"Previous image"}
+  note: after Escape: {"dialogs":0,"focus":"Open Archi-Tex: logo"}
+  -- direct-load-northernlights  [6 frame(s)]
+         45 ms  state       {"h1":"Project workspace","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":1}
+         57 ms  state       {"h1":"Project workspace","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":0}
+        151 ms  state       {"h1":"Account project","busy":2,"dialogs":[],"details":[],"live":["Loading project…","Checking account…"],"imgsPending":0}
+        157 ms  shift       0.0029 div.journey-module__MmLfbq__capsule.journey-module__MmLfbq__projectCapsule
+        201 ms  state       {"h1":"Account project","busy":0,"dialogs":[],"details":[],"live":["Loading project…"],"imgsPending":0}
+        273 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":43}
+        280 ms  scroll      div.guided-interview-scroll[Conversation] top=2769
+        284 ms  longtask    68 ms
+        284 ms  shift       0.0175 div.journey-module__MmLfbq__capsule.journey-module__MmLfbq__projectCapsule
+        323 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":41}
+        352 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":35}
+        352 ms  shift       0.0540 article.inspiration-brand[Avelo], article.inspiration-brand[Avoova], div.inspiration-continue-inline
+        352 ms  scroll      div.guided-interview-scroll[Conversation] top=2579
+        352 ms  animation   embel-flow-enter on section.strategy-summary.flow-enter (0.16s ease-out x1)  [x5 in this step]
+        354 ms  shift       0.0000 li
+        392 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":21}
+        431 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":19}
+        433 ms  transition  opacity on button.inspiration-heart.inspiration-brand-like[Like the whole Avoova brand] (0.12s, 0.12s ease, ease [transform, opacity])  [x8 in this step]
+        442 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":16}
+        442 ms  shift       0.0206 div.inspiration-feed, div.inspiration-continue-inline, article.inspiration-brand[Aurox]
+        446 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":11}
+        447 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":9}
+        449 ms  scroll      div.guided-interview-scroll[Conversation] top=2513
+        486 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":5}
+  -- hover-brand-card  [4 frame(s)]
+         25 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":0}
+         33 ms  transition  opacity on span (0.12s ease [opacity])
+         33 ms  transition  border-top-color on article.inspiration-brand[Archi-Tex] (0.12s, 0.12s ease, ease [border-color, box-shadow])
+         33 ms  transition  border-bottom-color on article.inspiration-brand[Archi-Tex] (0.12s, 0.12s ease, ease [border-color, box-shadow])
+         33 ms  transition  border-left-color on article.inspiration-brand[Archi-Tex] (0.12s, 0.12s ease, ease [border-color, box-shadow])
+         33 ms  transition  box-shadow on article.inspiration-brand[Archi-Tex] (0.12s, 0.12s ease, ease [border-color, box-shadow])
+         33 ms  transition  border-right-color on article.inspiration-brand[Archi-Tex] (0.12s, 0.12s ease, ease [border-color, box-shadow])
+  -- hover-brand-tile  [4 frame(s)]
+         19 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":0}
+         42 ms  transition  opacity on span.inspiration-tile-label (0.12s ease [opacity])
+         42 ms  transition  opacity on button.inspiration-heart.inspiration-part-like[Like Archi-Tex logo] (0.12s, 0.12s ease, ease [opacity, transform])
+         42 ms  transition  transform on img (0.2s ease [transform])
+  -- like-brand  [6 frame(s)]
+         10 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":0}
+         35 ms  pointerdown button.inspiration-heart.inspiration-brand-like[Like the whole Archi-Tex brand]
+         35 ms  focus       button.inspiration-heart.inspiration-brand-like[Like the whole Archi-Tex brand]
+         50 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":[],"details":[],"live":["Saved","Saving…"],"imgsPending":0}
+         51 ms  transition  opacity on span.inspiration-tile-label (0.12s ease [opacity])
+         51 ms  transition  transform on img (0.2s ease [transform])
+         51 ms  transition  transform on button.inspiration-heart.inspiration-brand-like[Unlike the whole Archi-Tex bra] (0.12s, 0.12s ease, ease [transform, opacity])  [x3 in this step]
+         51 ms  transition  opacity on button.inspiration-heart.inspiration-part-like[Like Archi-Tex logo] (0.12s, 0.12s ease, ease [opacity, transform])
+         51 ms  transition  opacity on button.inspiration-heart.inspiration-brand-like[Unlike the whole Archi-Tex bra] (0.12s, 0.12s ease, ease [transform, opacity])  [x2 in this step]
+        808 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":0}
+  -- unlike-brand  [6 frame(s)]
+         34 ms  pointerdown button.inspiration-heart.inspiration-brand-like[Unlike the whole Archi-Tex bra]
+         34 ms  focus       button.inspiration-heart.inspiration-brand-like[Unlike the whole Archi-Tex bra]
+         48 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":[],"details":[],"live":["Saved","Saving…"],"imgsPending":0}
+         49 ms  transition  transform on button.inspiration-heart.inspiration-brand-like[Like the whole Archi-Tex brand] (0.12s, 0.12s ease, ease [transform, opacity])
+         49 ms  transition  opacity on button.inspiration-heart.inspiration-brand-like[Like the whole Archi-Tex brand] (0.12s, 0.12s ease, ease [transform, opacity])
+         72 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":0}
+  -- open-brand-detail  [5 frame(s)]
+         29 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":0}
+         37 ms  pointerdown button.inspiration-brand-open[Open Archi-Tex: logo]
+         37 ms  focus       button.inspiration-brand-open[Open Archi-Tex: logo]
+         56 ms  focus       button.inspiration-overlay-step[Previous image]
+         58 ms  focus       button.inspiration-brand-open[Open Archi-Tex: logo]
+         59 ms  focus       button.inspiration-overlay-step[Previous image]
+         60 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":["dialog.inspiration-detail.inspiration-brand-overlay"],"details":[],"live":["Saved"],"imgsPending":1}
+         61 ms  transition  opacity on span.inspiration-tile-label (0.12s ease [opacity])  [x2 in this step]
+         61 ms  transition  transform on img (0.2s ease [transform])  [x2 in this step]
+         61 ms  transition  transform on button.inspiration-heart.inspiration-brand-like[Like the whole Archi-Tex brand] (0.12s, 0.12s ease, ease [transform, opacity])
+         61 ms  transition  opacity on button.inspiration-heart.inspiration-part-like[Like Archi-Tex logo] (0.12s, 0.12s ease, ease [opacity, transform])
+         68 ms  transition  border-top-color on article.inspiration-brand[Archi-Tex] (0.12s, 0.12s ease, ease [border-color, box-shadow])
+         68 ms  transition  border-bottom-color on article.inspiration-brand[Archi-Tex] (0.12s, 0.12s ease, ease [border-color, box-shadow])
+         68 ms  transition  border-left-color on article.inspiration-brand[Archi-Tex] (0.12s, 0.12s ease, ease [border-color, box-shadow])
+         68 ms  transition  box-shadow on article.inspiration-brand[Archi-Tex] (0.12s, 0.12s ease, ease [border-color, box-shadow])
+         68 ms  transition  border-right-color on article.inspiration-brand[Archi-Tex] (0.12s, 0.12s ease, ease [border-color, box-shadow])
+         78 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":["dialog.inspiration-detail.inspiration-brand-overlay"],"details":[],"live":["Saved"],"imgsPending":0}
+  -- escape-closes-brand-detail  [4 frame(s)]
+          1 ms  key         Escape
+         14 ms  focus       button.inspiration-brand-open[Open Archi-Tex: logo]
+         15 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":0}
+         15 ms  transition  opacity on button.inspiration-heart.inspiration-part-like[Like Archi-Tex logo] (0.12s, 0.12s ease, ease [opacity, transform])
+         15 ms  transition  opacity on span.inspiration-tile-label (0.12s ease [opacity])  [x2 in this step]
+         15 ms  transition  transform on img (0.2s ease [transform])
+         15 ms  transition  border-top-color on article.inspiration-brand[Archi-Tex] (0.12s, 0.12s ease, ease [border-color, box-shadow])
+         15 ms  transition  border-bottom-color on article.inspiration-brand[Archi-Tex] (0.12s, 0.12s ease, ease [border-color, box-shadow])
+         15 ms  transition  border-left-color on article.inspiration-brand[Archi-Tex] (0.12s, 0.12s ease, ease [border-color, box-shadow])
+         15 ms  transition  box-shadow on article.inspiration-brand[Archi-Tex] (0.12s, 0.12s ease, ease [border-color, box-shadow])
+         15 ms  transition  border-right-color on article.inspiration-brand[Archi-Tex] (0.12s, 0.12s ease, ease [border-color, box-shadow])
+  -- show-more-brands  [5 frame(s)]
+         10 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":0}
+         17 ms  scroll      div.guided-interview-scroll[Conversation] top=2770
+         17 ms  transition  opacity on span.inspiration-tile-label (0.12s ease [opacity])  [x7 in this step]
+         17 ms  transition  transform on img (0.2s ease [transform])  [x3 in this step]
+         17 ms  transition  border-top-color on article.inspiration-brand[Avelo] (0.12s, 0.12s ease, ease [border-color, box-shadow])  [x4 in this step]
+         17 ms  transition  border-bottom-color on article.inspiration-brand[Avelo] (0.12s, 0.12s ease, ease [border-color, box-shadow])  [x4 in this step]
+         17 ms  transition  border-left-color on article.inspiration-brand[Avelo] (0.12s, 0.12s ease, ease [border-color, box-shadow])  [x4 in this step]
+         17 ms  transition  box-shadow on article.inspiration-brand[Avelo] (0.12s, 0.12s ease, ease [border-color, box-shadow])  [x4 in this step]
+         17 ms  transition  border-right-color on article.inspiration-brand[Avelo] (0.12s, 0.12s ease, ease [border-color, box-shadow])  [x4 in this step]
+         17 ms  transition  opacity on button.inspiration-heart.inspiration-part-like[Like Avelo colors] (0.12s, 0.12s ease, ease [opacity, transform])  [x3 in this step]
+         36 ms  pointerdown button.inspiration-more
+         36 ms  focus       button.inspiration-more
+         58 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":40}
+         61 ms  transition  transform on button.inspiration-heart.inspiration-brand-like[Like the whole Axian brand] (0.12s, 0.12s ease, ease [transform, opacity])
+         64 ms  shift       0.0508 (after input) div.inspiration-continue-inline, footer.inspiration-footer, button.inspiration-more
+        110 ms  state       {"h1":"Skip to content Northern Lights Communit","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":10}
+
+=== logo-concepts @1440 (audit-free)
+  note: grid controls: ["More concepts 126x44","Select concept 1 237x200","Compare concept 1 0x0","Select concept 1 0x0","Select concept 2 237x200","Compare concept 2 0x0","Select concept 2 0x0","Select concept 3 237x200","Compare concept 3 0x0","Select concept 3 0x0","Select concept 4 237x200","Compare concept 4 0x0","Select concept 4 0x0","Select concept 5 237x200","Compare concept 5 0x0","Select concept 5 0x0","Select concept 6 237x200","Compare concept 6 0x0","Select concept 6 0x0"]
+  note: after retry click: {"dialogs":[],"text":true}
+  -- direct-load-quill  [6 frame(s)]
+         85 ms  state       {"h1":"Project workspace","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":1}
+        103 ms  state       {"h1":"Project workspace","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":0}
+        211 ms  state       {"h1":"Account project","busy":2,"dialogs":[],"details":[],"live":["Loading project…","Checking account…"],"imgsPending":0}
+        218 ms  shift       0.0029 div.journey-module__MmLfbq__capsule.journey-module__MmLfbq__projectCapsule
+        246 ms  state       {"h1":"Account project","busy":0,"dialogs":[],"details":[],"live":["Loading project…"],"imgsPending":0}
+        322 ms  state       {"h1":"Skip to content Quill Strategy 2 Voice 3","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":43}
+        328 ms  state       {"h1":"Skip to content Quill Strategy , complet","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":43}
+        328 ms  scroll      div.guided-interview-scroll[Conversation] top=2570
+        332 ms  longtask    65 ms
+        332 ms  shift       0.0096 div.journey-module__MmLfbq__capsule.journey-module__MmLfbq__projectCapsule
+        376 ms  state       {"h1":"Skip to content Quill Strategy , complet","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":40}
+        376 ms  shift       0.0540 article.inspiration-brand[Avelo], article.inspiration-brand[Avoova], div.inspiration-continue-inline
+        376 ms  scroll      div.guided-interview-scroll[Conversation] top=2379
+        377 ms  animation   embel-flow-enter on section.strategy-summary.flow-enter (0.16s ease-out x1)  [x6 in this step]
+        379 ms  shift       0.0000 li
+        380 ms  state       {"h1":"Skip to content Quill Strategy , complet","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":33}
+        431 ms  state       {"h1":"Skip to content Quill Strategy , complet","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":21}
+        448 ms  state       {"h1":"Skip to content Quill Strategy , complet","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":21}
+        459 ms  transition  opacity on button.inspiration-heart.inspiration-brand-like[Like the whole Aurox brand] (0.12s, 0.12s ease, ease [transform, opacity])  [x8 in this step]
+        460 ms  shift       0.0206 div.inspiration-feed, div.inspiration-continue-inline, article.inspiration-brand[Aurox]
+        475 ms  scroll      div.guided-interview-scroll[Conversation] top=2313
+        481 ms  state       {"h1":"Skip to content Quill Strategy , complet","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":13}
+        527 ms  state       {"h1":"Skip to content Quill Strategy , complet","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":5}
+        527 ms  scroll      div.guided-interview-scroll[Conversation] top=2594
+        543 ms  shift       0.0063 div.inspiration-continue-inline, footer.inspiration-footer
+        613 ms  state       {"h1":"Logo","busy":2,"dialogs":[],"details":[],"live":["Saved","Choose at least one type","Getting ready…","Loading saved concepts…","Loading saved logo details…"],"imgsPending":5}
+        631 ms  state       {"h1":"Logo","busy":2,"dialogs":[],"details":[],"live":["Saved","Choose at least one type","Getting ready…","Loading saved concepts…","Loading saved logo details…"],"imgsPending":6}
+        634 ms  state       {"h1":"Logo","busy":2,"dialogs":[],"details":[],"live":["Saved","Choose at least one type","Getting ready…","Loading saved concepts…","Loading saved logo details…"],"imgsPending":5}
+        694 ms  state       {"h1":"Logo","busy":2,"dialogs":[],"details":[],"live":["Saved","Choose at least one type","Complete your saved logo inputs to continue.","Loading saved concepts…","Loading saved logo details…"],"imgsPending":5}
+        822 ms  state       {"h1":"Logo","busy":2,"dialogs":[],"details":[],"live":["Saved","6 types chosen","Complete your saved logo inputs to continue.","Loading saved concepts…","Loading saved logo details…"],"imgsPending":5}
+        861 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Pick the concept you like most 6 of 6 concepts ready","Select a logo above to get started."],"imgsPending":5}
+       1005 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Pick the concept you like most 6 of 6 concepts ready","Select a logo above to get started."],"imgsPending":6}
+       1034 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Pick the concept you like most 6 of 6 concepts ready","Select a logo above to get started."],"imgsPending":5}
+       1089 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Pick the concept you like most 6 of 6 concepts ready","Select a logo above to get started."],"imgsPending":6}
+       1131 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Pick the concept you like most 6 of 6 concepts ready","Select a logo above to get started."],"imgsPending":5}
+  -- hover-concept-card  [4 frame(s)]
+         19 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Pick the concept you like most 6 of 6 concepts ready","Select a logo above to get started."],"imgsPending":5}
+         31 ms  transition  border-top-color on li.logo-creation-module__UDtEIW__galleryCard (0.12s ease [border-color])
+         31 ms  transition  border-bottom-color on li.logo-creation-module__UDtEIW__galleryCard (0.12s ease [border-color])
+         31 ms  transition  border-left-color on li.logo-creation-module__UDtEIW__galleryCard (0.12s ease [border-color])
+         31 ms  transition  border-right-color on li.logo-creation-module__UDtEIW__galleryCard (0.12s ease [border-color])
+  -- concept-grid  [1 frame(s)]
+  -- tidewater-retry-state  [1 frame(s)]
+  -- click-retry-with-zero-credits  [5 frame(s)]
+          8 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Pick the concept you like most 4 of 6 concepts ready","Select a logo above to get started."],"imgsPending":5}
+         36 ms  pointerdown button.logo-creation-module__UDtEIW__secondaryButton[Retry 2 failed concepts]
+         37 ms  focus       button.logo-creation-module__UDtEIW__secondaryButton[Retry 2 failed concepts]
+         43 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Pick the concept you like most 4 of 6 concepts ready","Request in progress…","Request in progress…","Select a logo above to get started."],"imgsPending":5}
+         51 ms  shift       0.0543 (after input) ol.logo-creation-module__UDtEIW__concepts, div.logo-creation-module__UDtEIW__generationActions, p.logo-creation-module__UDtEIW__galleryProgress
+        129 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Pick the concept you like most 4 of 6 concepts ready","Not ready yet.","Select a logo above to get started.","You’re out of credits for this month Your work is saved. A paid plan a"],"imgsPending":5}
+        131 ms  shift       0.0299 (after input) ol.logo-creation-module__UDtEIW__concepts, div.logo-creation-module__UDtEIW__generationActions
+
+=== out-of-credits-and-disabled @1440 (audit-free)  ERROR: locator.waitFor: Timeout 30000ms exceeded. | Call log: |   - waiting for getByRole('button', { name: /Explore six concepts/u }) to be visible
+
+=== directions @1440 (audit-free)
+  note: direction controls: []
+  note: larger view dialog: {"cls":"visual-directions-view-module__cGZDDW__dialog","size":"860x860","animation":"none","focus":"Close larger preview"}
+  -- direct-load-mosswood  [6 frame(s)]
+         39 ms  state       {"h1":"Project workspace","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":1}
+         52 ms  state       {"h1":"Project workspace","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":0}
+        143 ms  state       {"h1":"Account project","busy":2,"dialogs":[],"details":[],"live":["Loading project…","Checking account…"],"imgsPending":0}
+        149 ms  shift       0.0029 div.journey-module__MmLfbq__capsule.journey-module__MmLfbq__projectCapsule
+        188 ms  state       {"h1":"Account project","busy":0,"dialogs":[],"details":[],"live":["Loading project…"],"imgsPending":0}
+        252 ms  state       {"h1":"Skip to content Mosswood Candles Strateg","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":43}
+        277 ms  scroll      div.guided-interview-scroll[Conversation] top=2602
+        280 ms  longtask    63 ms
+        280 ms  shift       0.0134 div.journey-module__MmLfbq__capsule.journey-module__MmLfbq__projectCapsule
+        280 ms  state       {"h1":"Skip to content Mosswood Candles Strateg","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":42}
+        299 ms  state       {"h1":"Skip to content Mosswood Candles Strateg","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":39}
+        316 ms  state       {"h1":"Skip to content Mosswood Candles Strateg","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":38}
+        316 ms  shift       0.0540 article.inspiration-brand[Avelo], article.inspiration-brand[Avoova], div.inspiration-continue-inline
+        317 ms  scroll      div.guided-interview-scroll[Conversation] top=2412
+        317 ms  animation   embel-flow-enter on section.strategy-summary.flow-enter (0.16s ease-out x1)  [x7 in this step]
+        338 ms  shift       0.0000 li
+        341 ms  state       {"h1":"Skip to content Mosswood Candles Strateg","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading saved choices…"],"imgsPending":23}
+        346 ms  state       {"h1":"Skip to content Mosswood Candles Strateg","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":23}
+        350 ms  transition  opacity on button.inspiration-heart.inspiration-brand-like[Like the whole Astrix Builders] (0.12s, 0.12s ease, ease [transform, opacity])  [x8 in this step]
+        352 ms  shift       0.0206 div.inspiration-feed, div.inspiration-continue-inline, article.inspiration-brand[Aurox]
+        366 ms  scroll      div.guided-interview-scroll[Conversation] top=2346
+        387 ms  state       {"h1":"Skip to content Mosswood Candles Strateg","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":11}
+        399 ms  state       {"h1":"Skip to content Mosswood Candles Strateg","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":8}
+        414 ms  state       {"h1":"Skip to content Mosswood Candles Strateg","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":5}
+        414 ms  shift       0.0064 div.inspiration-continue-inline, footer.inspiration-footer
+        417 ms  scroll      div.guided-interview-scroll[Conversation] top=2800
+        419 ms  shift       0.0800 section.guided-journey-section.flow-enter[Identity]
+        475 ms  state       {"h1":"Skip to content Mosswood Candles Strateg","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":6}
+        487 ms  state       {"h1":"Skip to content Mosswood Candles Strateg","busy":0,"dialogs":[],"details":[],"live":["Saved"],"imgsPending":5}
+        641 ms  state       {"h1":"Logo","busy":2,"dialogs":[],"details":[],"live":["Saved","Choose at least one type","Getting ready…","Loading saved concepts…","Loading saved logo details…"],"imgsPending":5}
+        693 ms  state       {"h1":"Logo","busy":2,"dialogs":[],"details":[],"live":["Saved","Choose at least one type","Complete your saved logo inputs to continue.","Loading saved concepts…","Loading saved logo details…"],"imgsPending":5}
+       1007 ms  state       {"h1":"Logo","busy":2,"dialogs":[],"details":[],"live":["Saved","6 types chosen","Complete your saved logo inputs to continue.","Loading saved concepts…","Loading saved logo details…"],"imgsPending":5}
+       1084 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Loading your chosen logo…","Choose a logo concept to begin.","3 of 3 ready"],"imgsPending":5}
+       1084 ms  transition  border-top-color on li.logo-creation-module__UDtEIW__galleryCard (0.12s ease [border-color])
+       1084 ms  transition  border-bottom-color on li.logo-creation-module__UDtEIW__galleryCard (0.12s ease [border-color])
+       1084 ms  transition  border-left-color on li.logo-creation-module__UDtEIW__galleryCard (0.12s ease [border-color])
+       1084 ms  transition  border-right-color on li.logo-creation-module__UDtEIW__galleryCard (0.12s ease [border-color])
+       1132 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Choose a logo concept to begin.","3 of 3 ready"],"imgsPending":5}
+       1345 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Choose a logo concept to begin.","3 of 3 ready"],"imgsPending":6}
+       1387 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Choose a logo concept to begin.","3 of 3 ready"],"imgsPending":5}
+       1400 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Loading your chosen logo…","3 of 3 ready"],"imgsPending":5}
+       1433 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Loading your chosen logo…","3 of 3 ready"],"imgsPending":6}
+       1437 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Loading your chosen logo…","3 of 3 ready"],"imgsPending":5}
+       1462 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","Loading your chosen logo…","3 of 3 ready"],"imgsPending":6}
+       1473 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","3 of 3 ready"],"imgsPending":5}
+     … 2 more
+  -- hover-direction-card  [4 frame(s)]
+         31 ms  transition  border-top-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 2: Centered Linework] (0.12s ease [border-color])
+         31 ms  transition  border-bottom-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 2: Centered Linework] (0.12s ease [border-color])
+         31 ms  transition  border-left-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 2: Centered Linework] (0.12s ease [border-color])
+         31 ms  transition  border-right-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 2: Centered Linework] (0.12s ease [border-color])
+         33 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","3 of 3 ready"],"imgsPending":5}
+  -- open-larger-view  [6 frame(s)]
+         12 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","3 of 3 ready"],"imgsPending":5}
+         29 ms  pointerdown button.visual-directions-view-module__cGZDDW__expandButton[View Editorial Soft Shapes lar]
+         30 ms  focus       button.visual-directions-view-module__cGZDDW__expandButton[View Editorial Soft Shapes lar]
+         37 ms  focus       button.visual-directions-view-module__cGZDDW__closeButton[Close larger preview]
+         37 ms  state       {"h1":"Logo","busy":0,"dialogs":["dialog.visual-directions-view-module__cGZDDW__dialog"],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","3 of 3 ready"],"imgsPending":5}
+         42 ms  transition  border-top-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 2: Centered Linework] (0.12s ease [border-color])  [x2 in this step]
+         42 ms  transition  border-bottom-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 2: Centered Linework] (0.12s ease [border-color])  [x2 in this step]
+         42 ms  transition  border-left-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 2: Centered Linework] (0.12s ease [border-color])  [x2 in this step]
+         42 ms  transition  border-right-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 2: Centered Linework] (0.12s ease [border-color])  [x2 in this step]
+         60 ms  shift       0.0001 (after input) div.identity-board-state
+         67 ms  state       {"h1":"Logo","busy":0,"dialogs":["dialog.visual-directions-view-module__cGZDDW__dialog"],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","3 of 3 ready"],"imgsPending":6}
+         76 ms  shift       0.3159 (after input) dialog.visual-directions-view-module__cGZDDW__dialog, p.visual-directions-view-module__cGZDDW__dialogSummary
+        112 ms  state       {"h1":"Logo","busy":0,"dialogs":["dialog.visual-directions-view-module__cGZDDW__dialog"],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","3 of 3 ready"],"imgsPending":5}
+  -- escape-closes-larger-view  [3 frame(s)]
+          1 ms  key         Escape
+          8 ms  focus       button.visual-directions-view-module__cGZDDW__expandButton[View Editorial Soft Shapes lar]
+          8 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Logo chosen 6 of 6 concepts ready","3 of 3 ready"],"imgsPending":5}
+         11 ms  transition  border-top-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 1: Editorial Soft Sh] (0.12s ease [border-color])
+         11 ms  transition  border-bottom-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 1: Editorial Soft Sh] (0.12s ease [border-color])
+         11 ms  transition  border-left-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 1: Editorial Soft Sh] (0.12s ease [border-color])
+         11 ms  transition  border-right-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 1: Editorial Soft Sh] (0.12s ease [border-color])
+
+=== assets-page @1440 (audit-pro)
+  note: controls: ["a:Skip to content","a:Embel home","summary:Project: Kestrel Analytics. Switch project","a:","a:Strategy , complete","a:Voice , complete","a:Identity , complete","summary:Account menu","button:","button:Download brand kit","button:Download brand board as PNG","button:Download profile image as PNG","button:Download square post template as PNG","button:Download square post template as editable SV","button:Download portrait post template as PNG","button:Download portrait post template as editable ","button:Download wide banner as PNG","button:Download wide banner as editable SVG","button:Download cover banner as PNG","button:Download cover banner as editable SVG","a:Continue","a:Overview","a:Logo","a:Colors","a:Typography","a:Voice","a:Imagery","a:Edit","button:Download logo PNG","button:Download transparent logo PNG","button:Download reversed logo PNG","button:Copy Primary #0F2A3D","button:Copy Accent #F2A541","button:Copy Background #FBF9F4","button:Copy Text #141414","button:Copy CSS palette","a:Font link ↗","button:Download guidelines","button:CSS","button:JSON","button:Copy","button:Download CSS","button:Download brand kit as a ZIP file"]
+  note: copy button after click: "Primary\n#0F2A3D"
+  note: download event: yes
+  -- load-assets  [8 frame(s)]
+         51 ms  state       {"h1":"Project workspace","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":1}
+         79 ms  state       {"h1":"Project workspace","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":0}
+        144 ms  state       {"h1":"Assets","busy":2,"dialogs":[],"details":[],"live":["Loading project…","Checking account…","Loading your chosen direction…"],"imgsPending":0}
+        149 ms  shift       0.0029 div.journey-module__MmLfbq__capsule.journey-module__MmLfbq__projectCapsule
+        194 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Loading project…","Loading your chosen direction…"],"imgsPending":0}
+        222 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading your chosen direction…"],"imgsPending":0}
+        223 ms  shift       0.0127 div.journey-module__MmLfbq__capsule.journey-module__MmLfbq__projectCapsule
+        608 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Preparing your files…","Preparing…","Preparing…","Preparing…"],"imgsPending":0}
+       1157 ms  longtask    69 ms
+       1403 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Ready to download."],"imgsPending":8}
+       1406 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Ready to download."],"imgsPending":2}
+       1406 ms  shift       0.0542 section.kit-card, figure.kit-image, p.brand-assets-module__GHEyxG__status
+       1419 ms  shift       0.3229 section.kit-card, figcaption.brand-assets-module__GHEyxG__caption
+       1451 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Ready to download."],"imgsPending":0}
+  -- until-ready
+         51 ms  state       {"h1":"Project workspace","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":1}
+         79 ms  state       {"h1":"Project workspace","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":0}
+        144 ms  state       {"h1":"Assets","busy":2,"dialogs":[],"details":[],"live":["Loading project…","Checking account…","Loading your chosen direction…"],"imgsPending":0}
+        149 ms  shift       0.0029 div.journey-module__MmLfbq__capsule.journey-module__MmLfbq__projectCapsule
+        194 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Loading project…","Loading your chosen direction…"],"imgsPending":0}
+        222 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading your chosen direction…"],"imgsPending":0}
+        223 ms  shift       0.0127 div.journey-module__MmLfbq__capsule.journey-module__MmLfbq__projectCapsule
+        608 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Preparing your files…","Preparing…","Preparing…","Preparing…"],"imgsPending":0}
+       1157 ms  longtask    69 ms
+       1403 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Ready to download."],"imgsPending":8}
+       1406 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Ready to download."],"imgsPending":2}
+       1406 ms  shift       0.0542 section.kit-card, figure.kit-image, p.brand-assets-module__GHEyxG__status
+       1419 ms  shift       0.3229 section.kit-card, figcaption.brand-assets-module__GHEyxG__caption
+       1451 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Ready to download."],"imgsPending":0}
+  -- copy-tokens  [6 frame(s)]
+         15 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Ready to download."],"imgsPending":0}
+         16 ms  scroll      div.project-workspace-content top=3654
+         35 ms  pointerdown button[Copy Primary #0F2A3D]
+         35 ms  focus       button[Copy Primary #0F2A3D]
+         52 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Ready to download.","Copied #0F2A3D."],"imgsPending":0}
+         67 ms  shift       0.0000 (after input) li, li, li
+       1854 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Ready to download."],"imgsPending":0}
+       1854 ms  shift       0.0000 li, li, li
+  -- download-brand-kit  [7 frame(s)]
+         16 ms  scroll      div.project-workspace-content top=0
+         16 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Ready to download."],"imgsPending":0}
+         33 ms  pointerdown button.button.primary
+         33 ms  focus       button.button.primary
+         43 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Preparing your download…"],"imgsPending":0}
+         49 ms  shift       0.0001 (after input) p.brand-assets-module__GHEyxG__status
+        284 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Download started. Check your browser’s downloads."],"imgsPending":0}
+        284 ms  longtask    80 ms
+        285 ms  shift       0.2586 (after input) article.guided-assistant-message.kit-message[Brand images], div, div.brand-assets-module__GHEyxG__summaryAction
+
+Wrote /Users/mikael/embel/design-audit/evidence/motion/walk-brand.json

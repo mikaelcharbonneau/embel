@@ -1,0 +1,33 @@
+{
+  "note": "Local files only; nothing was sent.",
+  "emails": [
+    {
+      "file": "confirmation__600.png",
+      "template": "supabase/templates/confirmation.html",
+      "subject": "Confirm your Embel account",
+      "width": 600,
+      "bytes": 23859
+    },
+    {
+      "file": "confirmation__390.png",
+      "template": "supabase/templates/confirmation.html",
+      "subject": "Confirm your Embel account",
+      "width": 390,
+      "bytes": 23155
+    },
+    {
+      "file": "recovery__600.png",
+      "template": "supabase/templates/recovery.html",
+      "subject": "Reset your Embel password",
+      "width": 600,
+      "bytes": 27880
+    },
+    {
+      "file": "recovery__390.png",
+      "template": "supabase/templates/recovery.html",
+      "subject": "Reset your Embel password",
+      "width": 390,
+      "bytes": 26505
+    }
+  ]
+}

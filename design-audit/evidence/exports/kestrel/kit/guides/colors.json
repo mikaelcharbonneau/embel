@@ -1,0 +1,32 @@
+{
+  "brand": "Kestrel Analytics",
+  "colors": [
+    {
+      "key": "primary",
+      "name": "Primary",
+      "hex": "#0F2A3D"
+    },
+    {
+      "key": "accent",
+      "name": "Accent",
+      "hex": "#F2A541"
+    },
+    {
+      "key": "background",
+      "name": "Background",
+      "hex": "#FBF9F4"
+    },
+    {
+      "key": "text",
+      "name": "Text",
+      "hex": "#141414"
+    }
+  ],
+  "roles": {
+    "primary": "primary",
+    "accent": "accent",
+    "background": "background",
+    "text": "text"
+  },
+  "usage": "Primary for large areas, accent sparingly for highlights."
+}

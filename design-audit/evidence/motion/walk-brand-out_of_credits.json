@@ -1,0 +1,157 @@
+[
+ {
+  "scenario": "out-of-credits-and-disabled",
+  "width": 1440,
+  "account": "audit-free",
+  "steps": [
+   {
+    "label": "hover-logo-type-toggle",
+    "frames": [
+     "brand__out-of-credits-and-disabled__1440__00-hover-logo-type-toggle-0ms.jpg",
+     "brand__out-of-credits-and-disabled__1440__01-hover-logo-type-toggle-80ms.jpg",
+     "brand__out-of-credits-and-disabled__1440__02-hover-logo-type-toggle-200ms.jpg"
+    ],
+    "entries": [
+     "    14 ms  scroll      div.guided-interview-scroll[Conversation] top=3395",
+     "    47 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"6 types chosen\"],\"imgsPending\":5}"
+    ]
+   },
+   {
+    "label": "toggle-logo-type",
+    "frames": [
+     "brand__out-of-credits-and-disabled__1440__03-toggle-logo-type-0ms.jpg",
+     "brand__out-of-credits-and-disabled__1440__04-toggle-logo-type-80ms.jpg",
+     "brand__out-of-credits-and-disabled__1440__05-toggle-logo-type-200ms.jpg",
+     "brand__out-of-credits-and-disabled__1440__06-toggle-logo-type-500ms.jpg"
+    ],
+    "entries": [
+     "    31 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"6 types chosen\"],\"imgsPending\":5}",
+     "    35 ms  pointerdown button.naming-approach-option",
+     "    35 ms  focus       button.naming-approach-option",
+     "    40 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"5 types chosen\",\"Complete your saved logo inputs to continue.\"],\"imgsPending\":5}",
+     "    50 ms  shift       0.0030 (after input) div.logo-creation-module__UDtEIW__generationAction[Explore six concepts]"
+    ]
+   },
+   {
+    "label": "explore-disabled",
+    "frames": [
+     "brand__out-of-credits-and-disabled__1440__07-explore-disabled.jpg"
+    ],
+    "entries": []
+   },
+   {
+    "label": "explore-with-zero-credits",
+    "frames": [
+     "brand__out-of-credits-and-disabled__1440__08-explore-with-zero-credits-0ms.jpg",
+     "brand__out-of-credits-and-disabled__1440__09-explore-with-zero-credits-80ms.jpg",
+     "brand__out-of-credits-and-disabled__1440__10-explore-with-zero-credits-250ms.jpg",
+     "brand__out-of-credits-and-disabled__1440__11-explore-with-zero-credits-700ms.jpg",
+     "brand__out-of-credits-and-disabled__1440__12-explore-with-zero-credits-1500ms.jpg",
+     "brand__out-of-credits-and-disabled__1440__13-explore-with-zero-credits-3000ms.jpg"
+    ],
+    "entries": [
+     "    30 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"6 types chosen\"],\"imgsPending\":5}",
+     "    37 ms  pointerdown button.logo-creation-module__UDtEIW__primaryButton[Explore six concepts]",
+     "    37 ms  focus       button.logo-creation-module__UDtEIW__primaryButton[Explore six concepts]",
+     "    41 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"6 types chosen\",\"Request in progress…\"],\"imgsPending\":5}",
+     "    50 ms  shift       0.0010 (after input) div.logo-creation-module__UDtEIW__generationAction[Explore six concepts]",
+     "   112 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"6 types chosen\",\"Request in progress…\",\"You’re out of credits for this month Your work is saved. A paid plan a\"],\"imgsPending\":5}",
+     "   170 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"6 types chosen\",\"Not ready yet.\",\"You’re out of credits for this month Your work is saved. A paid plan a\"],\"imgsPending\":5}",
+     "   183 ms  shift       0.0061 (after input) div.logo-creation-module__UDtEIW__generationAction[Explore six concepts], p.logo-types-count"
+    ]
+   },
+   {
+    "label": "not-now",
+    "frames": [
+     "brand__out-of-credits-and-disabled__1440__14-not-now-0ms.jpg",
+     "brand__out-of-credits-and-disabled__1440__15-not-now-80ms.jpg",
+     "brand__out-of-credits-and-disabled__1440__16-not-now-250ms.jpg",
+     "brand__out-of-credits-and-disabled__1440__17-not-now-700ms.jpg"
+    ],
+    "entries": [
+     "    10 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"6 types chosen\",\"Not ready yet.\",\"You’re out of credits for this month Your work is saved. A paid plan a\"],\"imgsPending\":5}",
+     "    77 ms  pointerdown button.button.secondary",
+     "    77 ms  focus       button.button.secondary",
+     "    79 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"6 types chosen\",\"Not ready yet.\"],\"imgsPending\":5}"
+    ]
+   }
+  ],
+  "notes": [
+   "the Logo step was already open (logo inputs were saved earlier)",
+   "explore disabled: {\"disabled\":true,\"cursor\":\"not-allowed\",\"bg\":\"rgb(241, 240, 238)\",\"color\":\"rgb(105, 105, 101)\"}",
+   "the Logo step was already open (logo inputs were saved earlier)",
+   "out-of-credits prompt: {\"tag\":\"DIV\",\"role\":null,\"cls\":\"out-of-credits-copy\",\"position\":\"static\",\"animation\":\"none\",\"transition\":\"0s\",\"focus\":\"Skip to content\\nFromagerie Bér\"}"
+  ]
+ },
+ {
+  "scenario": "out-of-credits-and-disabled",
+  "width": 390,
+  "account": "audit-free",
+  "steps": [
+   {
+    "label": "toggle-logo-type",
+    "frames": [
+     "brand__out-of-credits-and-disabled__390__00-toggle-logo-type-0ms.jpg",
+     "brand__out-of-credits-and-disabled__390__01-toggle-logo-type-80ms.jpg",
+     "brand__out-of-credits-and-disabled__390__02-toggle-logo-type-200ms.jpg",
+     "brand__out-of-credits-and-disabled__390__03-toggle-logo-type-500ms.jpg"
+    ],
+    "entries": [
+     "    13 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"6 types chosen\"],\"imgsPending\":2}",
+     "    15 ms  scroll      div.guided-interview-scroll[Conversation] top=5990",
+     "    34 ms  pointerdown button.naming-approach-option",
+     "    35 ms  focus       button.naming-approach-option",
+     "    39 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"5 types chosen\",\"Complete your saved logo inputs to continue.\"],\"imgsPending\":2}"
+    ]
+   },
+   {
+    "label": "explore-disabled",
+    "frames": [
+     "brand__out-of-credits-and-disabled__390__04-explore-disabled.jpg"
+    ],
+    "entries": []
+   },
+   {
+    "label": "explore-with-zero-credits",
+    "frames": [
+     "brand__out-of-credits-and-disabled__390__05-explore-with-zero-credits-0ms.jpg",
+     "brand__out-of-credits-and-disabled__390__06-explore-with-zero-credits-80ms.jpg",
+     "brand__out-of-credits-and-disabled__390__07-explore-with-zero-credits-250ms.jpg",
+     "brand__out-of-credits-and-disabled__390__08-explore-with-zero-credits-700ms.jpg",
+     "brand__out-of-credits-and-disabled__390__09-explore-with-zero-credits-1500ms.jpg",
+     "brand__out-of-credits-and-disabled__390__10-explore-with-zero-credits-3000ms.jpg"
+    ],
+    "entries": [
+     "     2 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"6 types chosen\"],\"imgsPending\":2}",
+     "    16 ms  scroll      div.guided-interview-scroll[Conversation] top=5990",
+     "    35 ms  pointerdown button.logo-creation-module__UDtEIW__primaryButton[Explore six concepts]",
+     "    36 ms  focus       button.logo-creation-module__UDtEIW__primaryButton[Explore six concepts]",
+     "    40 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"6 types chosen\",\"Request in progress…\"],\"imgsPending\":2}",
+     "    70 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"6 types chosen\",\"Request in progress…\",\"You’re out of credits for this month Your work is saved. A paid plan a\"],\"imgsPending\":2}",
+     "    91 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"6 types chosen\",\"Not ready yet.\",\"You’re out of credits for this month Your work is saved. A paid plan a\"],\"imgsPending\":2}"
+    ]
+   },
+   {
+    "label": "not-now",
+    "frames": [
+     "brand__out-of-credits-and-disabled__390__11-not-now-0ms.jpg",
+     "brand__out-of-credits-and-disabled__390__12-not-now-80ms.jpg",
+     "brand__out-of-credits-and-disabled__390__13-not-now-250ms.jpg",
+     "brand__out-of-credits-and-disabled__390__14-not-now-700ms.jpg"
+    ],
+    "entries": [
+     "    21 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"6 types chosen\",\"Not ready yet.\",\"You’re out of credits for this month Your work is saved. A paid plan a\"],\"imgsPending\":2}",
+     "    37 ms  pointerdown button.button.secondary",
+     "    37 ms  focus       button.button.secondary",
+     "    38 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"6 types chosen\",\"Not ready yet.\"],\"imgsPending\":2}"
+    ]
+   }
+  ],
+  "notes": [
+   "the Logo step was already open (logo inputs were saved earlier)",
+   "explore disabled: {\"disabled\":true,\"cursor\":\"not-allowed\",\"bg\":\"rgb(241, 240, 238)\",\"color\":\"rgb(105, 105, 101)\"}",
+   "the Logo step was already open (logo inputs were saved earlier)",
+   "out-of-credits prompt: {\"tag\":\"DIV\",\"role\":null,\"cls\":\"out-of-credits-copy\",\"position\":\"static\",\"animation\":\"none\",\"transition\":\"0s\",\"focus\":\"Skip to content\\nFromagerie Bér\"}"
+  ]
+ }
+]
