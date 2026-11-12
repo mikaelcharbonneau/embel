@@ -3,6 +3,8 @@
 Status: **complete for pass 3b** (the recap at the end lists the limits).
 Environment: code at commit `6afd6ba3` on branch `design-audit`, read on 2026-11-12. No application file was changed, no AI generation was started, and the app was not opened: every interaction state needed here had already been measured by passes 2 and 3.
 
+**Owner's note, added 2026-11-12, after this pass.** The owner has decided that Claude Design is free to design what it judges best. Wherever this file says the current look stays (the verdict's "keep its look", the second of the two rules in section 3, the two-option limits in section 3h, and the "Keep" table in section 4), read it as a description of what works today, not as a requirement. The palette, the pill navigation, the corner radii, the typeface, the canvas and the amount of motion may all be kept, changed or replaced. Still binding: the token architecture, the component and state lists, every contrast minimum, and no magenta. `Design_AUDIT.md` records the decision.
+
 **What this file is for.** Claude Design will build an improved design system from this file before any screen is redesigned. It describes the system the app needs, not individual screens. Section 3 is the specification; sections 1, 2 and 7 are the evidence for it; section 5 tells implementation how to move the code across.
 
 How to read it.
@@ -110,7 +112,7 @@ One table per foundation. "Uses" counts declarations in `src/**/*.css`. Full tab
 
 Everything in this section is a specification in words and values. It contains no code and no designs. Where a choice is a matter of taste it is marked **decide in Claude Design** with two options; the full list of those decisions is at the end of the section (3h).
 
-Two rules apply throughout. First, the Direction outranks any preference here. Second, the owner's November 6 decisions stand: a floating pill navigation, rounder corners, a neutral ink emphasis, and no magenta.
+Two rules apply throughout. First, the Direction outranks any preference here. Second, the owner's November 6 decisions stand: a floating pill navigation, rounder corners, a neutral ink emphasis, and no magenta. (Superseded in part on 2026-11-12: see the owner's note at the top of this file. Of the four, only "no magenta" still binds.)
 
 ### 3a. Token architecture
 
@@ -496,7 +498,7 @@ Components specific to Embel are assembled from the rows above and must not intr
 
 ### 3h. Decisions for Claude Design
 
-Each is a matter of taste. Both options fit the Direction. This file does not choose.
+Each is a matter of taste. Both options fit the Direction. This file does not choose. Since the owner's note of 2026-11-12 the options are starting points: Claude Design may propose a different answer.
 
 | # | Decision | Option A | Option B | Where specified |
 | --- | --- | --- | --- | --- |
@@ -512,7 +514,7 @@ Three further choices are not taste but still open, because they depend on the o
 
 ## 4. Keep, change, remove
 
-**Keep.** These already work and must survive the rebuild. Claude Design should treat them as fixed inputs.
+**What works today (no longer binding).** These already work. They were written as fixed inputs; since the owner's note of 2026-11-12 they are a description, not a requirement, and Claude Design may keep, change or replace any of them. The rows that are accessibility behaviour (focus trapped and returned, a visible focus ring, status regions and alt text, 44 px targets) still apply through section 8 of `Design_AUDIT.md`.
 
 | What | Why it stays | Where it is today |
 | --- | --- | --- |

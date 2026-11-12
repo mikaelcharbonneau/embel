@@ -11,6 +11,7 @@ Date: 2026-11-12. Merged from `README.md`, `00_inventory.md`, `01_experience_rev
 - **Severity.** P0 blocks or breaks a task. P1 hurts trust or completion; any WCAG AA failure on a main flow is at least P1. P2 is noticeable polish. P3 is nice to have.
 - **Tag.** *Needs redesign* means a new visual or interaction decision is required, so the item goes to Claude Design (sections 5 and 6). *Execution fix* means the right answer is already clear, so it goes straight to implementation (section 7).
 - **Fixed by.** A screen finding that a design-system change will fix names that design-system item. The system item supplies the component; the screen keeps only its own share of the work.
+- **Suggested direction** is a suggestion. It describes one good answer to the problem; Claude Design may solve the problem another way.
 - **Needs the owner.** The redesign changes how the app looks and responds, not what it does. Where a direction would need new behaviour, new data, a document or a decision only the owner can make, the finding says so.
 - **Evidence** paths are relative to `design-audit/evidence/` unless they start with `src/` or `design-audit/`. Screenshots are named `<route>__<state>__<width>.png`.
 - **Where in the code** gives a file, a line and the component or function name. Line numbers are as of 2026-11-11 and 11-12. The code will be restructured before implementation, and a later pass uses the names to find each item again.
@@ -32,7 +33,7 @@ Date: 2026-11-12. Merged from `README.md`, `00_inventory.md`, `01_experience_rev
 
 The audit merged into **97 findings: 1 at P0, 35 at P1, 45 at P2 and 16 at P3.** 38 need a design decision and go to Claude Design; 59 are execution fixes with a clear answer.
 
-**What is already good and stays.** The four-step journey and its one-question-at-a-time conversation; answered questions folding to one line; the warm ink-on-paper palette; the floating pill navigation; honest, specific copy in the password flows; reversible delete; "Retry 2 failed concepts"; the large inspiration brand view, which is the quality bar for the rest; dialogs that already behave correctly for keyboards; and the restraint in motion.
+**What already works.** The four-step journey and its one-question-at-a-time conversation; answered questions folding to one line; the warm ink-on-paper palette; the floating pill navigation; honest, specific copy in the password flows; reversible delete; "Retry 2 failed concepts"; the large inspiration brand view, which is the quality bar for the rest; dialogs that already behave correctly for keyboards; and the restraint in motion. None of this is fixed: the owner decided on 2026-11-12 that Claude Design may keep, change or replace any of it.
 
 **The top 10 issues.**
 
@@ -53,14 +54,16 @@ The audit merged into **97 findings: 1 at P0, 35 at P1, 45 at P2 and 16 at P3.**
 - *It is not a light touch.* Four surfaces need real design work inside the existing structure: choosing a logo and a direction; delivery (Assets, brand images, guidelines, exported files); credits and plans; and states and messages. Two smaller questions sit beside them: what Library is for, and what the signed-out Home shows as proof.
 - *What you are agreeing to.* In time: 23 screen-level design items in Claude Design, of which the delivery templates and the guidelines document are the largest. In risk: low for navigation and routes, because nothing moves; the existing screenshots stay valid as the "before" set. The real risk is scope: several directions touch behaviour, and those are held back for your yes (see "Needs the owner" in the recap).
 
-**Recommendation (b), design system: rebuild the architecture, keep the look.** The palette, the floating pill navigation and the rounder corners you confirmed on November 6 stay. What is built new is the structure underneath them, because most of it does not exist yet.
+**Recommendation (b), design system: rebuild.** The structure underneath the interface is built new, because most of it does not exist yet. Pass 3b recommended keeping the current look (the palette, the floating pill navigation and the rounder corners confirmed on November 6). On 2026-11-12 the owner decided that the look is open as well: Claude Design may keep it, change it or replace it, whichever best serves the Direction.
 
 - *Why.* The design-system audit scores the current system 35 out of 100. Five of eight foundations (spacing, shadows, motion, layering, breakpoints) have no tokens at all; the type scale exists and is used on one page; there is no component layer, so components have forked; and two tokens that every form depends on fail accessibility. A refresh keeps the structure and changes values, and there is too little structure to keep. Evidence: `05_design_system.md` section 1 and `evidence/design-system/drift.md`.
-- *What you are agreeing to.* In time: this is the larger commitment. In Claude Design, a new design system built from the specification, not imported from the code (an import would bring in four button versions and ten dialogs). In implementation, about 3,400 hand-written values are replaced by tokens, most of them mechanically, and about 150 unused style rules are deleted, before any screen is redesigned. In risk: visual regression on every screen. That is what the screenshot script (`capture.mjs`) and the five validation screens are for.
+- *What you are agreeing to.* In time: this is the larger commitment. In Claude Design, a new design system built from the specification, not imported from the code (an import would bring in four button versions and ten dialogs). In implementation, about 3,400 hand-written values are replaced by tokens, most of them mechanically, and about 150 unused style rules are deleted, before any screen is redesigned. In risk: visual regression on every screen, and more of it if the look itself changes. That is what the screenshot script (`capture.mjs`) and the five validation screens are for.
 
 **The two verdicts fit together.** They answer different questions. The pages and the navigation keep their shape (refresh); the system that draws them is rebuilt. No change to this pair is recommended.
 
 **Owner's decision (2026-11-12): both verdicts approved.** Claude Design starts on the rebuild path: a new design system built from `05_design_system.md`, not imported from the code.
+
+**Owner's decision (2026-11-12, later the same day): the look is open.** The list of things that must stay was removed from this brief, and every "keep the look" statement was loosened. What the app does and which pages exist stay as they are; how it looks is Claude Design's to propose.
 
 **Three things to know before you approve.**
 
@@ -75,7 +78,7 @@ The audit merged into **97 findings: 1 at P0, 35 at P1, 45 at P2 and 16 at P3.**
 - Audience: solo founders and startups, small local businesses, and freelancers or agencies who create brands for clients. Most are not designers. Freelancers and agencies expect professional control and polished exports.
 - Target feel: minimal and premium. Calm, precise, generous white space. The interface stays quiet so that the user's own generated brand is the most colourful thing on the screen.
 
-The setup offered the owner two more lines, on products whose look they admire and on things that must stay. Both were left blank, so "what must stay" below comes from the owner's recorded decisions of November 6 and from what the passes found to work.
+The setup offered the owner two more lines, on products whose look they admire and on things that must stay. Both were left blank. **Owner's decision (2026-11-12): this brief lists nothing that must stay.** Claude Design is free to design what it judges best, within the Direction above and the constraints below.
 
 ### What the product is
 
@@ -92,23 +95,6 @@ Embel turns a product idea into a usable brand. A person types a brief on Home; 
 7. **Embel is recognisably itself in a few deliberate places.** Minimal is achieved; premium needs a point of view. Boldness is spent in one or two places and the rest stays quiet.
 8. **Fields can be seen and focus can be followed.** By everyone, at any zoom.
 
-### What must stay
-
-- The four-step journey, its names, and the one-question-at-a-time conversation on one page.
-- Folded answers with a one-line summary; the Strategy summary card; a recommended option with a reason.
-- The warm neutral palette: canvas `#f7f7f5`, paper `#ffffff`, sunken `#f1f0ee`, ink `#191919`, muted text `#696965`, the two hairlines, and the green, red and amber status sets. All text passes contrast today (4.84:1 to 17.58:1).
-- The floating pill navigation and the project bar with four steps (the owner's November 6 decision).
-- Rounder corners: 12 px controls, 16 px cards, 20 px panels (November 6).
-- A neutral ink emphasis and no magenta (November 6).
-- 44 px controls; the ink primary button with a white label.
-- Native dialogs that trap focus and return it; the skip link; the Settings and Library tab behaviour.
-- Restraint in motion: no page transitions, no bounce, only opacity and transform move.
-- The logo "drawing" texture, the one place a richer animation is earned.
-- The Embel pixel-ring mark, which should appear larger than 28 px somewhere.
-- The large inspiration brand view (`annotated/E-054.png`), as the standard for presenting an image.
-- Honest states: "Saved" only after confirmation, "Retry 2 failed concepts", "Nothing was charged", reversible delete, and a kit that says plainly that its logos are images, not vectors.
-- Real labels on every field, alt text on every image, and the two emails' tone.
-
 ### Target qualities
 
 Calm, precise, understated. Generous white space. An interface quiet enough that the person's generated brand is the most colourful thing on screen. Legible to non-designers: nothing important in small grey type. Professional enough for freelancers and agencies: exports a customer would be proud to share, and controls that say what they do. Honest: the interface never claims what is not true.
@@ -117,13 +103,14 @@ Calm, precise, understated. Generous white space. An interface quiet enough that
 
 These are limits and goals, not a visual style. The style is Claude Design's to propose within them.
 
-- **Structure is fixed.** Keep the pages, the navigation and the routes. Keep the same data, actions and states as the real screens. Do not invent features. Where a finding carries "Needs the owner", design it as an option and say so.
+- **The look is open.** Nothing about the current appearance has to survive. Palette, typeface, shapes, canvas, navigation style, motion and imagery may all be kept, changed or replaced, whichever best serves the Direction. The one colour ruled out is magenta, which the owner has rejected as an accent.
+- **What the app does is fixed.** Keep the pages, the destinations in the navigation and the routes. Keep the same data, actions and states as the real screens. Do not invent features. Within a page, the layout is open. Where a finding carries "Needs the owner", design it as an option and say so.
 - **Design system first.** Build the system from `05_design_system.md` and prove it on the validation screens before redesigning any other screen (section 5).
-- **Seven taste decisions are open** (section 3). Each has two options that fit the Direction. Recommend one per decision and wait for the owner's answer.
+- **Seven taste decisions are open** (section 3). Each comes with two options from the audit. They are starting points: recommend one, or propose a better third, and wait for the owner's answer.
 - **Light mode only.** No dark mode is asked for; the token structure should make one possible later.
 - **Desktop leads.** The owner's priority is desktop first. Designs are still needed at 390 px, and at 768 px where the layout changes, because narrow layouts are also what a person at high zoom sees, and reflow is an accessibility requirement.
 - **Credits, never money.** The app shows remaining credits. It shows no cost estimates and no invented progress numbers. The plan prices on Plans are the only money shown.
-- **No decoration.** No illustration, stock photography or AI-made art for Embel's own interface. Imagery is real output (section 4).
+- **Imagery.** The imagery pass recommends real output over illustration, stock photography or AI-made art (section 4). That is a recommendation, not a rule: propose other imagery if it serves the Direction, and label any slot that would need generating.
 - **Meet section 8** (accessibility and performance acceptance criteria) in every design.
 - **Goals to hold each screen to:** the person's brand is the loudest thing on it; one primary action is obvious; every state is designed (default, empty, loading, error); every word is one a founder would use.
 
@@ -131,9 +118,9 @@ These are limits and goals, not a visual style. The style is Claude Design's to 
 
 **Source of truth: [`05_design_system.md`](05_design_system.md).** This section is a summary. The full specification (token names and values, the type scale, every component and its states, the patterns, and the map from old values to new) is in that file and is not copied here.
 
-**Verdict: rebuild the architecture, keep the look.** Design-system skill score: 35 out of 100 (token coverage 13.5 of 40, component completeness 14.5 of 40, naming and documentation 7 of 20).
+**Verdict: rebuild.** Pass 3b's verdict was "rebuild the architecture, keep the look". The owner has since opened the look as well (section 1), so where `05_design_system.md` says something must be kept, read it as a description of what works today, not as a requirement. Design-system skill score: 35 out of 100 (token coverage 13.5 of 40, component completeness 14.5 of 40, naming and documentation 7 of 20).
 
-**How to start in Claude Design.** Start a new design system from the specification; do not import the current code with `/design-sync`, because that would bring in four button versions and ten dialogs. Attach current screenshots so the confirmed look anchors the result.
+**How to start in Claude Design.** Start a new design system from the specification; do not import the current code with `/design-sync`, because that would bring in four button versions and ten dialogs. Attach current screenshots as a record of where the app is today, not as a look to preserve.
 
 **The top changes.**
 
@@ -153,7 +140,7 @@ These are limits and goals, not a visual style. The style is Claude Design's to 
 | Motion | No tokens; reduced motion removes all animation | A small token set; reduced motion removes movement and keeps feedback | D-048 |
 | Spacing, radius, shadows, breakpoints | 53 values, 18 values, 34 shadows, 21 widths | 14 steps, 6 steps, 4 levels and one backdrop, 3 named ranges | D-059, D-050, D-051, D-052 |
 
-**Decisions marked "decide in Claude Design".** Each is a matter of taste, and both options fit the Direction. The specification does not choose.
+**Decisions marked "decide in Claude Design".** Each is a matter of taste, and both options fit the Direction. The specification does not choose. The options are starting points: Claude Design may recommend one, or propose a different answer.
 
 | # | Decision | Option A | Option B |
 | --- | --- | --- | --- |
@@ -177,7 +164,9 @@ The merge adds three smaller choices, recorded in the findings: the icon family 
 
 **Verdict.** Embel needs very little new imagery, and none of it should be illustration, stock photography or AI-made decoration: everything colourful on screen is, and should remain, either the person's own generated brand or the inspiration gallery. The work is to use the product's own output better. The one real gap is the signed-out Home, which shows no example of what Embel makes; a row of three real finished brands fixes it. Inside the app, logos and direction boards are shown too small and downloaded far too large, so the needs there are bigger presentation and proper thumbnails. The largest need is the exported files: every brand's social images and brand board share one fixed decoration, and the downloadable guidelines contain no logo and no image, so those templates are redrawn in code from the chosen direction. Of 29 slots, 9 keep what exists, 9 show real product output, 6 are drawn in code, 2 come from one icon library, 2 are removals and 1 is licensed third-party work; **none needs an AI-generated or commissioned image.**
 
-**Art direction block (unchanged).** It governs Embel's own imagery only, not what Embel generates for a person's brand. Its palette is the current token set and is replaced by the new design system's colours before any asset is produced.
+This is the imagery pass's recommendation. Since the owner opened the look on 2026-11-12 it does not bind Claude Design, which may propose other imagery where it serves the Direction.
+
+**Art direction block (unchanged).** It governs Embel's own imagery only, not what Embel generates for a person's brand. Its palette is the current token set and is replaced by the new design system's colours before any asset is produced. It is a draft that describes today's look; if Claude Design changes the look, the block is revised to match first.
 
 ```text
 ART DIRECTION: EMBEL (draft, 2026-11-11)
@@ -371,7 +360,7 @@ These are the 15 design-system items that need a design decision, in ranked orde
 - Category: components · Severity: P2 · Tag: needs redesign
 - What's wrong: An empty page shows an icon in a grey rounded square with a button (Library), a bare line icon (Home, Projects), or text alone (Deleted projects, search with no match), each with its own spacing. Two legacy versions use dashed borders.
 - Why it matters: An empty screen is a new account's first impression of each page; it should invite the next action.
-- Suggested direction: One Empty state in three sizes (page, section, no results): a visual slot, a title that says what will appear here, one sentence, and the one action that fills it. The visual slot (image slot IMG-010) is one library icon, 24 px inside a 56 px circle, the same everywhere. No illustration and never a dashed box.
+- Suggested direction: One Empty state in three sizes (page, section, no results): a visual slot, a title that says what will appear here, one sentence, and the one action that fills it. The visual slot (image slot IMG-010) is one library icon, 24 px inside a 56 px circle, the same everywhere. The imagery pass recommends no illustration; never a dashed box.
 - Where in the code: `public/projects/empty-projects.svg`; `.audience-empty`, `.strategy-empty` (dashed).
 - Screen findings merged into this item: IMG-010
 - Screen findings this fixes: D-060 (E-004, IMG-008); D-077 (E-041, A-022); D-096 (E-021, E-031)
@@ -395,7 +384,7 @@ These are the 15 design-system items that need a design decision, in ranked orde
 - Category: consistency (visual identity) · Severity: P2 · Tag: needs redesign
 - What's wrong: The app avoids the loud generated-page habits, and its ink-on-warm-paper palette suits the brief. Four habits still mark it as a default kit. (1) One white, rounded, hairline card holds every kind of content at every level of importance: a plan, a settings group, an error, an empty state, a logo. (2) Pill shapes are used for navigation, buttons, chips, tabs and search alike. (3) Geist, the framework's stock typeface, at 13 px does all the talking, and the one distinctive graphic, the pixel-ring Embel mark, appears only at 28 px. (4) A dot grid sits behind most pages as decoration; it stops under the pill on Assets and is absent on the recover page and the legacy identity page. Smaller tells: grey meta lines joined with middle dots, arrows added to some buttons and links but not all, and small all-capitals labels in the exports.
 - Why it matters: The Direction asks for "minimal and premium". Minimal is achieved; premium needs deliberate choices in a few places. Today the app could be any assistant product, and the sameness of surfaces flattens hierarchy.
-- Suggested direction: Keep the restraint and the palette. Decide in Claude Design: the typeface (decision 2), control shape (decision 4), when content is a card at all (decision 5), and the canvas (decision 6: the dot grid only where work is made, or nowhere). Each has two options that fit the Direction. Set one rule for links and buttons (arrows only on controls that navigate). No new decoration. If the dot grid stays, it stays a CSS pattern behind one token, never an image file.
+- Suggested direction: Give Embel a deliberate identity. The passes suggest keeping the restraint and the palette and deciding four things: the typeface (decision 2), control shape (decision 4), when content is a card at all (decision 5), and the canvas (decision 6: the dot grid only where work is made, or nowhere). Those options are starting points. Since the owner opened the look on 2026-11-12, Claude Design may go further and change the palette, the shapes or the canvas if that serves the Direction better. Set one rule for links and buttons (arrows only on controls that navigate). If the dot grid stays, it stays a CSS pattern behind one token, never an image file.
 - Where in the code: `--dot-grid` in `src/styles/tokens.css:47`, repeated in `src/styles/journey-conversation.css:204, 1061`.
 - Screen findings merged into this item: E-055, IMG-006
 - Screen findings this fixes: D-068 (E-005, E-017, IMG-011); D-071 (E-045)
@@ -434,8 +423,8 @@ These are the 15 design-system items that need a design decision, in ranked orde
 - Category: motion · Severity: P2 · Tag: needs redesign
 - WCAG criterion or measured value: `prefers-reduced-motion` must be respected, and must keep feedback
 - What's wrong: There are no motion tokens: nine durations and four easing keywords are written per file. Of 71 kinds of control, 3 carry a transition of their own; most change colour in a single frame, a few ease over 120 ms, and 17 show no hover change at all, including the "Continue" link that leads to Assets and the tabs in Library and Settings. Three pulse loops run at 1.5, 1.6 and 2.8 seconds. One global rule switches off every animation and transition under reduced motion, including the spinner, the progress bar and the skeleton pulse, so a one-minute wait looks like a frozen page. Finished logos and boards replace their placeholders in a single frame, while the one entrance animation replays on all saved sections every time a brand is opened.
-- Why it matters: The restraint is right and stays: pass 2 found nothing over-animated and nothing that drops frames. But when one part of the screen eases and the next snaps, the product feels assembled from parts, and people who ask for less movement lose all feedback.
-- Suggested direction: Adopt pass 2's token set, which the design-system spec takes unchanged (`05_design_system.md` section 3e): durations of 120, 160, 200 and 300 ms; an ease-out of `cubic-bezier(0.23, 1, 0.32, 1)`; press and entrance scale 0.97; entrance shift 4 px; stagger 40 ms. Rules: hover changes colour, border or background in 120 ms; only opacity and transform move; entrances animate and exits are instant; hover effects only where a pointer can hover; under reduced motion, movement is removed and opacity feedback stays (a slow pulse from 1 to 0.55 over 1.6 s; the spinner pulses). Limit the section entrance to content added after the page has loaded. Two choices are left to Claude Design. (1) How finished results arrive: the restrained option is a 300 ms fade, the six concepts 40 ms apart, no bounce. (2) Hover on cards: colour and border only (pass 2, kept by the design-system pass) or a slight lift (pass 1's example); the Direction's "calm" leans to the first.
+- Why it matters: Pass 2 judged the restraint right: it found nothing over-animated and nothing that drops frames. But when one part of the screen eases and the next snaps, the product feels assembled from parts, and people who ask for less movement lose all feedback.
+- Suggested direction: Adopt pass 2's token set, which the design-system spec takes unchanged (`05_design_system.md` section 3e): durations of 120, 160, 200 and 300 ms; an ease-out of `cubic-bezier(0.23, 1, 0.32, 1)`; press and entrance scale 0.97; entrance shift 4 px; stagger 40 ms. Rules: hover changes colour, border or background in 120 ms; only opacity and transform move; entrances animate and exits are instant; hover effects only where a pointer can hover; under reduced motion, movement is removed and opacity feedback stays (a slow pulse from 1 to 0.55 over 1.6 s; the spinner pulses). Limit the section entrance to content added after the page has loaded. Two choices are left to Claude Design. (1) How finished results arrive: the restrained option is a 300 ms fade, the six concepts 40 ms apart, no bounce. (2) Hover on cards: colour and border only (pass 2, kept by the design-system pass) or a slight lift (pass 1's example); the Direction's "calm" leans to the first. These values are pass 2's proposal; Claude Design may propose others within the rules in section 8.
 - Where in the code: Global reduced-motion rule in `src/styles/globals.css:332`; `embel-flow-enter` in `src/styles/guided-conversation.css:174-187`; `a.identity-primary-button` (no hover). Plans: `design-audit/animation-plans/` 001, 003, 004 and 005.
 - Screen findings merged into this item: M-002, M-004, M-017, E-056
 - Screen findings this fixes: D-061 (M-005, A-020)
@@ -1201,7 +1190,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Sources: E-054
 - Screen/route, state and width: Project conversation → Inspiration → Open brand (dialog), Kestrel Analytics; 1440.
 - Category: copy · Severity: P2 · Tag: execution fix · Area: Brand conversation
-- What's wrong: The view's footer says "Your choices stay with Untitled brand." for a brand named Kestrel Analytics, and the panel is headed with a small all-capitals "BRAND". The view itself is the best-presented screen in the journey and is kept as the model for showing work.
+- What's wrong: The view's footer says "Your choices stay with Untitled brand." for a brand named Kestrel Analytics, and the panel is headed with a small all-capitals "BRAND". The view itself is, in pass 1's judgement, the best-presented screen in the journey.
 - Why it matters: The wrong name is a visible slip in the product's best moment.
 - Suggested direction: Use the brand's real name.
 - Where in the code: `BrandOverlay` in `src/components/inspiration/inspiration-brands.tsx`.
@@ -1238,7 +1227,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Category: imagery (credits) · Severity: P2 · Tag: execution fix · Area: Brand conversation
 - What's wrong: The gallery shows real studio brand boards. The data file for the 56 brands has no creator, source or permission field on any entry, and nothing in `docs/` says where the permission records are. The owner confirmed on November 11 that the records exist and are kept outside the repository; the audit did not see them.
 - Why it matters: The original decision for the gallery was to keep a credit line for every image.
-- Suggested direction: Add each board's credit line to the data and show it in the large view. Note in `docs/` where the permission records are kept. Keep the current boards, and keep the large view as it is: it is the model for how images should be presented.
+- Suggested direction: Add each board's credit line to the data and show it in the large view. Note in `docs/` where the permission records are kept. The boards themselves do not need to change for this.
 - Where in the code: `src/domain/inspiration-brands.json`; `BrandOverlay` in `src/components/inspiration/inspiration-brands.tsx`; `docs/inspiration-brand-boards.md`.
 - Needs the owner: The credit wording comes from the permission records, which only the owner holds.
 - Evidence: `annotated/E-054.png`
@@ -1692,6 +1681,7 @@ The rules, in order: (a) WCAG AA requirements and measured data win over taste; 
 | 17 | E-043 and what Claude Design can change → D-024 | Tagged needs redesign, but the fault is in how images are generated. | Kept as needs redesign, P1, and marked "Needs the owner". It is not Claude Design work, and it conflicts with the agreed behaviour that directions use the exact chosen logo. | Scope |
 | 18 | Severities inside merged findings | Sources of one finding carried different severities (for example A-005 at P2 with DS-014 at P1; A-026 at P2 with IMG-012 at P1). | The merged finding takes the highest source severity. A WCAG AA failure on a main flow is at least P1. | a, c |
 | 19 | The two verdicts: pass 1 "refresh", pass 3b "rebuild" | They could look contradictory. | Reported separately and left to differ. They answer different questions and fit together: the pages keep their shape, and the system that draws them is rebuilt. | Stated in the brief |
+| 20 | The owner's decision of 2026-11-12 and every "keep the look" statement | Passes 1b, 2 and 3b, and rows 4, 11, 12 and 13 above, treat parts of the current look as fixed or limit the options: the palette, the pill navigation, the rounder corners, restrained motion, two page widths, no illustration. | The owner opened the look. Those statements describe what works today and do not bind Claude Design. Still in force: the accessibility and performance criteria in section 8, the fixed product structure, credits never money, and no magenta. | e |
 
 ### Appendix A: each D- finding and its sources
 
@@ -1822,7 +1812,7 @@ Where they are: 15 design-system items needing a decision in Part A (section 5),
 **Left unresolved.**
 
 1. **Two fixes to verify.** PR 254 (account deletion, D-001) and PR 255 (Library detail view, D-034) were merged to `main` on 2026-11-12, after the passes ran. This audit verified neither. The Library detail view has still never been seen open, so its design is unreviewed.
-2. **Taste decisions for Claude Design and the owner.** The seven design-system decisions and three colour values in section 3; the icon family (D-049); how results arrive and how cards respond to hover (D-048); what a new account's Home shows (D-060); the picture area of a card with no logo (D-068).
+2. **Taste decisions for Claude Design and the owner.** The look as a whole is open, by the owner's decision of 2026-11-12. The named choices are: the seven design-system decisions and three colour values in section 3; the icon family (D-049); how results arrive and how cards respond to hover (D-048); what a new account's Home shows (D-060); the picture area of a card with no logo (D-068).
 3. **Findings that need the owner (18).** Each touches behaviour, data, legal text, a setting only the owner controls, or a real AI generation:
 
 - **D-015** (Remaining credits are not visible anywhere outside Settings and Plans): Pass 1 also suggested printing each step's credit price on its button ("Explore six concepts · 6 credits"). The owner's standing rule is that the app shows remaining credits and no cost estimates. A fixed credit price is not a money estimate, but adding it is the owner's product call, so it is left out unless the owner asks for it.
@@ -1848,5 +1838,5 @@ Where they are: 15 design-system items needing a decision in Part A (section 5),
 5. **Not reviewed by any pass.** The three crash screens (read in source only); Stripe's checkout and customer portal; the Library detail view; names, slogans and directions while in progress; "step unavailable"; "today's limit"; a failed reference upload; the name preview dialog and "Compare concept"; sign-up's "check your email" state; the sign-out confirmation; the account data export; the sign-up check (Cloudflare Turnstile); the accessibility of the two emails and of the exported guidelines file.
 6. **Not tested.** No real screen reader was run, so the announcement findings (D-010, D-003, D-014, D-089) are reasoned from the markup. No real phone was used: every measurement is from a desktop browser, including the 390 px runs. Width 768 was reviewed from still images and not walked live. All numbers are lab measurements on one machine; the app has no customers yet, so there is no field data.
 7. **Development-server caveats.** Passes 1 and 2 timed the development server, which is slower than production. The layout-shift numbers in this brief are from the production build. The timings of late acknowledgement (D-012, D-058) should be re-read on a production build during review.
-8. **The owner's two optional Direction lines** (products whose look you admire; things that must stay) were left blank at setup. Adding them before Prompt 5 would sharpen Claude Design's recommendations on the seven decisions.
+8. **The owner's optional Direction line on products whose look they admire** was left blank at setup. Adding it before Prompt 5 would sharpen Claude Design's recommendations on the seven decisions. (The owner chose on 2026-11-12 not to list things that must stay.)
 9. **Line numbers will go stale.** They are as of 2026-11-11 and 11-12. The code cleanup before implementation will move them; Prompt 7b refreshes them using the component and function names recorded beside each reference.
