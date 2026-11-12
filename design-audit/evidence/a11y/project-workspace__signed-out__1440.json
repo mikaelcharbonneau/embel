@@ -1,0 +1,721 @@
+{
+ "slug": "project-workspace__signed-out",
+ "account": null,
+ "route": "/brands/account/00000000-0000-4000-8000-000000000000",
+ "width": 1440,
+ "doc": {
+  "url": "/brands/account/00000000-0000-4000-8000-000000000000",
+  "title": "Project · Embel",
+  "lang": "en",
+  "viewportMeta": "width=device-width, initial-scale=1",
+  "h1": [
+   "Project workspace"
+  ],
+  "headings": [
+   "H1 Project workspace"
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 1,
+   "header": 1,
+   "footer": 0,
+   "aside": 0,
+   "form": 0,
+   "[role=\"search\"]": 0,
+   "section[aria-label], section[aria-labelledby]": 0
+  },
+  "navLabels": [
+   "Main navigation"
+  ],
+  "skipLink": [
+   {
+    "text": "Skip to content",
+    "href": "#main-content",
+    "targetExists": true
+   }
+  ],
+  "liveRegions": 1,
+  "dialogsOpen": [],
+  "overflowX": 0,
+  "bodyText": "Skip to content Embel Home Projects Library Sign in Create account Project workspace Sign in to see and save your work. Sign in Create account Back to Projects",
+  "focusableCount": 10
+ },
+ "contrast": [
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "p «Sign in to see and save your work.» in div.project-workspace-content > div.project-access-state > div.account-notice"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 450,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.button.secondary \"Create account\" «Create account» in div.project-access-state > div.account-notice > div.signed-out-actions"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#3a3a37",
+   "bg": "#fefefe",
+   "size": 13,
+   "weight": 400,
+   "ratio": 11.34,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "a.journey-module__MmLfbq__navLink \"Home\" «Home» in nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+    "a.journey-module__MmLfbq__navLink \"Library\" «Library» in nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 24,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 3,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "h1 \"Project workspace\" «Project workspace» in section.project-workspace > div.project-workspace-content > div.project-access-state"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 400,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "a \"Back to Projects\" «Back to Projects» in section.project-workspace > div.project-workspace-content > div.project-access-state"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#fefefe",
+   "size": 15,
+   "weight": 600,
+   "ratio": 17.48,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span «Embel» in div.journey-module__MmLfbq__capsule > nav.journey-module__MmLfbq__mainNav > a.journey-module__MmLfbq__brand"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#fefefe",
+   "size": 13,
+   "weight": 450,
+   "ratio": 17.48,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "a.button.small.signed-out-sign-in \"Sign in\" «Sign in» in div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > div.signed-out-actions"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.skip-link \"Skip to content\" «Skip to content» in div.app-shell"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 13,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.journey-module__MmLfbq__navLink \"Projects\" «Projects» in nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 13,
+   "weight": 450,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 2,
+   "samples": [
+    "a.button.primary.small \"Create account\" «Create account» in div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > div.signed-out-actions",
+    "a.button.primary \"Sign in\" «Sign in» in div.project-access-state > div.account-notice > div.signed-out-actions"
+   ],
+   "pass": true
+  }
+ ],
+ "edges": [
+  {
+   "kind": "button",
+   "fill": "#fefefe",
+   "border": "#fefefe",
+   "outside": "#fefefe",
+   "fillRatio": 1,
+   "borderRatio": 1,
+   "best": 1,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "a.button.small.signed-out-sign-in \"Sign in\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#f7f7f5",
+   "fillRatio": 1.07,
+   "borderRatio": 1.19,
+   "best": 1.19,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "a.button.secondary \"Create account\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#191919",
+   "border": "#f7f7f5",
+   "outside": "#f7f7f5",
+   "fillRatio": 16.39,
+   "borderRatio": 1,
+   "best": 16.39,
+   "pass": true,
+   "count": 1,
+   "samples": [
+    "a.button.primary \"Sign in\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#191919",
+   "border": "#fefefe",
+   "outside": "#fefefe",
+   "fillRatio": 17.48,
+   "borderRatio": 1,
+   "best": 17.48,
+   "pass": true,
+   "count": 1,
+   "samples": [
+    "a.button.primary.small \"Create account\""
+   ]
+  }
+ ],
+ "targets": {
+  "total": 10,
+  "under44": 6,
+  "under24": [
+   {
+    "target": "a \"Back to Projects\"",
+    "where": "section.project-workspace > div.project-workspace-content > div.project-access-state",
+    "width": 105.7,
+    "height": 21,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   }
+  ]
+ },
+ "fields": [],
+ "clipped": [],
+ "axe": {
+  "violations": [],
+  "incomplete": [
+   {
+    "id": "color-contrast",
+    "count": 7,
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+   }
+  ]
+ },
+ "walk": [
+  {
+   "el": "a.skip-link \"Skip to content\"",
+   "where": "div.app-shell",
+   "x": 8,
+   "y": 8,
+   "w": 130,
+   "h": 45,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.skip-link \"Skip to content\"@8,8",
+   "crop": "focus/project-workspace__signed-out__1440__001.png"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__brand[Embel home] \"Embel\"",
+   "where": "header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule > nav.journey-module__MmLfbq__mainNav",
+   "x": 434,
+   "y": 22,
+   "w": 101,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__brand[Embel home] \"Embel\"@434,22"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__navLink \"Home\"",
+   "where": "nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+   "x": 556,
+   "y": 24,
+   "w": 67,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__navLink \"Home\"@556,24"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__navLink \"Projects\"",
+   "where": "nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+   "x": 625,
+   "y": 24,
+   "w": 82,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__navLink \"Projects\"@625,24"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__navLink \"Library\"",
+   "where": "nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+   "x": 709,
+   "y": 24,
+   "w": 73,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__navLink \"Library\"@709,24"
+  },
+  {
+   "el": "a.button.small.signed-out-sign-in \"Sign in\"",
+   "where": "div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > div.signed-out-actions",
+   "x": 803,
+   "y": 24,
+   "w": 75,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.button.small.signed-out-sign-in \"Sign in\"@803,24"
+  },
+  {
+   "el": "a.button.primary.small \"Create account\"",
+   "where": "div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > div.signed-out-actions",
+   "x": 882,
+   "y": 24,
+   "w": 126,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.button.primary.small \"Create account\"@882,24"
+  },
+  {
+   "el": "a.button.primary \"Sign in\"",
+   "where": "div.project-access-state > div.account-notice > div.signed-out-actions",
+   "x": 24,
+   "y": 189,
+   "w": 79,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.button.primary \"Sign in\"@24,189"
+  },
+  {
+   "el": "a.button.secondary \"Create account\"",
+   "where": "div.project-access-state > div.account-notice > div.signed-out-actions",
+   "x": 111,
+   "y": 189,
+   "w": 130,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.button.secondary \"Create account\"@111,189"
+  },
+  {
+   "el": "a \"Back to Projects\"",
+   "where": "section.project-workspace > div.project-workspace-content > div.project-access-state",
+   "x": 24,
+   "y": 270,
+   "w": 106,
+   "h": 21,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a \"Back to Projects\"@24,270"
+  }
+ ],
+ "walkTruncated": false,
+ "hover": [
+  {
+   "kind": "a.skip-link",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.journey-module__MmLfbq__brand",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#fefefe",
+    "ratio": 17.48,
+    "cursor": "pointer",
+    "size": 15,
+    "weight": 600
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#fefefe",
+    "ratio": 17.48,
+    "cursor": "pointer",
+    "size": 15,
+    "weight": 600
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.journey-module__MmLfbq__navLink",
+   "rest": {
+    "fg": "#3a3a37",
+    "bg": "#fefefe",
+    "ratio": 11.34,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#3a3a37",
+    "bg": "#f1f0ee",
+    "ratio": 10.01,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.button.small.signed-out-sign-in",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#fefefe",
+    "ratio": 17.48,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 450
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 450
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.button.primary.small",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 450
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#333333",
+    "ratio": 12.63,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 450
+   },
+   "changes": true
+  },
+  {
+   "kind": "main.",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.button.primary",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 450
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#333333",
+    "ratio": 12.63,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 450
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.button.secondary",
+   "rest": {
+    "fg": "#696965",
+    "bg": "#ffffff",
+    "ratio": 5.51,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 450
+   },
+   "hovered": {
+    "fg": "#696965",
+    "bg": "#f7f7f5",
+    "ratio": 5.13,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 450
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  }
+ ],
+ "reflow": {
+  "320": {
+   "viewport": "320x640",
+   "overflowX": 0,
+   "bodyScrollWidth": 320,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    }
+   ],
+   "minFontSize": 13,
+   "screenshot": "reflow/project-workspace__signed-out__320.png"
+  },
+  "zoom200": {
+   "viewport": "720x450",
+   "overflowX": 0,
+   "bodyScrollWidth": 720,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    }
+   ],
+   "minFontSize": 13,
+   "screenshot": "reflow/project-workspace__signed-out__zoom200.png"
+  }
+ }
+}

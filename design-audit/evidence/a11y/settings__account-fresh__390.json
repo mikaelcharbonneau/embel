@@ -1,0 +1,812 @@
+{
+ "slug": "settings__account-fresh",
+ "account": "audit-fresh",
+ "route": "/settings",
+ "width": 390,
+ "doc": {
+  "url": "/settings",
+  "title": "Settings · Embel",
+  "lang": "en",
+  "viewportMeta": "width=device-width, initial-scale=1",
+  "h1": [
+   "Settings."
+  ],
+  "headings": [
+   "H1 Settings.",
+   "H2 Profile",
+   "H2 Preferences",
+   "H2 Your data"
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 1,
+   "header": 5,
+   "footer": 1,
+   "aside": 0,
+   "form": 0,
+   "[role=\"search\"]": 0,
+   "section[aria-label], section[aria-labelledby]": 5
+  },
+  "navLabels": [
+   "Main navigation"
+  ],
+  "skipLink": [
+   {
+    "text": "Skip to content",
+    "href": "#main-content",
+    "targetExists": true
+   }
+  ],
+  "liveRegions": 2,
+  "dialogsOpen": [],
+  "overflowX": 0,
+  "bodyText": "Skip to content Home Projects Library audit-fresh@example.test A Settings. Manage your account and see your usage. Account Usage Profile Your name appears in the account menu. Full name Email address You sign in with this email. Preferences Choose how dates appear in Embel. Time zone Used for the da",
+  "focusableCount": 17
+ },
+ "contrast": [
+  {
+   "fg": "#696965",
+   "bg": "#f1f0ee",
+   "size": 13,
+   "weight": 450,
+   "ratio": 4.84,
+   "required": 4.5,
+   "disabled": true,
+   "bgImage": false,
+   "count": 2,
+   "samples": [
+    "button.button.secondary.small \"Cancel\" «Cancel» in div.sg-content > footer.sg-save > div",
+    "button.button.primary.small \"Save changes\" «Save changes» in div.sg-content > footer.sg-save > div"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "p «Manage your account and see your usage.» in main > div.page > div.sg-heading"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 500,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "button#settings-tab-usage \"Usage\" «Usage» in main > div.page > div.sg-tabs"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 11,
+   "samples": [
+    "p «Your name appears in the account menu.» in div.sg-content > section.sg-card > header",
+    "p#profile-email-note.sg-note.sg-profile-note «You sign in with this email.» in div.sg-content > section.sg-card > div.sg-card-body",
+    "p «Choose how dates appear in Embel.» in div.sg-content > section.sg-card > header"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#a42a2a",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 450,
+   "ratio": 7.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "button.button.danger.small \"Delete account\" «Delete account» in section.sg-card > div.sg-card-body > div.sg-row"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#3a3a37",
+   "bg": "#fefefe",
+   "size": 13,
+   "weight": 400,
+   "ratio": 11.34,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 3,
+   "samples": [
+    "a.journey-module__MmLfbq__navLink \"Home\" «Home» in nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+    "a.journey-module__MmLfbq__navLink \"Projects\" «Projects» in nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+    "a.journey-module__MmLfbq__navLink \"Library\" «Library» in nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 12,
+   "weight": 500,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.workspace-account-avatar «A» in div.journey-module__MmLfbq__end > details.workspace-account-menu > summary"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 28,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 3,
+   "disabled": false,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "h1 \"Settings.\" «Settings» in main > div.page > div.sg-heading",
+    "span «.» in div.page > div.sg-heading > h1"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "button#settings-tab-account \"Account\" «Account» in main > div.page > div.sg-tabs"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.skip-link \"Skip to content\" «Skip to content» in div.app-shell"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "h2 \"Profile\" «Profile» in div.sg-content > section.sg-card > header",
+    "h2 \"Preferences\" «Preferences» in div.sg-content > section.sg-card > header",
+    "h2#account-data-title \"Your data\" «Your data» in div.sg-content > section.sg-card > header"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 2,
+   "samples": [
+    "span «Full name» in div.sg-card-body > div.sg-fields > label.sg-field",
+    "span «Email address» in div.sg-card-body > div.sg-fields > label.sg-field"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 6,
+   "samples": [
+    "strong «Time zone» in div.sg-card-body > div.sg-row > div.sg-row-copy",
+    "strong «Date format» in div.sg-card-body > div.sg-row > div.sg-row-copy",
+    "strong «Plan and credits» in section.sg-card > div.sg-row > div.sg-row-copy"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 450,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "a.button.secondary.small \"See plans\" «See plans» in div.sg-content > section.sg-card > div.sg-row",
+    "button.text-link.auth-session-action \"Sign out\" «Sign out» in section.sg-card > div.sg-row > div.topbar-account",
+    "button.button.secondary.small \"Download\" «Download» in section.sg-card > div.sg-card-body > div.sg-row"
+   ],
+   "pass": true
+  }
+ ],
+ "edges": [
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#ffffff",
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": 1,
+   "best": 1,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "button.icon-button.subtle.account-check[Check account]"
+   ]
+  },
+  {
+   "kind": "field",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": 1.28,
+   "best": 1.28,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "input"
+   ]
+  },
+  {
+   "kind": "field",
+   "fill": "#f1f0ee",
+   "border": "#e4e3df",
+   "outside": "#ffffff",
+   "fillRatio": 1.13,
+   "borderRatio": 1.28,
+   "best": 1.28,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "input"
+   ]
+  },
+  {
+   "kind": "field",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": 1.28,
+   "best": 1.28,
+   "pass": false,
+   "count": 2,
+   "samples": [
+    "select[Time zone]",
+    "select[Date format]"
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": 1.28,
+   "best": 1.28,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "a.button.secondary.small \"See plans\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": 1.28,
+   "best": 1.28,
+   "pass": false,
+   "count": 2,
+   "samples": [
+    "button.text-link.auth-session-action \"Sign out\"",
+    "button.button.secondary.small \"Download\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e5c4c4",
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": 1.61,
+   "best": 1.61,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "button.button.danger.small \"Delete account\""
+   ]
+  }
+ ],
+ "targets": {
+  "total": 17,
+  "under44": 5,
+  "under24": []
+ },
+ "fields": [
+  {
+   "field": "input",
+   "type": "input",
+   "label": "Full name",
+   "autocomplete": "name",
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 16
+  },
+  {
+   "field": "input",
+   "type": "text",
+   "label": "Email address",
+   "autocomplete": "email",
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": "profile-email-note",
+   "disabled": false,
+   "fontSize": 16
+  },
+  {
+   "field": "select[Time zone]",
+   "type": "select",
+   "label": "Time zone",
+   "autocomplete": null,
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 16
+  },
+  {
+   "field": "select[Date format]",
+   "type": "select",
+   "label": "Date format",
+   "autocomplete": null,
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 16
+  }
+ ],
+ "clipped": [],
+ "axe": {
+  "violations": [],
+  "incomplete": [
+   {
+    "id": "color-contrast",
+    "count": 7,
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+   },
+   {
+    "id": "duplicate-id-aria",
+    "count": 2,
+    "help": "IDs used in ARIA and labels must be unique"
+   }
+  ]
+ },
+ "walk": [
+  {
+   "el": "a.skip-link \"Skip to content\"",
+   "where": "div.app-shell",
+   "x": 8,
+   "y": 8,
+   "w": 130,
+   "h": 45,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.skip-link \"Skip to content\"@8,8"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__brand[Embel home]",
+   "where": "header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule > nav.journey-module__MmLfbq__mainNav",
+   "x": 13,
+   "y": 13,
+   "w": 40,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__brand[Embel home]@13,13"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__navLink \"Home\"",
+   "where": "nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+   "x": 55,
+   "y": 15,
+   "w": 53,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__navLink \"Home\"@55,15"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__navLink \"Projects\"",
+   "where": "nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+   "x": 110,
+   "y": 15,
+   "w": 67,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__navLink \"Projects\"@110,15"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__navLink \"Library\"",
+   "where": "nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+   "x": 179,
+   "y": 15,
+   "w": 59,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__navLink \"Library\"@179,15"
+  },
+  {
+   "el": "summary[Account menu] \"audit-fresh@example.test A\"",
+   "where": "div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > details.workspace-account-menu",
+   "x": 341,
+   "y": 13,
+   "w": 36,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary[Account menu] \"audit-fresh@example.test A\"@341,13"
+  },
+  {
+   "el": "button#settings-tab-account \"Account\"",
+   "where": "main > div.page > div.sg-tabs",
+   "x": 20,
+   "y": 170,
+   "w": 59,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset -2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button#settings-tab-account \"Account\"@20,170"
+  },
+  {
+   "el": "div#settings-panel-account.sg-content \"Profile Your name appears in the account\"",
+   "where": "div.workspace-main > main > div.page",
+   "x": 20,
+   "y": 86,
+   "w": 350,
+   "h": 1572,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 3,
+   "coveredBy": null,
+   "key": "div#settings-panel-account.sg-content \"Profile Your name appears in the account\"@20,86"
+  },
+  {
+   "el": "input",
+   "where": "div.sg-card-body > div.sg-fields > label.sg-field",
+   "x": 41,
+   "y": 195,
+   "w": 308,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 1px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "input@41,195"
+  },
+  {
+   "el": "input",
+   "where": "div.sg-card-body > div.sg-fields > label.sg-field",
+   "x": 41,
+   "y": 287,
+   "w": 308,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "input@41,287"
+  },
+  {
+   "el": "select[Time zone]",
+   "where": "div.sg-card-body > div.sg-row > div.sg-select-wrap",
+   "x": 41,
+   "y": 556,
+   "w": 308,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 1px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "select[Time zone]@41,556"
+  },
+  {
+   "el": "select[Date format]",
+   "where": "div.sg-card-body > div.sg-row > div.sg-select-wrap",
+   "x": 41,
+   "y": 687,
+   "w": 308,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 1px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "select[Date format]@41,687"
+  },
+  {
+   "el": "a.button.secondary.small \"See plans\"",
+   "where": "div.sg-content > section.sg-card > div.sg-row",
+   "x": 41,
+   "y": 391,
+   "w": 89,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.button.secondary.small \"See plans\"@41,391"
+  },
+  {
+   "el": "button.icon-button.subtle.account-check[Check account]",
+   "where": "section.sg-card > div.sg-row > div.topbar-account",
+   "x": 41,
+   "y": 603,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.icon-button.subtle.account-check[Check account]@41,603"
+  },
+  {
+   "el": "button.text-link.auth-session-action \"Sign out\"",
+   "where": "section.sg-card > div.sg-row > div.topbar-account",
+   "x": 97,
+   "y": 603,
+   "w": 84,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.text-link.auth-session-action \"Sign out\"@97,603"
+  },
+  {
+   "el": "button.button.secondary.small \"Download\"",
+   "where": "section.sg-card > div.sg-card-body > div.sg-row",
+   "x": 41,
+   "y": 605,
+   "w": 90,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small \"Download\"@41,605"
+  },
+  {
+   "el": "button.button.danger.small \"Delete account\"",
+   "where": "section.sg-card > div.sg-card-body > div.sg-row",
+   "x": 41,
+   "y": 756,
+   "w": 121,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.danger.small \"Delete account\"@41,756"
+  }
+ ],
+ "walkTruncated": false,
+ "hover": []
+}

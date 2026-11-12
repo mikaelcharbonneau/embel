@@ -1,0 +1,687 @@
+{
+ "slug": "projects__three-brands-pro",
+ "account": "audit-pro",
+ "route": "/brands",
+ "width": 390,
+ "doc": {
+  "url": "/brands",
+  "title": "Projects · Embel",
+  "lang": "en",
+  "viewportMeta": "width=device-width, initial-scale=1",
+  "h1": [
+   "Projects."
+  ],
+  "headings": [
+   "H1 Projects.",
+   "H2 Bright Harbor Learning",
+   "H2 Kestrel Analytics",
+   "H2 Maison Aurélie"
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 1,
+   "header": 2,
+   "footer": 0,
+   "aside": 0,
+   "form": 0,
+   "[role=\"search\"]": 0,
+   "section[aria-label], section[aria-labelledby]": 1
+  },
+  "navLabels": [
+   "Main navigation"
+  ],
+  "skipLink": [
+   {
+    "text": "Skip to content",
+    "href": "#main-content",
+    "targetExists": true
+   }
+  ],
+  "liveRegions": 1,
+  "dialogsOpen": [],
+  "overflowX": 0,
+  "bodyText": "Skip to content Home Projects Library audit-pro@example.test A Projects. Every idea, in its own world. Deleted projects New project Search projects Sort Bright Harbor Learning Today View brand kit Kestrel Analytics Today View brand kit Maison Aurélie Today View brand kit",
+  "focusableCount": 16
+ },
+ "contrast": [
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "p «Every idea, in its own world.» in div.projects-page > div.projects-heading > div"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "a.text-link.projects-deleted-link \"Deleted projects\" «Deleted projects» in div.projects-page > div.projects-heading > div.projects-heading-actions"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 12,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "span.project-card-module__yo1VFG__date «Today» in a.project-card-module__yo1VFG__link > div.project-card-module__yo1VFG__details > div.project-card-module__yo1VFG__row",
+    "span.project-card-module__yo1VFG__date «Today» in a.project-card-module__yo1VFG__link > div.project-card-module__yo1VFG__details > div.project-card-module__yo1VFG__row",
+    "span.project-card-module__yo1VFG__date «Today» in a.project-card-module__yo1VFG__link > div.project-card-module__yo1VFG__details > div.project-card-module__yo1VFG__row"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "span.project-card-module__yo1VFG__next «View brand kit» in article.project-card-module__yo1VFG__card > a.project-card-module__yo1VFG__link > div.project-card-module__yo1VFG__details",
+    "span.project-card-module__yo1VFG__next «View brand kit» in article.project-card-module__yo1VFG__card > a.project-card-module__yo1VFG__link > div.project-card-module__yo1VFG__details",
+    "span.project-card-module__yo1VFG__next «View brand kit» in article.project-card-module__yo1VFG__card > a.project-card-module__yo1VFG__link > div.project-card-module__yo1VFG__details"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "placeholder": true,
+   "disabled": false,
+   "count": 1,
+   "samples": [
+    "input[Search projects] placeholder «Search projects»"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#3a3a37",
+   "bg": "#fefefe",
+   "size": 13,
+   "weight": 400,
+   "ratio": 11.34,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "a.journey-module__MmLfbq__navLink \"Home\" «Home» in nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+    "a.journey-module__MmLfbq__navLink \"Library\" «Library» in nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 12,
+   "weight": 500,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.workspace-account-avatar «A» in div.journey-module__MmLfbq__end > details.workspace-account-menu > summary"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 28,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 3,
+   "disabled": false,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "h1 \"Projects.\" «Projects» in div.projects-page > div.projects-heading > div",
+    "span «.» in div.projects-heading > div > h1"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.skip-link \"Skip to content\" «Skip to content» in div.app-shell"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 13,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.journey-module__MmLfbq__navLink \"Projects\" «Projects» in nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 13,
+   "weight": 450,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.button.primary \"New project\" «New project» in div.projects-page > div.projects-heading > div.projects-heading-actions"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "summary[Sort projects] \"Sort\" «Sort» in div.projects-page > div.projects-toolbar > details.projects-control"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "h2.project-card-module__yo1VFG__title \"Bright Harbor Learning\" «Bright Harbor Learning» in a.project-card-module__yo1VFG__link > div.project-card-module__yo1VFG__details > div.project-card-module__yo1VFG__row",
+    "h2.project-card-module__yo1VFG__title \"Kestrel Analytics\" «Kestrel Analytics» in a.project-card-module__yo1VFG__link > div.project-card-module__yo1VFG__details > div.project-card-module__yo1VFG__row",
+    "h2.project-card-module__yo1VFG__title \"Maison Aurélie\" «Maison Aurélie» in a.project-card-module__yo1VFG__link > div.project-card-module__yo1VFG__details > div.project-card-module__yo1VFG__row"
+   ],
+   "pass": true
+  }
+ ],
+ "edges": [
+  {
+   "kind": "field",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#f7f7f5",
+   "fillRatio": 1.07,
+   "borderRatio": 1.19,
+   "best": 1.19,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "input[Search projects]"
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#f7f7f5",
+   "fillRatio": 1.07,
+   "borderRatio": 1.19,
+   "best": 1.19,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "summary[Sort projects] \"Sort\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": 1.28,
+   "best": 1.28,
+   "pass": false,
+   "count": 3,
+   "samples": [
+    "button.project-card-menu-trigger[Project options for Bright Harbor Learni]",
+    "button.project-card-menu-trigger[Project options for Kestrel Analytics]",
+    "button.project-card-menu-trigger[Project options for Maison Aurélie]"
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#191919",
+   "border": "#f7f7f5",
+   "outside": "#f7f7f5",
+   "fillRatio": 16.39,
+   "borderRatio": 1,
+   "best": 16.39,
+   "pass": true,
+   "count": 1,
+   "samples": [
+    "a.button.primary \"New project\""
+   ]
+  }
+ ],
+ "targets": {
+  "total": 16,
+  "under44": 5,
+  "under24": []
+ },
+ "fields": [
+  {
+   "field": "input[Search projects]",
+   "type": "search",
+   "label": "Search projects",
+   "autocomplete": null,
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 14
+  }
+ ],
+ "clipped": [],
+ "axe": {
+  "violations": [],
+  "incomplete": [
+   {
+    "id": "color-contrast",
+    "count": 5,
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+   }
+  ]
+ },
+ "walk": [
+  {
+   "el": "a.skip-link \"Skip to content\"",
+   "where": "div.app-shell",
+   "x": 8,
+   "y": 8,
+   "w": 130,
+   "h": 45,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.skip-link \"Skip to content\"@8,8"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__brand[Embel home]",
+   "where": "header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule > nav.journey-module__MmLfbq__mainNav",
+   "x": 13,
+   "y": 13,
+   "w": 40,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__brand[Embel home]@13,13"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__navLink \"Home\"",
+   "where": "nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+   "x": 55,
+   "y": 15,
+   "w": 53,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__navLink \"Home\"@55,15"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__navLink \"Projects\"",
+   "where": "nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+   "x": 110,
+   "y": 15,
+   "w": 68,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__navLink \"Projects\"@110,15"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__navLink \"Library\"",
+   "where": "nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+   "x": 180,
+   "y": 15,
+   "w": 59,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__navLink \"Library\"@180,15"
+  },
+  {
+   "el": "summary[Account menu] \"audit-pro@example.test A\"",
+   "where": "div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > details.workspace-account-menu",
+   "x": 341,
+   "y": 13,
+   "w": 36,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary[Account menu] \"audit-pro@example.test A\"@341,13"
+  },
+  {
+   "el": "a.text-link.projects-deleted-link \"Deleted projects\"",
+   "where": "div.projects-page > div.projects-heading > div.projects-heading-actions",
+   "x": 20,
+   "y": 176,
+   "w": 98,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.text-link.projects-deleted-link \"Deleted projects\"@20,176"
+  },
+  {
+   "el": "a.button.primary \"New project\"",
+   "where": "div.projects-page > div.projects-heading > div.projects-heading-actions",
+   "x": 138,
+   "y": 176,
+   "w": 139,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.button.primary \"New project\"@138,176"
+  },
+  {
+   "el": "input[Search projects]",
+   "where": "div.projects-page > div.projects-toolbar > label.projects-search",
+   "x": 20,
+   "y": 244,
+   "w": 350,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "input[Search projects]@20,244"
+  },
+  {
+   "el": "summary[Sort projects] \"Sort\"",
+   "where": "div.projects-page > div.projects-toolbar > details.projects-control",
+   "x": 20,
+   "y": 300,
+   "w": 350,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary[Sort projects] \"Sort\"@20,300"
+  },
+  {
+   "el": "a.project-card-module__yo1VFG__link[View brand kit · Bright Harbor Learning] \"Bright Harbor Learning Today View brand \"",
+   "where": "div.projects-page > section.projects-grid > article.project-card-module__yo1VFG__card",
+   "x": 21,
+   "y": 369,
+   "w": 348,
+   "h": 199,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.project-card-module__yo1VFG__link[View brand kit · Bright Harbor Learning] \"Bright Harbor Learning Today View brand \"@21,369"
+  },
+  {
+   "el": "button.project-card-menu-trigger[Project options for Bright Harbor Learni]",
+   "where": "section.projects-grid > article.project-card-module__yo1VFG__card > div.project-card-actions",
+   "x": 317,
+   "y": 377,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.project-card-menu-trigger[Project options for Bright Harbor Learni]@317,377"
+  },
+  {
+   "el": "a.project-card-module__yo1VFG__link[View brand kit · Kestrel Analytics] \"Kestrel Analytics Today View brand kit\"",
+   "where": "div.projects-page > section.projects-grid > article.project-card-module__yo1VFG__card",
+   "x": 21,
+   "y": 541,
+   "w": 348,
+   "h": 199,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.project-card-module__yo1VFG__link[View brand kit · Kestrel Analytics] \"Kestrel Analytics Today View brand kit\"@21,541"
+  },
+  {
+   "el": "button.project-card-menu-trigger[Project options for Kestrel Analytics]",
+   "where": "section.projects-grid > article.project-card-module__yo1VFG__card > div.project-card-actions",
+   "x": 317,
+   "y": 549,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.project-card-menu-trigger[Project options for Kestrel Analytics]@317,549"
+  },
+  {
+   "el": "a.project-card-module__yo1VFG__link[View brand kit · Maison Aurélie] \"Maison Aurélie Today View brand kit\"",
+   "where": "div.projects-page > section.projects-grid > article.project-card-module__yo1VFG__card",
+   "x": 21,
+   "y": 580,
+   "w": 348,
+   "h": 199,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.project-card-module__yo1VFG__link[View brand kit · Maison Aurélie] \"Maison Aurélie Today View brand kit\"@21,580"
+  },
+  {
+   "el": "button.project-card-menu-trigger[Project options for Maison Aurélie]",
+   "where": "section.projects-grid > article.project-card-module__yo1VFG__card > div.project-card-actions",
+   "x": 317,
+   "y": 588,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.project-card-menu-trigger[Project options for Maison Aurélie]@317,588"
+  }
+ ],
+ "walkTruncated": false,
+ "hover": []
+}

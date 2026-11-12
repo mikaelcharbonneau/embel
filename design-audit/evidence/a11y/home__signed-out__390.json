@@ -1,0 +1,538 @@
+{
+ "slug": "home__signed-out",
+ "account": null,
+ "route": "/",
+ "width": 390,
+ "doc": {
+  "url": "/",
+  "title": "Embel — Brand workspace",
+  "lang": "en",
+  "viewportMeta": "width=device-width, initial-scale=1",
+  "h1": [
+   "Your next brand starts here."
+  ],
+  "headings": [
+   "H1 Your next brand starts here."
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 1,
+   "header": 2,
+   "footer": 0,
+   "aside": 0,
+   "form": 1,
+   "[role=\"search\"]": 0,
+   "section[aria-label], section[aria-labelledby]": 1
+  },
+  "navLabels": [
+   "Main navigation"
+  ],
+  "skipLink": [
+   {
+    "text": "Skip to content",
+    "href": "#main-content",
+    "targetExists": true
+   }
+  ],
+  "liveRegions": 1,
+  "dialogsOpen": [],
+  "overflowX": 0,
+  "bodyText": "Skip to content Home Projects Library Sign in Your next brand starts here. Describe the idea. Embel asks a few questions, then builds the name, logo and look with you. Your prompt Add files or images An idea, a product, a place. Start in your own words. Send prompt Try an idea A neighborhood coffee ",
+  "focusableCount": 13
+ },
+ "contrast": [
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "p «Describe the idea. Embel asks a few questions, the» in div.page > div.home-intake > div.home-introduction"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 18,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "placeholder": true,
+   "disabled": false,
+   "count": 1,
+   "samples": [
+    "textarea#_R_pindplb_[An idea you can’t stop thinking about…] placeholder «An idea you can’t stop thinking about…»"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#3a3a37",
+   "bg": "#fefefe",
+   "size": 13,
+   "weight": 400,
+   "ratio": 11.34,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "a.journey-module__MmLfbq__navLink \"Projects\" «Projects» in nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+    "a.journey-module__MmLfbq__navLink \"Library\" «Library» in nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 32,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 3,
+   "disabled": false,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "h1 \"Your next brand starts here.\" «Your next brand starts here» in div.page > div.home-intake > div.home-introduction",
+    "span «.» in div.home-intake > div.home-introduction > h1"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#fefefe",
+   "size": 13,
+   "weight": 450,
+   "ratio": 17.48,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "a.button.small.signed-out-sign-in \"Sign in\" «Sign in» in div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > div.signed-out-actions"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.skip-link \"Skip to content\" «Skip to content» in div.app-shell"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 13,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.journey-module__MmLfbq__navLink \"Home\" «Home» in nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "button \"A neighborhood coffee shop\" «A neighborhood coffee shop» in div.home-intake > div.home-examples > div.home-example-pills",
+    "button \"A skincare studio\" «A skincare studio» in div.home-intake > div.home-examples > div.home-example-pills",
+    "button \"An independent magazine\" «An independent magazine» in div.home-intake > div.home-examples > div.home-example-pills"
+   ],
+   "pass": true
+  }
+ ],
+ "edges": [
+  {
+   "kind": "button",
+   "fill": "#fefefe",
+   "border": "#fefefe",
+   "outside": "#fefefe",
+   "fillRatio": 1,
+   "borderRatio": 1,
+   "best": 1,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "a.button.small.signed-out-sign-in \"Sign in\""
+   ]
+  },
+  {
+   "kind": "field",
+   "fill": "#ffffff",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": null,
+   "best": 1,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "textarea#_R_pindplb_[An idea you can’t stop thinking about…]"
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#f7f7f5",
+   "fillRatio": 1.07,
+   "borderRatio": 1.19,
+   "best": 1.19,
+   "pass": false,
+   "count": 3,
+   "samples": [
+    "button \"A neighborhood coffee shop\"",
+    "button \"A skincare studio\"",
+    "button \"An independent magazine\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#191919",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 17.58,
+   "borderRatio": null,
+   "best": 17.58,
+   "pass": true,
+   "count": 1,
+   "samples": [
+    "button.button.primary.composer-send-icon \"Send prompt\""
+   ]
+  }
+ ],
+ "targets": {
+  "total": 13,
+  "under44": 11,
+  "under24": []
+ },
+ "fields": [
+  {
+   "field": "textarea#_R_pindplb_[An idea you can’t stop thinking about…]",
+   "type": "textarea",
+   "label": "Your prompt",
+   "autocomplete": null,
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": "false",
+   "describedBy": "_R_pindplb_-hint",
+   "disabled": false,
+   "fontSize": 18
+  }
+ ],
+ "clipped": [],
+ "axe": {
+  "violations": [],
+  "incomplete": [
+   {
+    "id": "color-contrast",
+    "count": 5,
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+   }
+  ]
+ },
+ "walk": [
+  {
+   "el": "a.skip-link \"Skip to content\"",
+   "where": "div.app-shell",
+   "x": 8,
+   "y": 8,
+   "w": 130,
+   "h": 45,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.skip-link \"Skip to content\"@8,8"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__brand[Embel home]",
+   "where": "header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule > nav.journey-module__MmLfbq__mainNav",
+   "x": 13,
+   "y": 13,
+   "w": 40,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__brand[Embel home]@13,13"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__navLink \"Home\"",
+   "where": "nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+   "x": 55,
+   "y": 15,
+   "w": 54,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__navLink \"Home\"@55,15"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__navLink \"Projects\"",
+   "where": "nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+   "x": 111,
+   "y": 15,
+   "w": 67,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__navLink \"Projects\"@111,15"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__navLink \"Library\"",
+   "where": "nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+   "x": 179,
+   "y": 15,
+   "w": 59,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__navLink \"Library\"@179,15"
+  },
+  {
+   "el": "a.button.small.signed-out-sign-in \"Sign in\"",
+   "where": "div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > div.signed-out-actions",
+   "x": 310,
+   "y": 15,
+   "w": 67,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.button.small.signed-out-sign-in \"Sign in\"@310,15"
+  },
+  {
+   "el": "textarea#_R_pindplb_[An idea you can’t stop thinking about…]",
+   "where": "div.page > div.home-intake > form.conversation-composer",
+   "x": 21,
+   "y": 251,
+   "w": 348,
+   "h": 112,
+   "focusVisible": true,
+   "indicator": "on ancestor: border-color",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "textarea#_R_pindplb_[An idea you can’t stop thinking about…]@21,251"
+  },
+  {
+   "el": "summary#_R_5epindplb_[Add files or images] \"Add files or images\"",
+   "where": "div.conversation-composer-footer > div.home-input-controls > details.home-input-popover",
+   "x": 33,
+   "y": 363,
+   "w": 32,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary#_R_5epindplb_[Add files or images] \"Add files or images\"@33,363"
+  },
+  {
+   "el": "summary#_r_5_[Voice input]",
+   "where": "div.conversation-composer-footer > div.home-input-controls > details.home-input-popover",
+   "x": 281,
+   "y": 363,
+   "w": 32,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary#_r_5_[Voice input]@281,363"
+  },
+  {
+   "el": "button.button.primary.composer-send-icon \"Send prompt\"",
+   "where": "div.home-intake > form.conversation-composer > div.conversation-composer-footer",
+   "x": 317,
+   "y": 365,
+   "w": 40,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.primary.composer-send-icon \"Send prompt\"@317,365"
+  },
+  {
+   "el": "button \"A neighborhood coffee shop\"",
+   "where": "div.home-intake > div.home-examples > div.home-example-pills",
+   "x": 27,
+   "y": 444,
+   "w": 196,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"A neighborhood coffee shop\"@27,444"
+  },
+  {
+   "el": "button \"A skincare studio\"",
+   "where": "div.home-intake > div.home-examples > div.home-example-pills",
+   "x": 231,
+   "y": 444,
+   "w": 132,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"A skincare studio\"@231,444"
+  },
+  {
+   "el": "button \"An independent magazine\"",
+   "where": "div.home-intake > div.home-examples > div.home-example-pills",
+   "x": 103,
+   "y": 492,
+   "w": 185,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"An independent magazine\"@103,492"
+  }
+ ],
+ "walkTruncated": false,
+ "hover": []
+}

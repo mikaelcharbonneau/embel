@@ -1,0 +1,330 @@
+{
+ "slug": "project-workspace__missing-project-pro",
+ "account": "audit-pro",
+ "route": "/brands/account/00000000-0000-4000-8000-000000000000",
+ "width": 390,
+ "doc": {
+  "url": "/brands/account/00000000-0000-4000-8000-000000000000",
+  "title": "Project · Embel",
+  "lang": "en",
+  "viewportMeta": "width=device-width, initial-scale=1",
+  "h1": [
+   "Opening your project"
+  ],
+  "headings": [
+   "H1 Opening your project"
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 0,
+   "header": 2,
+   "footer": 0,
+   "aside": 0,
+   "form": 0,
+   "[role=\"search\"]": 0,
+   "section[aria-label], section[aria-labelledby]": 0
+  },
+  "navLabels": [],
+  "skipLink": [
+   {
+    "text": "Skip to content",
+    "href": "#main-content",
+    "targetExists": true
+   }
+  ],
+  "liveRegions": 4,
+  "dialogsOpen": [],
+  "overflowX": 0,
+  "bodyText": "Skip to content Loading project… audit-pro@example.test A The saved project could not be verified. Your existing work is kept. Check saved project Opening your project Your saved work could not be checked. Try again, or open Strategy to review the project. Try opening againOpen Strategy",
+  "focusableCount": 6
+ },
+ "contrast": [
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "button.text-link \"Check saved project\" «Check saved project» in main > section.project-workspace > div.project-read-notice",
+    "a.text-link \"Open Strategy\" «Open Strategy» in div.project-workspace-content > div.page > div"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 12,
+   "weight": 500,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.workspace-account-avatar «A» in div.journey-module__MmLfbq__end > details.workspace-account-menu > summary"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 13,
+   "weight": 400,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "div.project-read-notice \"The saved project could not be verified.\" «The saved project could not be verified. Your exis» in div.workspace-main > main > section.project-workspace"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 24,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 3,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "h1 \"Opening your project\" «Opening your project» in section.project-workspace > div.project-workspace-content > div.page"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 400,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "p «Your saved work could not be checked. Try again, o» in div.project-workspace-content > div.page > div"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#fefefe",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.48,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span.journey-module__MmLfbq__projectName \"Loading project…\" «Loading project…» in div.workspace-main > header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.skip-link \"Skip to content\" «Skip to content» in div.app-shell"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 450,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "button.button.secondary \"Try opening again\" «Try opening again» in div.project-workspace-content > div.page > div"
+   ],
+   "pass": true
+  }
+ ],
+ "edges": [
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#f7f7f5",
+   "fillRatio": 1.07,
+   "borderRatio": 1.19,
+   "best": 1.19,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "button.button.secondary \"Try opening again\""
+   ]
+  }
+ ],
+ "targets": {
+  "total": 6,
+  "under44": 1,
+  "under24": []
+ },
+ "fields": [],
+ "clipped": [],
+ "axe": {
+  "violations": [],
+  "incomplete": [
+   {
+    "id": "color-contrast",
+    "count": 6,
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+   }
+  ]
+ },
+ "walk": [
+  {
+   "el": "a.skip-link \"Skip to content\"",
+   "where": "div.app-shell",
+   "x": 8,
+   "y": 8,
+   "w": 130,
+   "h": 45,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.skip-link \"Skip to content\"@8,8"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__brandIcon[Embel home]",
+   "where": "div.workspace-main > header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule",
+   "x": 17,
+   "y": 17,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__brandIcon[Embel home]@17,17"
+  },
+  {
+   "el": "summary[Account menu] \"audit-pro@example.test A\"",
+   "where": "div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > details.workspace-account-menu",
+   "x": 337,
+   "y": 17,
+   "w": 36,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary[Account menu] \"audit-pro@example.test A\"@337,17"
+  },
+  {
+   "el": "button.text-link \"Check saved project\"",
+   "where": "main > section.project-workspace > div.project-read-notice",
+   "x": 24,
+   "y": 133,
+   "w": 122,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.text-link \"Check saved project\"@24,133"
+  },
+  {
+   "el": "button.button.secondary \"Try opening again\"",
+   "where": "div.project-workspace-content > div.page > div",
+   "x": 20,
+   "y": 288,
+   "w": 144,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary \"Try opening again\"@20,288"
+  },
+  {
+   "el": "a.text-link \"Open Strategy\"",
+   "where": "div.project-workspace-content > div.page > div",
+   "x": 164,
+   "y": 288,
+   "w": 86,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.text-link \"Open Strategy\"@164,288"
+  }
+ ],
+ "walkTruncated": false,
+ "hover": []
+}
