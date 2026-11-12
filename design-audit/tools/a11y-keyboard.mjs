@@ -15,7 +15,10 @@ const ORIGIN = "http://127.0.0.1:3105";
 const OUT = path.join(AUDIT, "evidence/a11y");
 const SHOTS = path.join(AUDIT, "evidence/annotated");
 mkdirSync(SHOTS, { recursive: true });
-const only = process.argv.find((a) => a.startsWith("--only="))?.slice(7).split(",");
+const only = process.argv
+  .find((a) => a.startsWith("--only="))
+  ?.slice(7)
+  .split(",");
 
 const credentials = JSON.parse(readFileSync(path.join(AUDIT, ".audit-credentials"), "utf8")).accounts;
 const seeded = JSON.parse(readFileSync(path.join(AUDIT, ".logs/last-seed.json"), "utf8")).results;
@@ -50,8 +53,17 @@ const active = (page) =>
   page.evaluate(() => {
     const el = document.activeElement;
     if (!el || el === document.body) return "BODY (focus lost)";
-    const cls = String(el.className?.baseVal ?? el.className ?? "").split(/\s+/u).filter(Boolean).slice(0, 2).join(".");
-    const name = el.getAttribute("aria-label") || el.innerText?.trim().replace(/\s+/gu, " ").slice(0, 50) || el.getAttribute("name") || el.getAttribute("placeholder") || "";
+    const cls = String(el.className?.baseVal ?? el.className ?? "")
+      .split(/\s+/u)
+      .filter(Boolean)
+      .slice(0, 2)
+      .join(".");
+    const name =
+      el.getAttribute("aria-label") ||
+      el.innerText?.trim().replace(/\s+/gu, " ").slice(0, 50) ||
+      el.getAttribute("name") ||
+      el.getAttribute("placeholder") ||
+      "";
     const dialog = el.closest("dialog[open]");
     return `${el.tagName.toLowerCase()}${cls ? `.${cls}` : ""} "${name}"${dialog ? " [inside dialog]" : ""}${el.matches(":focus-visible") ? "" : " [no :focus-visible]"}`;
   });
@@ -59,7 +71,9 @@ const active = (page) =>
 /** Describes the open modal, walks Tab through it, presses Escape, reports where focus went. */
 async function dialogReport(page, { tabs = 14, escape = true } = {}) {
   const report = await page.evaluate(() => {
-    const d = [...document.querySelectorAll("dialog[open], [role='dialog'], [role='alertdialog']")].filter((n) => n.checkVisibility?.() !== false).at(-1);
+    const d = [...document.querySelectorAll("dialog[open], [role='dialog'], [role='alertdialog']")]
+      .filter((n) => n.checkVisibility?.() !== false)
+      .at(-1);
     if (!d) return { found: false };
     const labelled = d.getAttribute("aria-labelledby");
     const described = d.getAttribute("aria-describedby");
@@ -69,9 +83,23 @@ async function dialogReport(page, { tabs = 14, escape = true } = {}) {
       modal: d.matches(":modal"),
       role: d.getAttribute("role"),
       ariaModal: d.getAttribute("aria-modal"),
-      name: d.getAttribute("aria-label") || (labelled ? labelled.split(" ").map((i) => document.getElementById(i)?.innerText?.trim()).join(" ") : null),
-      description: described ? described.split(" ").map((i) => document.getElementById(i)?.innerText?.trim().slice(0, 80)).join(" ") : null,
-      focusables: d.querySelectorAll("a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex='-1'])").length,
+      name:
+        d.getAttribute("aria-label") ||
+        (labelled
+          ? labelled
+              .split(" ")
+              .map((i) => document.getElementById(i)?.innerText?.trim())
+              .join(" ")
+          : null),
+      description: described
+        ? described
+            .split(" ")
+            .map((i) => document.getElementById(i)?.innerText?.trim().slice(0, 80))
+            .join(" ")
+        : null,
+      focusables: d.querySelectorAll(
+        "a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex='-1'])",
+      ).length,
       size: `${Math.round(d.getBoundingClientRect().width)}x${Math.round(d.getBoundingClientRect().height)}`,
       scrolls: d.scrollHeight > d.clientHeight + 1,
     };
@@ -91,7 +119,9 @@ async function dialogReport(page, { tabs = 14, escape = true } = {}) {
   if (escape) {
     await page.keyboard.press("Escape");
     await page.waitForTimeout(400);
-    report.closedByEscape = await page.evaluate(() => ![...document.querySelectorAll("dialog[open]")].some((n) => n.checkVisibility?.() !== false));
+    report.closedByEscape = await page.evaluate(
+      () => ![...document.querySelectorAll("dialog[open]")].some((n) => n.checkVisibility?.() !== false),
+    );
     report.focusAfterClose = await active(page);
   }
   return report;
@@ -106,7 +136,9 @@ const scenario = async (name, account, fn, viewport) => {
   try {
     await fn(page, log, context);
   } catch (error) {
-    log.error = String(error.message ?? error).split("\n")[0].slice(0, 300);
+    log.error = String(error.message ?? error)
+      .split("\n")[0]
+      .slice(0, 300);
     await page.screenshot({ path: path.join(SHOTS, `A-kbd-ERROR-${name}.png`) }).catch(() => {});
   }
   results[name] = log;
@@ -143,7 +175,14 @@ await scenario("home-signed-out-overlay", null, async (page, log) => {
     const box = document.activeElement.closest(".conversation-composer, form") ?? document.activeElement.parentElement;
     const cs = getComputedStyle(box);
     const own = getComputedStyle(document.activeElement);
-    return { ownOutline: `${own.outlineStyle} ${own.outlineWidth}`, box: box.className, boxBorder: cs.borderTopColor, boxOutline: `${cs.outlineStyle} ${cs.outlineWidth} ${cs.outlineColor}`, boxShadow: cs.boxShadow.slice(0, 90), background: cs.backgroundColor };
+    return {
+      ownOutline: `${own.outlineStyle} ${own.outlineWidth}`,
+      box: box.className,
+      boxBorder: cs.borderTopColor,
+      boxOutline: `${cs.outlineStyle} ${cs.outlineWidth} ${cs.outlineColor}`,
+      boxShadow: cs.boxShadow.slice(0, 90),
+      background: cs.backgroundColor,
+    };
   });
   await shot(page, "A-kbd-home-composer-focus", { clip: { x: 220, y: 200, width: 1000, height: 420 } });
   await page.evaluate(() => document.activeElement.blur());
@@ -171,19 +210,42 @@ await scenario("sign-in-wrong-password", null, async (page, log) => {
   await page.waitForTimeout(2500);
   log.focusAfterError = await active(page);
   log.error = await page.evaluate(() =>
-    [...document.querySelectorAll('[role="alert"], [aria-live], .form-error')].filter((n) => n.innerText?.trim()).map((n) => {
-      const cs = getComputedStyle(n);
-      return { text: n.innerText.trim().slice(0, 120), role: n.getAttribute("role"), live: n.getAttribute("aria-live"), id: n.id, color: cs.color, background: cs.backgroundColor, tabindex: n.getAttribute("tabindex") };
-    }),
+    [...document.querySelectorAll('[role="alert"], [aria-live], .form-error')]
+      .filter((n) => n.innerText?.trim())
+      .map((n) => {
+        const cs = getComputedStyle(n);
+        return {
+          text: n.innerText.trim().slice(0, 120),
+          role: n.getAttribute("role"),
+          live: n.getAttribute("aria-live"),
+          id: n.id,
+          color: cs.color,
+          background: cs.backgroundColor,
+          tabindex: n.getAttribute("tabindex"),
+        };
+      }),
   );
-  log.fields = await page.evaluate(() => [...document.querySelectorAll("form[aria-label='Sign in'] input")].map((i) => ({ name: i.name, value: i.type === "password" ? `(${i.value.length} chars)` : i.value, invalid: i.getAttribute("aria-invalid"), describedby: i.getAttribute("aria-describedby") })));
+  log.fields = await page.evaluate(() =>
+    [...document.querySelectorAll("form[aria-label='Sign in'] input")].map((i) => ({
+      name: i.name,
+      value: i.type === "password" ? `(${i.value.length} chars)` : i.value,
+      invalid: i.getAttribute("aria-invalid"),
+      describedby: i.getAttribute("aria-describedby"),
+    })),
+  );
   await shot(page, "A-kbd-sign-in-error");
   // password toggle: is it reachable and not covered?
   log.toggle = await page.evaluate(() => {
     const t = document.querySelector(".auth-password-toggle");
     const r = t.getBoundingClientRect();
     const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-    return { size: `${Math.round(r.width)}x${Math.round(r.height)}`, topElementAtCentre: top === t || t.contains(top) ? "the toggle itself" : `${top.tagName.toLowerCase()}.${top.className}`, pressed: t.getAttribute("aria-pressed"), label: t.getAttribute("aria-label") };
+    return {
+      size: `${Math.round(r.width)}x${Math.round(r.height)}`,
+      topElementAtCentre:
+        top === t || t.contains(top) ? "the toggle itself" : `${top.tagName.toLowerCase()}.${top.className}`,
+      pressed: t.getAttribute("aria-pressed"),
+      label: t.getAttribute("aria-label"),
+    };
   });
 });
 
@@ -191,7 +253,19 @@ await scenario("sign-in-wrong-password", null, async (page, log) => {
 await scenario("sign-up-validation", null, async (page, log) => {
   await page.goto("/sign-up");
   await settle(page, 2500);
-  log.fields = await page.evaluate(() => [...document.querySelectorAll("main form input")].map((i) => ({ name: i.name, type: i.type, autocomplete: i.autocomplete, required: i.required, minlength: i.getAttribute("minlength"), describedby: i.getAttribute("aria-describedby"), describedText: i.getAttribute("aria-describedby") ? document.getElementById(i.getAttribute("aria-describedby"))?.innerText.slice(0, 120) : null })));
+  log.fields = await page.evaluate(() =>
+    [...document.querySelectorAll("main form input")].map((i) => ({
+      name: i.name,
+      type: i.type,
+      autocomplete: i.autocomplete,
+      required: i.required,
+      minlength: i.getAttribute("minlength"),
+      describedby: i.getAttribute("aria-describedby"),
+      describedText: i.getAttribute("aria-describedby")
+        ? document.getElementById(i.getAttribute("aria-describedby"))?.innerText.slice(0, 120)
+        : null,
+    })),
+  );
   const inputs = page.locator("main form input");
   await inputs.nth(0).fill("audit-new@example.test");
   await page.locator("main form input[type=password]").nth(0).fill("LongEnoughPassword-123");
@@ -199,9 +273,22 @@ await scenario("sign-up-validation", null, async (page, log) => {
   await page.keyboard.press("Enter");
   await page.waitForTimeout(1500);
   log.focusAfterMismatch = await active(page);
-  log.errors = await page.evaluate(() => [...document.querySelectorAll('[role="alert"], .form-error')].filter((n) => n.innerText?.trim()).map((n) => ({ text: n.innerText.trim().slice(0, 140), role: n.getAttribute("role") })));
-  log.fieldsAfter = await page.evaluate(() => [...document.querySelectorAll("main form input")].map((i) => ({ name: i.name, len: i.value.length, invalid: i.getAttribute("aria-invalid"), describedby: i.getAttribute("aria-describedby") })));
-  log.legalLinks = await page.evaluate(() => [...document.querySelectorAll("main a")].map((a) => a.innerText.trim()).filter(Boolean));
+  log.errors = await page.evaluate(() =>
+    [...document.querySelectorAll('[role="alert"], .form-error')]
+      .filter((n) => n.innerText?.trim())
+      .map((n) => ({ text: n.innerText.trim().slice(0, 140), role: n.getAttribute("role") })),
+  );
+  log.fieldsAfter = await page.evaluate(() =>
+    [...document.querySelectorAll("main form input")].map((i) => ({
+      name: i.name,
+      len: i.value.length,
+      invalid: i.getAttribute("aria-invalid"),
+      describedby: i.getAttribute("aria-describedby"),
+    })),
+  );
+  log.legalLinks = await page.evaluate(() =>
+    [...document.querySelectorAll("main a")].map((a) => a.innerText.trim()).filter(Boolean),
+  );
   await shot(page, "A-kbd-sign-up-mismatch");
 });
 
@@ -215,7 +302,14 @@ await scenario("projects-menu-and-delete", "audit-pro", async (page, log) => {
   await page.waitForTimeout(400);
   log.menu = await page.evaluate(() => {
     const m = document.querySelector('[role="menu"]');
-    return m ? { items: [...m.querySelectorAll('[role="menuitem"], button, a')].map((i) => `${i.getAttribute("role")}:${i.innerText.trim()}`), label: m.getAttribute("aria-label") || m.getAttribute("aria-labelledby") } : "no role=menu";
+    return m
+      ? {
+          items: [...m.querySelectorAll('[role="menuitem"], button, a')].map(
+            (i) => `${i.getAttribute("role")}:${i.innerText.trim()}`,
+          ),
+          label: m.getAttribute("aria-label") || m.getAttribute("aria-labelledby"),
+        }
+      : "no role=menu";
   });
   log.focusOnOpen = await active(page);
   await page.keyboard.press("ArrowDown");
@@ -241,7 +335,11 @@ await scenario("account-menu", "audit-pro", async (page, log) => {
   await summary.focus();
   await page.keyboard.press("Enter");
   await page.waitForTimeout(300);
-  log.items = await page.evaluate(() => [...document.querySelectorAll(".workspace-account-menu a, .workspace-account-menu button")].map((i) => i.innerText.trim()));
+  log.items = await page.evaluate(() =>
+    [...document.querySelectorAll(".workspace-account-menu a, .workspace-account-menu button")].map((i) =>
+      i.innerText.trim(),
+    ),
+  );
   const stops = [];
   for (let i = 0; i < 8; i += 1) {
     await page.keyboard.press("Tab");
@@ -266,10 +364,22 @@ await scenario("settings-tabs-and-delete-account", "audit-free", async (page, lo
   await page.keyboard.press("ArrowRight");
   await page.waitForTimeout(500);
   log.afterArrowRight = await active(page);
-  log.selected = await page.evaluate(() => [...document.querySelectorAll('[role="tab"]')].map((t) => `${t.innerText.trim()}:${t.getAttribute("aria-selected")}:tabindex=${t.tabIndex}`));
+  log.selected = await page.evaluate(() =>
+    [...document.querySelectorAll('[role="tab"]')].map(
+      (t) => `${t.innerText.trim()}:${t.getAttribute("aria-selected")}:tabindex=${t.tabIndex}`,
+    ),
+  );
   log.usageTable = await page.evaluate(() => {
     const t = document.querySelector("table");
-    return t ? { caption: t.caption?.innerText ?? null, ariaLabel: t.getAttribute("aria-label") || t.getAttribute("aria-labelledby"), headers: [...t.querySelectorAll("th")].map((h) => `${h.innerText.trim()}(${h.getAttribute("scope")})`), rows: t.rows.length, overflowsContainer: t.scrollWidth > t.parentElement.clientWidth } : "no table";
+    return t
+      ? {
+          caption: t.caption?.innerText ?? null,
+          ariaLabel: t.getAttribute("aria-label") || t.getAttribute("aria-labelledby"),
+          headers: [...t.querySelectorAll("th")].map((h) => `${h.innerText.trim()}(${h.getAttribute("scope")})`),
+          rows: t.rows.length,
+          overflowsContainer: t.scrollWidth > t.parentElement.clientWidth,
+        }
+      : "no table";
   });
   await shot(page, "A-kbd-settings-usage");
   await page.keyboard.press("ArrowLeft");
@@ -295,7 +405,16 @@ await scenario("settings-offline-save", "audit-free", async (page, log, context)
   await page.keyboard.press("Enter");
   await page.waitForTimeout(4000);
   log.focusAfter = await active(page);
-  log.messages = await page.evaluate(() => [...document.querySelectorAll('[role="alert"], [role="status"]')].filter((n) => n.innerText?.trim()).map((n) => ({ text: n.innerText.trim().slice(0, 140), role: n.getAttribute("role"), color: getComputedStyle(n).color, background: getComputedStyle(n).backgroundColor })));
+  log.messages = await page.evaluate(() =>
+    [...document.querySelectorAll('[role="alert"], [role="status"]')]
+      .filter((n) => n.innerText?.trim())
+      .map((n) => ({
+        text: n.innerText.trim().slice(0, 140),
+        role: n.getAttribute("role"),
+        color: getComputedStyle(n).color,
+        background: getComputedStyle(n).backgroundColor,
+      })),
+  );
   await shot(page, "A-kbd-settings-offline-error");
   await context.setOffline(false);
 });
@@ -304,14 +423,34 @@ await scenario("settings-offline-save", "audit-free", async (page, log, context)
 await scenario("conversation-kestrel", "audit-pro", async (page, log) => {
   await page.goto(conv("kestrel"));
   await settle(page, 5000);
-  log.h1 = await page.evaluate(() => [...document.querySelectorAll("h1")].map((h) => `${h.innerText.trim()}${h.classList.contains("sr-only") ? " (visually hidden)" : ""}`));
+  log.h1 = await page.evaluate(() =>
+    [...document.querySelectorAll("h1")].map(
+      (h) => `${h.innerText.trim()}${h.classList.contains("sr-only") ? " (visually hidden)" : ""}`,
+    ),
+  );
   log.liveLog = await page.evaluate(() => {
     const l = document.querySelector('[role="log"]');
-    return l ? { live: l.getAttribute("aria-live"), tabindex: l.getAttribute("tabindex"), label: l.getAttribute("aria-label"), descendants: l.querySelectorAll("*").length, images: l.querySelectorAll("img").length, nestedStatus: l.querySelectorAll('[role="status"], [role="alert"]').length } : null;
+    return l
+      ? {
+          live: l.getAttribute("aria-live"),
+          tabindex: l.getAttribute("tabindex"),
+          label: l.getAttribute("aria-label"),
+          descendants: l.querySelectorAll("*").length,
+          images: l.querySelectorAll("img").length,
+          nestedStatus: l.querySelectorAll('[role="status"], [role="alert"]').length,
+        }
+      : null;
   });
   log.directionCards = await page.evaluate(() => {
     const cards = [...document.querySelectorAll('[role="radio"]')];
-    return { count: cards.length, group: cards[0]?.closest('[role="radiogroup"]') ? "has radiogroup" : "NO radiogroup parent", tabindex: cards.map((c) => c.tabIndex), checked: cards.map((c) => c.getAttribute("aria-checked")), nestedControls: cards.map((c) => c.querySelectorAll("button, a").length), tag: cards[0]?.tagName };
+    return {
+      count: cards.length,
+      group: cards[0]?.closest('[role="radiogroup"]') ? "has radiogroup" : "NO radiogroup parent",
+      tabindex: cards.map((c) => c.tabIndex),
+      checked: cards.map((c) => c.getAttribute("aria-checked")),
+      nestedControls: cards.map((c) => c.querySelectorAll("button, a").length),
+      tag: cards[0]?.tagName,
+    };
   });
   log.logoConcepts = await page.evaluate(() => {
     const cards = [...document.querySelectorAll("ol[class*='concepts'] > li")];
@@ -344,10 +483,19 @@ await scenario("conversation-kestrel", "audit-pro", async (page, log) => {
     const el = document.activeElement;
     const cs = getComputedStyle(el);
     let clipper = null;
-    for (let n = el.parentElement; n && n !== document.body; n = n.parentElement) if (/hidden|clip/u.test(getComputedStyle(n).overflow)) { clipper = `${n.tagName.toLowerCase()}.${String(n.className).split(" ")[0]}`; break; }
+    for (let n = el.parentElement; n && n !== document.body; n = n.parentElement)
+      if (/hidden|clip/u.test(getComputedStyle(n).overflow)) {
+        clipper = `${n.tagName.toLowerCase()}.${String(n.className).split(" ")[0]}`;
+        break;
+      }
     const r = el.getBoundingClientRect();
     const pr = el.parentElement.getBoundingClientRect();
-    return { outline: `${cs.outlineWidth} ${cs.outlineStyle} ${cs.outlineColor} offset ${cs.outlineOffset}`, nearestClippingAncestor: clipper, elementRect: `${Math.round(r.width)}x${Math.round(r.height)}`, parentRect: `${Math.round(pr.width)}x${Math.round(pr.height)}` };
+    return {
+      outline: `${cs.outlineWidth} ${cs.outlineStyle} ${cs.outlineColor} offset ${cs.outlineOffset}`,
+      nearestClippingAncestor: clipper,
+      elementRect: `${Math.round(r.width)}x${Math.round(r.height)}`,
+      parentRect: `${Math.round(pr.width)}x${Math.round(pr.height)}`,
+    };
   });
   await page.keyboard.press("Enter");
   await page.waitForTimeout(900);
@@ -360,7 +508,15 @@ await scenario("conversation-kestrel", "audit-pro", async (page, log) => {
     const el = document.activeElement;
     const r = el.getBoundingClientRect();
     const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-    return { opacity: getComputedStyle(el).opacity, size: `${Math.round(r.width)}x${Math.round(r.height)}`, topElementAtCentre: top === el || el.contains(top) ? "the heart itself" : `${top?.tagName.toLowerCase()}.${String(top?.className).split(" ")[0]}`, zIndex: getComputedStyle(el).zIndex };
+    return {
+      opacity: getComputedStyle(el).opacity,
+      size: `${Math.round(r.width)}x${Math.round(r.height)}`,
+      topElementAtCentre:
+        top === el || el.contains(top)
+          ? "the heart itself"
+          : `${top?.tagName.toLowerCase()}.${String(top?.className).split(" ")[0]}`,
+      zIndex: getComputedStyle(el).zIndex,
+    };
   });
   await shot(page, "A-kbd-inspiration-heart-focus");
   // name: Change name picker
@@ -378,8 +534,20 @@ await scenario("out-of-credits-prompt", "audit-free", async (page, log) => {
   await page.goto(conv("berenice"));
   await settle(page, 5000);
   const explore = page.getByRole("button", { name: /Explore six concepts/u });
-  log.transientMessagesWhilePreparing = await page.evaluate(() => [...document.querySelectorAll("p, span")].map((n) => n.innerText?.trim()).filter((t) => /Preparing saved inputs|Enter a brand name before generating|Choose at least one type/u.test(t ?? "")).filter((t, i, a) => a.indexOf(t) === i));
-  await page.waitForFunction(() => [...document.querySelectorAll("button")].some((b) => /Explore six concepts/u.test(b.innerText) && !b.disabled), null, { timeout: 45_000 });
+  log.transientMessagesWhilePreparing = await page.evaluate(() =>
+    [...document.querySelectorAll("p, span")]
+      .map((n) => n.innerText?.trim())
+      .filter((t) =>
+        /Preparing saved inputs|Enter a brand name before generating|Choose at least one type/u.test(t ?? ""),
+      )
+      .filter((t, i, a) => a.indexOf(t) === i),
+  );
+  await page.waitForFunction(
+    () =>
+      [...document.querySelectorAll("button")].some((b) => /Explore six concepts/u.test(b.innerText) && !b.disabled),
+    null,
+    { timeout: 45_000 },
+  );
   log.exploreFound = await explore.count();
   await explore.first().focus();
   await page.keyboard.press("Enter");
@@ -389,15 +557,35 @@ await scenario("out-of-credits-prompt", "audit-free", async (page, log) => {
     const p = document.querySelector(".out-of-credits-prompt");
     if (!p) return "not shown";
     const r = p.getBoundingClientRect();
-    const all = [...document.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select, textarea, summary, [tabindex="0"]')].filter((n) => n.checkVisibility?.() !== false);
+    const all = [
+      ...document.querySelectorAll(
+        'a[href], button:not([disabled]), input:not([disabled]), select, textarea, summary, [tabindex="0"]',
+      ),
+    ].filter((n) => n.checkVisibility?.() !== false);
     const first = p.querySelector("a, button");
-    return { tag: p.tagName.toLowerCase(), role: p.getAttribute("role"), live: p.getAttribute("aria-live"), label: p.getAttribute("aria-label"), text: p.innerText.trim().replace(/\s+/gu, " ").slice(0, 200), position: getComputedStyle(p).position, rect: `${Math.round(r.left)},${Math.round(r.top)} ${Math.round(r.width)}x${Math.round(r.height)}`, focusablesOnPage: all.length, promptControlIndex: all.indexOf(first) + 1, indexOfTrigger: all.indexOf(document.activeElement) + 1 };
+    return {
+      tag: p.tagName.toLowerCase(),
+      role: p.getAttribute("role"),
+      live: p.getAttribute("aria-live"),
+      label: p.getAttribute("aria-label"),
+      text: p.innerText.trim().replace(/\s+/gu, " ").slice(0, 200),
+      position: getComputedStyle(p).position,
+      rect: `${Math.round(r.left)},${Math.round(r.top)} ${Math.round(r.width)}x${Math.round(r.height)}`,
+      focusablesOnPage: all.length,
+      promptControlIndex: all.indexOf(first) + 1,
+      indexOfTrigger: all.indexOf(document.activeElement) + 1,
+    };
   });
   await shot(page, "A-kbd-out-of-credits");
   await page.keyboard.press("Escape");
   await page.waitForTimeout(400);
   log.closedByEscape = await page.evaluate(() => !document.querySelector(".out-of-credits-prompt"));
-  log.otherMessages = await page.evaluate(() => [...document.querySelectorAll('[role="alert"], [role="status"]')].filter((n) => n.innerText?.trim() && n.checkVisibility?.() !== false).map((n) => `${n.getAttribute("role")}: ${n.innerText.trim().replace(/\s+/gu, " ").slice(0, 110)}`).slice(0, 8));
+  log.otherMessages = await page.evaluate(() =>
+    [...document.querySelectorAll('[role="alert"], [role="status"]')]
+      .filter((n) => n.innerText?.trim() && n.checkVisibility?.() !== false)
+      .map((n) => `${n.getAttribute("role")}: ${n.innerText.trim().replace(/\s+/gu, " ").slice(0, 110)}`)
+      .slice(0, 8),
+  );
 });
 
 // 11. Library: details
@@ -413,7 +601,11 @@ await scenario("library-details", "audit-pro", async (page, log) => {
   log.focusAfter = await active(page);
   await shot(page, "A-kbd-library-details");
   if (log.dialogsOpen) log.dialog = await dialogReport(page);
-  log.tabs = await page.evaluate(() => [...document.querySelectorAll('[role="tab"]')].map((t) => `${t.innerText.trim()}:${t.getAttribute("aria-selected")}`));
+  log.tabs = await page.evaluate(() =>
+    [...document.querySelectorAll('[role="tab"]')].map(
+      (t) => `${t.innerText.trim()}:${t.getAttribute("aria-selected")}`,
+    ),
+  );
 });
 
 // 12. Plans: upgrade without payments configured
@@ -425,66 +617,108 @@ await scenario("plans-upgrade", "audit-free", async (page, log) => {
   await page.keyboard.press("Enter");
   await page.waitForTimeout(3000);
   log.focusAfter = await active(page);
-  log.messages = await page.evaluate(() => [...document.querySelectorAll('[role="alert"], [role="status"], .plans-notice')].filter((n) => n.innerText?.trim()).map((n) => ({ text: n.innerText.trim().slice(0, 140), role: n.getAttribute("role"), color: getComputedStyle(n).color, background: getComputedStyle(n).backgroundColor, inViewport: n.getBoundingClientRect().top < window.innerHeight })));
-  log.planCards = await page.evaluate(() => [...document.querySelectorAll(".plans-grid > *")].map((c) => ({ tag: c.tagName.toLowerCase(), current: c.getAttribute("aria-current"), label: c.getAttribute("aria-label") || c.getAttribute("aria-labelledby"), text: c.innerText.trim().replace(/\s+/gu, " ").slice(0, 60) })));
+  log.messages = await page.evaluate(() =>
+    [...document.querySelectorAll('[role="alert"], [role="status"], .plans-notice')]
+      .filter((n) => n.innerText?.trim())
+      .map((n) => ({
+        text: n.innerText.trim().slice(0, 140),
+        role: n.getAttribute("role"),
+        color: getComputedStyle(n).color,
+        background: getComputedStyle(n).backgroundColor,
+        inViewport: n.getBoundingClientRect().top < window.innerHeight,
+      })),
+  );
+  log.planCards = await page.evaluate(() =>
+    [...document.querySelectorAll(".plans-grid > *")].map((c) => ({
+      tag: c.tagName.toLowerCase(),
+      current: c.getAttribute("aria-current"),
+      label: c.getAttribute("aria-label") || c.getAttribute("aria-labelledby"),
+      text: c.innerText.trim().replace(/\s+/gu, " ").slice(0, 60),
+    })),
+  );
   await shot(page, "A-kbd-plans-upgrade-error");
 });
 
 // 13. Fixed chrome at 200% zoom: how much of the window is left for content?
-await scenario("zoom-200-chrome", "audit-pro", async (page, log) => {
-  await page.goto(conv("kestrel"));
-  await settle(page, 4000);
-  log.viewport = "720x450 (1440x900 at 200%)";
-  log.layers = await page.evaluate(() => {
-    const pick = (sel) => {
-      const el = document.querySelector(sel);
-      if (!el) return null;
-      const r = el.getBoundingClientRect();
-      return { top: Math.round(r.top), bottom: Math.round(r.bottom), height: Math.round(r.height) };
-    };
-    const header = pick("header");
-    const box = [...document.querySelectorAll("textarea")].find((t) => /Reply in your own words/u.test(t.placeholder));
-    const wrap = box?.closest("form") ?? box?.parentElement;
-    const wr = wrap?.getBoundingClientRect();
-    const composer = wr ? { top: Math.round(wr.top), bottom: Math.round(wr.bottom), height: Math.round(wr.height) } : null;
-    const free = (composer?.top ?? window.innerHeight) - (header?.bottom ?? 0);
-    return { header, composer, contentHeightLeft: free, shareLeft: `${Math.round((free / window.innerHeight) * 100)}%` };
-  });
-  await shot(page, "A-kbd-zoom200-conversation");
-}, { width: 720, height: 450 });
+await scenario(
+  "zoom-200-chrome",
+  "audit-pro",
+  async (page, log) => {
+    await page.goto(conv("kestrel"));
+    await settle(page, 4000);
+    log.viewport = "720x450 (1440x900 at 200%)";
+    log.layers = await page.evaluate(() => {
+      const pick = (sel) => {
+        const el = document.querySelector(sel);
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return { top: Math.round(r.top), bottom: Math.round(r.bottom), height: Math.round(r.height) };
+      };
+      const header = pick("header");
+      const box = [...document.querySelectorAll("textarea")].find((t) =>
+        /Reply in your own words/u.test(t.placeholder),
+      );
+      const wrap = box?.closest("form") ?? box?.parentElement;
+      const wr = wrap?.getBoundingClientRect();
+      const composer = wr
+        ? { top: Math.round(wr.top), bottom: Math.round(wr.bottom), height: Math.round(wr.height) }
+        : null;
+      const free = (composer?.top ?? window.innerHeight) - (header?.bottom ?? 0);
+      return {
+        header,
+        composer,
+        contentHeightLeft: free,
+        shareLeft: `${Math.round((free / window.innerHeight) * 100)}%`,
+      };
+    });
+    await shot(page, "A-kbd-zoom200-conversation");
+  },
+  { width: 720, height: 450 },
+);
 
 // 14. Inspiration tile: is the focus ring drawn at all? (2x crop)
-await scenario("tile-focus-crop", "audit-pro", async (page, log) => {
-  await page.goto(conv("kestrel"));
-  await settle(page, 6000);
-  const open = page.getByRole("button", { name: /^Open Asteor: logo/u }).first();
-  await open.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(1500);
-  const before = await open.boundingBox();
-  const clip = { x: before.x - 30, y: before.y - 30, width: before.width + 60, height: before.height + 60 };
-  await shot(page, "A-kbd-tile-unfocused", { clip });
-  await page.keyboard.press("Tab");
-  await open.focus();
-  await page.waitForTimeout(300);
-  const after = await open.boundingBox();
-  await shot(page, "A-kbd-tile-focused", { clip: { x: after.x - 30, y: after.y - 30, width: after.width + 60, height: after.height + 60 } });
-  log.focusVisible = await open.evaluate((el) => el.matches(":focus-visible"));
-  log.clip = await open.evaluate((el) => {
-    const out = [];
-    for (let n = el; n && n !== document.body; n = n.parentElement) {
-      const cs = getComputedStyle(n);
-      const r = n.getBoundingClientRect();
-      out.push(`${n.tagName.toLowerCase()}.${String(n.className).split(" ")[0]} ${Math.round(r.width)}x${Math.round(r.height)} overflow=${cs.overflow} radius=${cs.borderTopLeftRadius}`);
-      if (out.length >= 4) break;
-    }
-    return out;
-  });
-  // the brand title button, the heart and a secondary button for comparison
-  const title = page.getByRole("button", { name: /^Asteor Open brand/u }).first();
-  await title.focus();
-  const tb = await title.boundingBox();
-  await shot(page, "A-kbd-tile-title-focused", { clip: { x: tb.x - 30, y: tb.y - 30, width: tb.width + 60, height: tb.height + 60 } });
-}, { width: 1440, height: 900 });
+await scenario(
+  "tile-focus-crop",
+  "audit-pro",
+  async (page, log) => {
+    await page.goto(conv("kestrel"));
+    await settle(page, 6000);
+    const open = page.getByRole("button", { name: /^Open Asteor: logo/u }).first();
+    await open.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1500);
+    const before = await open.boundingBox();
+    const clip = { x: before.x - 30, y: before.y - 30, width: before.width + 60, height: before.height + 60 };
+    await shot(page, "A-kbd-tile-unfocused", { clip });
+    await page.keyboard.press("Tab");
+    await open.focus();
+    await page.waitForTimeout(300);
+    const after = await open.boundingBox();
+    await shot(page, "A-kbd-tile-focused", {
+      clip: { x: after.x - 30, y: after.y - 30, width: after.width + 60, height: after.height + 60 },
+    });
+    log.focusVisible = await open.evaluate((el) => el.matches(":focus-visible"));
+    log.clip = await open.evaluate((el) => {
+      const out = [];
+      for (let n = el; n && n !== document.body; n = n.parentElement) {
+        const cs = getComputedStyle(n);
+        const r = n.getBoundingClientRect();
+        out.push(
+          `${n.tagName.toLowerCase()}.${String(n.className).split(" ")[0]} ${Math.round(r.width)}x${Math.round(r.height)} overflow=${cs.overflow} radius=${cs.borderTopLeftRadius}`,
+        );
+        if (out.length >= 4) break;
+      }
+      return out;
+    });
+    // the brand title button, the heart and a secondary button for comparison
+    const title = page.getByRole("button", { name: /^Asteor Open brand/u }).first();
+    await title.focus();
+    const tb = await title.boundingBox();
+    await shot(page, "A-kbd-tile-title-focused", {
+      clip: { x: tb.x - 30, y: tb.y - 30, width: tb.width + 60, height: tb.height + 60 },
+    });
+  },
+  { width: 1440, height: 900 },
+);
 
 // 15. Where does focus go when an action starts? Sample it every 100 ms.
 await scenario("focus-loss-on-submit", "audit-free", async (page, log) => {
@@ -498,13 +732,19 @@ await scenario("focus-loss-on-submit", "audit-free", async (page, log) => {
     const t0 = performance.now();
     const id = setInterval(() => {
       const a = document.activeElement;
-      window.__trace.push(`${Math.round(performance.now() - t0)}ms active=${a === document.body ? "BODY" : a.tagName.toLowerCase()} buttonConnected=${btn.isConnected} disabled=${btn.disabled} label="${btn.innerText.trim()}"`);
+      window.__trace.push(
+        `${Math.round(performance.now() - t0)}ms active=${a === document.body ? "BODY" : a.tagName.toLowerCase()} buttonConnected=${btn.isConnected} disabled=${btn.disabled} label="${btn.innerText.trim()}"`,
+      );
       if (performance.now() - t0 > 3500) clearInterval(id);
     }, 100);
   });
   await page.keyboard.press("Enter");
   await page.waitForTimeout(3800);
-  log.trace = await page.evaluate(() => window.__trace.filter((line, i, all) => i === 0 || line.replace(/^\d+ms /u, "") !== all[i - 1].replace(/^\d+ms /u, "")));
+  log.trace = await page.evaluate(() =>
+    window.__trace.filter(
+      (line, i, all) => i === 0 || line.replace(/^\d+ms /u, "") !== all[i - 1].replace(/^\d+ms /u, ""),
+    ),
+  );
   await page.keyboard.press("Tab");
   log.nextTabGoesTo = await active(page);
 });
@@ -519,7 +759,17 @@ await scenario("settings-usage", "audit-pro", async (page, log) => {
     const t = document.querySelector("table");
     if (!t) return "no table";
     const wrap = t.parentElement;
-    return { caption: t.caption?.innerText ?? null, ariaLabel: t.getAttribute("aria-label") || t.getAttribute("aria-labelledby"), headers: [...t.querySelectorAll("th")].slice(0, 8).map((h) => `${h.innerText.trim()}(${h.getAttribute("scope")})`), rows: t.rows.length, wrapOverflowX: getComputedStyle(wrap).overflowX, wrapTabindex: wrap.getAttribute("tabindex"), tableWider: t.scrollWidth > wrap.clientWidth };
+    return {
+      caption: t.caption?.innerText ?? null,
+      ariaLabel: t.getAttribute("aria-label") || t.getAttribute("aria-labelledby"),
+      headers: [...t.querySelectorAll("th")]
+        .slice(0, 8)
+        .map((h) => `${h.innerText.trim()}(${h.getAttribute("scope")})`),
+      rows: t.rows.length,
+      wrapOverflowX: getComputedStyle(wrap).overflowX,
+      wrapTabindex: wrap.getAttribute("tabindex"),
+      tableWider: t.scrollWidth > wrap.clientWidth,
+    };
   });
   log.panel = await page.evaluate(() => {
     const p = document.querySelector('[role="tabpanel"]:not([hidden])');

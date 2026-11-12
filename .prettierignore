@@ -27,3 +27,6 @@ public/
 
 # Read as text by tests/client/ui-restoration.test.tsx with exact selector matching.
 src/styles/globals.css
+
+# Design-audit evidence: captured exports and screenshots, kept byte-for-byte as recorded.
+design-audit/evidence/

@@ -45,7 +45,11 @@ for (const file of cssFiles) {
   const lines = text.split("\n");
   lines.forEach((line, i) => {
     // only look at the selector part of a line (before "{"), so values such as "0.5px" or ".48" are ignored
-    const selector = line.includes("{") ? line.slice(0, line.indexOf("{")) : /[;:]\s*[^{]*$/u.test(line) && !/,\s*$/u.test(line) ? "" : line;
+    const selector = line.includes("{")
+      ? line.slice(0, line.indexOf("{"))
+      : /[;:]\s*[^{]*$/u.test(line) && !/,\s*$/u.test(line)
+        ? ""
+        : line;
     for (const m of selector.matchAll(/\.(-?[a-zA-Z_][\w-]*)/gu)) {
       const entry = seen.get(m[1]) ?? { name: m[1], file: rel, line: i + 1, module: isModule, rules: 0 };
       entry.rules += 1;
@@ -55,7 +59,8 @@ for (const file of cssFiles) {
   for (const entry of seen.values()) {
     const word = new RegExp(`(?<![\\w-])${entry.name}(?![\\w-])`, "u");
     entry.referenced = isModule
-      ? new RegExp(`\\.${camel(entry.name)}\\b|\\[["'\`]${entry.name}["'\`]\\]`, "u").test(allCode) || word.test(allCode)
+      ? new RegExp(`\\.${camel(entry.name)}\\b|\\[["'\`]${entry.name}["'\`]\\]`, "u").test(allCode) ||
+        word.test(allCode)
       : word.test(allCode);
     classes.push(entry);
   }
@@ -93,7 +98,10 @@ const families = [
   ["empty state", /(^|-)(empty|blank|no-results?)(-|$)/u],
   ["skeleton / placeholder", /(^|-)(skeleton|shimmer|loading|placeholder-card|pending)(-|$)/u],
   ["spinner / progress", /(^|-)(spinner|spin|progress|bar|pulse|thinking|activity)(-|$)/u],
-  ["notice / alert / message", /(^|-)(notice|alert|error|success|warning|status|message|banner|hint|note|conflict)(-|$)/u],
+  [
+    "notice / alert / message",
+    /(^|-)(notice|alert|error|success|warning|status|message|banner|hint|note|conflict)(-|$)/u,
+  ],
   ["table / list rows", /(^|-)(table|row|list|grid)(-|$)/u],
   ["tooltip", /(^|-)(tooltip|tip)(-|$)/u],
 ];
@@ -191,7 +199,11 @@ const result = {
   perFile: [...perFile.values()].sort((a, b) => b.unreferenced - a.unreferenced),
   families: familyRows,
   probes: probeRows,
-  buttons: { shared: buttonsShared, other: buttonsOther, otherClasses: [...otherButtonClasses.entries()].sort((a, b) => b[1] - a[1]) },
+  buttons: {
+    shared: buttonsShared,
+    other: buttonsOther,
+    otherClasses: [...otherButtonClasses.entries()].sort((a, b) => b[1] - a[1]),
+  },
 };
 mkdirSync(outDir, { recursive: true });
 writeFileSync(join(outDir, "components.json"), `${JSON.stringify(result, null, 2)}\n`);
@@ -207,7 +219,9 @@ const md = [
   "",
   "| File | Classes | Unreferenced | Share |",
   "| --- | --- | --- | --- |",
-  ...result.perFile.map((r) => `| \`${r.file}\` | ${r.classes} | ${r.unreferenced} | ${Math.round((r.unreferenced / r.classes) * 100)}% |`),
+  ...result.perFile.map(
+    (r) => `| \`${r.file}\` | ${r.classes} | ${r.unreferenced} | ${Math.round((r.unreferenced / r.classes) * 100)}% |`,
+  ),
   "",
   "## Component families (class names grouped by keyword)",
   "",

@@ -101,7 +101,10 @@ function installHelpers() {
     const m = /^rgba?\(([^)]+)\)$/u.exec(text);
     let out;
     if (m) {
-      const p = m[1].split(/[\s,/]+/u).filter(Boolean).map(parseFloat);
+      const p = m[1]
+        .split(/[\s,/]+/u)
+        .filter(Boolean)
+        .map(parseFloat);
       out = [p[0], p[1], p[2], p[3] === undefined ? 1 : p[3]];
     } else {
       ctx.clearRect(0, 0, 1, 1);
@@ -126,7 +129,11 @@ function installHelpers() {
     const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
     return Math.floor(((hi + 0.05) / (lo + 0.05)) * 100) / 100;
   };
-  const hex = (c) => `#${c.slice(0, 3).map((v) => Math.round(v).toString(16).padStart(2, "0")).join("")}`;
+  const hex = (c) =>
+    `#${c
+      .slice(0, 3)
+      .map((v) => Math.round(v).toString(16).padStart(2, "0"))
+      .join("")}`;
   /** Opaque colour behind an element: composite every ancestor background, bottom-up. */
   const backdrop = (element) => {
     const layers = [];
@@ -146,20 +153,34 @@ function installHelpers() {
   };
   const opacityOf = (element) => {
     let value = 1;
-    for (let node = element; node && node.nodeType === 1; node = node.parentElement) value *= parseFloat(getComputedStyle(node).opacity);
+    for (let node = element; node && node.nodeType === 1; node = node.parentElement)
+      value *= parseFloat(getComputedStyle(node).opacity);
     return value;
   };
   const describe = (node) => {
     if (!node || node.nodeType !== 1) return "?";
-    const cls = String(node.className?.baseVal ?? node.className ?? "").split(/\s+/u).filter(Boolean).slice(0, 3).join(".");
-    const name = (node.getAttribute("aria-label") || node.getAttribute("name") || node.getAttribute("placeholder") || "").slice(0, 40);
-    const text = node.matches("a,button,summary,label,h1,h2,h3,[role]") ? (node.innerText || "").trim().replace(/\s+/gu, " ").slice(0, 40) : "";
+    const cls = String(node.className?.baseVal ?? node.className ?? "")
+      .split(/\s+/u)
+      .filter(Boolean)
+      .slice(0, 3)
+      .join(".");
+    const name = (
+      node.getAttribute("aria-label") ||
+      node.getAttribute("name") ||
+      node.getAttribute("placeholder") ||
+      ""
+    ).slice(0, 40);
+    const text = node.matches("a,button,summary,label,h1,h2,h3,[role]")
+      ? (node.innerText || "").trim().replace(/\s+/gu, " ").slice(0, 40)
+      : "";
     return `${node.tagName.toLowerCase()}${node.id ? `#${node.id}` : ""}${cls ? `.${cls}` : ""}${name ? `[${name}]` : ""}${text ? ` "${text}"` : ""}`;
   };
   const where = (node) => {
     const parts = [];
     for (let n = node.parentElement, i = 0; n && i < 3 && n !== document.body; n = n.parentElement, i += 1) {
-      const cls = String(n.className?.baseVal ?? n.className ?? "").split(/\s+/u).filter(Boolean)[0];
+      const cls = String(n.className?.baseVal ?? n.className ?? "")
+        .split(/\s+/u)
+        .filter(Boolean)[0];
       parts.unshift(`${n.tagName.toLowerCase()}${cls ? `.${cls}` : ""}`);
     }
     return parts.join(" > ");
@@ -169,7 +190,8 @@ function installHelpers() {
     const r = node.getBoundingClientRect();
     return r.width > 1 && r.height > 1;
   };
-  const FOCUSABLE = 'a[href], button, input:not([type="hidden"]), select, textarea, summary, [tabindex], [role="button"], [role="tab"], [role="menuitem"], [role="link"], [contenteditable="true"]';
+  const FOCUSABLE =
+    'a[href], button, input:not([type="hidden"]), select, textarea, summary, [tabindex], [role="button"], [role="tab"], [role="menuitem"], [role="link"], [contenteditable="true"]';
   window.__a11y = { rgba, over, ratio, hex, backdrop, opacityOf, describe, where, visible, FOCUSABLE };
 }
 
@@ -181,15 +203,38 @@ function sweep() {
     lang: document.documentElement.lang,
     viewportMeta: document.querySelector('meta[name="viewport"]')?.content ?? null,
     h1: [...document.querySelectorAll("h1")].filter(visible).map((h) => h.innerText.trim().slice(0, 80)),
-    headings: [...document.querySelectorAll("h1,h2,h3,h4,h5,h6")].filter(visible).map((h) => `${h.tagName} ${h.innerText.trim().replace(/\s+/gu, " ").slice(0, 60)}`),
-    landmarks: Object.fromEntries(["main", "nav", "header", "footer", "aside", "form", '[role="search"]', "section[aria-label], section[aria-labelledby]"].map((s) => [s, document.querySelectorAll(s).length])),
-    navLabels: [...document.querySelectorAll("nav")].map((n) => n.getAttribute("aria-label") || n.getAttribute("aria-labelledby") || "(unnamed)"),
-    skipLink: [...document.querySelectorAll('a[href^="#"]')].filter((a) => /skip/iu.test(a.textContent)).map((a) => ({ text: a.textContent.trim(), href: a.getAttribute("href"), targetExists: Boolean(document.querySelector(a.getAttribute("href"))) })),
+    headings: [...document.querySelectorAll("h1,h2,h3,h4,h5,h6")]
+      .filter(visible)
+      .map((h) => `${h.tagName} ${h.innerText.trim().replace(/\s+/gu, " ").slice(0, 60)}`),
+    landmarks: Object.fromEntries(
+      [
+        "main",
+        "nav",
+        "header",
+        "footer",
+        "aside",
+        "form",
+        '[role="search"]',
+        "section[aria-label], section[aria-labelledby]",
+      ].map((s) => [s, document.querySelectorAll(s).length]),
+    ),
+    navLabels: [...document.querySelectorAll("nav")].map(
+      (n) => n.getAttribute("aria-label") || n.getAttribute("aria-labelledby") || "(unnamed)",
+    ),
+    skipLink: [...document.querySelectorAll('a[href^="#"]')]
+      .filter((a) => /skip/iu.test(a.textContent))
+      .map((a) => ({
+        text: a.textContent.trim(),
+        href: a.getAttribute("href"),
+        targetExists: Boolean(document.querySelector(a.getAttribute("href"))),
+      })),
     liveRegions: document.querySelectorAll('[role="status"], [role="alert"], [aria-live]').length,
     dialogsOpen: [...document.querySelectorAll("dialog[open]")].map(describe),
     overflowX: document.documentElement.scrollWidth - window.innerWidth,
     bodyText: document.body.innerText.replace(/\s+/gu, " ").slice(0, 300),
-    focusableCount: [...document.querySelectorAll(FOCUSABLE)].filter((n) => n.tabIndex >= 0 && !n.disabled && visible(n)).length,
+    focusableCount: [...document.querySelectorAll(FOCUSABLE)].filter(
+      (n) => n.tabIndex >= 0 && !n.disabled && visible(n),
+    ).length,
   };
 
   // ---- text contrast
@@ -214,7 +259,19 @@ function sweep() {
     const large = size >= 24 || (size >= 18.66 && weight >= 700);
     const disabled = Boolean(el.closest(":disabled, [aria-disabled='true']"));
     const key = [hex(fg), hex(bg), size, weight, disabled].join("|");
-    const entry = combos.get(key) ?? { fg: hex(fg), bg: hex(bg), size, weight, ratio: ratio(fg, bg), required: large ? 3 : 4.5, disabled, bgImage: image, opacity: opacity < 1 ? Number(opacity.toFixed(2)) : undefined, count: 0, samples: [] };
+    const entry = combos.get(key) ?? {
+      fg: hex(fg),
+      bg: hex(bg),
+      size,
+      weight,
+      ratio: ratio(fg, bg),
+      required: large ? 3 : 4.5,
+      disabled,
+      bgImage: image,
+      opacity: opacity < 1 ? Number(opacity.toFixed(2)) : undefined,
+      count: 0,
+      samples: [],
+    };
     entry.count += 1;
     if (entry.samples.length < 3) entry.samples.push(`${describe(el)} «${text.slice(0, 50)}» in ${where(el)}`);
     combos.set(key, entry);
@@ -228,16 +285,32 @@ function sweep() {
     const fg = over([raw[0], raw[1], raw[2], raw[3] * parseFloat(ph.opacity || "1") * opacityOf(input)], bg);
     const size = parseFloat(ph.fontSize);
     const key = ["placeholder", hex(fg), hex(bg), size].join("|");
-    const entry = combos.get(key) ?? { fg: hex(fg), bg: hex(bg), size, weight: 400, ratio: ratio(fg, bg), required: 4.5, placeholder: true, disabled: input.disabled, count: 0, samples: [] };
+    const entry = combos.get(key) ?? {
+      fg: hex(fg),
+      bg: hex(bg),
+      size,
+      weight: 400,
+      ratio: ratio(fg, bg),
+      required: 4.5,
+      placeholder: true,
+      disabled: input.disabled,
+      count: 0,
+      samples: [],
+    };
     entry.count += 1;
-    if (entry.samples.length < 3) entry.samples.push(`${describe(input)} placeholder «${input.placeholder.slice(0, 40)}»`);
+    if (entry.samples.length < 3)
+      entry.samples.push(`${describe(input)} placeholder «${input.placeholder.slice(0, 40)}»`);
     combos.set(key, entry);
   }
-  const contrast = [...combos.values()].map((c) => ({ ...c, pass: c.ratio >= c.required })).sort((a, b) => a.ratio - b.ratio);
+  const contrast = [...combos.values()]
+    .map((c) => ({ ...c, pass: c.ratio >= c.required }))
+    .sort((a, b) => a.ratio - b.ratio);
 
   // ---- non-text contrast: the edge that identifies a control (WCAG 1.4.11)
   const edges = new Map();
-  for (const el of document.querySelectorAll('input:not([type="hidden"]), textarea, select, button, [role="button"], [role="tab"], a.button, summary')) {
+  for (const el of document.querySelectorAll(
+    'input:not([type="hidden"]), textarea, select, button, [role="button"], [role="tab"], a.button, summary',
+  )) {
     if (!visible(el) || el.disabled) continue;
     const cs = getComputedStyle(el);
     const outside = backdrop(el.parentElement ?? el).colour;
@@ -252,7 +325,18 @@ function sweep() {
     if (!isField && !border && fillRatio < 1.05) continue; // text-only button: its text is its identity
     if (["checkbox", "radio", "range", "file"].includes(type)) continue; // native controls drawn by the browser
     const key = [el.tagName, hex(fill), border ? hex(border) : "-", hex(outside)].join("|");
-    const entry = edges.get(key) ?? { kind: isField ? "field" : "button", fill: hex(fill), border: border ? hex(border) : null, outside: hex(outside), fillRatio, borderRatio, best, pass: best >= 3, count: 0, samples: [] };
+    const entry = edges.get(key) ?? {
+      kind: isField ? "field" : "button",
+      fill: hex(fill),
+      border: border ? hex(border) : null,
+      outside: hex(outside),
+      fillRatio,
+      borderRatio,
+      best,
+      pass: best >= 3,
+      count: 0,
+      samples: [],
+    };
     entry.count += 1;
     if (entry.samples.length < 3) entry.samples.push(describe(el));
     edges.set(key, entry);
@@ -268,7 +352,10 @@ function sweep() {
     if (r.width < 44 || r.height < 44) under44 += 1;
     if (r.width >= 24 && r.height >= 24) continue;
     const cs = getComputedStyle(el);
-    const inline = cs.display === "inline" && el.parentElement && el.parentElement.innerText.trim().length > el.innerText.trim().length + 12;
+    const inline =
+      cs.display === "inline" &&
+      el.parentElement &&
+      el.parentElement.innerText.trim().length > el.innerText.trim().length + 12;
     const cx = r.left + r.width / 2;
     const cy = r.top + r.height / 2;
     let crowdedBy = null;
@@ -285,22 +372,42 @@ function sweep() {
         break;
       }
     }
-    small.push({ target: describe(el), where: where(el), width: Math.round(r.width * 10) / 10, height: Math.round(r.height * 10) / 10, inline, crowdedBy, fails258: !inline && Boolean(crowdedBy) });
+    small.push({
+      target: describe(el),
+      where: where(el),
+      width: Math.round(r.width * 10) / 10,
+      height: Math.round(r.height * 10) / 10,
+      inline,
+      crowdedBy,
+      fails258: !inline && Boolean(crowdedBy),
+    });
   }
 
   // ---- forms
-  const fields = [...document.querySelectorAll('input:not([type="hidden"]), textarea, select')].filter(visible).map((el) => ({
-    field: describe(el),
-    type: el.getAttribute("type") ?? el.tagName.toLowerCase(),
-    label: (el.labels?.[0]?.innerText || el.getAttribute("aria-label") || (el.getAttribute("aria-labelledby") ? document.getElementById(el.getAttribute("aria-labelledby").split(" ")[0])?.innerText : "") || "").trim().slice(0, 50) || null,
-    autocomplete: el.getAttribute("autocomplete"),
-    inputmode: el.getAttribute("inputmode"),
-    required: el.required || el.getAttribute("aria-required") === "true",
-    ariaInvalid: el.getAttribute("aria-invalid"),
-    describedBy: el.getAttribute("aria-describedby"),
-    disabled: el.disabled,
-    fontSize: parseFloat(getComputedStyle(el).fontSize),
-  }));
+  const fields = [...document.querySelectorAll('input:not([type="hidden"]), textarea, select')]
+    .filter(visible)
+    .map((el) => ({
+      field: describe(el),
+      type: el.getAttribute("type") ?? el.tagName.toLowerCase(),
+      label:
+        (
+          el.labels?.[0]?.innerText ||
+          el.getAttribute("aria-label") ||
+          (el.getAttribute("aria-labelledby")
+            ? document.getElementById(el.getAttribute("aria-labelledby").split(" ")[0])?.innerText
+            : "") ||
+          ""
+        )
+          .trim()
+          .slice(0, 50) || null,
+      autocomplete: el.getAttribute("autocomplete"),
+      inputmode: el.getAttribute("inputmode"),
+      required: el.required || el.getAttribute("aria-required") === "true",
+      ariaInvalid: el.getAttribute("aria-invalid"),
+      describedBy: el.getAttribute("aria-describedby"),
+      disabled: el.disabled,
+      fontSize: parseFloat(getComputedStyle(el).fontSize),
+    }));
 
   // ---- clipped text (a hint for 1.4.4 / 1.4.12): text boxes that hide overflow and overflow
   const clipped = [];
@@ -309,10 +416,20 @@ function sweep() {
     if (!el.childNodes.length || ![...el.childNodes].some((n) => n.nodeType === 3 && n.nodeValue.trim())) continue;
     const cs = getComputedStyle(el);
     if (!/hidden|clip/u.test(cs.overflowX + cs.overflowY) || !visible(el)) continue;
-    if (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) clipped.push(`${describe(el)} (${cs.textOverflow}, clamp ${cs.webkitLineClamp}) «${el.innerText.trim().slice(0, 50)}»`);
+    if (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1)
+      clipped.push(
+        `${describe(el)} (${cs.textOverflow}, clamp ${cs.webkitLineClamp}) «${el.innerText.trim().slice(0, 50)}»`,
+      );
   }
 
-  return { doc, contrast, edges: [...edges.values()].sort((a, b) => a.best - b.best), targets: { total: targets.length, under44, under24: small }, fields, clipped };
+  return {
+    doc,
+    contrast,
+    edges: [...edges.values()].sort((a, b) => a.best - b.best),
+    targets: { total: targets.length, under44, under24: small },
+    fields,
+    clipped,
+  };
 }
 
 /** Stores the unfocused look of every focusable element so the walk can tell what focus changes. */
@@ -320,10 +437,24 @@ function rememberUnfocused() {
   const { FOCUSABLE } = window.__a11y;
   const look = (node) => {
     const cs = getComputedStyle(node);
-    return [cs.outlineStyle, cs.outlineWidth, cs.outlineColor, cs.boxShadow, cs.borderTopColor, cs.backgroundColor, cs.textDecorationLine, cs.color].join("§");
+    return [
+      cs.outlineStyle,
+      cs.outlineWidth,
+      cs.outlineColor,
+      cs.boxShadow,
+      cs.borderTopColor,
+      cs.backgroundColor,
+      cs.textDecorationLine,
+      cs.color,
+    ].join("§");
   };
   const map = new WeakMap();
-  for (const el of document.querySelectorAll(FOCUSABLE)) map.set(el, [look(el), el.parentElement ? look(el.parentElement) : "", el.parentElement?.parentElement ? look(el.parentElement.parentElement) : ""]);
+  for (const el of document.querySelectorAll(FOCUSABLE))
+    map.set(el, [
+      look(el),
+      el.parentElement ? look(el.parentElement) : "",
+      el.parentElement?.parentElement ? look(el.parentElement.parentElement) : "",
+    ]);
   window.__a11y.unfocused = map;
   window.__a11y.look = look;
   document.activeElement?.blur?.();
@@ -337,8 +468,23 @@ function focusInfo() {
   const r = el.getBoundingClientRect();
   const cs = getComputedStyle(el);
   const before = unfocused.get(el);
-  const names = ["outline-style", "outline-width", "outline-color", "box-shadow", "border-color", "background", "text-decoration", "color"];
-  const diff = (a, b) => (a && b ? a.split("§").map((v, i) => (v !== b.split("§")[i] ? names[i] : null)).filter(Boolean) : ["(new element)"]);
+  const names = [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow",
+    "border-color",
+    "background",
+    "text-decoration",
+    "color",
+  ];
+  const diff = (a, b) =>
+    a && b
+      ? a
+          .split("§")
+          .map((v, i) => (v !== b.split("§")[i] ? names[i] : null))
+          .filter(Boolean)
+      : ["(new element)"];
   const self = before ? diff(before[0], look(el)) : ["(new element)"];
   const parent = before && el.parentElement ? diff(before[1], look(el.parentElement)) : [];
   const grand = before && el.parentElement?.parentElement ? diff(before[2], look(el.parentElement.parentElement)) : [];
@@ -376,7 +522,13 @@ function focusInfo() {
       continue;
     }
     const top = document.elementFromPoint(x, y);
-    if (top && top !== el && !el.contains(top) && !top.contains(el) && !(el.labels && [...el.labels].some((l) => l.contains(top)))) {
+    if (
+      top &&
+      top !== el &&
+      !el.contains(top) &&
+      !top.contains(el) &&
+      !(el.labels && [...el.labels].some((l) => l.contains(top)))
+    ) {
       covered += 1;
       let layer = top;
       while (layer && !/fixed|sticky/u.test(getComputedStyle(layer).position)) layer = layer.parentElement;
@@ -411,7 +563,14 @@ function hoverContrast() {
   const { colour: bg } = backdrop(el);
   const raw = rgba(cs.color);
   const fg = over([raw[0], raw[1], raw[2], raw[3] * opacityOf(el)], bg);
-  return { fg: hex(fg), bg: hex(bg), ratio: ratio(fg, bg), cursor: cs.cursor, size: parseFloat(cs.fontSize), weight: Number(cs.fontWeight) };
+  return {
+    fg: hex(fg),
+    bg: hex(bg),
+    ratio: ratio(fg, bg),
+    cursor: cs.cursor,
+    size: parseFloat(cs.fontSize),
+    weight: Number(cs.fontWeight),
+  };
 }
 
 // ---------------------------------------------------------------- driver
@@ -462,15 +621,34 @@ async function probe([slug, account, route], width) {
     await settle(page);
     await page.evaluate(installHelpers);
     const text = await page.evaluate(() => document.body.innerText);
-    if (account && SIGNED_OUT_WALL.test(text)) throw new Error(`LOGIN WALL: ${slug} shows the signed-out state for ${account}`);
+    if (account && SIGNED_OUT_WALL.test(text))
+      throw new Error(`LOGIN WALL: ${slug} shows the signed-out state for ${account}`);
     Object.assign(result, await page.evaluate(sweep));
 
     // axe-core
     await page.evaluate(`${axeSource}; void 0`);
     const axe = await page.evaluate(async () => {
-      const run = await window.axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"] }, resultTypes: ["violations", "incomplete"] });
-      const pick = (list) => list.map((v) => ({ id: v.id, impact: v.impact, tags: v.tags.filter((t) => /^wcag\d|best/u.test(t)), help: v.help, count: v.nodes.length, nodes: v.nodes.slice(0, 4).map((n) => ({ target: n.target.join(" "), html: n.html.slice(0, 160), why: (n.failureSummary || "").replace(/\s+/gu, " ").slice(0, 220) })) }));
-      return { violations: pick(run.violations), incomplete: pick(run.incomplete).map(({ id, count, help }) => ({ id, count, help })) };
+      const run = await window.axe.run(document, {
+        runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"] },
+        resultTypes: ["violations", "incomplete"],
+      });
+      const pick = (list) =>
+        list.map((v) => ({
+          id: v.id,
+          impact: v.impact,
+          tags: v.tags.filter((t) => /^wcag\d|best/u.test(t)),
+          help: v.help,
+          count: v.nodes.length,
+          nodes: v.nodes.slice(0, 4).map((n) => ({
+            target: n.target.join(" "),
+            html: n.html.slice(0, 160),
+            why: (n.failureSummary || "").replace(/\s+/gu, " ").slice(0, 220),
+          })),
+        }));
+      return {
+        violations: pick(run.violations),
+        incomplete: pick(run.incomplete).map(({ id, count, help }) => ({ id, count, help })),
+      };
     });
     result.axe = axe;
 
@@ -499,10 +677,25 @@ async function probe([slug, account, route], width) {
         crops += 1;
         const box = await page.evaluate(() => {
           const r = document.activeElement.getBoundingClientRect();
-          return { x: Math.max(0, r.left - 40), y: Math.max(0, r.top - 40), width: Math.min(window.innerWidth, r.width + 80), height: Math.min(window.innerHeight, r.height + 80) };
+          return {
+            x: Math.max(0, r.left - 40),
+            y: Math.max(0, r.top - 40),
+            width: Math.min(window.innerWidth, r.width + 80),
+            height: Math.min(window.innerHeight, r.height + 80),
+          };
         });
         info.crop = `focus/${slug}__${width}__${String(walk.length).padStart(3, "0")}.png`;
-        await page.screenshot({ path: path.join(OUT, info.crop), clip: { x: box.x, y: box.y, width: Math.min(box.width, width - box.x), height: Math.min(box.height, (mobile ? 844 : 900) - box.y) } }).catch(() => delete info.crop);
+        await page
+          .screenshot({
+            path: path.join(OUT, info.crop),
+            clip: {
+              x: box.x,
+              y: box.y,
+              width: Math.min(box.width, width - box.x),
+              height: Math.min(box.height, (mobile ? 844 : 900) - box.y),
+            },
+          })
+          .catch(() => delete info.crop);
       }
     }
     result.walk = walk;
@@ -514,7 +707,11 @@ async function probe([slug, account, route], width) {
       const seenKinds = new Map();
       for (const el of document.querySelectorAll(FOCUSABLE)) {
         if (el.disabled || !visible(el) || !el.innerText?.trim()) continue;
-        const kind = `${el.tagName.toLowerCase()}.${String(el.className?.baseVal ?? el.className ?? "").split(/\s+/u).filter(Boolean).slice(0, 3).join(".")}`;
+        const kind = `${el.tagName.toLowerCase()}.${String(el.className?.baseVal ?? el.className ?? "")
+          .split(/\s+/u)
+          .filter(Boolean)
+          .slice(0, 3)
+          .join(".")}`;
         if (!seenKinds.has(kind)) seenKinds.set(kind, el);
         if (seenKinds.size >= 24) break;
       }
@@ -546,7 +743,10 @@ async function probe([slug, account, route], width) {
     // reflow at 320 px and 200% zoom (1440 only, once per state)
     if (width === 1440) {
       result.reflow = {};
-      for (const [name, size] of [["320", { width: 320, height: 640 }], ["zoom200", { width: 720, height: 450 }]]) {
+      for (const [name, size] of [
+        ["320", { width: 320, height: 640 }],
+        ["zoom200", { width: 720, height: 450 }],
+      ]) {
         await page.setViewportSize(size);
         await page.goto(route);
         await settle(page);
@@ -562,15 +762,40 @@ async function probe([slug, account, route], width) {
             if ((r.right > vw + 2 || r.left < -2) && r.width > 8) {
               if (el.parentElement && offenders.some((o) => o.node.contains(el))) continue;
               let scrollerAncestor = false;
-              for (let n = el.parentElement; n && n !== document.body; n = n.parentElement) if (/auto|scroll/u.test(getComputedStyle(n).overflowX)) scrollerAncestor = true;
-              offenders.push({ node: el, text: `${describe(el)} left ${Math.round(r.left)} right ${Math.round(r.right)}${scrollerAncestor ? " (inside a horizontal scroller)" : ""}` });
+              for (let n = el.parentElement; n && n !== document.body; n = n.parentElement)
+                if (/auto|scroll/u.test(getComputedStyle(n).overflowX)) scrollerAncestor = true;
+              offenders.push({
+                node: el,
+                text: `${describe(el)} left ${Math.round(r.left)} right ${Math.round(r.right)}${scrollerAncestor ? " (inside a horizontal scroller)" : ""}`,
+              });
             }
           }
-          const fixed = [...document.body.querySelectorAll("*")].filter((el) => /fixed|sticky/u.test(getComputedStyle(el).position) && visible(el)).map((el) => {
-            const r = el.getBoundingClientRect();
-            return { layer: describe(el), top: Math.round(r.top), height: Math.round(r.height), width: Math.round(r.width), shareOfViewport: Math.round((Math.max(0, Math.min(r.bottom, window.innerHeight) - Math.max(r.top, 0)) / window.innerHeight) * 100) };
-          });
-          return { viewport: `${vw}x${window.innerHeight}`, overflowX: document.documentElement.scrollWidth - vw, bodyScrollWidth: document.body.scrollWidth, offenders: offenders.map((o) => o.text), fixedLayers: fixed.slice(0, 5), minFontSize: Math.min(...[...document.querySelectorAll("p,span,a,button,label,li,td,th,h1,h2,h3")].filter(visible).map((el) => parseFloat(getComputedStyle(el).fontSize))) };
+          const fixed = [...document.body.querySelectorAll("*")]
+            .filter((el) => /fixed|sticky/u.test(getComputedStyle(el).position) && visible(el))
+            .map((el) => {
+              const r = el.getBoundingClientRect();
+              return {
+                layer: describe(el),
+                top: Math.round(r.top),
+                height: Math.round(r.height),
+                width: Math.round(r.width),
+                shareOfViewport: Math.round(
+                  (Math.max(0, Math.min(r.bottom, window.innerHeight) - Math.max(r.top, 0)) / window.innerHeight) * 100,
+                ),
+              };
+            });
+          return {
+            viewport: `${vw}x${window.innerHeight}`,
+            overflowX: document.documentElement.scrollWidth - vw,
+            bodyScrollWidth: document.body.scrollWidth,
+            offenders: offenders.map((o) => o.text),
+            fixedLayers: fixed.slice(0, 5),
+            minFontSize: Math.min(
+              ...[...document.querySelectorAll("p,span,a,button,label,li,td,th,h1,h2,h3")]
+                .filter(visible)
+                .map((el) => parseFloat(getComputedStyle(el).fontSize)),
+            ),
+          };
         });
         data.screenshot = `reflow/${slug}__${name}.png`;
         await page.screenshot({ path: path.join(OUT, data.screenshot) });

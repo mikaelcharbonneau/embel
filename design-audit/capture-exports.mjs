@@ -25,8 +25,12 @@ const args = process.argv.slice(2);
 const key = (args.find((a) => a.startsWith("--brand=")) ?? "--brand=kestrel").slice(8);
 const outDir = path.resolve(args.find((a) => !a.startsWith("--")) ?? path.join(HERE, "evidence/exports"));
 const ACCOUNT = key === "orchardlane" ? "audit-free" : "audit-pro";
-const credentials = JSON.parse(readFileSync(path.join(HERE, ".audit-credentials"), "utf8")).accounts.find((a) => a.account === ACCOUNT);
-const seeded = JSON.parse(readFileSync(path.join(HERE, ".logs/last-seed.json"), "utf8")).results.find((r) => r.key === key);
+const credentials = JSON.parse(readFileSync(path.join(HERE, ".audit-credentials"), "utf8")).accounts.find(
+  (a) => a.account === ACCOUNT,
+);
+const seeded = JSON.parse(readFileSync(path.join(HERE, ".logs/last-seed.json"), "utf8")).results.find(
+  (r) => r.key === key,
+);
 if (!seeded) throw new Error(`Brand "${key}" is not in .logs/last-seed.json`);
 
 const dl = path.join(outDir, key, "downloads");
@@ -45,7 +49,16 @@ const context = await browser.newContext({
 });
 const page = await context.newPage();
 await page.goto(`/brands/account/${seeded.projectId}/logo/deliverables`, { waitUntil: "domcontentloaded" });
-if (!(await page.getByLabel("Account menu").first().waitFor({ state: "visible", timeout: 25_000 }).then(() => true, () => false))) {
+if (
+  !(await page
+    .getByLabel("Account menu")
+    .first()
+    .waitFor({ state: "visible", timeout: 25_000 })
+    .then(
+      () => true,
+      () => false,
+    ))
+) {
   await page.goto("/sign-in");
   await page.waitForTimeout(2000);
   const form = page.getByRole("form", { name: "Sign in", exact: true });
@@ -79,7 +92,10 @@ for (const format of ["CSS", "JSON"])
     await page.getByRole("button", { name: `Download ${format}`, exact: true }).click();
   }).catch((e) => console.log(`  skipped ${format}: ${e.message.split("\n")[0]}`));
 await save("Download brand board as PNG", () =>
-  page.getByRole("button", { name: /^Download .*board.* as PNG/iu }).first().click(),
+  page
+    .getByRole("button", { name: /^Download .*board.* as PNG/iu })
+    .first()
+    .click(),
 ).catch((e) => console.log(`  skipped brand board: ${e.message.split("\n")[0]}`));
 await context.close();
 
@@ -98,10 +114,17 @@ console.log(`  unpacked ${kitFiles.length} files from the kit`);
 // ---- render every file as a PNG (no network)
 const sources = [
   ...kitFiles.map((f) => ({ label: f.name, file: path.join(kit, f.name) })),
-  ...downloads.filter((d) => !d.file.endsWith(".zip")).map((d) => ({ label: `downloads/${path.basename(d.file)}`, file: path.join(outDir, d.file) })),
+  ...downloads
+    .filter((d) => !d.file.endsWith(".zip"))
+    .map((d) => ({ label: `downloads/${path.basename(d.file)}`, file: path.join(outDir, d.file) })),
 ];
-const pngSize = (buf) => (buf.length > 24 && buf.readUInt32BE(0) === 0x89504e47 ? `${buf.readUInt32BE(16)}x${buf.readUInt32BE(20)}` : null);
-const renderer = await browser.newContext({ viewport: { width: 1200, height: 800 }, deviceScaleFactor: 1, colorScheme: "light" });
+const pngSize = (buf) =>
+  buf.length > 24 && buf.readUInt32BE(0) === 0x89504e47 ? `${buf.readUInt32BE(16)}x${buf.readUInt32BE(20)}` : null;
+const renderer = await browser.newContext({
+  viewport: { width: 1200, height: 800 },
+  deviceScaleFactor: 1,
+  colorScheme: "light",
+});
 await renderer.route(/^https?:/u, (r) => r.abort());
 const results = [];
 for (const { label, file } of sources) {
@@ -121,11 +144,19 @@ for (const { label, file } of sources) {
       await p.setContent(buffer.toString("utf8"), { waitUntil: "load" });
     } else {
       const esc = buffer.toString("utf8").replaceAll("&", "&amp;").replaceAll("<", "&lt;");
-      await p.setContent(`<body style="margin:0;padding:24px;background:#fff"><pre style="font:13px/1.55 ui-monospace,Menlo,monospace;white-space:pre-wrap;margin:0">${esc}</pre></body>`);
+      await p.setContent(
+        `<body style="margin:0;padding:24px;background:#fff"><pre style="font:13px/1.55 ui-monospace,Menlo,monospace;white-space:pre-wrap;margin:0">${esc}</pre></body>`,
+      );
     }
     await p.evaluate(() => document.fonts.ready);
     await p.screenshot({ path: out, fullPage: true });
-    results.push({ file: label, rendered: path.relative(outDir, out), bytes: buffer.length, type: ext, pixels: pngSize(buffer) });
+    results.push({
+      file: label,
+      rendered: path.relative(outDir, out),
+      bytes: buffer.length,
+      type: ext,
+      pixels: pngSize(buffer),
+    });
     console.log(`  rendered ${path.basename(out)}`);
   } catch (e) {
     results.push({ file: label, error: e.message.split("\n")[0] });
@@ -134,5 +165,10 @@ for (const { label, file } of sources) {
   await p.close();
 }
 await browser.close();
-writeFileSync(path.join(outDir, "manifest.json"), JSON.stringify({ brand: key, account: ACCOUNT, downloads, kitFiles, rendered: results }, null, 2));
-console.log(`${downloads.length} downloads, ${kitFiles.length} kit files, ${results.filter((r) => r.rendered).length} rendered, ${results.filter((r) => r.error).length} failed`);
+writeFileSync(
+  path.join(outDir, "manifest.json"),
+  JSON.stringify({ brand: key, account: ACCOUNT, downloads, kitFiles, rendered: results }, null, 2),
+);
+console.log(
+  `${downloads.length} downloads, ${kitFiles.length} kit files, ${results.filter((r) => r.rendered).length} rendered, ${results.filter((r) => r.error).length} failed`,
+);

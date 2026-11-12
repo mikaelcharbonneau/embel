@@ -55,5 +55,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(1);
   }
   const value = ratio(fg, bg);
-  console.log(`${fg} on ${bg}: ${round(value)}:1  (text 4.5: ${value >= 4.5 ? "pass" : "FAIL"} · large text / UI 3: ${value >= 3 ? "pass" : "FAIL"})`);
+  console.log(
+    `${fg} on ${bg}: ${round(value)}:1  (text 4.5: ${value >= 4.5 ? "pass" : "FAIL"} · large text / UI 3: ${value >= 3 ? "pass" : "FAIL"})`,
+  );
 }

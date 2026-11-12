@@ -19,11 +19,14 @@ const outDir = path.resolve(process.argv[2] ?? path.join(HERE, "evidence/emails"
 mkdirSync(outDir, { recursive: true });
 
 const subject = (name) =>
-  new RegExp(`\\[auth\\.email\\.template\\.${name}\\][^\\[]*?subject\\s*=\\s*"([^"]+)"`, "u").exec(config)?.[1] ?? "(none)";
+  new RegExp(`\\[auth\\.email\\.template\\.${name}\\][^\\[]*?subject\\s*=\\s*"([^"]+)"`, "u").exec(config)?.[1] ??
+  "(none)";
 
 const browser = await launchBrowser();
 const manifest = [];
-for (const file of readdirSync(templates).filter((f) => f.endsWith(".html")).sort()) {
+for (const file of readdirSync(templates)
+  .filter((f) => f.endsWith(".html"))
+  .sort()) {
   const name = file.replace(/\.html$/u, "");
   const html = readFileSync(path.join(templates, file), "utf8").replaceAll(
     "{{ .ConfirmationURL }}",
@@ -32,17 +35,30 @@ for (const file of readdirSync(templates).filter((f) => f.endsWith(".html")).sor
   const preview = path.join(outDir, `${name}.preview.html`);
   writeFileSync(preview, html);
   for (const width of [600, 390]) {
-    const context = await browser.newContext({ viewport: { width, height: 800 }, deviceScaleFactor: 1, colorScheme: "light" });
+    const context = await browser.newContext({
+      viewport: { width, height: 800 },
+      deviceScaleFactor: 1,
+      colorScheme: "light",
+    });
     const page = await context.newPage();
     await page.route(/^https?:/u, (r) => r.abort()); // the preview must not touch any network
     await page.goto(pathToFileURL(preview).href);
     await page.evaluate(() => document.fonts.ready);
     const target = path.join(outDir, `${name}__${width}.png`);
     await page.screenshot({ path: target, fullPage: true });
-    manifest.push({ file: path.basename(target), template: `supabase/templates/${file}`, subject: subject(name), width, bytes: statSync(target).size });
+    manifest.push({
+      file: path.basename(target),
+      template: `supabase/templates/${file}`,
+      subject: subject(name),
+      width,
+      bytes: statSync(target).size,
+    });
     console.log(`  ok   ${path.basename(target)}  (subject: ${subject(name)})`);
     await context.close();
   }
 }
 await browser.close();
-writeFileSync(path.join(outDir, "manifest.json"), JSON.stringify({ note: "Local files only; nothing was sent.", emails: manifest }, null, 2));
+writeFileSync(
+  path.join(outDir, "manifest.json"),
+  JSON.stringify({ note: "Local files only; nothing was sent.", emails: manifest }, null, 2),
+);

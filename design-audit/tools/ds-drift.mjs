@@ -95,20 +95,42 @@ class Tally {
 
 const cat = Object.fromEntries(
   [
-    "colorToken", "colorLiteral", "colorKeyword",
-    "fontSizeToken", "fontSizeLiteral", "fontWeight", "lineHeight", "letterSpacing", "fontFamily",
-    "spacingToken", "spacingLiteral",
-    "radiusToken", "radiusLiteral",
-    "shadow", "zIndex",
-    "duration", "easing", "transitionProperty", "keyframes",
-    "controlHeight", "maxWidth",
-    "tokenDefinedOutsideTokenFile", "important", "outlineNone", "focusVisible", "opacity", "borderWidth",
+    "colorToken",
+    "colorLiteral",
+    "colorKeyword",
+    "fontSizeToken",
+    "fontSizeLiteral",
+    "fontWeight",
+    "lineHeight",
+    "letterSpacing",
+    "fontFamily",
+    "spacingToken",
+    "spacingLiteral",
+    "radiusToken",
+    "radiusLiteral",
+    "shadow",
+    "zIndex",
+    "duration",
+    "easing",
+    "transitionProperty",
+    "keyframes",
+    "controlHeight",
+    "maxWidth",
+    "tokenDefinedOutsideTokenFile",
+    "important",
+    "outlineNone",
+    "focusVisible",
+    "opacity",
+    "borderWidth",
   ].map((k) => [k, new Tally()]),
 );
 
-const colorProps = /^(color|background|background-color|border|border-(top|right|bottom|left)|border-color|border-(top|right|bottom|left)-color|outline|outline-color|box-shadow|fill|stroke|caret-color|accent-color|text-decoration-color|text-decoration|column-rule|background-image)$/u;
-const spacingProps = /^(padding|padding-(top|right|bottom|left|inline|block)(-start|-end)?|margin|margin-(top|right|bottom|left|inline|block)(-start|-end)?|gap|row-gap|column-gap|inset|top|right|bottom|left)$/u;
-const strictSpacing = /^(padding|padding-(top|right|bottom|left|inline|block)(-start|-end)?|margin|margin-(top|right|bottom|left|inline|block)(-start|-end)?|gap|row-gap|column-gap)$/u;
+const colorProps =
+  /^(color|background|background-color|border|border-(top|right|bottom|left)|border-color|border-(top|right|bottom|left)-color|outline|outline-color|box-shadow|fill|stroke|caret-color|accent-color|text-decoration-color|text-decoration|column-rule|background-image)$/u;
+const spacingProps =
+  /^(padding|padding-(top|right|bottom|left|inline|block)(-start|-end)?|margin|margin-(top|right|bottom|left|inline|block)(-start|-end)?|gap|row-gap|column-gap|inset|top|right|bottom|left)$/u;
+const strictSpacing =
+  /^(padding|padding-(top|right|bottom|left|inline|block)(-start|-end)?|margin|margin-(top|right|bottom|left|inline|block)(-start|-end)?|gap|row-gap|column-gap)$/u;
 const colorLiteral = /#[0-9a-f]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\)|color-mix\([^)]*\)/giu;
 const colorKeyword = /\b(white|black|transparent|currentcolor)\b/giu;
 const varUse = /var\(\s*(--[\w-]+)/gu;
@@ -151,12 +173,15 @@ for (const d of declarations) {
   if (d.prop.startsWith("--")) {
     if (d.file !== tokenFile) cat.tokenDefinedOutsideTokenFile.add(`${d.prop}: ${value}`, where);
     // literals inside custom properties still count as colour literals when they are colours
-    for (const m of value.matchAll(colorLiteral)) if (d.file !== tokenFile) cat.colorLiteral.add(m[0].startsWith("#") ? normHex(m[0]) : m[0].replace(/\s+/gu, " "), where);
+    for (const m of value.matchAll(colorLiteral))
+      if (d.file !== tokenFile)
+        cat.colorLiteral.add(m[0].startsWith("#") ? normHex(m[0]) : m[0].replace(/\s+/gu, " "), where);
     continue;
   }
 
   if (colorProps.test(d.prop)) {
-    for (const m of value.matchAll(colorLiteral)) cat.colorLiteral.add(m[0].startsWith("#") ? normHex(m[0]) : m[0].replace(/\s+/gu, " "), where);
+    for (const m of value.matchAll(colorLiteral))
+      cat.colorLiteral.add(m[0].startsWith("#") ? normHex(m[0]) : m[0].replace(/\s+/gu, " "), where);
     for (const m of value.matchAll(colorKeyword)) cat.colorKeyword.add(m[0].toLowerCase(), where);
     for (const m of value.matchAll(varUse)) {
       const def = definedTokens.get(m[1]);
@@ -178,8 +203,7 @@ for (const d of declarations) {
     for (const part of splitTop(value)) {
       if (/^(var|calc|min|max|clamp)\(/u.test(part)) {
         if (/var\(/u.test(part)) cat.spacingToken.add(part, where);
-      }
-      else if (/^-?\d*\.?\d+(px|rem|em)$/u.test(part)) cat.spacingLiteral.add(part.replace(/^-/u, ""), where);
+      } else if (/^-?\d*\.?\d+(px|rem|em)$/u.test(part)) cat.spacingLiteral.add(part.replace(/^-/u, ""), where);
     }
   }
   void spacingProps;
@@ -206,7 +230,10 @@ for (const d of declarations) {
     }
   }
   if (/^(transition|animation)(-timing-function)?$/u.test(d.prop)) {
-    for (const m of value.matchAll(/cubic-bezier\([^)]*\)|steps\([^)]*\)|\b(ease-in-out|ease-in|ease-out|ease|linear)\b/gu)) cat.easing.add(m[0], where);
+    for (const m of value.matchAll(
+      /cubic-bezier\([^)]*\)|steps\([^)]*\)|\b(ease-in-out|ease-in|ease-out|ease|linear)\b/gu,
+    ))
+      cat.easing.add(m[0], where);
   }
   if (d.prop === "transition" || d.prop === "transition-property") {
     for (const part of value.split(",")) {
@@ -215,7 +242,8 @@ for (const d of declarations) {
     }
   }
   if (d.prop === "outline" && /^(none|0)$/u.test(value)) cat.outlineNone.add(value, where);
-  if (/^(min-height|height)$/u.test(d.prop) && /^\d+px$/u.test(value)) cat.controlHeight.add(`${d.prop}: ${value}`, where);
+  if (/^(min-height|height)$/u.test(d.prop) && /^\d+px$/u.test(value))
+    cat.controlHeight.add(`${d.prop}: ${value}`, where);
   if (d.prop === "max-width" && /px|ch|rem/u.test(value)) cat.maxWidth.add(value, where);
 }
 
@@ -228,7 +256,15 @@ for (const file of cssFiles) {
   lines.forEach((line, i) => {
     const k = line.match(/@keyframes\s+([\w-]+)/u);
     if (k) cat.keyframes.add(k[1], `${rel}:${i + 1}`);
-    if (/:focus-visible|:focus-within|:focus\b/u.test(line)) cat.focusVisible.add(line.includes(":focus-visible") ? ":focus-visible" : line.includes(":focus-within") ? ":focus-within" : ":focus", `${rel}:${i + 1}`);
+    if (/:focus-visible|:focus-within|:focus\b/u.test(line))
+      cat.focusVisible.add(
+        line.includes(":focus-visible")
+          ? ":focus-visible"
+          : line.includes(":focus-within")
+            ? ":focus-within"
+            : ":focus",
+        `${rel}:${i + 1}`,
+      );
     const off = line.match(/outline-offset\s*:\s*([^;]+)/u);
     if (off) focusRules.add(off[1].trim(), `${rel}:${i + 1}`);
   });
@@ -237,11 +273,14 @@ for (const file of cssFiles) {
 // breakpoints
 const breakpoints = new Tally();
 for (const rule of atRules) {
-  for (const m of rule.query.matchAll(/\((min|max)-(width|height)\s*:\s*([\d.]+px)\)|\((width|height)\s*(<=|>=|<|>)\s*([\d.]+px)\)/gu)) {
+  for (const m of rule.query.matchAll(
+    /\((min|max)-(width|height)\s*:\s*([\d.]+px)\)|\((width|height)\s*(<=|>=|<|>)\s*([\d.]+px)\)/gu,
+  )) {
     const label = m[1] ? `${rule.kind} ${m[1]}-${m[2]}: ${m[3]}` : `${rule.kind} ${m[4]} ${m[5]} ${m[6]}`;
     breakpoints.add(label, `${rule.file}:${rule.line}`);
   }
-  if (/prefers-reduced-motion|hover:|pointer:|prefers-color-scheme|forced-colors|prefers-contrast/u.test(rule.query)) breakpoints.add(`${rule.kind} ${rule.query}`, `${rule.file}:${rule.line}`);
+  if (/prefers-reduced-motion|hover:|pointer:|prefers-color-scheme|forced-colors|prefers-contrast/u.test(rule.query))
+    breakpoints.add(`${rule.kind} ${rule.query}`, `${rule.file}:${rule.line}`);
 }
 
 // code files: colour literals, inline styles, class usage
@@ -252,7 +291,8 @@ for (const file of codeFiles) {
   const rel = relative(root, file);
   const lines = readFileSync(file, "utf8").split("\n");
   lines.forEach((line, i) => {
-    for (const m of line.matchAll(/["'`]#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/gu)) codeColor.add(normHex(`#${m[1]}`), `${rel}:${i + 1}`);
+    for (const m of line.matchAll(/["'`]#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/gu))
+      codeColor.add(normHex(`#${m[1]}`), `${rel}:${i + 1}`);
     if (/style=\{\{/u.test(line) || /style=\{[a-zA-Z]/u.test(line)) inlineStyle.add(rel, `${rel}:${i + 1}`);
     for (const m of line.matchAll(/className=(?:"([^"]+)"|\{`([^`]+)`\}|\{"([^"]+)"\})/gu)) {
       const names = (m[1] ?? m[2] ?? m[3]).split(/\s+/u);
@@ -264,7 +304,14 @@ for (const file of codeFiles) {
 // per-file literal load (which files bypass tokens most)
 const perFile = new Map();
 const bump = (file, key) => {
-  const row = perFile.get(file) ?? { file, colorLiteral: 0, fontSizeLiteral: 0, radiusLiteral: 0, shadow: 0, spacingLiteral: 0 };
+  const row = perFile.get(file) ?? {
+    file,
+    colorLiteral: 0,
+    fontSizeLiteral: 0,
+    radiusLiteral: 0,
+    shadow: 0,
+    spacingLiteral: 0,
+  };
   row[key] += 1;
   perFile.set(file, row);
 };
@@ -279,7 +326,8 @@ for (const d of declarations) {
   const value = d.value;
   if (colorProps.test(d.prop)) for (const _ of value.matchAll(colorLiteral)) bump(d.file, "colorLiteral");
   if (d.prop === "font-size" && !/var\(/u.test(value)) bump(d.file, "fontSizeLiteral");
-  if (/^border(-(top|bottom)-(left|right))?-radius$/u.test(d.prop) && !/var\(/u.test(value) && value !== "0") bump(d.file, "radiusLiteral");
+  if (/^border(-(top|bottom)-(left|right))?-radius$/u.test(d.prop) && !/var\(/u.test(value) && value !== "0")
+    bump(d.file, "radiusLiteral");
   if (d.prop === "box-shadow" && value !== "none") bump(d.file, "shadow");
 }
 
@@ -291,7 +339,9 @@ const result = {
   tokensDefined: Object.fromEntries(definedTokens),
   tokenUse: tokenUse.rows(),
   unusedTokens: [...definedTokens.keys()].filter((name) => !tokenUse.map.has(name)),
-  categories: Object.fromEntries(Object.entries(cat).map(([k, t]) => [k, { distinct: t.distinct, total: t.total, rows: t.rows() }])),
+  categories: Object.fromEntries(
+    Object.entries(cat).map(([k, t]) => [k, { distinct: t.distinct, total: t.total, rows: t.rows() }]),
+  ),
   outlineOffset: focusRules.rows(),
   breakpoints: breakpoints.rows(),
   code: {
@@ -299,14 +349,35 @@ const result = {
     inlineStyleFiles: inlineStyle.rows(),
     classUse: classUse.rows().slice(0, 150),
   },
-  perFile: [...perFile.values()].sort((a, b) => b.colorLiteral + b.fontSizeLiteral + b.radiusLiteral + b.shadow - (a.colorLiteral + a.fontSizeLiteral + a.radiusLiteral + a.shadow)),
+  perFile: [...perFile.values()].sort(
+    (a, b) =>
+      b.colorLiteral +
+      b.fontSizeLiteral +
+      b.radiusLiteral +
+      b.shadow -
+      (a.colorLiteral + a.fontSizeLiteral + a.radiusLiteral + a.shadow),
+  ),
 };
 
 mkdirSync(outDir, { recursive: true });
 writeFileSync(join(outDir, "drift.json"), `${JSON.stringify(result, null, 2)}\n`);
 
 const table = (title, rows, limit = 60) =>
-  [`### ${title}`, "", "| Value | Uses | Files | Examples |", "| --- | --- | --- | --- |", ...rows.slice(0, limit).map((r) => `| \`${String(r.value).replace(/\|/gu, "\\|")}\` | ${r.count} | ${r.files} | ${r.examples.slice(0, 2).map((e) => `\`${e}\``).join(", ")} |`), rows.length > limit ? `\n(${rows.length - limit} more in drift.json)` : "", ""].join("\n");
+  [
+    `### ${title}`,
+    "",
+    "| Value | Uses | Files | Examples |",
+    "| --- | --- | --- | --- |",
+    ...rows.slice(0, limit).map(
+      (r) =>
+        `| \`${String(r.value).replace(/\|/gu, "\\|")}\` | ${r.count} | ${r.files} | ${r.examples
+          .slice(0, 2)
+          .map((e) => `\`${e}\``)
+          .join(", ")} |`,
+    ),
+    rows.length > limit ? `\n(${rows.length - limit} more in drift.json)` : "",
+    "",
+  ].join("\n");
 
 const summaryRow = (label, key) => `| ${label} | ${cat[key].distinct} | ${cat[key].total} |`;
 const md = [
@@ -377,12 +448,19 @@ const md = [
   "",
   "| File | Colour literals | Font-size literals | Radius literals | Shadows |",
   "| --- | --- | --- | --- | --- |",
-  ...result.perFile.slice(0, 20).map((r) => `| \`${r.file}\` | ${r.colorLiteral} | ${r.fontSizeLiteral} | ${r.radiusLiteral} | ${r.shadow} |`),
+  ...result.perFile
+    .slice(0, 20)
+    .map((r) => `| \`${r.file}\` | ${r.colorLiteral} | ${r.fontSizeLiteral} | ${r.radiusLiteral} | ${r.shadow} |`),
   "",
 ].join("\n");
 writeFileSync(join(outDir, "drift.md"), md);
 
 console.log(md.split("\n").slice(0, 36).join("\n"));
 const want = process.argv[2];
-if (want && result.categories[want]) console.table(result.categories[want].rows.slice(0, 80).map((r) => ({ value: r.value, count: r.count, files: r.files, example: r.examples[0] })));
+if (want && result.categories[want])
+  console.table(
+    result.categories[want].rows
+      .slice(0, 80)
+      .map((r) => ({ value: r.value, count: r.count, files: r.files, example: r.examples[0] })),
+  );
 console.log(`\nWrote ${relative(root, join(outDir, "drift.json"))} and drift.md`);

@@ -24,7 +24,10 @@ import { launchBrowser } from "./seed/journey.mjs";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ORIGIN = process.env.AUDIT_ORIGIN ?? "http://127.0.0.1:3105";
 const AI_ORIGIN = process.env.AUDIT_AI_ORIGIN ?? "http://127.0.0.1:3186";
-if (!/^http:\/\/(127\.0\.0\.1|localhost):\d+$/u.test(ORIGIN) || !/^http:\/\/(127\.0\.0\.1|localhost):\d+$/u.test(AI_ORIGIN))
+if (
+  !/^http:\/\/(127\.0\.0\.1|localhost):\d+$/u.test(ORIGIN) ||
+  !/^http:\/\/(127\.0\.0\.1|localhost):\d+$/u.test(AI_ORIGIN)
+)
   throw new Error("Refusing to run: the audit only captures a local app (127.0.0.1 or localhost).");
 
 // ---------------------------------------------------------------- arguments
@@ -99,7 +102,10 @@ async function settledWall(page, wall) {
 async function loaded(page, { extra = 400 } = {}) {
   await page
     .waitForFunction(
-      () => !/(^|\n)\s*(Loading (your )?(projects|project|library|saved preview|assets|account|activity)|Preparing…|Checking account…)/u.test(document.body.innerText),
+      () =>
+        !/(^|\n)\s*(Loading (your )?(projects|project|library|saved preview|assets|account|activity)|Preparing…|Checking account…)/u.test(
+          document.body.innerText,
+        ),
       null,
       { timeout: 20_000 },
     )
@@ -108,7 +114,12 @@ async function loaded(page, { extra = 400 } = {}) {
     await document.fonts.ready;
     await Promise.all(
       [...document.images].map((i) =>
-        i.complete ? 0 : new Promise((r) => { i.onload = i.onerror = r; setTimeout(r, 8000); }),
+        i.complete
+          ? 0
+          : new Promise((r) => {
+              i.onload = i.onerror = r;
+              setTimeout(r, 8000);
+            }),
       ),
     );
   });
@@ -156,7 +167,9 @@ state("home", "signed-out", null, async (page) => {
 });
 state("home", "signed-out-prompt-filled", null, async (page) => {
   await open(page, null, "/");
-  await page.getByRole("textbox", { name: "Your prompt" }).fill("A neighborhood coffee shop that roasts its own beans and sells to offices.");
+  await page
+    .getByRole("textbox", { name: "Your prompt" })
+    .fill("A neighborhood coffee shop that roasts its own beans and sells to offices.");
   await loaded(page);
 });
 state("home", "signed-out-prompt-focus", null, async (page) => {
@@ -268,14 +281,18 @@ for (const [name, status, body] of [
 ])
   state("reset-password", name, null, async (page) => {
     // The request is answered by the script; no password is changed anywhere.
-    await page.route("**/api/auth/password", (r) => r.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) }));
+    await page.route("**/api/auth/password", (r) =>
+      r.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) }),
+    );
     await open(page, null, "/reset-password");
     await page.waitForTimeout(1500);
     const form = page.getByRole("form", { name: "Choose a new password" });
     await form.getByLabel("New password", { exact: true }).fill("a-long-example-password-1");
     await form.getByLabel("Confirm new password").fill("a-long-example-password-1");
     await form.getByRole("button", { name: "Save new password" }).click();
-    await page.getByRole("heading", { name: name === "saved" ? "Your password is updated" : "This link has expired" }).waitFor({ timeout: 15_000 });
+    await page
+      .getByRole("heading", { name: name === "saved" ? "Your password is updated" : "This link has expired" })
+      .waitFor({ timeout: 15_000 });
     await loaded(page);
   });
 for (const [route, slug, text] of [
@@ -360,20 +377,29 @@ state("projects", "eight-brands-free", "audit-free", async (page) => {
 state("projects", "search-no-match-free", "audit-free", async (page) => {
   await open(page, "audit-free", "/brands");
   await page.getByRole("region", { name: "Projects" }).getByRole("article").first().waitFor({ timeout: 30_000 });
-  await page.getByRole("searchbox", { name: /Search projects/u }).or(page.getByRole("textbox", { name: /Search projects/u })).fill("zzzz-nothing");
+  await page
+    .getByRole("searchbox", { name: /Search projects/u })
+    .or(page.getByRole("textbox", { name: /Search projects/u }))
+    .fill("zzzz-nothing");
   await page.getByRole("heading", { name: "No matching projects" }).waitFor({ timeout: 10_000 });
   await loaded(page);
 });
 state("projects", "options-menu-open-free", "audit-free", async (page) => {
   await open(page, "audit-free", "/brands");
   await page.getByRole("region", { name: "Projects" }).getByRole("article").first().waitFor({ timeout: 30_000 });
-  await page.getByRole("button", { name: /^Project options for/u }).first().click();
+  await page
+    .getByRole("button", { name: /^Project options for/u })
+    .first()
+    .click();
   await loaded(page);
 });
 state("projects", "delete-dialog-free", "audit-free", async (page) => {
   await open(page, "audit-free", "/brands");
   await page.getByRole("region", { name: "Projects" }).getByRole("article").first().waitFor({ timeout: 30_000 });
-  await page.getByRole("button", { name: /^Project options for/u }).first().click();
+  await page
+    .getByRole("button", { name: /^Project options for/u })
+    .first()
+    .click();
   await page.getByRole("menuitem", { name: "Delete" }).click();
   await page.getByRole("dialog").waitFor();
   await loaded(page);
@@ -472,10 +498,7 @@ for (const [key, account, who] of [
 ]) {
   state("brand-assets", `${key}-ready-${who}`, account, async (page) => {
     await open(page, account, `/brands/account/${brand(key)}/logo/deliverables`);
-    await page
-      .getByRole("status")
-      .filter({ hasText: "Ready to download." })
-      .waitFor({ timeout: 120_000 });
+    await page.getByRole("status").filter({ hasText: "Ready to download." }).waitFor({ timeout: 120_000 });
     await loaded(page, { extra: 1000 });
   });
 }
@@ -496,13 +519,19 @@ state("brand-recover", "owner-no-unsaved-project-pro", "audit-pro", async (page)
 });
 state("project-workspace", "missing-project-pro", "audit-pro", async (page) => {
   await page.goto(`/brands/account/${MISSING_PROJECT}`, { waitUntil: "domcontentloaded" });
-  await page.getByText(/not available to this account|could not be checked/u).first().waitFor({ timeout: 30_000 });
+  await page
+    .getByText(/not available to this account|could not be checked/u)
+    .first()
+    .waitFor({ timeout: 30_000 });
   await loaded(page);
 });
 state("project-workspace", "error-api-500-pro", "audit-pro", async (page) => {
   await fail(page, "**/api/projects/**");
   await page.goto(`/brands/account/${brand("kestrel")}?view=strategy`, { waitUntil: "domcontentloaded" });
-  await page.getByText(/could not be reached/u).first().waitFor({ timeout: 30_000 });
+  await page
+    .getByText(/could not be reached/u)
+    .first()
+    .waitFor({ timeout: 30_000 });
   await loaded(page);
 });
 state("project-workspace", "loading-pro", "audit-pro", async (page) => {
@@ -533,13 +562,24 @@ state("library", "all-generations-pro", "audit-pro", async (page) => {
   await page.getByText(/assets loaded/u).waitFor({ timeout: 30_000 });
   await loaded(page, { extra: 1200 });
 });
-state("library", "asset-detail-dialog-pro", "audit-pro", async (page) => {
-  await open(page, "audit-pro", "/assets");
-  await page.getByText(/assets loaded/u).waitFor({ timeout: 30_000 });
-  await page.getByLabel(/^View details of /u).first().click();
-  await page.getByRole("dialog").waitFor();
-  await loaded(page, { extra: 1000 });
-}, { skip: "The View details button does not open the dialog in Playwright at 390/768/1440 (no console error). See 00_inventory.md, Could not reach." });
+state(
+  "library",
+  "asset-detail-dialog-pro",
+  "audit-pro",
+  async (page) => {
+    await open(page, "audit-pro", "/assets");
+    await page.getByText(/assets loaded/u).waitFor({ timeout: 30_000 });
+    await page
+      .getByLabel(/^View details of /u)
+      .first()
+      .click();
+    await page.getByRole("dialog").waitFor();
+    await loaded(page, { extra: 1000 });
+  },
+  {
+    skip: "The View details button does not open the dialog in Playwright at 390/768/1440 (no console error). See 00_inventory.md, Could not reach.",
+  },
+);
 state("plans", "pro-current-pro", "audit-pro", async (page) => {
   await open(page, "audit-pro", "/plans");
   await page.getByText("Current plan").first().waitFor({ timeout: 30_000 });
@@ -585,24 +625,42 @@ state("brand-conversation", "out-of-credits-prompt-free", "audit-free", async (p
 });
 
 // ---- hover, keyboard focus and disabled controls (viewport-wide captures, mouse left in place) -------
-state("home", "hover-create-account", null, async (page) => {
-  await open(page, null, "/");
-  await page.waitForTimeout(1500);
-  await page.getByRole("link", { name: "Create account", exact: true }).hover();
-  await loaded(page);
-}, { keepMouse: true, widths: [768, 1440] }); // the pill hides Create account at 390
-state("home", "hover-starter-chip", null, async (page) => {
-  await open(page, null, "/");
-  await page.waitForTimeout(1500);
-  await page.getByRole("button", { name: "A skincare studio" }).hover();
-  await loaded(page);
-}, { keepMouse: true });
-state("home", "hover-nav-link", null, async (page) => {
-  await open(page, null, "/");
-  await page.waitForTimeout(1500);
-  await page.getByRole("link", { name: "Projects", exact: true }).hover();
-  await loaded(page);
-}, { keepMouse: true });
+state(
+  "home",
+  "hover-create-account",
+  null,
+  async (page) => {
+    await open(page, null, "/");
+    await page.waitForTimeout(1500);
+    await page.getByRole("link", { name: "Create account", exact: true }).hover();
+    await loaded(page);
+  },
+  { keepMouse: true, widths: [768, 1440] },
+); // the pill hides Create account at 390
+state(
+  "home",
+  "hover-starter-chip",
+  null,
+  async (page) => {
+    await open(page, null, "/");
+    await page.waitForTimeout(1500);
+    await page.getByRole("button", { name: "A skincare studio" }).hover();
+    await loaded(page);
+  },
+  { keepMouse: true },
+);
+state(
+  "home",
+  "hover-nav-link",
+  null,
+  async (page) => {
+    await open(page, null, "/");
+    await page.waitForTimeout(1500);
+    await page.getByRole("link", { name: "Projects", exact: true }).hover();
+    await loaded(page);
+  },
+  { keepMouse: true },
+);
 state("home", "keyboard-focus-nav", null, async (page) => {
   await open(page, null, "/");
   await page.waitForTimeout(1500);
@@ -620,17 +678,31 @@ state("sign-in", "keyboard-focus-submit", null, async (page) => {
   await page.keyboard.press("Tab"); // forgot password / submit
   await loaded(page);
 });
-state("projects", "hover-project-card-pro", "audit-pro", async (page) => {
-  await open(page, "audit-pro", "/brands");
-  const card = page.getByRole("region", { name: "Projects" }).getByRole("article").first();
-  await card.waitFor({ timeout: 30_000 });
-  await loaded(page, { extra: 1200 });
-  await card.hover();
-}, { keepMouse: true });
+state(
+  "projects",
+  "hover-project-card-pro",
+  "audit-pro",
+  async (page) => {
+    await open(page, "audit-pro", "/brands");
+    const card = page.getByRole("region", { name: "Projects" }).getByRole("article").first();
+    await card.waitFor({ timeout: 30_000 });
+    await loaded(page, { extra: 1200 });
+    await card.hover();
+  },
+  { keepMouse: true },
+);
 state("brand-conversation", "logo-step-no-type-selected-disabled-explore-free", "audit-free", async (page) => {
   await open(page, "audit-free", `/brands/account/${brand("berenice")}?view=strategy`);
   await page.getByRole("button", { name: /Explore six concepts/u }).waitFor({ timeout: 30_000 });
-  for (const type of ["Wordmark", "Lettermark or monogram", "Pictorial mark", "Abstract mark", "Combination mark", "Emblem", "Mascot"]) {
+  for (const type of [
+    "Wordmark",
+    "Lettermark or monogram",
+    "Pictorial mark",
+    "Abstract mark",
+    "Combination mark",
+    "Emblem",
+    "Mascot",
+  ]) {
     const toggle = page.getByRole("button", { name: new RegExp(`^${type}`, "u") });
     if ((await toggle.getAttribute("aria-pressed")) === "true") await toggle.click();
   }
@@ -644,45 +716,79 @@ const aiMode = (body) =>
     if (!r.ok) throw new Error(`stand-in AI refused ${JSON.stringify(body)}`);
   });
 if (RECIPES) {
-  state("home", "research-in-progress-pro", "audit-pro", async (page) => {
-    await aiMode({ text: "hold" });
-    await open(page, "audit-pro", "/");
-    await page.getByRole("textbox", { name: "Your prompt" }).fill("A mobile bike repair service that comes to your office.");
-    await page.getByRole("button", { name: "Send prompt", exact: true }).click();
-    await page.getByText(/Researching your competitors/u).waitFor({ timeout: 120_000 });
-    await loaded(page);
-  }, { recipe: true });
-  state("home", "research-failed-pro", "audit-pro", async (page) => {
-    await aiMode({ text: "fail" });
-    await open(page, "audit-pro", "/");
-    await page.getByRole("textbox", { name: "Your prompt" }).fill("A pottery studio that runs evening classes.");
-    await page.getByRole("button", { name: "Send prompt", exact: true }).click();
-    await page.getByRole("button", { name: /Retry research/u }).waitFor({ timeout: 180_000 });
-    await loaded(page);
-  }, { recipe: true });
-  state("brand-conversation", "logos-drawing-aurelie-pro", "audit-pro", async (page) => {
-    await aiMode({ text: "normal", images: "slow", delayMs: 120_000 });
-    await open(page, "audit-pro", `/brands/account/${brand("aurelie")}?view=strategy`);
-    await page.getByRole("button", { name: "More concepts" }).first().click();
-    await page.getByText(/Creating your concept/u).first().waitFor({ timeout: 60_000 });
-    await loaded(page);
-  }, { recipe: true, widths: [1440] }); // one active logo run per brand: 1440 only
-  state("brand-conversation", "logos-failed-brightharbor-pro", "audit-pro", async (page) => {
-    await aiMode({ images: "refuse" });
-    await open(page, "audit-pro", `/brands/account/${brand("brightharbor")}?view=strategy`);
-    await page.getByRole("button", { name: "More concepts" }).first().click();
-    await page.getByRole("button", { name: /Retry \d+ failed concepts/u }).waitFor({ timeout: 180_000 });
-    await loaded(page);
-  }, { recipe: true, widths: [1440] }); // one active logo run per brand: 1440 only
+  state(
+    "home",
+    "research-in-progress-pro",
+    "audit-pro",
+    async (page) => {
+      await aiMode({ text: "hold" });
+      await open(page, "audit-pro", "/");
+      await page
+        .getByRole("textbox", { name: "Your prompt" })
+        .fill("A mobile bike repair service that comes to your office.");
+      await page.getByRole("button", { name: "Send prompt", exact: true }).click();
+      await page.getByText(/Researching your competitors/u).waitFor({ timeout: 120_000 });
+      await loaded(page);
+    },
+    { recipe: true },
+  );
+  state(
+    "home",
+    "research-failed-pro",
+    "audit-pro",
+    async (page) => {
+      await aiMode({ text: "fail" });
+      await open(page, "audit-pro", "/");
+      await page.getByRole("textbox", { name: "Your prompt" }).fill("A pottery studio that runs evening classes.");
+      await page.getByRole("button", { name: "Send prompt", exact: true }).click();
+      await page.getByRole("button", { name: /Retry research/u }).waitFor({ timeout: 180_000 });
+      await loaded(page);
+    },
+    { recipe: true },
+  );
+  state(
+    "brand-conversation",
+    "logos-drawing-aurelie-pro",
+    "audit-pro",
+    async (page) => {
+      await aiMode({ text: "normal", images: "slow", delayMs: 120_000 });
+      await open(page, "audit-pro", `/brands/account/${brand("aurelie")}?view=strategy`);
+      await page.getByRole("button", { name: "More concepts" }).first().click();
+      await page
+        .getByText(/Creating your concept/u)
+        .first()
+        .waitFor({ timeout: 60_000 });
+      await loaded(page);
+    },
+    { recipe: true, widths: [1440] },
+  ); // one active logo run per brand: 1440 only
+  state(
+    "brand-conversation",
+    "logos-failed-brightharbor-pro",
+    "audit-pro",
+    async (page) => {
+      await aiMode({ images: "refuse" });
+      await open(page, "audit-pro", `/brands/account/${brand("brightharbor")}?view=strategy`);
+      await page.getByRole("button", { name: "More concepts" }).first().click();
+      await page.getByRole("button", { name: /Retry \d+ failed concepts/u }).waitFor({ timeout: 180_000 });
+      await loaded(page);
+    },
+    { recipe: true, widths: [1440] },
+  ); // one active logo run per brand: 1440 only
 }
 
 // ---------------------------------------------------------------- runner
 const manifestPath = path.join(outDir, "manifest.json");
-const previous = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : { screenshots: [], problems: [] };
+const previous = existsSync(manifestPath)
+  ? JSON.parse(readFileSync(manifestPath, "utf8"))
+  : { screenshots: [], problems: [] };
 const failedStems = new Set(previous.problems.map((p) => p.file.replace(/__\d+\.png$/u, "")));
-const selected = states.filter((s) => !s.skip && ONLY.split(",").some((t) => stem(s).includes(t)) && (!has("failed") || failedStems.has(stem(s))));
+const selected = states.filter(
+  (s) => !s.skip && ONLY.split(",").some((t) => stem(s).includes(t)) && (!has("failed") || failedStems.has(stem(s))),
+);
 if (has("list")) {
-  for (const s of selected) console.log(`${stem(s).padEnd(70)} ${s.account ?? "(signed out)"}${s.recipe ? "  [recipe]" : ""}`);
+  for (const s of selected)
+    console.log(`${stem(s).padEnd(70)} ${s.account ?? "(signed out)"}${s.recipe ? "  [recipe]" : ""}`);
   for (const s of states.filter((x) => x.skip)) console.log(`${stem(s).padEnd(70)} SKIPPED: ${s.skip}`);
   console.log(`${selected.length} states x ${WIDTHS.length} widths`);
   process.exit(0);
@@ -746,10 +852,13 @@ async function ensureSession(account) {
     const page = await context.newPage();
     // Probe a page that needs the server to accept the session, not just a cookie that looks valid.
     await page.goto("/brands", { waitUntil: "domcontentloaded" });
-    valid = await requireSignedIn(page, account, "/brands").then(() => true, (e) => {
-      if (e instanceof LoginWall) return false;
-      throw e;
-    });
+    valid = await requireSignedIn(page, account, "/brands").then(
+      () => true,
+      (e) => {
+        if (e instanceof LoginWall) return false;
+        throw e;
+      },
+    );
     await context.close();
   }
   if (!valid) await signInAndSave(account, 1440);
@@ -759,7 +868,9 @@ async function ensureSession(account) {
 const manifest = [];
 const problems = [];
 let done = 0;
-const queue = selected.flatMap((s) => WIDTHS.filter((w) => !s.widths || s.widths.includes(w)).map((width) => ({ s, width })));
+const queue = selected.flatMap((s) =>
+  WIDTHS.filter((w) => !s.widths || s.widths.includes(w)).map((width) => ({ s, width })),
+);
 
 async function capture({ s, width }) {
   const file = `${stem(s)}__${width}.png`;
@@ -775,9 +886,16 @@ async function capture({ s, width }) {
     const target = path.join(outDir, file);
     await page.screenshot({ path: target, fullPage: true, animations: "disabled", caret: "hide" });
     manifest.push({
-      file, route: s.route, state: s.state, account: s.account ?? "signed-out", width,
-      url: page.url().replace(ORIGIN, ""), title: await page.title(), viewportHeight: height,
-      bytes: statSync(target).size, notes: failedRequests,
+      file,
+      route: s.route,
+      state: s.state,
+      account: s.account ?? "signed-out",
+      width,
+      url: page.url().replace(ORIGIN, ""),
+      title: await page.title(),
+      viewportHeight: height,
+      bytes: statSync(target).size,
+      notes: failedRequests,
     });
     rmSync(path.join(outDir, `FAILED__${file}`), { force: true });
     console.log(`  ok   ${file}`);
@@ -800,7 +918,9 @@ async function worker() {
   }
 }
 
-console.log(`Capturing ${selected.length} states x ${WIDTHS.length} widths into ${path.relative(process.cwd(), outDir)} (${WORKERS} workers)`);
+console.log(
+  `Capturing ${selected.length} states x ${WIDTHS.length} widths into ${path.relative(process.cwd(), outDir)} (${WORKERS} workers)`,
+);
 const started = Date.now();
 try {
   // Sign in sequentially first so parallel workers share saved sessions.
@@ -829,7 +949,16 @@ for (const m of manifest) merged.set(m.file, m);
 const retried = new Set([...manifest.map((m) => m.file), ...problems.map((p) => p.file)]);
 const allProblems = [...previous.problems.filter((p) => !retried.has(p.file)), ...problems];
 const all = [...merged.values()].sort((a, b) => a.file.localeCompare(b.file));
-writeFileSync(manifestPath, JSON.stringify({ origin: ORIGIN, capturedAt: new Date().toISOString(), screenshots: all, problems: allProblems }, null, 2));
-console.log(`\n${manifest.length} captured this run, ${all.length} in the manifest, ${allProblems.length} open problem(s), ${Math.round((Date.now() - started) / 1000)}s`);
+writeFileSync(
+  manifestPath,
+  JSON.stringify(
+    { origin: ORIGIN, capturedAt: new Date().toISOString(), screenshots: all, problems: allProblems },
+    null,
+    2,
+  ),
+);
+console.log(
+  `\n${manifest.length} captured this run, ${all.length} in the manifest, ${allProblems.length} open problem(s), ${Math.round((Date.now() - started) / 1000)}s`,
+);
 for (const p of allProblems) console.log(`  - ${p.file}: ${p.error}`);
 process.exit(allProblems.length ? 1 : 0);

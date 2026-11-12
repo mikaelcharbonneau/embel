@@ -19,7 +19,8 @@ const credentials = JSON.parse(readFileSync(path.join(AUDIT, ".audit-credentials
 const seeded = JSON.parse(readFileSync(path.join(AUDIT, ".logs/last-seed.json"), "utf8")).results;
 export const brand = (key) => seeded.find((r) => r.key === key).projectId;
 export const conversation = (key) => `/brands/account/${brand(key)}?view=strategy`;
-export const aiMode = (mode) => fetch(`${AI}/__mode`, { method: "POST", body: JSON.stringify(mode) }).then((r) => r.text());
+export const aiMode = (mode) =>
+  fetch(`${AI}/__mode`, { method: "POST", body: JSON.stringify(mode) }).then((r) => r.text());
 
 /** Runs in the page before any app code. Everything it records is passive. */
 function recorder() {
@@ -29,7 +30,11 @@ function recorder() {
   const push = (type, detail) => log.push({ t: now(), type, detail });
   const describe = (node) => {
     if (!node || node.nodeType !== 1) return "?";
-    const cls = String(node.className?.baseVal ?? node.className ?? "").split(/\s+/u).filter(Boolean).slice(0, 2).join(".");
+    const cls = String(node.className?.baseVal ?? node.className ?? "")
+      .split(/\s+/u)
+      .filter(Boolean)
+      .slice(0, 2)
+      .join(".");
     const label = (node.getAttribute("aria-label") || "").slice(0, 30);
     return `${node.tagName.toLowerCase()}${cls ? `.${cls}` : ""}${label ? `[${label}]` : ""}`;
   };
@@ -39,9 +44,30 @@ function recorder() {
       ? `${style.animationDuration} ${style.animationTimingFunction} x${style.animationIterationCount}`
       : `${style.transitionDuration} ${style.transitionTimingFunction} [${style.transitionProperty}]`;
   };
-  document.addEventListener("animationstart", (e) => push("animation", `${e.animationName} on ${describe(e.target)}${e.pseudoElement} (${timingOf(e.target, e.pseudoElement, "animation")})`), true);
-  document.addEventListener("transitionrun", (e) => push("transition", `${e.propertyName} on ${describe(e.target)}${e.pseudoElement} (${timingOf(e.target, e.pseudoElement, "transition")})`), true);
-  document.addEventListener("pointerdown", (e) => push("pointerdown", describe(e.target.closest?.("a,button,summary,[role=button],input,textarea") ?? e.target)), true);
+  document.addEventListener(
+    "animationstart",
+    (e) =>
+      push(
+        "animation",
+        `${e.animationName} on ${describe(e.target)}${e.pseudoElement} (${timingOf(e.target, e.pseudoElement, "animation")})`,
+      ),
+    true,
+  );
+  document.addEventListener(
+    "transitionrun",
+    (e) =>
+      push(
+        "transition",
+        `${e.propertyName} on ${describe(e.target)}${e.pseudoElement} (${timingOf(e.target, e.pseudoElement, "transition")})`,
+      ),
+    true,
+  );
+  document.addEventListener(
+    "pointerdown",
+    (e) =>
+      push("pointerdown", describe(e.target.closest?.("a,button,summary,[role=button],input,textarea") ?? e.target)),
+    true,
+  );
   document.addEventListener("keydown", (e) => push("key", e.key.length === 1 ? "char" : e.key), true);
   document.addEventListener("focusin", (e) => push("focus", describe(e.target)), true);
   let lastScroll = 0;
@@ -58,7 +84,13 @@ function recorder() {
   try {
     new PerformanceObserver((list) => {
       for (const e of list.getEntries())
-        push("shift", `${e.value.toFixed(4)}${e.hadRecentInput ? " (after input)" : ""} ${(e.sources || []).slice(0, 3).map((s) => describe(s.node)).join(", ")}`);
+        push(
+          "shift",
+          `${e.value.toFixed(4)}${e.hadRecentInput ? " (after input)" : ""} ${(e.sources || [])
+            .slice(0, 3)
+            .map((s) => describe(s.node))
+            .join(", ")}`,
+        );
     }).observe({ type: "layout-shift" });
     new PerformanceObserver((list) => {
       for (const e of list.getEntries()) push("longtask", `${Math.round(e.duration)} ms`);
@@ -68,13 +100,17 @@ function recorder() {
   let lastState = "";
   const state = () => {
     if (!document.body) return "";
-    const visibleText = (node) => (node.checkVisibility?.() === false ? "" : node.innerText?.trim().replace(/\s+/gu, " ").slice(0, 70) || "");
+    const visibleText = (node) =>
+      node.checkVisibility?.() === false ? "" : node.innerText?.trim().replace(/\s+/gu, " ").slice(0, 70) || "";
     return JSON.stringify({
       h1: visibleText(document.querySelector("h1") ?? document.body).slice(0, 40),
       busy: document.querySelectorAll('[aria-busy="true"]').length,
       dialogs: [...document.querySelectorAll("dialog[open]")].map((d) => describe(d)),
       details: [...document.querySelectorAll("details[open]")].map((d) => describe(d)).slice(0, 4),
-      live: [...document.querySelectorAll('[role="status"],[role="alert"]')].map(visibleText).filter(Boolean).slice(0, 5),
+      live: [...document.querySelectorAll('[role="status"],[role="alert"]')]
+        .map(visibleText)
+        .filter(Boolean)
+        .slice(0, 5),
       imgsPending: [...document.images].filter((i) => !i.complete).length,
     });
   };
@@ -91,7 +127,12 @@ function recorder() {
   };
   const start = () => {
     if (!document.documentElement) return setTimeout(start, 0);
-    new MutationObserver(tick).observe(document.documentElement, { childList: true, subtree: true, attributes: true, characterData: true });
+    new MutationObserver(tick).observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      characterData: true,
+    });
     setInterval(tick, 50);
   };
   start();
@@ -121,7 +162,8 @@ const collapse = (lines) => {
   }
   return out.map((o) => (o.count > 1 ? `${o.line}  [x${o.count} in this step]` : o.line));
 };
-const compact = (entry) => `${String(entry.t).padStart(6)} ms  ${entry.type.padEnd(11)} ${typeof entry.detail === "string" ? entry.detail : JSON.stringify(entry.detail)}`;
+const compact = (entry) =>
+  `${String(entry.t).padStart(6)} ms  ${entry.type.padEnd(11)} ${typeof entry.detail === "string" ? entry.detail : JSON.stringify(entry.detail)}`;
 
 export async function runWalk(group, scenarios) {
   const args = process.argv.slice(2);
@@ -145,7 +187,13 @@ export async function runWalk(group, scenarios) {
       });
       await context.addInitScript(recorder);
       const page = await context.newPage();
-      const record = { scenario: scenario.name, width, account: scenario.account ?? "signed-out", steps: [], notes: [] };
+      const record = {
+        scenario: scenario.name,
+        width,
+        account: scenario.account ?? "signed-out",
+        steps: [],
+        notes: [],
+      };
       const stem = `${group}__${scenario.name}__${width}`;
       let frame = 0;
       const tools = {
@@ -170,10 +218,20 @@ export async function runWalk(group, scenarios) {
             if (wait > 0) await page.waitForTimeout(wait);
             // Nominal delay in the name, so a re-run overwrites its own frames instead of piling up.
             const file = `${stem}__${String(frame++).padStart(2, "0")}-${label}-${delay}ms.jpg`;
-            await page.screenshot({ path: path.join(FRAMES, file), type: "jpeg", quality: 60, animations: "allow", caret: "initial" }).catch(() => {});
+            await page
+              .screenshot({
+                path: path.join(FRAMES, file),
+                type: "jpeg",
+                quality: 60,
+                animations: "allow",
+                caret: "initial",
+              })
+              .catch(() => {});
             files.push(file);
           }
-          const entries = collapse((await page.evaluate(() => window.__rec?.dump() ?? []).catch(() => [])).map(compact));
+          const entries = collapse(
+            (await page.evaluate(() => window.__rec?.dump() ?? []).catch(() => [])).map(compact),
+          );
           record.steps.push({ label, frames: files, entries });
           return entries;
         },
@@ -182,7 +240,8 @@ export async function runWalk(group, scenarios) {
           await page.screenshot({ path: path.join(FRAMES, file), type: "jpeg", quality: 70 });
           record.steps.push({ label, frames: [file], entries: [] });
         },
-        evalNote: async (label, fn, arg) => record.notes.push(`${label}: ${JSON.stringify(await page.evaluate(fn, arg))}`),
+        evalNote: async (label, fn, arg) =>
+          record.notes.push(`${label}: ${JSON.stringify(await page.evaluate(fn, arg))}`),
       };
       try {
         if (scenario.account) {
@@ -193,10 +252,14 @@ export async function runWalk(group, scenarios) {
         await scenario.run(page, tools, context);
       } catch (error) {
         record.error = String(error.message).split("\n").slice(0, 3).join(" | ");
-        await page.screenshot({ path: path.join(FRAMES, `${stem}__ERROR.jpg`), type: "jpeg", quality: 60 }).catch(() => {});
+        await page
+          .screenshot({ path: path.join(FRAMES, `${stem}__ERROR.jpg`), type: "jpeg", quality: 60 })
+          .catch(() => {});
       }
       results.push(record);
-      console.log(`\n=== ${scenario.name} @${width} (${record.account})${record.error ? `  ERROR: ${record.error}` : ""}`);
+      console.log(
+        `\n=== ${scenario.name} @${width} (${record.account})${record.error ? `  ERROR: ${record.error}` : ""}`,
+      );
       for (const note of record.notes) console.log(`  note: ${note}`);
       for (const step of record.steps) {
         console.log(`  -- ${step.label}${step.frames ? `  [${step.frames.length} frame(s)]` : ""}`);
@@ -216,7 +279,14 @@ export async function runWalk(group, scenarios) {
 export async function settled(page, extra = 600) {
   await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {});
   await page
-    .waitForFunction(() => !/(Loading (your )?(projects|project|library|saved preview)|Checking account…|Preparing…)/u.test(document.body.innerText), null, { timeout: 20_000 })
+    .waitForFunction(
+      () =>
+        !/(Loading (your )?(projects|project|library|saved preview)|Checking account…|Preparing…)/u.test(
+          document.body.innerText,
+        ),
+      null,
+      { timeout: 20_000 },
+    )
     .catch(() => {});
   await page.waitForTimeout(extra);
 }
