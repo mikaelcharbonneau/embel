@@ -6,7 +6,7 @@ November 13, 2026. This file closes Prompt 6 of the design audit plan and is the
 
 - **Screens:** the Claude Design canvas "Embel screens", https://claude.ai/artifact/M4MG9CqZoWu2KeWb1u8wca (version 1794602494-f558).
 - **Design system:** "Embel Design System", https://claude.ai/artifact/NrcVPniQFUPdtrBBtY9V8J (version 1794600671-f81e). Its README, component pages and `changelog.md` record every decision below.
-- **Approved screens as images:** `design-audit/approved/`, 206 PNGs rendered from the canvas with its own runtime (1×, full page, except the 1440 × 900 side-chat screens, which show one window because their panes scroll).
+- **Approved screens as images:** `design-audit/approved/`, 213 PNGs rendered from the canvas with its own runtime (1×, full page, except the 1440 × 900 side-chat screens, which show one window because their panes scroll).
 
 ## Decisions made after the first Prompt 6 report
 
@@ -21,7 +21,7 @@ These change what the screens look like compared with the first round; the canva
 7. **Name details.** Extra-large dialog with Domains (search, Extensions, Tweaks and Filters panels, sort, quick filters, prices), Handles and Trademarks.
 8. **Project bar.** The current step has no fill; its ring-and-dot mark and ink text show it.
 9. **Domain prices** are an exception to "credits, never money" (owner decision).
-10. **Prototype.** Page 9 of the canvas is one clickable prototype of the desktop flow (11 screens).
+10. **Prototype.** Page 9 of the canvas is one clickable prototype of the desktop flow (15 screens, from competitor research to the finished brand).
 
 ## Screens and the D- IDs they address
 
@@ -35,6 +35,7 @@ These change what the screens look like compared with the first round; the canva
 | 2 Credits and plans | Settings, Usage: credit ledger | D-036 (needs the owner) |
 | 3 Brand conversation | Research running, failed, done | D-016 |
 | 3 Brand conversation | A finished brand, folded (with Inspiration reopened, brand menu) | D-021, D-054, D-061 |
+| 3 Brand conversation | Audience, Positioning, Personality and Slogan (desktop side chat; added November 13) | Strategy and Voice steps; no dedicated D- ID |
 | 3 Brand conversation | Name step, including name details | D-070 |
 | 4 Home | Home, signed out | D-017 |
 | 4 Home | Home, signed in | D-060, D-068, D-074 |
@@ -57,7 +58,7 @@ Part B items in `Design_AUDIT.md` section 6 that are not named on any canvas row
 
 - **D-024** (the direction board shows a different logo from the chosen one) and **D-036** (Usage counts tokens, not credits) need the owner's decision; the canvas shows the proposed screens.
 - **IMG-007 / IMG-008:** the third Home example brand is a placeholder ("needs owner approval to generate"); the first two use the showcase brands.
-- **Desktop screens not drawn:** Audience, Positioning, Personality and Slogan have no side-chat screens yet; they follow the same Workspace pattern.
+- **Audience, Positioning, Personality and Slogan** have desktop side-chat screens only; at 768 and 390 they follow the one-column conversation as in the current app.
 - **Drawing effect:** the full transitions.dev reveal (sketch, halftone and colour from the finished picture's pixels) needs that skill's script in the app; the CSS version is in the design system. Its licence allows use in the product, not redistributing the library.
 - **Name details checks:** only YouTube handles and the EU trademark register are checked live today; domain search across many extensions needs a bulk check from the domain provider, which also supplies the prices.
 
