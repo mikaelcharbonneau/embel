@@ -14,7 +14,7 @@ These change what the screens look like compared with the first round; the canva
 
 1. **Desktop conversation = side chat.** At 1024 px and up every project-conversation screen uses the Workspace: the chat in a floating panel 16 px from the window's left, top and bottom edges, the work on the right, filling the window. The chat and the work area scroll separately. The chat can be resized (320 to 560 px at every window width) and hidden. While it is widened, results that must all be in view shrink so they stay three across (owner chose this, option 2, on Nov 13): at 1440 × 900 a logo concept is 304 px with the chat at 400 px and 251 px at 560 px. Below 1024 px the conversation stays one column.
 2. **Send is the one way forward.** No Continue or Explore buttons. Chosen options and results sit in the reply box as chips; Send starts the work or moves to the next step; Stop takes Send's place while Embel works, at every width (the one-column screens too; the progress row has no Stop button).
-3. **Results fit the window.** Six logo concepts (two rows of three) and three direction boards (one row) are fully in view at 1440 × 900. A chosen result keeps its size and place, marked by the ring only; no tick on generated results.
+3. **Results fit the window.** Six logo concepts (two rows of three) and three direction boards (one row) are fully in view at 1440 × 900. A chosen result keeps its size and place, marked by the ring only. No choice card shows a tick or radio circle, text options included (owner, Nov 13); the ring alone shows the choice.
 4. **Logo concepts are artwork only.** No label row or Choose button: the whole picture chooses it; Enlarge stays in the corner; the logo sits inset 12% in its tile.
 5. **Drawing state (fuller effect approved Nov 13).** A concept being made shows a dotted frame with corner handles, two mono labels on its top line ("Concept 3" and "Drawing") and a sweeping grey halftone. When it arrives it draws itself from its own pixels in about 3 seconds: contour sketch, grey screen, colour dots, then the picture (the "image" variant of transitions.dev's Generative effect). Build it with that skill's own script; its licence allows use in the product. The canvas board "Logo · Drawing (loading)" plays an approximation written for the design. Logo concepts only for now; direction boards keep the simple blur.
 6. **Name step.** Compact one-row name cards, four across; 40 names per batch; no radio circle; Details opens the name details over the work area only.
@@ -57,7 +57,6 @@ Part B items in `Design_AUDIT.md` section 6 that are not named on any canvas row
 
 ## Left unresolved
 
-- **Text choice cards** (Audience, Positioning, Personality, Slogan, and the Strategy and Voice answers): they still show a tick in a circle when chosen, unlike generated results and name cards. Waiting for the owner.
 
 - **D-024** (the direction board shows a different logo from the chosen one) and **D-036** (Usage counts tokens, not credits) need the owner's decision; the canvas shows the proposed screens.
 - **IMG-007 / IMG-008:** the third Home example brand is a placeholder ("needs owner approval to generate"); the first two use the showcase brands.
