@@ -12,16 +12,17 @@ November 13, 2026. This file closes Prompt 6 of the design audit plan and is the
 
 These change what the screens look like compared with the first round; the canvas and the design system already reflect them.
 
-1. **Desktop conversation = side chat.** At 1024 px and up every project-conversation screen uses the Workspace: the chat in a floating panel 16 px from the window's left, top and bottom edges, the work on the right, filling the window. The chat and the work area scroll separately. The chat can be resized (320 to 560 px) and hidden. Below 1024 px the conversation stays one column.
-2. **Send is the one way forward.** No Continue or Explore buttons. Chosen options and results sit in the reply box as chips; Send starts the work or moves to the next step; Stop takes Send's place while Embel works.
+1. **Desktop conversation = side chat.** At 1024 px and up every project-conversation screen uses the Workspace: the chat in a floating panel 16 px from the window's left, top and bottom edges, the work on the right, filling the window. The chat and the work area scroll separately. The chat can be resized (320 to 560 px at every window width) and hidden. While it is widened, results that must all be in view shrink so they stay three across (owner chose this, option 2, on Nov 13): at 1440 × 900 a logo concept is 304 px with the chat at 400 px and 251 px at 560 px. Below 1024 px the conversation stays one column.
+2. **Send is the one way forward.** No Continue or Explore buttons. Chosen options and results sit in the reply box as chips; Send starts the work or moves to the next step; Stop takes Send's place while Embel works, at every width (the one-column screens too; the progress row has no Stop button).
 3. **Results fit the window.** Six logo concepts (two rows of three) and three direction boards (one row) are fully in view at 1440 × 900. A chosen result keeps its size and place, marked by the ring only; no tick on generated results.
 4. **Logo concepts are artwork only.** No label row or Choose button: the whole picture chooses it; Enlarge stays in the corner; the logo sits inset 12% in its tile.
-5. **Drawing state.** Concepts being made show a dotted frame and a sweeping grey halftone ("Drawing"), then come in from a blur (after transitions.dev's generative effect, rebuilt in CSS).
+5. **Drawing state (fuller effect approved Nov 13).** A concept being made shows a dotted frame with corner handles, two mono labels on its top line ("Concept 3" and "Drawing") and a sweeping grey halftone. When it arrives it draws itself from its own pixels in about 3 seconds: contour sketch, grey screen, colour dots, then the picture (the "image" variant of transitions.dev's Generative effect). Build it with that skill's own script; its licence allows use in the product. The canvas board "Logo · Drawing (loading)" plays an approximation written for the design. Logo concepts only for now; direction boards keep the simple blur.
 6. **Name step.** Compact one-row name cards, four across; 40 names per batch; no radio circle; Details opens the name details over the work area only.
 7. **Name details.** Extra-large dialog with Domains (search, Extensions, Tweaks and Filters panels, sort, quick filters, prices), Handles and Trademarks.
 8. **Project bar.** The current step has no fill; its ring-and-dot mark and ink text show it.
 9. **Domain prices** are an exception to "credits, never money" (owner decision).
-10. **Prototype.** Page 9 of the canvas is one clickable prototype of the desktop flow (15 screens, from competitor research to the finished brand).
+10. **Direction cards** keep their current design (owner, Nov 13); they are not reduced to artwork only like the logo concepts.
+11. **Prototype.** Page 9 of the canvas is one clickable prototype of the desktop flow (15 screens, from competitor research to the finished brand).
 
 ## Screens and the D- IDs they address
 
@@ -56,10 +57,11 @@ Part B items in `Design_AUDIT.md` section 6 that are not named on any canvas row
 
 ## Left unresolved
 
+- **Text choice cards** (Audience, Positioning, Personality, Slogan, and the Strategy and Voice answers): they still show a tick in a circle when chosen, unlike generated results and name cards. Waiting for the owner.
+
 - **D-024** (the direction board shows a different logo from the chosen one) and **D-036** (Usage counts tokens, not credits) need the owner's decision; the canvas shows the proposed screens.
 - **IMG-007 / IMG-008:** the third Home example brand is a placeholder ("needs owner approval to generate"); the first two use the showcase brands.
 - **Audience, Positioning, Personality and Slogan** have desktop side-chat screens only; at 768 and 390 they follow the one-column conversation as in the current app.
-- **Drawing effect:** the full transitions.dev reveal (sketch, halftone and colour from the finished picture's pixels) needs that skill's script in the app; the CSS version is in the design system. Its licence allows use in the product, not redistributing the library.
 - **Name details checks:** only YouTube handles and the EU trademark register are checked live today; domain search across many extensions needs a bulk check from the domain provider, which also supplies the prices.
 
 ## Final image slot sizes (CSS px, as rendered on the canvas)
@@ -76,7 +78,7 @@ Export each slot at 1× and 2× of the largest width it appears at. "Side chat" 
 | IMG-014 | Inspiration tiles (licensed) | 141 × 141 and 290 × 163 | — | 205 × 205 and 418 × 235 | Keep the existing boards |
 | IMG-017 | "Your images", 4:3 | 290 × 218 | — | 287 × 215 | Person's uploads |
 | IMG-018 | Logo concept tile, 1:1 | 356 (one across) | 348 (two across) | 302–304 (side chat) | Logo inset 12%; enlarged view 16:9: 358 × 201 at 390, 812 × 457 at 1440 |
-| IMG-019 | Logo drawing / failed tile | as IMG-018 | as IMG-018 | as IMG-018 | CSS only (`e-media--drawing`) |
+| IMG-019 | Logo drawing / failed tile | as IMG-018 | as IMG-018 | as IMG-018 | CSS (`e-media--drawing`) plus the reveal script (`e-media--revealing`, `e-media__canvas`) |
 | IMG-020 | Chosen-logo thumbnail | 44 × 44 | 44 × 44 | 44 × 44 | Finished brand: 16:9 logo card 356 × 200 / 718 × 404 / 372 × 209 |
 | IMG-021 | Direction board tile, 1:1 | 356 | 348 (two across) | 302 (side chat) | Chosen on the finished brand: 356 / 718 / 560; enlarged: up to 62% of the window height |
 | IMG-022 | Brand board, 8:11 | 356 × 490 | 718 × 987 | 617 × 849 | File 1600 × 2200 |

@@ -479,7 +479,8 @@ When done, list for each screen: the D- IDs addressed, anything left unresolved,
 - Logo concepts are chosen by clicking the picture (no label row or Choose button); six concepts or three directions fit the window; a chosen result keeps its size and shows the ring only.
 - Name step: compact name cards, 40 per batch; name details open over the work area with Domains (extensions, tweaks, filters, sort, registrar prices), Handles and Trademarks tabs.
 - The current journey step has no fill. Domain prices are an exception to "credits, never money".
-- Open for the owner: D-024, D-036, the third Home example image, and whether to use the full transitions.dev drawing effect.
+- Also decided Nov 13: results shrink while the chat is widened (chat 320 to 560 px); the fuller transitions.dev drawing effect is used for logo concepts; Stop is in the reply box at every width; direction cards stay as designed.
+- Open for the owner: D-024, D-036, the third Home example image, and whether text choice cards keep their tick.
 
 ## Prompt 7: Image asset production
 
@@ -503,7 +504,7 @@ Steps
 4. Icons: confirm every icon the approved screens use exists in the design system's Lucide set (the icons it defines in components/bundle.css), and list any that are missing. Record the licence (ISC).
 5. Write design-assets/manifest.md: ID, files, source, capture date, alt text (or alt=""), LCP flag, and for each slot covered in code, the design-system class or canvas board that defines it. Add a contact sheet of the captured assets.
 6. Add an "Implementation notes" section to manifest.md:
-   - The logo "drawing" effect: the CSS version is in the design system. The fuller reveal from transitions.dev's generative-effect skill would need its script in the app; its licence allows use in the product but not redistribution of the library. List it as an option for me to decide.
+   - The logo "drawing" effect (approved): the frame, handles and labels are CSS in the design system; the reveal uses the script from transitions.dev's Generative effect skill ("image" variant). Record its source, version and licence (use in the product is allowed; do not redistribute the library).
    - Domain prices in name details: the registrar's price in USD, per year, comes from the domain provider at check time and is not a static asset.
 
 Close with a recap: slots done, slots covered by code, and anything left open (at least the third Home example, and D-024 and D-036 from handoff.md).
@@ -511,7 +512,7 @@ Close with a recap: slots done, slots covered by code, and anything left open (a
 
 ## Implementation, re-capture and review
 
-**Before you start.** Four things must be true. The deny rules are removed from .claude/settings.local.json. The code cleanup is finished. The cleaned-up code sits on the same git branch as the design-audit/ and design-assets/ folders; ask Claude Code to "bring the design-audit branch and the cleaned-up code together on one branch, and tell me if anything conflicts". And you have decided the open items listed in design-assets/handoff.md (D-024, D-036, the third Home example, and the drawing effect), or you are happy for implementation to skip them.
+**Before you start.** Four things must be true. The deny rules are removed from .claude/settings.local.json. The code cleanup is finished. The cleaned-up code sits on the same git branch as the design-audit/ and design-assets/ folders; ask Claude Code to "bring the design-audit branch and the cleaned-up code together on one branch, and tell me if anything conflicts". And you have decided the open items listed in design-assets/handoff.md (D-024, D-036, the third Home example, and the text choice cards' tick), or you are happy for implementation to skip them.
 
 ### Prompt 7b: Refresh file references
 
@@ -551,7 +552,7 @@ Rules
 - Work on a new git branch called redesign, created from the branch that holds the cleaned-up code and the design-audit/ folder. Commit after each phase. Never push or deploy; I do that.
 - Change how the app looks and responds, not what it does. Do not change features, data, routes, API calls, authentication, payments or legal text. If a design seems to need a change in behaviour, stop and ask me.
 - These interaction changes are already approved (handoff.md, "Decisions"), so build them without asking: the side chat at 1024 px and up (resizable and hideable, width and hidden state remembered for the person); Send as the one way forward, with chosen options as chips in the reply box and Stop replacing Send while Embel works (remove the Continue and Explore buttons); click-to-choose logo concepts; results sized to fit the window; compact name cards with 40 names per batch; name details opening over the work area; the current step with no fill.
-- These need my go-ahead because they need new data or provider work: domain search across many extensions, tweaks, filters, sort and registrar prices; handle checks beyond YouTube; trademark search beyond the EU; the full transitions.dev drawing effect; and any open item in handoff.md. Build their screens with what the API supports today, and list the rest.
+- These need my go-ahead because they need new data or provider work: domain search across many extensions, tweaks, filters, sort and registrar prices; handle checks beyond YouTube; trademark search beyond the EU; and any open item in handoff.md. The fuller drawing effect is approved: add the transitions.dev Generative effect script for it (record its licence), and ask me only if it needs a new dependency. Build their screens with what the API supports today, and list the rest.
 - Build what the approved screens show. Where they are silent (a state or screen that was not designed), apply the design system and list the gap. Do not invent a new look.
 - Do not add a dependency without asking me first.
 - Run the seed reset from design-audit/README.md before you start. Never start a real AI generation; use the recipes in README.md.
