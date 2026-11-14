@@ -301,7 +301,9 @@ export function createCompetitorIconFetcher(dependencies: CompetitorIconDependen
     // Largest first: manifest icons, declared raster icons, declared SVG icons,
     // then the conventional paths on the site's own origin and its www/bare twin.
     const origins = [
-      ...new Set([page?.url.origin, home.origin, alternateHome?.origin].filter((origin): origin is string => Boolean(origin))),
+      ...new Set(
+        [page?.url.origin, home.origin, alternateHome?.origin].filter((origin): origin is string => Boolean(origin)),
+      ),
     ];
     const candidates: URL[] = [];
     for (const candidate of [

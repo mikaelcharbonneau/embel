@@ -239,7 +239,12 @@ describe("competitor icons", () => {
         contentType: "text/html",
         bytes: html('<link rel="icon" type="image/svg+xml" href="/icon.svg">'),
       },
-      "https://shop.example.org/icon.svg": { status: 200, location: null, contentType: "image/svg+xml", bytes: drawing },
+      "https://shop.example.org/icon.svg": {
+        status: 200,
+        location: null,
+        contentType: "image/svg+xml",
+        bytes: drawing,
+      },
     });
     const icon = await fetch("shop.example.org");
     expect(icon?.contentType).toBe("image/png");
