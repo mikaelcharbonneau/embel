@@ -1,0 +1,1 @@
+Real generated images from the audit's two showcase test brands, Kestrel Analytics and Orchard Lane Cider. They are test data, used in previews and validation screens to judge the interface against real artwork. They are not part of Embel's own identity.

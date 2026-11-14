@@ -5,7 +5,7 @@ November 13, 2026. This file closes Prompt 6 of the design audit plan and is the
 ## Sources of truth
 
 - **Screens:** the Claude Design canvas "Embel screens", https://claude.ai/artifact/M4MG9CqZoWu2KeWb1u8wca (version 1794602494-f558).
-- **Design system:** "Embel Design System", https://claude.ai/artifact/NrcVPniQFUPdtrBBtY9V8J (version 1794600671-f81e). Its README, component pages and `changelog.md` record every decision below.
+- **Design system:** "Embel Design System", https://claude.ai/artifact/NrcVPniQFUPdtrBBtY9V8J (version 1794600671-f81e). Its README, component pages and `changelog.md` record every decision below. A read-only copy (version 1794614133-df61, Nov 14) is in `design-assets/design-system/` for sessions that cannot open claude.ai; see its `SNAPSHOT.md`.
 - **Approved screens as images:** `design-audit/approved/`, 213 PNGs rendered from the canvas with its own runtime (1×, full page, except the 1440 × 900 side-chat screens, which show one window because their panes scroll).
 
 ## Decisions made after the first Prompt 6 report
