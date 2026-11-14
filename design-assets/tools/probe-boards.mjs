@@ -13,7 +13,11 @@ const c = creds.find((x) => x.account === accountKey);
 const projectId = seeded.find((r) => r.key === brandKey).projectId;
 
 const browser = await launchBrowser();
-const context = await browser.newContext({ baseURL: ORIGIN, viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
+const context = await browser.newContext({
+  baseURL: ORIGIN,
+  viewport: { width: 1440, height: 900 },
+  deviceScaleFactor: 2,
+});
 const page = await context.newPage();
 await page.goto("/sign-in");
 const form = page.getByRole("form", { name: "Sign in", exact: true });
@@ -34,7 +38,12 @@ await page.waitForTimeout(1500);
 const imgs = await page.evaluate(() =>
   [...document.images].map((i) => {
     const r = i.getBoundingClientRect();
-    return { alt: i.alt, src: i.currentSrc.slice(0, 110), nat: [i.naturalWidth, i.naturalHeight], rect: [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)] };
+    return {
+      alt: i.alt,
+      src: i.currentSrc.slice(0, 110),
+      nat: [i.naturalWidth, i.naturalHeight],
+      rect: [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)],
+    };
   }),
 );
 console.log(page.url().replace(projectId, "<id>"));

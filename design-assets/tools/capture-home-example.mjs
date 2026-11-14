@@ -17,7 +17,8 @@ import { launchBrowser } from "../../design-audit/seed/journey.mjs";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const ORIGIN = "http://127.0.0.1:3105";
 const [accountKey, brandKey, outFile] = process.argv.slice(2);
-if (!accountKey || !brandKey || !outFile) throw new Error("Usage: capture-home-example.mjs <account> <brandKey> <outFile>");
+if (!accountKey || !brandKey || !outFile)
+  throw new Error("Usage: capture-home-example.mjs <account> <brandKey> <outFile>");
 
 const creds = JSON.parse(readFileSync(path.join(ROOT, "design-audit/.audit-credentials"), "utf8")).accounts;
 const seeded = JSON.parse(readFileSync(path.join(ROOT, "design-audit/.logs/last-seed.json"), "utf8")).results;
@@ -27,7 +28,14 @@ if (!account || !project) throw new Error("Unknown account or brand key.");
 
 const cached = [1, 2, 3].map((n) =>
   createHash("sha256")
-    .update(readFileSync(path.join(ROOT, `design-audit/seed/showcase/${brandKey === "orchardlane" ? "orchardlane" : brandKey}/board-${n}.png`)))
+    .update(
+      readFileSync(
+        path.join(
+          ROOT,
+          `design-audit/seed/showcase/${brandKey === "orchardlane" ? "orchardlane" : brandKey}/board-${n}.png`,
+        ),
+      ),
+    )
     .digest("hex"),
 );
 
@@ -61,17 +69,31 @@ await page.waitForFunction((el) => el.complete && el.naturalWidth > 0, await img
 const served = await img.evaluate(async (el) => {
   const bytes = new Uint8Array(await (await fetch(el.currentSrc)).arrayBuffer());
   const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return { sha: [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join(""), nat: [el.naturalWidth, el.naturalHeight], alt: el.alt, checked: el.closest("[role=radio]")?.getAttribute("aria-checked") };
+  return {
+    sha: [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join(""),
+    nat: [el.naturalWidth, el.naturalHeight],
+    alt: el.alt,
+    checked: el.closest("[role=radio]")?.getAttribute("aria-checked"),
+  };
 });
 const boardNumber = cached.indexOf(served.sha) + 1;
-console.log(JSON.stringify({ brandKey, alt: served.alt, natural: served.nat, radioChecked: served.checked, matchesCachedBoard: boardNumber || "no match" }));
+console.log(
+  JSON.stringify({
+    brandKey,
+    alt: served.alt,
+    natural: served.nat,
+    radioChecked: served.checked,
+    matchesCachedBoard: boardNumber || "no match",
+  }),
+);
 
 // Draw the board alone at 512 CSS px in the top-left corner, then clip 360 x 270 CSS px.
 await img.evaluate((el) => {
   const copy = new Image();
   copy.src = el.currentSrc;
   copy.id = "capture-board";
-  copy.style.cssText = "position:fixed;left:0;top:0;width:512px;height:512px;z-index:2147483647;margin:0;border:0;border-radius:0;display:block";
+  copy.style.cssText =
+    "position:fixed;left:0;top:0;width:512px;height:512px;z-index:2147483647;margin:0;border:0;border-radius:0;display:block";
   const veil = document.createElement("div");
   veil.style.cssText = "position:fixed;inset:0;background:#fff;z-index:2147483646";
   document.body.append(veil, copy);
@@ -79,6 +101,10 @@ await img.evaluate((el) => {
 });
 await page.waitForTimeout(300);
 mkdirSync(path.dirname(path.resolve(ROOT, outFile)), { recursive: true });
-await page.screenshot({ path: path.resolve(ROOT, outFile), clip: { x: 0, y: 0, width: 360, height: 270 }, animations: "disabled" });
+await page.screenshot({
+  path: path.resolve(ROOT, outFile),
+  clip: { x: 0, y: 0, width: 360, height: 270 },
+  animations: "disabled",
+});
 console.log("saved", outFile);
 await browser.close();

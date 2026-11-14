@@ -6,7 +6,10 @@ import { launchBrowser } from "../../design-audit/seed/journey.mjs";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.resolve(HERE, "../source");
 const browser = await launchBrowser();
-for (const [scale, file] of [[1, "IMG-003_share-image_v1.png"], [2, "IMG-003_share-image_v1@2x.png"]]) {
+for (const [scale, file] of [
+  [1, "IMG-003_share-image_v1.png"],
+  [2, "IMG-003_share-image_v1@2x.png"],
+]) {
   const context = await browser.newContext({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: scale });
   const page = await context.newPage();
   await page.goto(pathToFileURL(path.join(HERE, "share-image.html")).href);
