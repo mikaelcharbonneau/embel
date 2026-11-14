@@ -100,9 +100,10 @@
   background: var(--color-accent);
   color: var(--color-on-accent);
 }
-/* The send button fades while the box is empty; pressing it still explains why. */
+/* While the box is empty the send button takes the system's disabled look; pressing it still explains why. */
 .concept-home .home-composer:has(textarea:placeholder-shown) .composer-send-icon {
-  opacity: 0.35;
+  background: var(--color-bg-disabled);
+  color: var(--color-text-disabled);
 }
 .concept-home .home-composer > .form-error {
   margin: 0 var(--space-5) var(--space-5);
