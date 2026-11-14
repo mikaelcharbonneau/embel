@@ -39,7 +39,7 @@ describe("competitor logo", () => {
       ),
     );
     expect(host.querySelector("img")!.getAttribute("src")).toBe(
-      `/api/projects/${projectId}/competitor-icon?host=fixture.example.org&v=3`,
+      `/api/projects/${projectId}/competitor-icon?host=fixture.example.org&v=4`,
     );
   });
 

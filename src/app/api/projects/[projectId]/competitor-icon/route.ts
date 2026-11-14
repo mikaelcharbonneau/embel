@@ -17,9 +17,10 @@ const fetchIcon = createCompetitorIconFetcher();
 // Per owner, so one account's research never reveals another's. Bounded and
 // in memory only; the browser keeps its own private copy for a week.
 const cache = new Map<string, { icon: CompetitorIcon | null; expires: number }>();
+// A miss is retried after an hour, so a site that was briefly down is found later.
 const CACHE_ENTRIES = 500,
   HIT_MS = 7 * 86_400_000,
-  MISS_MS = 86_400_000;
+  MISS_MS = 3_600_000;
 
 /** Competitor websites saved in the project or proposed in its own research results. */
 function competitorHosts(values: unknown[]): Set<string> {
@@ -63,7 +64,13 @@ export async function GET(request: Request, context: RouteContext) {
       cache.set(key, entry);
       while (cache.size > CACHE_ENTRIES) cache.delete(cache.keys().next().value!);
     }
-    if (!entry.icon) throw new ApiError("not_found");
+    // No icon is an ordinary answer, not an error: 204 lets the page show the
+    // competitor's initial without the browser logging a failed request (D-091).
+    if (!entry.icon)
+      return new Response(null, {
+        status: 204,
+        headers: { "Cache-Control": "private, max-age=3600", Vary: "Cookie" },
+      });
     return new Response(new Uint8Array(entry.icon.bytes), {
       headers: {
         "Content-Type": entry.icon.contentType,

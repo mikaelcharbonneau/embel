@@ -5,7 +5,9 @@ import {
   competitorIconHostOfUrl,
   createCompetitorIconFetcher,
   iconLinks,
+  faviconServiceUrl,
   iconPixelSize,
+  looksLikeSvg,
   manifestIcons,
   pageIcons,
   sniffIconType,
@@ -68,13 +70,17 @@ describe("competitor icons", () => {
     expect(sniffIconType(svg)).toBeNull();
   });
 
-  it("prefers declared touch icons and ignores SVG and insecure links", () => {
+  it("prefers declared touch icons and ignores insecure links", () => {
     const base = new URL("https://shop.example.org/");
     const links = iconLinks(
       `<link rel="icon" href="/favicon-32.png" sizes="32x32"><link rel="apple-touch-icon" href="/touch.png"><link rel="icon" type="image/svg+xml" href="/icon.svg"><link rel="icon" href="http://shop.example.org/plain.png">`,
       base,
     );
     expect(links.map((url) => url.pathname)).toEqual(["/touch.png", "/favicon-32.png"]);
+    // SVG icons are kept apart, to be drawn into PNG on the server.
+    expect(
+      pageIcons('<link rel="icon" type="image/svg+xml" href="/icon.svg">', base).vectors.map((url) => url.pathname),
+    ).toEqual(["/icon.svg"]);
   });
 
   it("fetches the declared icon from the competitor's own site", async () => {
@@ -98,7 +104,9 @@ describe("competitor icons", () => {
   it("refuses private addresses, including after a redirect", async () => {
     const privateHost = fetcher({}, { "shop.example.org": [{ address: "10.0.0.5", family: 4 }] });
     await expect(privateHost.fetch("shop.example.org")).resolves.toBeNull();
-    expect(privateHost.requests).toHaveLength(0);
+    // The www twin and the favicon service may be asked; the private address never is.
+    expect(privateHost.requests.some((request) => request.address === "10.0.0.5")).toBe(false);
+    expect(privateHost.requests.some((request) => request.url.hostname === "shop.example.org")).toBe(false);
     const redirected = fetcher(
       {
         "https://shop.example.org/": {
@@ -117,7 +125,8 @@ describe("competitor icons", () => {
       { "internal.example.net": [{ address: "192.168.1.10", family: 4 }] },
     );
     await expect(redirected.fetch("shop.example.org")).resolves.toBeNull();
-    expect(redirected.requests.every((request) => request.url.hostname === "shop.example.org")).toBe(true);
+    expect(redirected.requests.some((request) => request.url.hostname === "internal.example.net")).toBe(false);
+    expect(redirected.requests.some((request) => request.address === "192.168.1.10")).toBe(false);
   });
 
   it("reads the pixel size of each icon format from its header", () => {
@@ -209,10 +218,63 @@ describe("competitor icons", () => {
     expect(fallback && iconPixelSize(fallback.bytes, fallback.contentType)).toBe(32);
   });
 
-  it("does not accept SVG served as a favicon", async () => {
+  it("never passes SVG on: an empty or script-only SVG is no icon", async () => {
+    expect(looksLikeSvg(svg)).toBe(true);
+    expect(looksLikeSvg(Buffer.from('<?xml version="1.0"?>\n<!-- mark --><svg viewBox="0 0 1 1"></svg>'))).toBe(true);
+    expect(looksLikeSvg(Buffer.from("<html><svg></svg></html>"))).toBe(false);
     const { fetch } = fetcher({
       "https://shop.example.org/favicon.ico": { status: 200, location: null, contentType: "image/x-icon", bytes: svg },
     });
     await expect(fetch("shop.example.org")).resolves.toBeNull();
+  });
+
+  it("draws a declared SVG icon into a PNG, with no script left in it", async () => {
+    const drawing = Buffer.from(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><script>alert(1)</script><rect x="2" y="2" width="12" height="12" fill="#1d4ed8"/></svg>',
+    );
+    const { fetch } = fetcher({
+      "https://shop.example.org/": {
+        status: 200,
+        location: null,
+        contentType: "text/html",
+        bytes: html('<link rel="icon" type="image/svg+xml" href="/icon.svg">'),
+      },
+      "https://shop.example.org/icon.svg": { status: 200, location: null, contentType: "image/svg+xml", bytes: drawing },
+    });
+    const icon = await fetch("shop.example.org");
+    expect(icon?.contentType).toBe("image/png");
+    expect(icon && sniffIconType(icon.bytes)).toBe("image/png");
+    expect(icon?.bytes.includes("script")).toBe(false);
+  });
+
+  it("tries the www twin when the bare host does not answer", async () => {
+    const { fetch } = fetcher({
+      "https://www.shop.example.org/": {
+        status: 200,
+        location: null,
+        contentType: "text/html",
+        bytes: html('<link rel="apple-touch-icon" href="/touch.png">'),
+      },
+      "https://www.shop.example.org/touch.png": {
+        status: 200,
+        location: null,
+        contentType: "image/png",
+        bytes: sizedPng(180),
+      },
+    });
+    const icon = await fetch("shop.example.org");
+    expect(icon && iconPixelSize(icon.bytes, icon.contentType)).toBe(180);
+  });
+
+  it("asks the public favicon service last, with only the competitor's domain", async () => {
+    const service = faviconServiceUrl("shop.example.org");
+    expect(service.hostname).toBe("www.google.com");
+    expect(service.searchParams.get("domain")).toBe("shop.example.org");
+    const { fetch, requests } = fetcher({
+      [service.href]: { status: 200, location: null, contentType: "image/png", bytes: sizedPng(64) },
+    });
+    const icon = await fetch("shop.example.org");
+    expect(icon && iconPixelSize(icon.bytes, icon.contentType)).toBe(64);
+    expect(requests.at(-1)?.url.href).toBe(service.href);
   });
 });

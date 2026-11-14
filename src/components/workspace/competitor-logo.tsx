@@ -14,10 +14,11 @@ function iconHost(url: string | undefined): string | null {
 
 // Bumped when the server starts choosing icons differently, so browsers do not
 // keep showing an earlier, smaller icon from their week-long private cache.
-const ICON_VERSION = "3";
+const ICON_VERSION = "4";
 
 /** The competitor's own site icon, fetched through Embel's server. A neutral
- * initial stands in when the site has no usable icon; nothing is invented.
+ * initial stands in when no icon was found (the server answers 204, which the
+ * image reports as an error without a console message); nothing is invented.
  * Icons and initials share one tile, so every logo has the same size whatever
  * the site provides; an icon fills its tile to the edges. */
 export function CompetitorLogo({
