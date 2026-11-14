@@ -40,28 +40,7 @@
   margin-top: var(--space-5);
   text-decoration: underline;
 }
-.project-workbench {
-  display: flex;
-  align-items: stretch;
-  padding: 0;
-  max-width: none;
-  min-height: 100%;
-  width: 100%;
-  margin: 0;
-}
-.project-workbench-canvas {
-  padding: var(--space-6);
-  flex: 1;
-  min-width: 0;
-  background: var(--color-bg-canvas);
-}
-.project-workbench .button {
-  min-height: 34px;
-  font-size: var(--font-size-2);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-small);
-}
-.project-workbench [hidden],
+
 .project-strategy-workspace [hidden] {
   display: none !important;
 }
@@ -452,23 +431,7 @@
   cursor: pointer;
   padding-block: var(--space-2);
 }
-.project-systems-workspace > .project-workbench-canvas {
-  padding-top: 0;
-}
-.project-systems-workspace > .project-dock {
-  margin-top: -20px;
-}
-.project-systems-workspace .project-dock .identity-preferences {
-  border: 0;
-  padding: 0;
-}
-.project-systems-workspace.project-workbench {
-  display: flex;
-  gap: 0;
-}
-.project-logo-creation .project-workbench-canvas > header {
-  margin-bottom: var(--space-5);
-}
+
 .project-logo-creation .project-dock :is(section, fieldset) {
   padding: 0;
   margin: 0 0 var(--space-5);
@@ -526,24 +489,15 @@
     flex-basis: 300px;
     width: 300px;
   }
-  .project-workbench-canvas {
-    padding: var(--space-5);
-  }
 }
 @media (max-width: 760px) {
-  .project-systems-workspace > .project-dock {
-    margin-top: 0;
-  }
   .project-workspace-content {
     overflow: hidden auto;
   }
-  .project-workbench,
   .project-strategy-columns {
     flex-direction: column;
   }
-  .project-workbench-canvas {
-    padding: var(--space-5) var(--space-4);
-  }
+
   .project-dock,
   .project-live-brief {
     width: 100%;
@@ -582,9 +536,6 @@
   .project-strategy-workspace .conversation-widget-heading > .text-link {
     margin-left: auto;
   }
-  .project-workbench :is(button, .button, summary) {
-    min-height: 44px;
-  }
 }
 @media (max-width: 540px) {
   .project-personality-traits > div {
@@ -602,8 +553,7 @@
   .project-conversation-marker .text-link {
     font-size: 11px;
   }
-  .project-strategy-workspace .conversation-composer textarea,
-  .project-workbench :is(input, textarea, select) {
+  .project-strategy-workspace .conversation-composer textarea {
     font-size: var(--font-size-4);
   }
   .project-strategy-workspace .conversation-composer .composer-send-icon {

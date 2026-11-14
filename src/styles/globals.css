@@ -56,17 +56,12 @@ h3 { font-size: 15px; line-height: 1.4; font-weight: 500; letter-spacing: -.2px;
 .example-dot { width: 5px; height: 5px; background: var(--color-text); border-radius: 50%; }
 .empty-icon { display: grid; place-items: center; width: 44px; height: 44px; background: var(--color-bg-sunken); border-radius: var(--radius-small); color: var(--color-text-muted); flex: 0 0 auto; }
 .empty-icon.large { width: 56px; height: 56px; border-radius: var(--radius-control); margin-bottom: var(--space-1-5); }
-.quiet-empty { color: var(--color-text-muted); font-size: var(--font-size-2); padding: var(--space-8) 0; }
 /* Page not found and route errors: centered on the page, without a panel. */
 .page.route-state { min-height: 100%; display: flex; align-items: center; justify-content: center; }
 .route-state > section { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); max-width: 480px; padding-block: var(--space-12); text-align: center; }
 .route-state h1 { font-size: 28px; line-height: 36px; letter-spacing: -.02em; }
 .route-state p { color: var(--color-text-muted); font-size: var(--font-size-3); line-height: 22px; }
 .route-state-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-3); margin-top: var(--space-3); }
-.empty-panel { min-height: 320px; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-bg-paper); gap: var(--space-3); padding: var(--space-10) var(--space-6); }
-.empty-panel h2 { font-size: var(--font-size-6); }
-.empty-panel p { max-width: 470px; font-size: var(--font-size-2); color: var(--color-text-muted); }
-.empty-panel .button { margin-top: var(--space-2); }
 .field-label { display: block; font-size: var(--font-size-2); font-weight: 500; }
 .field-label input, .field-label textarea { display: block; width: 100%; padding: var(--space-3); background: var(--color-bg-paper); border: 1px solid var(--color-border-control); border-radius: var(--radius-control); font-size: var(--font-size-3); font-weight: 400; line-height: 1.55; margin-top: var(--space-3); }
 .field-label textarea { min-height: 106px; }
@@ -130,8 +125,6 @@ h3 { font-size: 15px; line-height: 1.4; font-weight: 500; letter-spacing: -.2px;
   .scope-option { align-items: center; padding: var(--space-3); }
   .scope-option > :is(svg, .e-icon) { margin: 0; }
   .scope-option small { font-size: var(--font-size-2); margin-top: var(--space-1); }
-  .empty-panel { padding: var(--space-8) var(--space-5); min-height: 320px; }
-  .empty-panel h2 { max-width: 300px; }
   .save-label { flex-basis: 100%; margin: var(--space-1) 0 0; }
   .editor-intro { font-size: var(--font-size-2); margin-bottom: var(--space-5); }
   .form-panel { padding: var(--space-5) var(--space-4); }
