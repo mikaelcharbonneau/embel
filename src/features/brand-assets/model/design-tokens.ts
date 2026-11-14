@@ -87,11 +87,21 @@ const cssName = (value: string) =>
     .replace(/^-|-$/gu, "") || "color";
 
 export function designTokensCss(tokens: DesignTokens): string {
+  // A palette color whose key is also a role name ("primary") is written once, not once as a color and again as
+  // its role.
+  const colorLines = [
+    ...tokens.colors.map((color) => [cssName(color.key), color.hex] as const),
+    ...Object.entries(tokens.roles).map(([role, hex]) => [role, hex] as const),
+  ];
+  const written = new Set<string>();
   const lines = [
     `/* ${tokens.brand} design tokens, from the chosen direction. */`,
     ":root {",
-    ...tokens.colors.map((color) => `  --color-${cssName(color.key)}: ${color.hex};`),
-    ...Object.entries(tokens.roles).map(([role, hex]) => `  --color-${role}: ${hex};`),
+    ...colorLines.flatMap(([name, hex]) => {
+      if (written.has(name)) return [];
+      written.add(name);
+      return [`  --color-${name}: ${hex};`];
+    }),
     `  --font-heading: "${tokens.fonts.heading.family}", system-ui, sans-serif;`,
     `  --font-body: "${tokens.fonts.body.family}", system-ui, sans-serif;`,
     `  --font-weight-heading: ${tokens.fonts.heading.weight};`,

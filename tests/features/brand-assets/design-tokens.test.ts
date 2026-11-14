@@ -47,6 +47,22 @@ describe("design system tokens", () => {
     expect(supporting.colors.at(-1)?.use).toBe("Supporting color");
     expect(readableBrandColor(snapshot, snapshot.palette.accent)).toBe(snapshot.palette.text);
   });
+  it("writes each color variable once, even when a palette color is named after its role", () => {
+    const { snapshot } = brandAssetFixture();
+    const named = {
+      ...snapshot,
+      colors: [
+        { key: "primary", name: "Primary", hex: snapshot.palette.primary },
+        { key: "accent", name: "Accent", hex: snapshot.palette.accent },
+        ...snapshot.colors,
+      ],
+    };
+    const css = designTokensCss(designTokens(named));
+    const names = [...css.matchAll(/--color-([\w-]+):/g)].map((match) => match[1]);
+    expect(names).toEqual([...new Set(names)]);
+    expect(css).toContain(`--color-primary: ${snapshot.palette.primary};`);
+    expect(css).toContain(`--color-text: ${snapshot.palette.text};`);
+  });
   it("falls back to dark or light text when no palette color reaches 4.5:1 on a brand color", () => {
     const { snapshot } = brandAssetFixture();
     // Orchard Lane Cider: #141414 text on its #C8553D accent measured 4.23:1.
