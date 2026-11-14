@@ -36,13 +36,13 @@ describe("saved project handoffs", () => {
     context.intake.audienceReviewedAt = null;
     expect(handoff(context)).toMatchObject({
       strategyReady: false,
-      reviews: [{ key: "audience", label: "Review audience", anchor: "audience" }],
-      next: { stage: "strategy", href: `/brands/account/${projectId}?view=strategy#journey-strategy` },
+      reviews: [{ key: "audience", label: "Review audience" }],
+      next: { step: "strategy", part: "Audience", href: `/brands/account/${projectId}?view=strategy#journey-strategy` },
     });
   });
   it("combines missing description and unreviewed brief into one editable destination", () => {
     const context = contextSnapshotSchema.parse({});
-    expect(handoff(context).reviews.filter((step) => step.anchor === "brief")).toHaveLength(1);
+    expect(handoff(context).reviews.filter((step) => step.key === "brief")).toHaveLength(1);
     expect(handoff(context)).toMatchObject({
       briefReviewed: false,
       savedName: null,
@@ -51,12 +51,17 @@ describe("saved project handoffs", () => {
   });
   it("continues approved Strategy to Naming, then a saved name to Inspiration", () => {
     const context = ready();
-    expect(handoff(context).next).toMatchObject({ stage: "naming", href: `/brands/account/${projectId}/naming` });
+    expect(handoff(context).next).toMatchObject({
+      step: "voice",
+      part: "Name",
+      href: `/brands/account/${projectId}/naming`,
+    });
     context.selectedName = "Luma";
     expect(handoff(context)).toMatchObject({
       savedName: "Luma",
       next: {
-        stage: "inspiration",
+        step: "identity",
+        part: "Inspiration",
         label: "Continue to Inspiration",
         href: `/brands/account/${projectId}/inspiration`,
       },
@@ -70,7 +75,7 @@ describe("saved project handoffs", () => {
     expect(handoff(context)).toMatchObject({
       savedName: "Luma",
       strategyReady: false,
-      next: { stage: "strategy", href: `/brands/account/${projectId}?view=strategy#journey-strategy` },
+      next: { step: "strategy", href: `/brands/account/${projectId}?view=strategy#journey-strategy` },
     });
   });
   it("starts in Strategy until the brief is reviewed, even when a name was supplied", () => {
@@ -78,7 +83,7 @@ describe("saved project handoffs", () => {
       description: "Repairable lighting",
       intake: { suppliedName: "Provided name" },
     });
-    expect(handoff(context)).toMatchObject({ strategyReady: false, next: { stage: "strategy" } });
+    expect(handoff(context)).toMatchObject({ strategyReady: false, next: { step: "strategy" } });
   });
   it("sends every Strategy review to a section the project conversation has", () => {
     // The conversation renders `journey-strategy` always and `journey-voice` from Personality on;
@@ -122,7 +127,8 @@ describe("saved project handoffs", () => {
       change(context);
       const { next, reviews } = handoff(context);
       expect(reviews[0]?.key).toBe(key);
-      expect(next.stage).toBe("strategy");
+      // Personality is a Voice step (the owner's journey definition), wherever its section is shown.
+      expect(next.step).toBe(key === "personality" ? "voice" : "strategy");
       const url = new URL(next.href, "https://embel.test");
       expect(url.pathname + url.search).toBe(`/brands/account/${projectId}?view=strategy`);
       expect(journeySectionOfHash(url.hash)).toBe(section);

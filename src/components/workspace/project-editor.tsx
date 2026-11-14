@@ -723,7 +723,6 @@ type EditorStorage = {
   promptPlaceholder?: string;
   promptHint?: React.ReactNode;
   resultNavigation?: React.ReactNode;
-  projectContext?: React.ReactNode;
   onStrategyApproved?: (draft: LocalDraft) => Promise<boolean>;
 };
 
@@ -1209,7 +1208,6 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
               ))}
             </ol>
             {!lastPrompt && storage.strategy && <div className="conversation-service-entry">{storage.strategy}</div>}
-            {storage.projectContext && <div className="conversation-context">{storage.projectContext}</div>}
             <ContextDetails className="project-details-disclosure" title={<>Project details and saving</>}>
               <header className="conversation-project-header">
                 <div className="conversation-project-title">

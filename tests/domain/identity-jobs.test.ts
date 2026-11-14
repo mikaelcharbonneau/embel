@@ -1,6 +1,9 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import {
+  identityRoundJobState,
   identityGenerationIntentSchema,
   identityAvailabilitySchema,
   identityStepOutputSchema,
@@ -13,6 +16,8 @@ import {
   validateIdentityGeneratedSystemBinding,
   IDENTITY_STEP_OUTPUT_MAX_BYTES,
 } from "../../src/domain/identity-jobs";
+import { TERMINAL_RUN_STATUSES } from "../../src/domain/generation-run";
+import { JOB_WORKING_STATES, canJobMove, isJobFinished } from "../../src/domain/jobs";
 import { IMAGE_MODEL } from "../../src/domain/providers";
 import { contextSnapshotSchema } from "../../src/domain/projects";
 import {
@@ -526,5 +531,52 @@ describe("bounded immutable step output", () => {
       value.identity.systems[0]!.components.logo.usageNotes = bad;
       expect(identityStepOutputSchema.safeParse(value).success).toBe(false);
     }
+  });
+});
+
+describe("how a Creative direction round's job is closed (R6)", () => {
+  it("counts the boards first, then the stop, in the database's order", () => {
+    const expected = {
+      succeeded: { 0: "failed", 1: "partial", 2: "partial", 3: "succeeded" },
+      failed: { 0: "failed", 1: "partial", 2: "partial", 3: "succeeded" },
+      cancelled: { 0: "cancelled", 1: "cancelled", 2: "cancelled", 3: "succeeded" },
+    } as const;
+    expect(Object.keys(expected).sort()).toEqual([...TERMINAL_RUN_STATUSES].sort());
+    for (const ended of TERMINAL_RUN_STATUSES)
+      for (const boards of [0, 1, 2, 3] as const) {
+        const state = identityRoundJobState(boards, ended);
+        expect(state, `${boards} boards, run ${ended}`).toBe(expected[ended][boards]);
+        // Whatever the answer, it is a finished state every working job may move to.
+        expect(isJobFinished(state)).toBe(true);
+        for (const from of JOB_WORKING_STATES) expect(canJobMove(from, state)).toBe(true);
+      }
+    // A round stopped after its third board: the run is cancelled, the job succeeded.
+    expect(identityRoundJobState(3, "cancelled")).toBe("succeeded");
+  });
+
+  it("is the rule engine_identity_close_job applies", () => {
+    const directory = join(process.cwd(), "supabase/migrations");
+    const definitions = readdirSync(directory)
+      .filter((name) => name.endsWith(".sql"))
+      .sort()
+      .flatMap(
+        (name) =>
+          readFileSync(join(directory, name), "utf8").match(
+            /create (?:or replace )?function fluid_private\.engine_identity_close_job\([\s\S]*?\nend \$_?\$/giu,
+          ) ?? [],
+      );
+    expect(definitions.length).toBeGreaterThan(0);
+    const close = definitions.at(-1)!.replace(/\s+/gu, " ");
+    // Only a job that is still working is closed.
+    expect(close).toContain("j.state not in ('queued', 'running', 'cancel_requested') then return;");
+    // The boards delivered are the round's succeeded steps.
+    expect(close).toContain(
+      "select count(*) into n from public.job_steps where job_id = j.id and state = 'succeeded';",
+    );
+    // The rule itself, in this order.
+    expect(close).toContain(
+      "v_state := case when n = 3 then 'succeeded' when r.status = 'cancelled' then 'cancelled' when n > 0 then 'partial' else 'failed' end;",
+    );
+    expect(close).toContain("set state = v_state, lease_token = null, lease_expires_at = null");
   });
 });

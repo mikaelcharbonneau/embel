@@ -336,3 +336,45 @@ describe("a finished brand", () => {
     expect(host.querySelector("dialog")?.textContent).toContain("Whole board A");
   });
 });
+
+// docs/state-machines.md, "The same server situation": one answer for the three AI step screens.
+describe("what a Creative direction message offers", () => {
+  it("offers Try again beside a Stop that couldn't be confirmed, while progress and Stop stay", async () => {
+    const onClick = vi.fn();
+    await render(
+      props({
+        generation: {
+          status: "running",
+          completed: 1,
+          error: "Stopping could not be confirmed. Check the request; its saved systems are kept.",
+          errorAction: { label: "Try again", onClick },
+          onGenerate: vi.fn(),
+          onCheck: vi.fn(),
+          onStop: vi.fn(),
+        },
+      }),
+    );
+    expect(button("Stop generation")).toBeDefined();
+    await click(button("Try again"));
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+  it("offers nothing to press beside today's limit: it would be refused again", async () => {
+    const limit =
+      "You’ve reached today’s limit for new directions. Your saved directions are kept. Try again tomorrow.";
+    await render(
+      props({
+        generation: {
+          status: "idle",
+          completed: 0,
+          error: limit,
+          errorAction: null,
+          onGenerate: vi.fn(),
+          onCheck: vi.fn(),
+        },
+      }),
+    );
+    expect(host.textContent).toContain(limit);
+    expect(button("Check availability")).toBeUndefined();
+    expect(button("Try again")).toBeUndefined();
+  });
+});

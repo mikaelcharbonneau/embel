@@ -23,7 +23,6 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
   usePathname: () => `/brands/account/bbbbbbbb-1111-4111-8111-111111111111`,
 }));
-vi.mock("@/components/workspace/account-project-continuity", () => ({ AccountProjectContinuity: () => null }));
 vi.mock("@/components/workspace/account-guided-interview", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/components/workspace/account-guided-interview")>();
   return {
@@ -646,8 +645,11 @@ it.each([false, true])(
     if (newerTyping) await typePrompt("A different unsent question");
     await retrySave();
     expect(patches).toBe(1);
-    expect(project.context.intake.conversation).toHaveLength(1);
-    expect(project.context.intake.conversation![0]).toMatchObject({ text: "The submitted question" });
+    // One message, plus the saved brief this research starts from: the brief is not the first message here.
+    expect(project.context.intake.conversation).toMatchObject([
+      { kind: "saved_context", text: "A neighborhood lunch kitchen" },
+      { kind: "user_message", text: "The submitted question" },
+    ]);
     expect(
       host.querySelector<HTMLTextAreaElement>(":is(.conversation-composer, .workspace-reply) textarea")!.value,
     ).toBe(newerTyping ? "A different unsent question" : "");
@@ -701,8 +703,11 @@ it.each([false, true])(
     await retrySave();
     expect(requests.map((item) => item.method)).toEqual(["PATCH", "GET", "PATCH"]);
     expect(requests[2]!.body).toBe(requests[0]!.body);
-    expect(project.context.intake.conversation).toHaveLength(1);
-    expect(project.context.intake.conversation![0]).toMatchObject({ text: "A submitted question after rate limiting" });
+    // One message, plus the saved brief this research starts from: the brief is not the first message here.
+    expect(project.context.intake.conversation).toMatchObject([
+      { kind: "saved_context", text: "A neighborhood lunch kitchen" },
+      { kind: "user_message", text: "A submitted question after rate limiting" },
+    ]);
     expect(
       host.querySelector<HTMLTextAreaElement>(":is(.conversation-composer, .workspace-reply) textarea")!.value,
     ).toBe(newerTyping ? "Keep this different unsent question" : "");

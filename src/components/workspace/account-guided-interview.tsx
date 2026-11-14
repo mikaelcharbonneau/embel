@@ -25,6 +25,7 @@ import { useProjectProgress } from "./project-progress";
 import { getNamingReadiness } from "@/domain/project-naming";
 import {
   appendGuidedTurn,
+  briefChangedSinceStrategy,
   confirmGuidedSelection,
   guidedTurnOperation,
   revisitGuidedStage,
@@ -761,8 +762,9 @@ export function AccountGuidedInterview({
     saved.scope === "complete_brand" &&
     getNamingReadiness(saved.context, saved.scope).ready;
   // "Is Strategy done?" is saved twice: the conversation's stage and the review marks on the brief (J1 in
-  // docs/state-machines.md). A brief edit clears the marks and leaves the stage, so past Personality the
-  // names close with no slogan to wait for. Name the first unconfirmed step so the work area can offer it.
+  // docs/state-machines.md). A brief edit no longer clears the marks (owner decision, November 14, 2026), but a
+  // project whose brief was edited before that still has the stage without the marks: past Personality its names
+  // are closed with no slogan to wait for. Name the first unconfirmed step so the work area can offer it.
   const strategyReview: StrategyReviewStep | null = (() => {
     if (
       saved.scope !== "complete_brand" ||
@@ -1210,6 +1212,34 @@ export function AccountGuidedInterview({
       </div>
     </div>
   );
+  // Owner decision, November 14, 2026: a brief edited after Strategy was confirmed keeps every answer and closes
+  // nothing. This notice says so and offers the usual "Change answer" on the first Strategy step. Closing it, or
+  // leaving it, changes nothing; it returns only for a later edit.
+  const [briefNoticeClosedFor, setBriefNoticeClosedFor] = useState<string | null>(null);
+  const briefNotice = saved.scope === "complete_brand" &&
+    briefChangedSinceStrategy(context) &&
+    briefNoticeClosedFor !== context.description && (
+      <InlineMessage
+        className="guided-brief-changed"
+        title="Your brief changed"
+        onDismiss={() => setBriefNoticeClosedFor(context.description)}
+        actions={
+          <Button
+            size="sm"
+            icon="rotate-ccw"
+            disabled={editDisabled}
+            onClick={() => void revisit("competitors", turnOf("competitors")?.userMessageId ?? null)}
+          >
+            Redo Strategy
+          </Button>
+        }
+      >
+        <p>
+          You edited your brief after confirming your Strategy. Your answers and progress are kept. To base them on the
+          new brief, redo Strategy from Competitors.
+        </p>
+      </InlineMessage>
+    );
   const briefEditor = (
     <AccountBriefEditor
       workspace={workspace}
@@ -1444,6 +1474,7 @@ export function AccountGuidedInterview({
         : saved.scope !== "complete_brand"
           ? userMessage(saved.context.description, "description", briefEditor)
           : briefEditor}
+      {briefNotice}
       {legacyReplies}
       <section
         id={journeySectionId("strategy")}

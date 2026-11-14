@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { contextSnapshotSchema } from "@/domain/projects";
 import { strategyJobSchema } from "@/domain/strategy-jobs";
-import { appendGuidedTurn, initializeGuidedInterview } from "@/domain/guided-interview";
+import {
+  appendGuidedTurn,
+  briefChangedSinceStrategy,
+  initializeGuidedInterview,
+  strategyBrief,
+} from "@/domain/guided-interview";
 import {
   guidedAllowance,
   guidedMessageContext,
@@ -193,5 +198,23 @@ describe("personality replies", () => {
     expect(withoutScoreScaleNote("Scores are independent—not percentages.")).toBe(
       "Scores are independent—not percentages.",
     );
+  });
+});
+
+describe("the brief Strategy starts from", () => {
+  it("is recorded when research starts from a brief that is not the first message, so it is not reported as an edit", () => {
+    const now = "2026-11-14T00:00:00Z";
+    const context = contextSnapshotSchema.parse({
+      description: "A repairable lighting studio for renters",
+      intake: {
+        conversation: [{ id: "first", kind: "user_message", text: "A lighting studio", createdAt: now }],
+      },
+    });
+    const started = initialGuidedContext(context, 2, now);
+    expect(strategyBrief(started)).toBe("A repairable lighting studio for renters");
+    expect(briefChangedSinceStrategy({ ...started, competitorReviewComplete: true })).toBe(false);
+    // A brief that is the first message needs no record.
+    const same = contextSnapshotSchema.parse({ ...context, description: "A lighting studio" });
+    expect(initialGuidedContext(same, 2, now).intake.conversation).toEqual(same.intake.conversation);
   });
 });

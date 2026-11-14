@@ -47,6 +47,8 @@ export type NamingFeedState = {
   stopping: boolean;
   error: string | null;
   retry: "start" | "stop" | "load" | null;
+  /** The HTTP status that refused the request `retry` names; absent or null when it got no answer. */
+  failedStatus?: number | null;
   /** The last steered request this tab sent, so Try again can repeat its direction. */
   lastSteer: Pick<StartNamingRunRequest, "seedIds" | "instruction"> | null;
 };

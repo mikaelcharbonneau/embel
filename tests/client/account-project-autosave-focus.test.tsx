@@ -7,7 +7,6 @@ import { AccountSessionProvider, useAccountSession } from "@/components/workspac
 import { AccountProjectEditor } from "@/components/workspace/account-project-editor";
 import { accountProjectSchema, type AccountProject } from "@/domain/project-api";
 
-vi.mock("@/components/workspace/account-project-continuity", () => ({ AccountProjectContinuity: () => null }));
 vi.mock("@/components/workspace/use-strategy-jobs", () => ({
   useStrategyJobs: () => ({
     overview: { jobs: [], availability: { status: "unavailable", operations: [], reason: "worker_unavailable" } },

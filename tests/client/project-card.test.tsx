@@ -95,9 +95,13 @@ async function settle(index = 0, url = "blob:saved-logo") {
 beforeEach(() => {
   currentProject = project();
   drafts = createAccountDraftMemory();
-  mock.action
-    .mockReset()
-    .mockResolvedValue({ label: "View brand kit", href: `/brands/account/${id(2)}/logo/deliverables` });
+  mock.action.mockReset().mockResolvedValue({
+    step: "assets",
+    part: "Brand images",
+    label: "View brand kit",
+    href: `/brands/account/${id(2)}/logo/deliverables`,
+    finished: true,
+  });
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.stubGlobal(
     "IntersectionObserver",
@@ -267,7 +271,13 @@ describe("shared Home and Projects card", () => {
   });
 
   it("marks the verified next step as current and writes it beside the mark", async () => {
-    mock.action.mockResolvedValue({ label: "Choose a logo", href: `/brands/account/${id(2)}/logo` });
+    mock.action.mockResolvedValue({
+      step: "identity",
+      part: "Logo",
+      label: "Choose a logo",
+      href: `/brands/account/${id(2)}/logo`,
+      finished: false,
+    });
     await render();
     await settle();
     const mark = host.querySelector(".e-journey")!;

@@ -1,9 +1,16 @@
 import { z } from "zod";
-import { jobStatusSchema } from "./jobs";
+import {
+  JOB_WORKING_OR_UNCONFIRMED_STATES,
+  isJobWaitingOrRunning,
+  isJobWorkingOrUnconfirmed,
+  jobDeliveredSomething,
+  jobStatusSchema,
+} from "./jobs";
 import { operationSchema } from "./providers";
 import { projectStrategyHref } from "./project-handoff";
 
-export const activeJobStates = ["queued", "running", "cancel_requested", "needs_reconciliation"] as const;
+/** The states the activity list shows as unfinished (see JOB_WORKING_OR_UNCONFIRMED_STATES in jobs.ts). */
+export const activeJobStates = JOB_WORKING_OR_UNCONFIRMED_STATES;
 export const jobActivityEntrySchema = z.strictObject({
   id: z.uuid(),
   ownerId: z.uuid(),
@@ -26,7 +33,7 @@ export const jobActivitySchema = z
     const rows = [...value.active, ...value.recent];
     if (rows.some((row) => row.ownerId !== value.ownerId) || new Set(rows.map((row) => row.id)).size !== rows.length)
       ctx.addIssue({ code: "custom", message: "Activity must contain unique jobs from the verified owner" });
-    if (value.active.some((row) => !activeJobStates.some((state) => state === row.state)))
+    if (value.active.some((row) => !isJobWorkingOrUnconfirmed(row.state)))
       ctx.addIssue({ code: "custom", path: ["active"], message: "Active activity must represent unfinished work" });
   });
 export type JobActivity = z.infer<typeof jobActivitySchema>;
@@ -113,7 +120,7 @@ export type JobGroupStatus = "failed" | "unconfirmed" | "running" | "stopping" |
 function statusFor(states: readonly State[]): JobGroupStatus {
   if (states.includes("failed")) return "failed";
   if (states.includes("needs_reconciliation")) return "unconfirmed";
-  if (states.includes("running") || states.includes("queued")) return "running";
+  if (states.some(isJobWaitingOrRunning)) return "running";
   if (states.includes("cancel_requested")) return "stopping";
   if (states.includes("partial")) return "partial";
   if (states.includes("cancelled")) return "stopped";
@@ -188,7 +195,7 @@ export function groupJobActivity(activity: Pick<JobActivity, "active" | "recent"
         operation: first.operation,
         jobs,
         status: statusFor(states),
-        someMade: states.some((state) => state === "succeeded" || state === "partial"),
+        someMade: states.some(jobDeliveredSomething),
         complete,
         label: jobActionLabel(first.operation, complete ? jobs.length : undefined),
         href: jobActivityHref(first),
@@ -247,7 +254,7 @@ export function jobActivityDetail(group: JobActivityGroup, now: number) {
       return `Stopping, started ${started}`;
     case "failed":
       // Part of a set can fail while the rest is still being made or already made.
-      if (group.jobs.some((job) => job.state === "running" || job.state === "queued"))
+      if (group.jobs.some((job) => isJobWaitingOrRunning(job.state)))
         return "Some couldn’t be made, the rest is still running";
       return `${group.someMade ? "Some couldn’t be made" : "Couldn’t be made"}, ${ended}`;
     case "unconfirmed":

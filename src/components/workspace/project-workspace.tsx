@@ -36,13 +36,12 @@ import {
   useProjectHeader,
   type ConversationSteps,
 } from "@/components/journey/project-header";
-import { projectJourney, type JourneyStepView } from "@/domain/journey";
+import { journeyProgress, projectJourney, type JourneyStepView } from "@/domain/journey";
 import { WorkspaceNoticeContext } from "./workspace-layout";
 import { Icon } from "@/components/ui/icon";
 
 type Stage = "strategy" | "naming" | "identity" | "files";
 type EvidenceReporter = (value: ProjectStageEvidence) => void;
-const IdentityEvidenceContext = createContext<EvidenceReporter | null>(null);
 const LogoEvidenceContext = createContext<EvidenceReporter | null>(null);
 
 function useProjectEvidence(value: ProjectStageEvidence | null, report: EvidenceReporter | null) {
@@ -139,17 +138,9 @@ function OwnedProjectShell({
   // The page below shows its own "We couldn’t open this brand" card; the strip then stays out of the way.
   const [pageError, setPageError] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const [identityEvidence, setIdentityEvidence] = useState<ProjectStageEvidence | null>(null);
   const [logoEvidence, setLogoEvidence] = useState<ProjectStageEvidence | null>(null);
   const [conversation, setConversation] = useState<ConversationSteps | null>(null);
   const [noticesHosted, setNoticesHosted] = useState(false);
-  const reportIdentity = useCallback(
-    (value: ProjectStageEvidence) => {
-      if (!isCurrent(account) || value.ownerId !== account.userId || value.projectId !== projectId) return;
-      setIdentityEvidence((previous) => (sameEvidence(previous, value) ? previous : value));
-    },
-    [account, projectId, isCurrent],
-  );
   const reportLogo = useCallback(
     (value: ProjectStageEvidence) => {
       if (!isCurrent(account) || value.ownerId !== account.userId || value.projectId !== projectId) return;
@@ -189,7 +180,16 @@ function OwnedProjectShell({
       ? workspace
       : null;
   const project = current?.saved ?? null;
-  const nextHref = useProjectNextStep(account, project);
+  const evidence = useProjectNextStep(account, project);
+  // One answer for the bar, the notices and the pages below (docs/state-machines.md, J2). The bar follows the
+  // conversation's answer the moment it is given, before its save is confirmed.
+  const journey = project
+    ? journeyProgress({
+        project: { ...project, context: current?.pendingGuidedContext ?? project.context },
+        evidence,
+      })
+    : null;
+  const nextHref = journey?.next?.href ?? null;
   // The same derivation as the project page (docs/state-machines.md, J3). "Saved" only reflects a project
   // head confirmed by the server with no pending edits; a failed read shows its notice instead of a status.
   const saveState = accountBarSaveState(
@@ -201,7 +201,7 @@ function OwnedProjectShell({
           projectId,
           projectName: contextDisplayName(project.context) || project.title,
           steps: conversationJourney(
-            projectJourney({ projectId, pathname, nextHref, shown: conversation?.reached ?? null }),
+            projectJourney({ projectId, pathname, progress: journey, shown: conversation?.reached ?? null }),
             conversation,
             projectId,
           ),
@@ -212,7 +212,6 @@ function OwnedProjectShell({
   if (!live) return null;
   const { inspiration, brandBoard, stage } = projectRoute(projectId, pathname);
   const handoff = project && getProjectHandoff(project);
-  const identityStatus = projectEvidenceStatus(identityEvidence, project?.current_revision);
   const logoStatus = projectEvidenceStatus(logoEvidence, project?.current_revision);
   const progress: ProjectProgress | null = project ? { projectId, nextHref } : null;
   const notices = (
@@ -245,41 +244,32 @@ function OwnedProjectShell({
           </Link>
         </div>
       )}
-      {(
-        [
-          ["Logo", logoStatus, `/brands/account/${projectId}/logo`],
-          ["Identity", identityStatus, `/brands/account/${projectId}/logo/directions`],
-        ] as const
-      ).map(([label, status, href]) =>
-        status === "needs_review" || status === "recheck" ? (
-          <div className="project-read-notice" role="status" key={label}>
-            {status === "needs_review"
-              ? `${label} needs review. Earlier work is kept.`
-              : `Check ${label} against the current project version. Earlier work is kept.`}{" "}
-            <Link className="text-link" href={href}>
-              Review {label}
-            </Link>
-          </div>
-        ) : null,
+      {(logoStatus === "needs_review" || logoStatus === "recheck") && (
+        <div className="project-read-notice" role="status">
+          {logoStatus === "needs_review"
+            ? "Logo needs review. Earlier work is kept."
+            : "Check Logo against the current project version. Earlier work is kept."}{" "}
+          <Link className="text-link" href={`/brands/account/${projectId}/logo`}>
+            Review Logo
+          </Link>
+        </div>
       )}
     </>
   );
   return (
     <ProjectProgressContext.Provider value={progress}>
       <ConversationStepContext.Provider value={setConversation}>
-        <IdentityEvidenceContext.Provider value={reportIdentity}>
-          <LogoEvidenceContext.Provider value={reportLogo}>
-            <WorkspaceNoticeContext.Provider value={{ notices, host: setNoticesHosted }}>
-              <section className={`project-workspace project-stage-${stage}`}>
-                {/* Inside the side-chat Workspace the notices sit at the top of the work area instead. */}
-                {!noticesHosted && notices}
-                <div className="project-workspace-content">
-                  <ProjectPageErrorContext.Provider value={setPageError}>{children}</ProjectPageErrorContext.Provider>
-                </div>
-              </section>
-            </WorkspaceNoticeContext.Provider>
-          </LogoEvidenceContext.Provider>
-        </IdentityEvidenceContext.Provider>
+        <LogoEvidenceContext.Provider value={reportLogo}>
+          <WorkspaceNoticeContext.Provider value={{ notices, host: setNoticesHosted }}>
+            <section className={`project-workspace project-stage-${stage}`}>
+              {/* Inside the side-chat Workspace the notices sit at the top of the work area instead. */}
+              {!noticesHosted && notices}
+              <div className="project-workspace-content">
+                <ProjectPageErrorContext.Provider value={setPageError}>{children}</ProjectPageErrorContext.Provider>
+              </div>
+            </section>
+          </WorkspaceNoticeContext.Provider>
+        </LogoEvidenceContext.Provider>
       </ConversationStepContext.Provider>
     </ProjectProgressContext.Provider>
   );

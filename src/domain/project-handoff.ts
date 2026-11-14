@@ -1,64 +1,20 @@
 import type { AccountProject } from "./project-api";
-import { getNamingReadiness } from "./project-naming";
+import { journeyProgress, journeyReviewLabel, projectStrategyHref, type JourneyNext } from "./journey";
 
-const reviews = {
-  brief: { key: "brief", label: "Review the saved brief", anchor: "brief" },
-  competitors: { key: "competitors", label: "Review competitors", anchor: "competitors" },
-  audience: { key: "audience", label: "Review audience", anchor: "audience" },
-  personality: { key: "personality", label: "Review personality", anchor: "personality" },
-  positioning: { key: "positioning", label: "Review positioning", anchor: "positioning" },
-} as const;
-type Continuation = { stage: "strategy" | "naming" | "inspiration"; label: string; href: string };
+export { projectStrategyHref };
 
-export function projectStrategyHref(projectId: string) {
-  return `/brands/account/${projectId}?view=strategy`;
-}
-
-/** Derive guidance from saved decisions; navigation never approves or copies inputs. */
+/** Guidance from the saved decisions alone, before any logo work: what still needs confirming and the next step.
+ * It reads `journeyProgress` (src/domain/journey.ts), the one answer the bar and the cards also read.
+ * Navigation never approves or copies inputs. */
 export function getProjectHandoff(project: Pick<AccountProject, "id" | "scope" | "context">) {
-  const base = `/brands/account/${project.id}`,
-    context = project.context;
-  const strategy = getNamingReadiness(context, "complete_brand");
-  const missing: Array<keyof typeof reviews> = [];
-  for (const step of strategy.missing) {
-    const key = step === "description" || step === "reformulation" ? "brief" : step;
-    if (!missing.includes(key)) missing.push(key);
-  }
-  // The guided interview asks positioning before personality.
-  if (context.intake.guidedInterview?.stage === "positioning" && !missing.includes("positioning")) {
-    const personality = missing.indexOf("personality");
-    missing.splice(personality < 0 ? missing.length : personality, 0, "positioning");
-  }
-  const pendingReviews = missing.map((step) => reviews[step]);
-  const savedName = context.selectedName?.trim() || null;
-  let next: Continuation;
-  if (!context.description.trim() || pendingReviews.length > 0) {
-    const first = pendingReviews[0] ?? reviews.brief;
-    // The conversation holds each step in a section: Personality is under Voice once the conversation
-    // has reached it, everything else under Strategy. These ids are `journeySectionId` in
-    // src/components/journey/project-header.ts; the per-step `#strategy-…` anchors no longer exist.
-    const guidedStage = context.intake.guidedInterview?.stage;
-    const section =
-      first.key === "personality" &&
-      (guidedStage === "personality" || guidedStage === "slogan" || guidedStage === "complete")
-        ? "voice"
-        : "strategy";
-    next = {
-      stage: "strategy",
-      label: first.label,
-      href: `${projectStrategyHref(project.id)}#journey-${section}`,
-    };
-  } else if (!savedName) {
-    next = { stage: "naming", label: savedName ? "Review saved name" : "Continue to Naming", href: `${base}/naming` };
-  } else {
-    next = { stage: "inspiration", label: "Continue to Inspiration", href: `${base}/inspiration` };
-  }
+  const progress = journeyProgress({ project, evidence: { logo: "none" } });
   return {
-    reviews: pendingReviews,
-    strategyReady: strategy.ready,
-    briefReviewed: !strategy.missing.includes("reformulation") && !strategy.missing.includes("description"),
-    savedName,
-    next,
+    reviews: progress.reviews.map((key) => ({ key, label: journeyReviewLabel[key] })),
+    strategyReady: progress.strategyReady,
+    briefReviewed: !progress.reviews.includes("brief"),
+    savedName: project.context.selectedName?.trim() || null,
+    briefChanged: progress.briefChanged,
+    next: progress.next as JourneyNext,
   };
 }
 

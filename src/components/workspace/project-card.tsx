@@ -5,7 +5,7 @@ import { type ReactNode, useId, useSyncExternalStore } from "react";
 import { MediaFrame } from "@/components/ui/media-frame";
 import { Skeleton } from "@/components/ui/feedback";
 import { formatAccountDate } from "@/domain/account-profile";
-import { JOURNEY, projectJourneyMark } from "@/domain/journey";
+import { JOURNEY, projectJourneyMark, type JourneyNext } from "@/domain/journey";
 import { projectStrategyHref } from "@/domain/project-handoff";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { needsStrategyRecovery } from "./account-draft-memory";
@@ -98,18 +98,8 @@ export function ProjectCardSkeletons({ count }: { count: number }) {
 }
 
 /** The four steps of the brand at card size, with their sentence beside them. */
-function JourneyProgress({
-  id,
-  projectId,
-  href,
-  sentence,
-}: {
-  id: string;
-  projectId: string;
-  href: string | null;
-  sentence: string;
-}) {
-  const mark = href ? projectJourneyMark(projectId, href) : null;
+function JourneyProgress({ id, next, sentence }: { id: string; next: JourneyNext | null; sentence: string }) {
+  const mark = projectJourneyMark(next);
   const step = mark?.current ? JOURNEY.findIndex((item) => item.id === mark.current) : -1;
   return (
     <div className={styles.progress}>
@@ -200,8 +190,8 @@ export function ProjectCard({
     ? { label: "Resume Strategy edits", href: projectStrategyHref(project.id) }
     : (preview?.action ?? { label: "Open project", href: `/brands/account/${project.id}` });
   // Only a verified next step draws the journey mark; the generic fallback says nothing about progress.
-  const progressHref = preview?.action?.href ?? null;
-  const ready = !recovering && progressHref !== null && projectJourneyMark(project.id, progressHref)?.current === null;
+  const next = preview?.action ?? null;
+  const ready = !recovering && Boolean(next?.finished);
   const Heading = headingLevel === 3 ? "h3" : "h2";
   const menu = typeof actions === "function" ? actions(title, { renamed }) : actions;
   const picture = artworkPending ? (
@@ -280,8 +270,7 @@ export function ProjectCard({
         ) : (
           <JourneyProgress
             id={sentenceId}
-            projectId={project.id}
-            href={recovering ? null : progressHref}
+            next={recovering ? null : next}
             sentence={ready ? "Brand kit ready" : action.label}
           />
         )}

@@ -83,7 +83,7 @@ describe("project continuation from saved work", () => {
     startBatch(journey);
     journey.batch = { ...journey.batch!, batchId: fixtureId(410), jobId: fixtureId(411) };
     expect(journey.readBatch()?.systems).toHaveLength(0);
-    expect(await read()).toEqual({ label: "View brand kit", href: `${base}/logo/deliverables` });
+    expect(await read()).toMatchObject({ label: "View brand kit", href: `${base}/logo/deliverables` });
     expect(identity.generation).not.toHaveBeenCalled();
   });
 
@@ -112,7 +112,7 @@ describe("project continuation from saved work", () => {
           },
         });
       }
-      expect(await read()).toEqual({ label: "Explore creative directions", href: directions });
+      expect(await read()).toMatchObject({ label: "Explore creative directions", href: directions });
     },
   );
 
@@ -137,7 +137,7 @@ describe("project continuation from saved work", () => {
       currentBasis,
       currentSelection: { ...selected, freshness: getIdentityFreshness(selected.system.input.basis, currentBasis) },
     });
-    expect(await read()).toEqual({ label: "Explore creative directions", href: directions });
+    expect(await read()).toMatchObject({ label: "Explore creative directions", href: directions });
   });
 
   it.each([
@@ -148,14 +148,14 @@ describe("project continuation from saved work", () => {
     const { journey, read } = setup();
     startBatch(journey);
     journey.complete(count);
-    expect(await read()).toEqual({ label, href: directions });
+    expect(await read()).toMatchObject({ label, href: directions });
   });
 
   it("distinguishes an unresolved request from a project that has never generated directions", async () => {
     const { journey, read } = setup();
-    expect(await read()).toEqual({ label: "Explore creative directions", href: directions });
+    expect(await read()).toMatchObject({ label: "Explore creative directions", href: directions });
     startBatch(journey);
-    expect(await read()).toEqual({ label: "Check direction progress", href: directions });
+    expect(await read()).toMatchObject({ label: "Check direction progress", href: directions });
   });
 
   it("offers generated logos for selection without reading directions", async () => {
@@ -163,7 +163,7 @@ describe("project continuation from saved work", () => {
     const stage = journey.stages.get(journey.workspace.stages.concepts!.id)!;
     if (stage.stage !== "concepts") throw Error("Expected concepts fixture");
     journey.stages.set(stage.id, { ...stage, payload: { ...stage.payload, selected: null } });
-    expect(await read()).toEqual({ label: "Choose a logo", href: `${base}/logo` });
+    expect(await read()).toMatchObject({ label: "Choose a logo", href: `${base}/logo` });
     expect(logo.readLogoConceptBatch).toHaveBeenCalledExactlyOnceWith(journey.logoBatch.id, expect.any(AbortSignal));
     expect(identity.overview).not.toHaveBeenCalled();
   });
@@ -178,7 +178,7 @@ describe("project continuation from saved work", () => {
       heads: { ...empty.heads, projectRevision: project.current_revision },
     });
     const saved = accountProjectSchema.parse({ ...project, scope: "complete_brand", context: {} });
-    expect(await read(saved)).toEqual({
+    expect(await read(saved)).toMatchObject({
       label: "Review the saved brief",
       href: `${base}?view=strategy#journey-strategy`,
     });

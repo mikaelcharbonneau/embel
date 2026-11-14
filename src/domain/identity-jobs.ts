@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { jobStatusSchema, moneySchema } from "./jobs";
+import type { TerminalRunStatus } from "./generation-run";
+import { isJobFinished, isJobWorking, jobStatusSchema, moneySchema, type JobState } from "./jobs";
 import { sharedImageModelSchema } from "./providers";
 import { identityLogoSourceSchema } from "./identity-logo-source";
 import { brandBoardApplicationDesignSchema } from "./brand-board-design";
@@ -360,6 +361,24 @@ export const identityFulfillmentSchema = z
   )
   .transform(freeze);
 export type IdentityFulfillment = z.infer<typeof identityFulfillmentSchema>;
+/**
+ * How a Creative direction round's job is closed when its run ends (docs/state-machines.md, R6).
+ *
+ * A round has three facts: the run's status (generation_runs), its job's state (jobs) and its
+ * fulfillment (the boards delivered, out of three). This mirrors `engine_identity_close_job`, which
+ * `finish_generation_run` calls, in the database's own order of checks: the boards are counted first,
+ * so a round stopped after its third board has a cancelled run and a succeeded job, and a round
+ * stopped after one board is cancelled, not partial. Only "cancelled" among the run's endings changes
+ * the answer. The database closes the job only while it is still working (JOB_WORKING_STATES).
+ * Fulfillment then reads from the boards alone: three complete, some partial, none none
+ * (`shared_identity_batch_state`). tests/domain/identity-jobs.test.ts fails if the SQL changes.
+ */
+export function identityRoundJobState(boardsDelivered: number, runEnded: TerminalRunStatus): JobState {
+  if (boardsDelivered === IDENTITY_BATCH_TARGET) return "succeeded";
+  if (runEnded === "cancelled") return "cancelled";
+  if (boardsDelivered > 0) return "partial";
+  return "failed";
+}
 export function pendingIdentityFulfillment(): IdentityFulfillment {
   return identityFulfillmentSchema.parse({ targetCount: IDENTITY_BATCH_TARGET, acceptedCount: 0, status: "pending" });
 }
@@ -585,10 +604,10 @@ export const identityBatchStateSchema = z
       issue(ctx, "Batch intent must bind the exact captured revisions");
     if (
       (v.status === "succeeded" && v.systems.length !== IDENTITY_BATCH_TARGET) ||
-      (v.fulfillment.status === "pending" && !["queued", "running", "cancel_requested"].includes(v.status))
+      (v.fulfillment.status === "pending" && !isJobWorking(v.status))
     )
       issue(ctx, "Batch state cannot imply missing complete systems or pending terminal work");
-    if (v.terminal !== ["succeeded", "failed", "cancelled", "partial"].includes(v.status))
+    if (v.terminal !== isJobFinished(v.status))
       issue(ctx, "Identity terminal states must reflect the actual finished batch");
     for (const s of v.systems)
       if (

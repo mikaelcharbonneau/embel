@@ -5,6 +5,7 @@ import {
   type IdentityBatchState,
   type IdentityGenerationIntent,
 } from "@/domain/identity-jobs";
+import { startRefusal, stepView, type RunPhase, type StepProblem, type StepView } from "@/domain/generation-run";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 import { AccountRequestError } from "@/components/workspace/account-api";
 import { creditsMessage } from "@/components/workspace/credits-message";
@@ -28,6 +29,8 @@ export type IdentityGenerationState = {
   stopAcknowledgedBatchId: string | null;
   lookup: "unchecked" | "not_found";
   error: string | null;
+  /** What `error` is about, so the screen can decide what to offer with it (`identityStepView`). */
+  problem: StepProblem | null;
 };
 export const EMPTY_IDENTITY_GENERATION: IdentityGenerationState = Object.freeze({
   overview: null,
@@ -37,11 +40,32 @@ export const EMPTY_IDENTITY_GENERATION: IdentityGenerationState = Object.freeze(
   stopAcknowledgedBatchId: null,
   lookup: "unchecked",
   error: null,
+  problem: null,
 });
 
-/** Statuses that refuse a request outright. 402 (credits) and 429 (today's limit) come
- * from the generation engine; nothing was admitted or charged for any of them. */
-const FINAL_REFUSALS: readonly number[] = [400, 402, 404, 409, 413, 422, 429];
+/** The round's phase in the words every step screen shares. A round is stored as a job, whose stop
+ * request is a status; a round that may still be working (unresolved) counts as working. */
+const identityRunPhase = (batch: IdentityBatchState | null): RunPhase | null =>
+  !batch || !identityBatchUnresolved(batch) ? null : batch.status === "cancel_requested" ? "stopping" : "running";
+/** What the person can do on Creative direction: the one decision shared with Naming and Logo
+ * (docs/state-machines.md). Stopping is read from the round itself, so every tab shows the same. */
+export function identityStepView(
+  state: Pick<
+    IdentityGenerationState,
+    "overview" | "batch" | "retained" | "busy" | "stopAcknowledgedBatchId" | "problem"
+  >,
+): StepView {
+  const batch = state.batch ?? state.overview?.latest ?? null,
+    phase = identityRunPhase(batch);
+  return stepView({
+    // A Stop the server acknowledged without changing the status (an uncertain round) is stopping too.
+    phase: phase && batch?.batchId === state.stopAcknowledgedBatchId ? "stopping" : phase,
+    loaded: Boolean(state.overview),
+    // A request kept from an earlier visit is still unconfirmed.
+    problem: state.problem ?? (state.retained && !phase ? { during: "start", httpStatus: null } : null),
+    sending: state.busy === "starting" ? "start" : state.busy === "stopping" ? "stop" : null,
+  });
+}
 /** What the screen says when a request or check fails. Never a price. */
 export function identityGenerationErrorMessage(error: unknown, failure: string): string {
   if (error instanceof AccountRequestError) {
@@ -71,6 +95,8 @@ export function createIdentityGenerationController({
   let allowed = canStart;
   let closed = false,
     operation: AbortController | null = null,
+    /** Whether the running operation is only a status check: a check yields to Stop or Start. */
+    checking = false,
     releaseMemory: (() => void) | null = null;
   let state: IdentityGenerationState = {
     ...EMPTY_IDENTITY_GENERATION,
@@ -98,7 +124,9 @@ export function createIdentityGenerationController({
         previous.systems.some((system) => !batch.systems.some((next) => next.id === system.id && same(system, next))))
     )
       throw new AccountRequestError(502);
-    publish({ batch });
+    // A failed Stop is settled once the round itself says it is stopping or over.
+    const settled = state.problem?.during === "stop" && identityRunPhase(batch) !== "running";
+    publish({ batch, ...(settled ? { error: null, problem: null } : {}) });
   }
   function recover(batch: IdentityBatchState, input: IdentityGenerationIntent) {
     if (!same(batch.intent, input)) throw new AccountRequestError(502);
@@ -106,28 +134,49 @@ export function createIdentityGenerationController({
     memory.resolveGenerationRequest(account.userId, projectId, input.idempotencyKey);
     publish({ lookup: "unchecked" });
   }
+  /** Stop and Start wait for nothing but each other: a status check in flight yields to them. */
+  const occupied = () => operation !== null && !checking;
   async function run(
     kind: NonNullable<IdentityGenerationState["busy"]>,
     work: (signal: AbortSignal) => Promise<void>,
     failure: string,
+    during: (error: unknown) => StepProblem,
+    /** A background check: it leaves what is on screen alone unless it has news. */
+    quiet = false,
   ) {
-    if (!current() || operation) return;
+    if (!current()) return;
+    if (operation) {
+      // Two starts never run at once, and a check never interrupts anything.
+      if (kind === "checking" || !checking) return;
+      operation.abort();
+    }
     const controller = new AbortController();
     operation = controller;
+    checking = kind === "checking";
     const timeout = setTimeout(() => controller.abort(), 30_000);
-    publish({ busy: kind, error: null });
+    publish({ busy: kind, ...(quiet ? {} : { error: null, problem: null }) });
     try {
       await work(controller.signal);
+      if (quiet && operation === controller && state.problem?.during === "check")
+        publish({ error: null, problem: null });
     } catch (error) {
-      if (current()) publish({ error: identityGenerationErrorMessage(error, failure) });
+      // A check that yielded has nothing to report.
+      if (current() && operation === controller)
+        publish({ error: identityGenerationErrorMessage(error, failure), problem: during(error) });
     } finally {
       clearTimeout(timeout);
       if (operation === controller) {
         operation = null;
+        checking = false;
         publish({ busy: null });
       }
     }
   }
+  const startProblem = (error: unknown): StepProblem => ({
+    during: "start",
+    httpStatus: error instanceof AccountRequestError ? error.status : null,
+  });
+  const stopProblem = (): StepProblem => ({ during: "stop" });
   async function lookup(signal: AbortSignal, input: IdentityGenerationIntent) {
     const found = await client.batchRequest(input.idempotencyKey, signal);
     if (!current() || signal.aborted || !found) throw new AccountRequestError(503);
@@ -177,6 +226,7 @@ export function createIdentityGenerationController({
           if (overview.latest) adopt(overview.latest);
         },
         "Generation status could not be checked. Saved systems and any original request are kept.",
+        () => ({ during: state.overview ? "check" : "load" }),
       );
     },
     async poll() {
@@ -190,13 +240,15 @@ export function createIdentityGenerationController({
           adopt(value);
         },
         "The latest generation status could not be checked. The last verified results remain available.",
+        () => ({ during: "check" }),
+        true,
       );
     },
     async start(value: IdentityGenerationIntent) {
       const input = identityGenerationIntentSchema.parse(value);
       if (
         !current() ||
-        operation ||
+        occupied() ||
         retained() ||
         !allowed(input) ||
         !("version" in input) ||
@@ -226,13 +278,14 @@ export function createIdentityGenerationController({
             if (!current() || signal.aborted || !batch) throw new AccountRequestError(503);
             recover(batch, input);
           } catch (error) {
-            // A refusal is a final answer: nothing was admitted, so the request is not kept for recovery.
-            if (current() && error instanceof AccountRequestError && FINAL_REFUSALS.includes(error.status))
+            // A final refusal (startRefusal) admitted nothing, so the request is not kept for recovery.
+            if (current() && error instanceof AccountRequestError && startRefusal(error.status) === "final")
               memory.resolveGenerationRequest(account.userId, projectId, input.idempotencyKey);
             throw error;
           }
         },
         "The generation request could not be confirmed. Check the original request before trying again.",
+        startProblem,
       );
     },
     async retryOriginal() {
@@ -248,6 +301,7 @@ export function createIdentityGenerationController({
           recover(batch, original.input);
         },
         "The original request is still unconfirmed. Its saved inputs and request identity are kept.",
+        startProblem,
       );
     },
     async closeOriginal() {
@@ -273,6 +327,7 @@ export function createIdentityGenerationController({
           publish({ lookup: "unchecked" });
         },
         "Stopping the original request could not be confirmed. Its saved intent is kept; check it again before starting another request.",
+        stopProblem,
       );
     },
     async stop() {
@@ -287,6 +342,7 @@ export function createIdentityGenerationController({
           publish({ stopAcknowledgedBatchId: value.batchId });
         },
         "Stopping could not be confirmed. Check the request; its saved systems are kept.",
+        stopProblem,
       );
     },
   };

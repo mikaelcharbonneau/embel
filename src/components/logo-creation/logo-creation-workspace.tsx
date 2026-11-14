@@ -13,6 +13,8 @@ import { useLogoDraftMemory } from "@/components/identity/logo-draft-memory-cont
 import { useLogoCreation } from "./use-logo-creation";
 import { useGenerationEstimate, type LogoEngineStarter } from "./use-generation-estimate";
 import { useLogoEngine } from "./use-logo-engine";
+import { runPhase, stepView } from "@/domain/generation-run";
+import { STOP_UNCONFIRMED, UPDATES_DELAYED } from "@/domain/generation-words";
 import {
   LOGO_ENGINE_KINDS,
   type LogoEngineKind,
@@ -160,8 +162,42 @@ function OwnedLogoCreation({
   );
   const canConcept = engineOn,
     canRefine = engineOn;
+  // What the person can do about the run on screen: the one decision shared with Naming and Creative direction
+  // (docs/state-machines.md). Stopping is read from the run itself, so every tab shows the same.
+  const step = stepView({
+    phase: engineRun ? runPhase(engineRun) : null,
+    loaded: logoEngine.engine !== null,
+    problem: logoEngine.problem,
+    sending: logoEngine.stopSending ? "stop" : logoEngine.starting ? "start" : null,
+  });
+  const stopRun = engineRun && step.canStop ? () => void logoEngine.cancel(engineRun.id) : undefined;
+  const loadFailed = "Logo drawing couldn’t be loaded. Your logos are saved.";
   const drawingUnavailable =
-    logoEngine.engine === false ? "Logo drawing is unavailable right now. Your logos are saved." : "Getting ready…";
+    logoEngine.engine === false
+      ? "Logo drawing is unavailable right now. Your logos are saved."
+      : step.message === "load_failed"
+        ? loadFailed
+        : "Getting ready…";
+  const tryAgain = (
+    <Button size="sm" onClick={logoEngine.retry}>
+      Try again
+    </Button>
+  );
+  // Said wherever the step's status is said: a Stop that got no answer, a late status check, a failed first load.
+  const stepNotice =
+    step.message === "stop_unconfirmed" ? (
+      <InlineMessage tone="warning" actions={tryAgain}>
+        {STOP_UNCONFIRMED}
+      </InlineMessage>
+    ) : step.message === "updates_delayed" ? (
+      <p className="e-muted" role="status">
+        {UPDATES_DELAYED}
+      </p>
+    ) : step.message === "load_failed" ? (
+      <InlineMessage tone="warning" actions={tryAgain}>
+        {loadFailed}
+      </InlineMessage>
+    ) : null;
   const { controller: batchHistory, state: batchHistoryState } = useLogoBatchHistory(client, account, projectId);
   const { controller: refinementHistory, state: refinementHistoryState } = useLogoRefinementHistory(
     client,
@@ -1122,8 +1158,8 @@ function OwnedLogoCreation({
         />
       )}
       {!external && engineRun && (
-        <Button disabled={engineRun.cancelRequested} onClick={() => void logoEngine.cancel(engineRun.id)}>
-          {engineRun.cancelRequested ? "Stopping…" : "Stop"}
+        <Button disabled={!stopRun} onClick={stopRun}>
+          {step.stopping ? "Stopping…" : "Stop"}
         </Button>
       )}
     </>
@@ -1164,8 +1200,13 @@ function OwnedLogoCreation({
   // that was refused explains it; a Send-driven step has no such action for a change, a first set or a retry, so
   // the step says it here. More concepts keeps its own explanation beside its button in both.
   const refusal = external && !ranOut && !moreEstimate.error ? logoEngine.error : null;
+  // An unconfirmed request offers Try again, which repeats the same request key; a final refusal only its reason.
   const refusalMessage = refusal ? (
-    <InlineMessage tone="warning" onDismiss={logoEngine.clearError}>
+    <InlineMessage
+      tone="warning"
+      onDismiss={logoEngine.clearError}
+      actions={step.message === "start_unconfirmed" ? tryAgain : undefined}
+    >
       {refusal}
     </InlineMessage>
   ) : null;
@@ -1199,7 +1240,8 @@ function OwnedLogoCreation({
           working: Boolean(engineRun),
           stopLabel: "Stop drawing",
           send: () => conceptEstimate.start(),
-          stop: engineRun ? () => void logoEngine.cancel(engineRun.id) : undefined,
+          stopping: step.stopping,
+          stop: stopRun,
         }
       : {
           step: "logo",
@@ -1219,7 +1261,8 @@ function OwnedLogoCreation({
             if (instruction && refineStarter) refineStarter(instruction);
             else if (!instruction && canContinue) continueToDirections();
           },
-          stop: engineRun ? () => void logoEngine.cancel(engineRun.id) : undefined,
+          stopping: step.stopping,
+          stop: stopRun,
         };
   useStepReply(stepReply, onReplyChange);
 
@@ -1263,12 +1306,8 @@ function OwnedLogoCreation({
           <div className="e-stack e-stack--sm" data-step-status="logo">
             {progressSentence && (
               <div className="e-stack e-stack--sm conversation-progress" role="status">
-                <p className="e-turn__text">{engineRun?.cancelRequested ? "Stopping…" : progressSentence}</p>
-                <div
-                  className="e-progress"
-                  data-state={engineRun?.cancelRequested ? "stopping" : "running"}
-                  aria-hidden="true"
-                >
+                <p className="e-turn__text">{step.stopping ? "Stopping…" : progressSentence}</p>
+                <div className="e-progress" data-state={step.stopping ? "stopping" : "running"} aria-hidden="true">
                   <div className="e-progress__track" />
                 </div>
               </div>
@@ -1294,6 +1333,7 @@ function OwnedLogoCreation({
               </InlineMessage>
             ) : null}
             {refusalMessage}
+            {stepNotice}
             {!ranOut && noCredits && <NoCreditsNote periodEnd={credits.periodEnd} />}
             {activeBatch && !changingTypes && (
               <LogoTypesSummary
@@ -1428,6 +1468,7 @@ function OwnedLogoCreation({
         )}
         {!inChat && !activeBatch && ranOut === "concepts" && outOfCreditsMessage}
         {!inChat && refusalMessage}
+        {!inChat && stepNotice}
         {!inChat && runEndSentence && (
           <p className="e-muted" role="status">
             {runEndSentence}

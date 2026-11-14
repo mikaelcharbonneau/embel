@@ -12,6 +12,7 @@ import {
   type GuidedStage,
   type GuidedTurn,
 } from "./projects";
+import { conversationSchema } from "./conversation";
 
 export { guidedInterviewStateSchema, guidedStageSchema, guidedTurnSchema };
 export type { GuidedInterviewState, GuidedStage, GuidedTurn };
@@ -331,9 +332,53 @@ export function confirmGuidedSelection(
   return contextSnapshotSchema.parse(next);
 }
 
+/** The brief the confirmed Strategy answers were made from: the one recorded when Strategy was last restarted
+ * from its first step (the conversation's saved-context entry), otherwise the first message, which is the brief
+ * the project was started with. Null when the conversation holds neither, so nothing is ever guessed. */
+export function strategyBrief(context: ContextSnapshot): string | null {
+  const events = context.intake.conversation ?? [];
+  const source =
+    events.find((event) => event.kind === "saved_context") ?? events.find((event) => event.kind === "user_message");
+  return source ? source.text.trim() : null;
+}
+
+/** The brief was edited after the first Strategy answer was confirmed (owner decision, November 14, 2026):
+ * the answers and progress stay, and the conversation offers to redo Strategy. Derived from what is saved;
+ * an empty brief is a different state (the project cannot proceed) and is never reported as an edit. */
+export function briefChangedSinceStrategy(context: ContextSnapshot): boolean {
+  const description = context.description.trim();
+  if (!description || !context.intake.guidedInterview || !context.competitorReviewComplete) return false;
+  const basis = strategyBrief(context);
+  return basis !== null && basis !== description;
+}
+
+/** Starting or restarting Strategy from its first step records the brief it starts from, when that is not the
+ * first message, in the conversation's one saved-context entry. Messages are never rewritten, and a conversation
+ * at its size limit is left as it is. */
+export function withStrategyBrief(context: ContextSnapshot): ContextSnapshot {
+  const conversation = conversationWithStrategyBrief(context);
+  return conversation === context.intake.conversation
+    ? context
+    : contextSnapshotSchema.parse({ ...context, intake: { ...context.intake, conversation } });
+}
+function conversationWithStrategyBrief(context: ContextSnapshot) {
+  const events = context.intake.conversation,
+    description = context.description.trim();
+  const basis = strategyBrief(context);
+  if (!events || !description || basis === null || basis === description) return events;
+  const id = "strategy-brief";
+  const recorded = events.some((event) => event.kind === "saved_context");
+  if (!recorded && events.some((event) => event.id === id)) return events;
+  const next = recorded
+    ? events.map((event) => (event.kind === "saved_context" ? { ...event, text: description } : event))
+    : [{ id, kind: "saved_context" as const, text: description }, ...events];
+  return conversationSchema.safeParse(next).success ? next : events;
+}
+
 /** Explicit revisiting retains all typed content while invalidating downstream review. */
 export function revisitGuidedStage(context: ContextSnapshot, stage: GuidedStage): ContextSnapshot {
   const parsed = initializeGuidedInterview(context);
+  const conversation = stage === "competitors" ? conversationWithStrategyBrief(parsed) : parsed.intake.conversation;
   const state = parsed.intake.guidedInterview!;
   const stageIndex = GUIDED_STAGES.indexOf(stage);
   const reopens = (later: GuidedStage) => GUIDED_STAGES.indexOf(later) >= stageIndex;
@@ -346,6 +391,7 @@ export function revisitGuidedStage(context: ContextSnapshot, stage: GuidedStage)
       ...(reopens("audience") ? { audienceReviewedAt: null } : {}),
       ...(reopens("positioning") ? { positioningReviewedAt: null } : {}),
       ...(reopens("personality") ? { personalityReviewedAt: null } : {}),
+      ...(conversation !== undefined ? { conversation } : {}),
       guidedInterview: {
         ...state,
         stage,

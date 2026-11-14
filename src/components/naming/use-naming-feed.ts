@@ -2,8 +2,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { getNamingPreferencesReadiness } from "@/domain/naming-brain-preferences";
-import { namingRunActive } from "@/domain/naming-generation";
-import { createNamingFeedController, namingStatus } from "./naming-feed-controller";
+import { createNamingFeedController, namingStatus, namingStepView } from "./naming-feed-controller";
 import type { NamingBrainRecord } from "./naming-brain-memory";
 const hidden = () => null;
 const emptySteeringDraft = { candidateIds: [] as string[], instruction: "" };
@@ -76,16 +75,11 @@ export function useNamingFeed({
   }, [projectRevision, controller]);
 
   const state = record?.feed ?? null,
-    feed = state?.feed ?? null,
-    run = feed?.run ?? null;
+    feed = state?.feed ?? null;
   const contextReady = enabled && savedChoicesReady(record);
-  const canExplore = Boolean(
-    contextReady &&
-    feed?.availability.status === "available" &&
-    !state?.pending &&
-    !state?.stopping &&
-    !namingRunActive(run),
-  );
+  // One decision for Start and Stop, shared with Logo and Creative direction (docs/state-machines.md).
+  const step = namingStepView(state);
+  const canExplore = Boolean(contextReady && feed?.availability.status === "available" && step.canStart);
   const entries = useMemo(() => state?.entries ?? [], [state?.entries]);
   const updateSteeringDraft = useCallback(
     (patch: Partial<typeof emptySteeringDraft>) =>
@@ -102,7 +96,7 @@ export function useNamingFeed({
     updateSteeringDraft,
     canExplore,
     canMore: canExplore,
-    canStop: Boolean(run && ["queued", "running"].includes(run.state) && !state?.stopping),
+    canStop: step.canStop,
     start: controller.start,
     more: controller.more,
     steer: controller.steer,

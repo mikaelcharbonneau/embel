@@ -21,7 +21,6 @@ import { type DraftPatch } from "./project-editor";
 import { AccountGuidedInterview } from "./account-guided-interview";
 import { getNamingReadiness } from "@/domain/project-naming";
 import { getProjectHandoff } from "@/domain/project-handoff";
-import { AccountProjectContinuity } from "./account-project-continuity";
 
 import {
   accountDraftChanged as changed,
@@ -533,28 +532,14 @@ export function AccountProjectEditor({ projectId, navigation }: { projectId: str
       {identityHint && <p className="field-hint">{identityHint}</p>}
     </div>
   );
-  const projectContext = (
-    <AccountProjectContinuity
-      key={`continuity:${projectId}:${account.userId}:${account.generation}`}
-      account={account}
-      project={active.saved}
-      dirty={changed(active)}
-      conflicted={active.conflict}
-      busy={Boolean(busy)}
-    />
-  );
   const handoff = getProjectHandoff(active.saved);
+  // From the Slogan question on, the conversation shows the names and Inspiration itself, so it needs no link
+  // to them. The next step comes from the one answer (`journeyProgress`), which knows an open Slogan question.
   const inlineNaming =
     active.saved.scope === "complete_brand" &&
     ["slogan", "complete"].includes(active.saved.context.intake.guidedInterview?.stage ?? "");
-  // While the optional slogan question is open, the conversation owns the next step.
-  // Once a name is chosen, the conversation owns the next step (the optional
-  // slogan, then its own Continue to Identity message).
-  const conversationOwnsNext = inlineNaming && Boolean(active.saved.context.selectedName);
   const continuation =
-    handoff.next.stage !== "strategy" && (handoff.next.stage !== "naming" || !inlineNaming) && !conversationOwnsNext
-      ? handoff.next
-      : null;
+    !inlineNaming && (handoff.next.part === "Name" || handoff.next.part === "Inspiration") ? handoff.next : null;
   const continuationBlocked = busy || changed(active) || active.conflict;
   const resultNavigation = (continuation || active.saved.scope !== "complete_brand") && (
     <nav className="account-actions" aria-label="Continue project">
@@ -592,7 +577,6 @@ export function AccountProjectEditor({ projectId, navigation }: { projectId: str
           onUpdate: update,
           actions,
           projectLinks,
-          projectContext,
           resultNavigation,
           namingSource: active.saved.context.namingSource,
         }}
