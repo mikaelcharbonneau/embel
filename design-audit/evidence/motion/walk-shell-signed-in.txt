@@ -1,0 +1,921 @@
+
+=== nav-route-changes @1440 (audit-pro)
+  -- home-full-load  [6 frame(s)]
+         73 ms  state       {"h1":"Your next brand starts here.","busy":2,"dialogs":[],"details":[],"live":["Checking account…"],"imgsPending":1}
+        106 ms  state       {"h1":"Your next brand starts here.","busy":2,"dialogs":[],"details":[],"live":["Checking account…"],"imgsPending":0}
+        229 ms  state       {"h1":"Your next brand starts here.","busy":3,"dialogs":[],"details":[],"live":["Checking account…","Loading your projects…"],"imgsPending":0}
+        244 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        244 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        244 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        244 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        322 ms  state       {"h1":"Your next brand starts here.","busy":1,"dialogs":[],"details":[],"live":["Loading your projects…"],"imgsPending":0}
+        339 ms  state       {"h1":"Your next brand starts here.","busy":3,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        364 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        364 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        364 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        364 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        364 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        364 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        364 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        364 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        364 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        364 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        364 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        364 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        426 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        426 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        426 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        426 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        426 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        426 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        661 ms  shift       0.0018 span.project-card-module__yo1VFG__next
+        760 ms  shift       0.0018 span.project-card-module__yo1VFG__next
+        764 ms  state       {"h1":"Your next brand starts here.","busy":3,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        775 ms  state       {"h1":"Your next brand starts here.","busy":2,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        790 ms  state       {"h1":"Your next brand starts here.","busy":1,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        794 ms  shift       0.0018 span.project-card-module__yo1VFG__next
+     … 2 more
+  -- home-to-projects  [7 frame(s)]
+         26 ms  state       {"h1":"Your next brand starts here.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         28 ms  pointerdown a.journey-module__MmLfbq__navLink
+         28 ms  focus       a.journey-module__MmLfbq__navLink
+         69 ms  url         /brands
+         69 ms  state       {"h1":"Projects.","busy":1,"dialogs":[],"details":[],"live":["Loading your projects…"],"imgsPending":1}
+         81 ms  state       {"h1":"Projects.","busy":1,"dialogs":[],"details":[],"live":["Loading your projects…"],"imgsPending":0}
+         94 ms  state       {"h1":"Projects.","busy":3,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        109 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        109 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        109 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        109 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        109 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        109 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        109 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        109 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        109 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        109 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        109 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        109 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        160 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        160 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        160 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        160 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        160 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        160 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        377 ms  shift       0.0023 (after input) span.project-card-module__yo1VFG__next, span.project-card-module__yo1VFG__next
+        427 ms  shift       0.0018 (after input) span.project-card-module__yo1VFG__next
+        443 ms  state       {"h1":"Projects.","busy":2,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        446 ms  state       {"h1":"Projects.","busy":1,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        448 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        477 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+  -- projects-to-library  [7 frame(s)]
+         17 ms  pointerdown a.journey-module__MmLfbq__navLink
+         17 ms  focus       a.journey-module__MmLfbq__navLink
+         46 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         68 ms  url         /assets
+         68 ms  state       {"h1":"Your visual library.","busy":1,"dialogs":[],"details":[],"live":["Loading assets…"],"imgsPending":0}
+        136 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":3}
+        146 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        211 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        247 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        256 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        296 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+  -- library-to-home  [7 frame(s)]
+          5 ms  pointerdown a.journey-module__MmLfbq__navLink
+          5 ms  focus       a.journey-module__MmLfbq__navLink
+         21 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         40 ms  url         /
+         40 ms  state       {"h1":"Your next brand starts here.","busy":1,"dialogs":[],"details":[],"live":["Loading your projects…"],"imgsPending":0}
+         55 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         55 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         55 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         55 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         89 ms  state       {"h1":"Your next brand starts here.","busy":3,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        121 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        121 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        121 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        121 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        121 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        121 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        121 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        121 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        121 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        121 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        121 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        121 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        388 ms  shift       0.0035 (after input) span.project-card-module__yo1VFG__next, span.project-card-module__yo1VFG__next
+        406 ms  shift       0.0018 (after input) span.project-card-module__yo1VFG__next
+        408 ms  state       {"h1":"Your next brand starts here.","busy":2,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        421 ms  state       {"h1":"Your next brand starts here.","busy":2,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        425 ms  state       {"h1":"Your next brand starts here.","busy":1,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+     … 2 more
+  -- home-to-projects-second-visit  [6 frame(s)]
+          4 ms  state       {"h1":"Your next brand starts here.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         23 ms  pointerdown a.journey-module__MmLfbq__navLink
+         23 ms  focus       a.journey-module__MmLfbq__navLink
+         62 ms  url         /brands
+         62 ms  state       {"h1":"Projects.","busy":1,"dialogs":[],"details":[],"live":["Loading your projects…"],"imgsPending":1}
+         63 ms  state       {"h1":"Projects.","busy":1,"dialogs":[],"details":[],"live":["Loading your projects…"],"imgsPending":0}
+         87 ms  state       {"h1":"Projects.","busy":3,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        103 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        103 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        103 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        103 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        103 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        103 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        103 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        104 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        104 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        104 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        104 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        104 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        170 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        170 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        170 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        437 ms  shift       0.0023 (after input) span.project-card-module__yo1VFG__next, span.project-card-module__yo1VFG__next
+        461 ms  state       {"h1":"Projects.","busy":2,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        470 ms  shift       0.0018 (after input) span.project-card-module__yo1VFG__next
+        479 ms  state       {"h1":"Projects.","busy":1,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        485 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        504 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+  -- browser-back  [5 frame(s)]
+         24 ms  url         /
+         25 ms  state       {"h1":"Your next brand starts here.","busy":1,"dialogs":[],"details":[],"live":["Loading your projects…"],"imgsPending":0}
+         32 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         32 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         32 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         32 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         74 ms  state       {"h1":"Your next brand starts here.","busy":3,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         97 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         97 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         97 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         97 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         97 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         97 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         97 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         97 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         97 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         97 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         97 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         97 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        130 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        130 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        130 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        130 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        130 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        130 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        398 ms  shift       0.0018 (after input) span.project-card-module__yo1VFG__next
+        401 ms  state       {"h1":"Your next brand starts here.","busy":2,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        416 ms  state       {"h1":"Your next brand starts here.","busy":2,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        430 ms  shift       0.0035 (after input) span.project-card-module__yo1VFG__next, span.project-card-module__yo1VFG__next
+        439 ms  state       {"h1":"Your next brand starts here.","busy":1,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        459 ms  state       {"h1":"Your next brand starts here.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        464 ms  state       {"h1":"Your next brand starts here.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+
+=== nav-route-changes @390 (audit-pro)
+  -- home-full-load  [6 frame(s)]
+         47 ms  state       {"h1":"Your next brand starts here.","busy":2,"dialogs":[],"details":[],"live":["Checking account…"],"imgsPending":1}
+         71 ms  state       {"h1":"Your next brand starts here.","busy":2,"dialogs":[],"details":[],"live":["Checking account…"],"imgsPending":0}
+        150 ms  state       {"h1":"Your next brand starts here.","busy":3,"dialogs":[],"details":[],"live":["Checking account…","Loading your projects…"],"imgsPending":0}
+        169 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        169 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        169 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        169 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        169 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        170 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        170 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        196 ms  state       {"h1":"Your next brand starts here.","busy":1,"dialogs":[],"details":[],"live":["Loading your projects…"],"imgsPending":0}
+        212 ms  state       {"h1":"Your next brand starts here.","busy":3,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        236 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        236 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        236 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        236 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        236 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        236 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        236 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        236 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        236 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        236 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        236 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        236 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        302 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        302 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        453 ms  state       {"h1":"Your next brand starts here.","busy":3,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        484 ms  state       {"h1":"Your next brand starts here.","busy":2,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        486 ms  shift       0.0171 (after input) span.project-card-module__yo1VFG__next
+  -- home-to-projects  [7 frame(s)]
+         40 ms  state       {"h1":"Your next brand starts here.","busy":2,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         42 ms  pointerdown a.journey-module__MmLfbq__navLink
+         42 ms  focus       a.journey-module__MmLfbq__navLink
+        120 ms  url         /brands
+        120 ms  state       {"h1":"Projects.","busy":1,"dialogs":[],"details":[],"live":["Loading your projects…"],"imgsPending":1}
+        130 ms  state       {"h1":"Projects.","busy":1,"dialogs":[],"details":[],"live":["Loading your projects…"],"imgsPending":0}
+        137 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        184 ms  state       {"h1":"Projects.","busy":3,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        203 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        203 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        203 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        203 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        203 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        203 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+     … 18 more
+  -- projects-to-library  [7 frame(s)]
+         11 ms  pointerdown a.journey-module__MmLfbq__navLink
+         12 ms  focus       a.journey-module__MmLfbq__navLink
+         27 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         52 ms  url         /assets
+         52 ms  state       {"h1":"Your visual library.","busy":1,"dialogs":[],"details":[],"live":["Loading assets…"],"imgsPending":0}
+         92 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":3}
+        114 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        123 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        163 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+  -- library-to-home  [7 frame(s)]
+          3 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         18 ms  pointerdown a.journey-module__MmLfbq__navLink
+         18 ms  focus       a.journey-module__MmLfbq__navLink
+         80 ms  url         /
+         80 ms  state       {"h1":"Your next brand starts here.","busy":1,"dialogs":[],"details":[],"live":["Loading your projects…"],"imgsPending":0}
+         99 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         99 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         99 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         99 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        198 ms  state       {"h1":"Your next brand starts here.","busy":3,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        215 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        215 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        215 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        215 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        215 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        215 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        215 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        215 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        215 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        215 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        215 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        215 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        281 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        281 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        430 ms  state       {"h1":"Your next brand starts here.","busy":3,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        451 ms  state       {"h1":"Your next brand starts here.","busy":3,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        514 ms  state       {"h1":"Your next brand starts here.","busy":2,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        515 ms  shift       0.0171 (after input) span.project-card-module__yo1VFG__next
+  -- home-to-projects-second-visit  [6 frame(s)]
+         25 ms  pointerdown a.journey-module__MmLfbq__navLink
+         25 ms  focus       a.journey-module__MmLfbq__navLink
+         41 ms  state       {"h1":"Your next brand starts here.","busy":2,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         63 ms  url         /brands
+         63 ms  state       {"h1":"Projects.","busy":1,"dialogs":[],"details":[],"live":["Loading your projects…"],"imgsPending":1}
+         71 ms  state       {"h1":"Projects.","busy":1,"dialogs":[],"details":[],"live":["Loading your projects…"],"imgsPending":0}
+         74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         74 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         74 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         74 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         74 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         75 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         75 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         75 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         75 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         75 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         75 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         75 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         75 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         75 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         75 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         75 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         75 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         75 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         75 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         93 ms  state       {"h1":"Projects.","busy":3,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        107 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        107 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        107 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        107 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        107 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        108 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+     … 19 more
+  -- browser-back  [5 frame(s)]
+         25 ms  url         /
+         25 ms  state       {"h1":"Your next brand starts here.","busy":1,"dialogs":[],"details":[],"live":["Loading your projects…"],"imgsPending":0}
+         41 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         41 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         41 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         41 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         82 ms  state       {"h1":"Your next brand starts here.","busy":3,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        106 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        106 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        106 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        106 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        106 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        106 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        106 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        106 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        106 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        106 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        106 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        106 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        139 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        139 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        318 ms  state       {"h1":"Your next brand starts here.","busy":3,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        348 ms  state       {"h1":"Your next brand starts here.","busy":2,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        357 ms  shift       0.0171 (after input) span.project-card-module__yo1VFG__next
+
+=== account-menu @1440 (audit-pro)
+  note: menu styles: {"cls":"workspace-account-panel","animation":"none","transition":"0s","origin":"144px 117px","items":["Account settings","Plans and credits","Generation activity","","Sign out","Keep editing","Discard edits and sign out"],"focus":"audit-pro@example.te"}
+  note: after Escape: {"open":0,"focus":"Account menu"}
+  note: after outside click: {"open":0}
+  -- open-account-menu  [4 frame(s)]
+         13 ms  pointerdown summary[Account menu]
+         14 ms  focus       summary[Account menu]
+         16 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":["details.workspace-account-menu"],"live":[],"imgsPending":0}
+  -- escape-closes-menu  [3 frame(s)]
+          1 ms  key         Escape
+          1 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+  -- outside-click-closes-menu  [3 frame(s)]
+          1 ms  pointerdown main
+          1 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+          1 ms  focus       main
+
+=== account-menu @390 (audit-pro)
+  note: menu styles: {"cls":"workspace-account-panel","animation":"none","transition":"0s","origin":"144px 117px","items":["Account settings","Plans and credits","Generation activity","","Sign out","Keep editing","Discard edits and sign out"],"focus":"audit-pro@example.te"}
+  note: after Escape: {"open":0,"focus":"Account menu"}
+  note: after outside click: {"open":0}
+  -- open-account-menu  [4 frame(s)]
+         22 ms  pointerdown summary[Account menu]
+         22 ms  focus       summary[Account menu]
+         23 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":["details.workspace-account-menu"],"live":[],"imgsPending":0}
+  -- escape-closes-menu  [3 frame(s)]
+          1 ms  key         Escape
+          2 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+  -- outside-click-closes-menu  [3 frame(s)]
+          3 ms  pointerdown a.project-card-module__yo1VFG__link[View brand kit · Kestrel Analy]
+          3 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+          3 ms  focus       a.project-card-module__yo1VFG__link[View brand kit · Kestrel Analy]
+         74 ms  url         /brands/account/3a39586e-13f3-42e6-b72b-f4d33b3105a7/logo/deliverables
+         74 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Loading project…","Loading your chosen direction…"],"imgsPending":0}
+         83 ms  shift       0.0088 (after input) main, details.workspace-account-menu
+        132 ms  state       {"h1":"Assets","busy":0,"dialogs":[],"details":[],"live":["Saved","Loading your chosen direction…"],"imgsPending":0}
+        133 ms  shift       0.0500 (after input) main
+
+=== projects-list @1440 (audit-free)
+  note: options menu: {"cls":"project-card-menu","animation":"none","transition":"0s","origin":"84px 26px","focus":"Delete"}
+  note: delete dialog: {"cls":"project-lifecycle-dialog","animation":"none","transition":"0s","backdrop":"rgba(25, 25, 25, 0.4)","focus":"Cancel"}
+  note: after Escape: {"dialogs":0,"focus":"Project options for Orchard Lane Cider"}
+  -- hover-project-card  [3 frame(s)]
+         40 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+  -- open-card-options  [4 frame(s)]
+         26 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         27 ms  pointerdown button.project-card-menu-trigger[Project options for Orchard La]
+         27 ms  focus       button.project-card-menu-trigger[Project options for Orchard La]
+         28 ms  focus       button.project-card-delete
+  -- choose-delete  [4 frame(s)]
+         15 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         33 ms  pointerdown button.project-card-delete
+         36 ms  focus       h2
+         36 ms  focus       button.button.secondary
+         36 ms  state       {"h1":"Projects.","busy":0,"dialogs":["dialog.project-lifecycle-dialog"],"details":[],"live":[],"imgsPending":0}
+  -- escape-closes-dialog  [4 frame(s)]
+          1 ms  key         Escape
+          3 ms  focus       button.project-card-menu-trigger[Project options for Orchard La]
+          3 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+  -- type-search  [4 frame(s)]
+          3 ms  focus       input
+          5 ms  key         char
+          8 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         11 ms  shift       0.0436 (after input) article.project-card-module__yo1VFG__card.project-card
+         50 ms  key         char
+         94 ms  key         char
+        138 ms  key         char
+        182 ms  key         char
+  -- search-no-match  [4 frame(s)]
+          5 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":["No matching projects Try a different project name. Clear search"],"imgsPending":0}
+  -- clear-search  [4 frame(s)]
+          4 ms  key         Delete
+          9 ms  state       {"h1":"Projects.","busy":8,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         20 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         20 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         20 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         20 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         20 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         70 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         70 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         70 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         70 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         70 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         70 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        146 ms  state       {"h1":"Projects.","busy":7,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        154 ms  shift       0.0018 (after input) span.project-card-module__yo1VFG__next
+        253 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        253 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        300 ms  state       {"h1":"Projects.","busy":6,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+     … 13 more
+  -- open-sort  [3 frame(s)]
+         22 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         25 ms  pointerdown summary[Sort projects]
+         25 ms  focus       summary[Sort projects]
+         26 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":["details.projects-control"],"live":[],"imgsPending":0}
+  -- reload-with-3s-api-delay  [7 frame(s)]
+         49 ms  state       {"h1":"Your projects.","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":1}
+         80 ms  state       {"h1":"Your projects.","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":0}
+        130 ms  state       {"h1":"Projects.","busy":3,"dialogs":[],"details":[],"live":["Checking account…","Loading your projects…","Checking recovery availability…"],"imgsPending":1}
+        135 ms  state       {"h1":"Projects.","busy":3,"dialogs":[],"details":[],"live":["Checking account…","Loading your projects…"],"imgsPending":1}
+        138 ms  state       {"h1":"Projects.","busy":3,"dialogs":[],"details":[],"live":["Checking account…","Loading your projects…"],"imgsPending":0}
+        152 ms  state       {"h1":"Projects.","busy":1,"dialogs":[],"details":[],"live":["Loading your projects…"],"imgsPending":0}
+        154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+       3168 ms  state       {"h1":"Projects.","busy":8,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+       3187 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+       3187 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+       3187 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+       3187 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+       3187 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+       3187 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+     … 26 more
+
+=== projects-list @390 (audit-free)
+  note: options menu: {"cls":"project-card-menu","animation":"none","transition":"0s","origin":"84px 28px","focus":"Delete"}
+  note: delete dialog: {"cls":"project-lifecycle-dialog","animation":"none","transition":"0s","backdrop":"rgba(25, 25, 25, 0.4)","focus":"Cancel"}
+  note: after Escape: {"dialogs":0,"focus":"Project options for Orchard Lane Cider"}
+  -- open-card-options  [4 frame(s)]
+         38 ms  state       {"h1":"Projects.","busy":5,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         43 ms  pointerdown button.project-card-menu-trigger[Project options for Orchard La]
+         43 ms  focus       button.project-card-menu-trigger[Project options for Orchard La]
+         46 ms  focus       button.project-card-delete
+  -- choose-delete  [4 frame(s)]
+          9 ms  state       {"h1":"Projects.","busy":5,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         29 ms  pointerdown button.project-card-delete
+         33 ms  focus       h2
+         33 ms  focus       button.button.secondary
+         33 ms  state       {"h1":"Projects.","busy":5,"dialogs":["dialog.project-lifecycle-dialog"],"details":[],"live":[],"imgsPending":0}
+  -- escape-closes-dialog  [4 frame(s)]
+          1 ms  key         Escape
+          3 ms  focus       button.project-card-menu-trigger[Project options for Orchard La]
+          3 ms  state       {"h1":"Projects.","busy":5,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+  -- type-search  [4 frame(s)]
+          5 ms  focus       input
+          6 ms  key         char
+          8 ms  state       {"h1":"Projects.","busy":1,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+          9 ms  shift       0.1640 (after input) article.project-card-module__yo1VFG__card.project-card
+         49 ms  key         char
+         72 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         72 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         94 ms  key         char
+        111 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        123 ms  shift       0.0123 (after input) span.project-card-module__yo1VFG__next
+        138 ms  key         char
+        183 ms  key         char
+  -- search-no-match  [4 frame(s)]
+          6 ms  state       {"h1":"Projects.","busy":0,"dialogs":[],"details":[],"live":["No matching projects Try a different project name. Clear search"],"imgsPending":0}
+  -- clear-search  [4 frame(s)]
+          7 ms  key         Delete
+         11 ms  state       {"h1":"Projects.","busy":8,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         30 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         30 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         30 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+         31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         64 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         64 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         64 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         64 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+         64 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+         64 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        151 ms  state       {"h1":"Projects.","busy":7,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        337 ms  state       {"h1":"Projects.","busy":7,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        349 ms  state       {"h1":"Projects.","busy":7,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        358 ms  state       {"h1":"Projects.","busy":6,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        365 ms  shift       0.0109 (after input) span.project-card-module__yo1VFG__next
+     … 3 more
+  -- open-sort  [3 frame(s)]
+         26 ms  state       {"h1":"Projects.","busy":5,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         28 ms  pointerdown summary[Sort projects]
+         28 ms  focus       summary[Sort projects]
+         29 ms  state       {"h1":"Projects.","busy":5,"dialogs":[],"details":["details.projects-control"],"live":[],"imgsPending":0}
+  -- reload-with-3s-api-delay  [7 frame(s)]
+         57 ms  state       {"h1":"Your projects.","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":1}
+         96 ms  state       {"h1":"Your projects.","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":0}
+        153 ms  state       {"h1":"Projects.","busy":3,"dialogs":[],"details":[],"live":["Checking account…","Loading your projects…","Checking recovery availability…"],"imgsPending":1}
+        158 ms  state       {"h1":"Projects.","busy":3,"dialogs":[],"details":[],"live":["Checking account…","Loading your projects…"],"imgsPending":1}
+        174 ms  state       {"h1":"Projects.","busy":1,"dialogs":[],"details":[],"live":["Loading your projects…"],"imgsPending":0}
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+        175 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+       3187 ms  state       {"h1":"Projects.","busy":8,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+       3208 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+       3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+       3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+       3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)
+       3208 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)
+       3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)
+       3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)
+     … 25 more
+
+=== library @1440 (audit-pro)
+  note: card controls: ["Kept assets","All generations","Refresh","Open Brand board from Bright Harbor Lear","View details of Brand board from Bright ","Actions for Brand board from Bright Harb","Like Brand board from Bright Harbor Lear","Save Brand board from Bright Harbor Lear","Open Brand board from Maison Aurélie","View details of Brand board from Maison ","Actions for Brand board from Maison Auré","Like Brand board from Maison Aurélie","Save Brand board from Maison Aurélie","Open Brand board from Kestrel Analytics","View details of Brand board from Kestrel","Actions for Brand board from Kestrel Ana","Like Brand board from Kestrel Analytics","Save Brand board from Kestrel Analytics"]
+  note: after view details: {"dialogs":0}
+  -- load-library  [5 frame(s)]
+         45 ms  state       {"h1":"Your visual library.","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":1}
+         69 ms  state       {"h1":"Your visual library.","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":0}
+        133 ms  state       {"h1":"Your visual library.","busy":3,"dialogs":[],"details":[],"live":["Checking account…","Loading assets…"],"imgsPending":0}
+        170 ms  state       {"h1":"Your visual library.","busy":1,"dialogs":[],"details":[],"live":["Loading assets…"],"imgsPending":0}
+        191 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":3}
+        238 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        373 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        388 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        394 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        439 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+  -- tab-all-generations  [5 frame(s)]
+         12 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         23 ms  pointerdown button
+         23 ms  focus       button
+         27 ms  state       {"h1":"Your visual library.","busy":1,"dialogs":[],"details":[],"live":["Loading assets…"],"imgsPending":0}
+        108 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        177 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        210 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        212 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        260 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+  -- tab-kept-assets  [5 frame(s)]
+         24 ms  pointerdown button
+         24 ms  focus       button
+         31 ms  state       {"h1":"Your visual library.","busy":1,"dialogs":[],"details":[],"live":["Loading assets…"],"imgsPending":0}
+         73 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        123 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        127 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        142 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        178 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+  -- view-details  [4 frame(s)]
+          1 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         31 ms  pointerdown button.assets-open-detail[View details of Brand board fr]
+         31 ms  focus       button.assets-open-detail[View details of Brand board fr]
+         38 ms  focus       h2
+         41 ms  focus       button.assets-open-detail[View details of Brand board fr]
+         41 ms  focus       h2
+         42 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":["dialog.assets-detail"],"details":[],"live":["Loading version history…"],"imgsPending":0}
+         52 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         52 ms  focus       button.assets-open-detail[View details of Brand board fr]
+  -- hover-library-card  [3 frame(s)]
+         38 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+
+=== library @390 (audit-pro)
+  note: card controls: ["Kept assets","All generations","Refresh","Open Brand board from Bright Harbor Lear","View details of Brand board from Bright ","Actions for Brand board from Bright Harb","Like Brand board from Bright Harbor Lear","Save Brand board from Bright Harbor Lear","Open Brand board from Maison Aurélie","View details of Brand board from Maison ","Actions for Brand board from Maison Auré","Like Brand board from Maison Aurélie","Save Brand board from Maison Aurélie","Open Brand board from Kestrel Analytics","View details of Brand board from Kestrel","Actions for Brand board from Kestrel Ana","Like Brand board from Kestrel Analytics","Save Brand board from Kestrel Analytics"]
+  note: after view details: {"dialogs":0}
+  -- load-library  [5 frame(s)]
+         38 ms  state       {"h1":"Your visual library.","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":1}
+         64 ms  state       {"h1":"Your visual library.","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":0}
+        127 ms  state       {"h1":"Your visual library.","busy":3,"dialogs":[],"details":[],"live":["Checking account…","Loading assets…"],"imgsPending":0}
+        151 ms  state       {"h1":"Your visual library.","busy":1,"dialogs":[],"details":[],"live":["Loading assets…"],"imgsPending":0}
+        167 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":3}
+        187 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        217 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        237 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+  -- tab-all-generations  [5 frame(s)]
+         11 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         26 ms  pointerdown button
+         26 ms  focus       button
+         28 ms  state       {"h1":"Your visual library.","busy":1,"dialogs":[],"details":[],"live":["Loading assets…"],"imgsPending":0}
+         87 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        135 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        161 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+  -- tab-kept-assets  [5 frame(s)]
+         28 ms  pointerdown button
+         28 ms  focus       button
+         34 ms  state       {"h1":"Your visual library.","busy":1,"dialogs":[],"details":[],"live":["Loading assets…"],"imgsPending":0}
+         60 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        101 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":1}
+        146 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+  -- view-details  [4 frame(s)]
+         26 ms  pointerdown button.assets-open-detail[View details of Brand board fr]
+         26 ms  focus       button.assets-open-detail[View details of Brand board fr]
+         33 ms  focus       h2
+         35 ms  focus       button.assets-open-detail[View details of Brand board fr]
+         36 ms  focus       h2
+         36 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":["dialog.assets-detail"],"details":[],"live":["Loading version history…"],"imgsPending":0}
+         47 ms  state       {"h1":"Your visual library.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         47 ms  focus       button.assets-open-detail[View details of Brand board fr]
+
+=== plans @1440 (audit-free)
+  note: after upgrade click: {"live":["Payments are unavailable right now. Nothing was charged. Try again shortly."],"focus":"Skip to content\nEmbel\nHome\nPro","scrollTop":0}
+  -- load-plans  [4 frame(s)]
+         76 ms  state       {"h1":"Plans","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":0}
+        131 ms  state       {"h1":"Plans","busy":2,"dialogs":[],"details":[],"live":["Checking account…"],"imgsPending":0}
+        156 ms  shift       0.0260 ul.plans-grid[Plans], p.plans-footnote
+        158 ms  state       {"h1":"Plans","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+  -- click-upgrade  [6 frame(s)]
+          9 ms  state       {"h1":"Plans","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         24 ms  pointerdown button.button.primary
+         24 ms  focus       button.button.primary
+        689 ms  state       {"h1":"Plans","busy":0,"dialogs":[],"details":[],"live":["Payments are unavailable right now. Nothing was charged. Try again sho"],"imgsPending":0}
+        689 ms  shift       0.0072 ul.plans-grid[Plans], p.plans-footnote
+
+=== plans @390 (audit-free)
+  note: after upgrade click: {"live":["Payments are unavailable right now. Nothing was charged. Try again shortly."],"focus":"Skip to content\nHome\nProjects\n","scrollTop":0}
+  -- load-plans  [4 frame(s)]
+         72 ms  state       {"h1":"Plans","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account…"],"imgsPending":0}
+        132 ms  state       {"h1":"Plans","busy":2,"dialogs":[],"details":[],"live":["Checking account…"],"imgsPending":0}
+        159 ms  state       {"h1":"Plans","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+        170 ms  shift       0.1509 (after input) ul.plans-grid[Plans], p.plans-footnote
+  -- click-upgrade  [6 frame(s)]
+         19 ms  pointerdown button.button.primary
+         19 ms  focus       button.button.primary
+         22 ms  state       {"h1":"Plans","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         34 ms  scroll      main top=156
+         37 ms  state       {"h1":"Plans","busy":0,"dialogs":[],"details":[],"live":["Payments are unavailable right now. Nothing was charged. Try again sho"],"imgsPending":0}
+         51 ms  shift       0.0448 (after input) ul.plans-grid[Plans], p.plans-footnote
+
+=== settings @1440 (audit-pro)  ERROR: locator.fill: Timeout 30000ms exceeded. | Call log: |   - waiting for getByRole('textbox', { name: 'Full name' })
+  -- load-settings  [4 frame(s)]
+         42 ms  state       {"h1":"Settings.","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Sign in to edit your profile and preferences.","Checking account…"],"imgsPending":1}
+         68 ms  state       {"h1":"Settings.","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Sign in to edit your profile and preferences.","Checking account…"],"imgsPending":0}
+        136 ms  state       {"h1":"Settings.","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account settings…"],"imgsPending":0}
+        141 ms  shift       0.0059 section.sg-card.sg-session[Sign out]
+        162 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+  -- tab-usage  [5 frame(s)]
+          0 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+         22 ms  pointerdown button
+         23 ms  focus       button
+         28 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["Loading usage…"],"imgsPending":0}
+        275 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["Usage loaded."],"imgsPending":0}
+        287 ms  shift       0.0082 (after input) p.recorded-usage-note
+  -- tab-account  [4 frame(s)]
+          9 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["Usage loaded."],"imgsPending":0}
+         33 ms  pointerdown button
+         33 ms  focus       button
+         43 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":[],"imgsPending":0}
+  -- save-changes  [6 frame(s)]
+         26 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["You have unsaved changes."],"imgsPending":0}
+         31 ms  pointerdown button.button.primary
+         31 ms  focus       button.button.primary
+         37 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["Saving your profile and preferences…"],"imgsPending":0}
+         46 ms  scroll      main top=12
+         94 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["Profile and date preferences saved to your account."],"imgsPending":0}
+  -- save-changes-offline  [7 frame(s)]
+         22 ms  pointerdown button.button.primary
+         23 ms  focus       button.button.primary
+         28 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["Saving your profile and preferences…"],"imgsPending":0}
+         43 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["You have unsaved changes.","Saving could not be confirmed. Your edits are still here. Check the sa"],"imgsPending":0}
+         55 ms  shift       0.0064 (after input) section.sg-card[Plan and credits]
+
+=== settings @390 (audit-pro)  ERROR: locator.fill: Timeout 30000ms exceeded. | Call log: |   - waiting for getByRole('textbox', { name: 'Full name' })
+  -- load-settings  [4 frame(s)]
+         55 ms  state       {"h1":"Settings.","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Sign in to edit your profile and preferences.","Checking account…"],"imgsPending":1}
+         82 ms  state       {"h1":"Settings.","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Sign in to edit your profile and preferences.","Checking account…"],"imgsPending":0}
+        155 ms  state       {"h1":"Settings.","busy":2,"dialogs":[],"details":[],"live":["Checking account…","Checking your account settings…"],"imgsPending":0}
+        190 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["Your settings are saved."],"imgsPending":0}
+  -- tab-usage  [5 frame(s)]
+         32 ms  pointerdown button
+         32 ms  focus       button
+         36 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["Loading usage…"],"imgsPending":0}
+         83 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["Usage loaded."],"imgsPending":0}
+         89 ms  shift       0.0170 (after input) p.recorded-usage-note
+  -- tab-account  [4 frame(s)]
+         14 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["Usage loaded."],"imgsPending":0}
+         30 ms  pointerdown button
+         30 ms  focus       button
+         40 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["Your settings are saved."],"imgsPending":0}
+  -- save-changes  [6 frame(s)]
+         21 ms  pointerdown button.button.primary
+         21 ms  focus       button.button.primary
+         26 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["Saving your profile and preferences…"],"imgsPending":0}
+         37 ms  scroll      main top=564
+         42 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["Profile and date preferences saved to your account."],"imgsPending":0}
+  -- save-changes-offline  [7 frame(s)]
+         19 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["You have unsaved changes."],"imgsPending":0}
+         30 ms  pointerdown button.button.primary
+         30 ms  focus       button.button.primary
+         35 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["Saving your profile and preferences…"],"imgsPending":0}
+         50 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["You have unsaved changes.","Saving could not be confirmed. Your edits are still here. Check the sa"],"imgsPending":0}
+         62 ms  shift       0.0215 (after input) section.sg-card[Plan and credits]
+
+Wrote /Users/mikael/embel/design-audit/evidence/motion/walk-shell-nav_route_account_menu_projects_list_library_plans_settings.json

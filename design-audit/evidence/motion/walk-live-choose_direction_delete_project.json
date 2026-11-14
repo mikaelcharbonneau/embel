@@ -1,0 +1,139 @@
+[
+ {
+  "scenario": "choose-direction",
+  "width": 1440,
+  "account": "audit-free",
+  "steps": [
+   {
+    "label": "before-choose",
+    "frames": [
+     "live__choose-direction__1440__00-before-choose.jpg"
+    ],
+    "entries": []
+   },
+   {
+    "label": "choose-direction",
+    "frames": [
+     "live__choose-direction__1440__01-choose-direction-0ms.jpg",
+     "live__choose-direction__1440__02-choose-direction-80ms.jpg",
+     "live__choose-direction__1440__03-choose-direction-200ms.jpg",
+     "live__choose-direction__1440__04-choose-direction-450ms.jpg",
+     "live__choose-direction__1440__05-choose-direction-900ms.jpg",
+     "live__choose-direction__1440__06-choose-direction-1800ms.jpg",
+     "live__choose-direction__1440__07-choose-direction-3000ms.jpg"
+    ],
+    "entries": [
+     "    26 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"Logo chosen 6 of 6 concepts ready\",\"3 of 3 ready\"],\"imgsPending\":5}",
+     "    35 ms  pointerdown div.visual-directions-view-module__cGZDDW__designDetails",
+     "    35 ms  focus       article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 1: Editorial Soft Sh]",
+     "    47 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"Logo chosen 6 of 6 concepts ready\",\"3 of 3 ready\",\"Saving choice…\"],\"imgsPending\":5}",
+     "    48 ms  transition  border-top-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 1: Editorial Soft Sh] (0.12s ease [border-color])  [x2 in this step]",
+     "    48 ms  transition  border-bottom-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 1: Editorial Soft Sh] (0.12s ease [border-color])  [x2 in this step]",
+     "    48 ms  transition  border-left-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 1: Editorial Soft Sh] (0.12s ease [border-color])  [x2 in this step]",
+     "    48 ms  transition  border-right-color on article.visual-directions-view-module__cGZDDW__card.direction-choice-card[Direction 1: Editorial Soft Sh] (0.12s ease [border-color])  [x2 in this step]",
+     "    49 ms  shift       0.0376 (after input) div.visual-directions-view-module__cGZDDW__cards[Direction comparison], div.direction-footer",
+     "  1104 ms  shift       0.0135 div.visual-directions-view-module__cGZDDW__cards[Direction comparison]",
+     "  1267 ms  shift       0.0342 div.visual-directions-view-module__cGZDDW__cards[Direction comparison], div.direction-footer, div.visual-directions-view-module__cGZDDW__toolbarActions",
+     "  1356 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"Logo chosen 6 of 6 concepts ready\",\"Editorial Soft Shapes chosen 3 of 3 ready\"],\"imgsPending\":5}",
+     "  1356 ms  shift       0.0000 div.visual-directions-view-module__cGZDDW__toolbarActions",
+     "  1357 ms  shift       0.0051 div.direction-footer, span.visual-directions-view-module__cGZDDW__progressCount"
+    ]
+   },
+   {
+    "label": "continue-to-assets-first-time",
+    "frames": [
+     "live__choose-direction__1440__08-continue-to-assets-first-time-0ms.jpg",
+     "live__choose-direction__1440__09-continue-to-assets-first-time-100ms.jpg",
+     "live__choose-direction__1440__10-continue-to-assets-first-time-300ms.jpg",
+     "live__choose-direction__1440__11-continue-to-assets-first-time-700ms.jpg",
+     "live__choose-direction__1440__12-continue-to-assets-first-time-1500ms.jpg",
+     "live__choose-direction__1440__13-continue-to-assets-first-time-2500ms.jpg",
+     "live__choose-direction__1440__14-continue-to-assets-first-time-4000ms.jpg",
+     "live__choose-direction__1440__15-continue-to-assets-first-time-6000ms.jpg",
+     "live__choose-direction__1440__16-continue-to-assets-first-time-9000ms.jpg",
+     "live__choose-direction__1440__17-continue-to-assets-first-time-13000ms.jpg"
+    ],
+    "entries": [
+     "    17 ms  scroll      div.guided-interview-scroll[Conversation] top=4499",
+     "    28 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"Logo chosen 6 of 6 concepts ready\",\"Editorial Soft Shapes chosen 3 of 3 ready\"],\"imgsPending\":5}",
+     "    36 ms  pointerdown a.identity-primary-button",
+     "    36 ms  focus       a.identity-primary-button",
+     "   123 ms  url         /brands/account/a8b98b3a-3b2d-48be-af2f-c8e4803b6373/logo/deliverables",
+     "   123 ms  state       {\"h1\":\"Assets\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"Loading your chosen direction…\"],\"imgsPending\":0}",
+     "   137 ms  shift       0.0000 (after input) li",
+     "   617 ms  state       {\"h1\":\"Assets\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"Preparing your files…\",\"Preparing…\",\"Preparing…\",\"Preparing…\"],\"imgsPending\":0}",
+     "  1270 ms  state       {\"h1\":\"Assets\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"Ready to download.\"],\"imgsPending\":8}",
+     "  1273 ms  state       {\"h1\":\"Assets\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"Ready to download.\"],\"imgsPending\":2}",
+     "  1274 ms  shift       0.0542 section.kit-card, figure.kit-image, p.brand-assets-module__GHEyxG__status",
+     "  1278 ms  state       {\"h1\":\"Assets\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"Ready to download.\"],\"imgsPending\":0}",
+     "  1284 ms  shift       0.3229 section.kit-card, figcaption.brand-assets-module__GHEyxG__caption"
+    ]
+   },
+   {
+    "label": "assets-first-build",
+    "entries": [
+     "    17 ms  scroll      div.guided-interview-scroll[Conversation] top=4499",
+     "    28 ms  state       {\"h1\":\"Logo\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"Logo chosen 6 of 6 concepts ready\",\"Editorial Soft Shapes chosen 3 of 3 ready\"],\"imgsPending\":5}",
+     "    36 ms  pointerdown a.identity-primary-button",
+     "    36 ms  focus       a.identity-primary-button",
+     "   123 ms  url         /brands/account/a8b98b3a-3b2d-48be-af2f-c8e4803b6373/logo/deliverables",
+     "   123 ms  state       {\"h1\":\"Assets\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"Loading your chosen direction…\"],\"imgsPending\":0}",
+     "   137 ms  shift       0.0000 (after input) li",
+     "   617 ms  state       {\"h1\":\"Assets\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"Preparing your files…\",\"Preparing…\",\"Preparing…\",\"Preparing…\"],\"imgsPending\":0}",
+     "  1270 ms  state       {\"h1\":\"Assets\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"Ready to download.\"],\"imgsPending\":8}",
+     "  1273 ms  state       {\"h1\":\"Assets\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"Ready to download.\"],\"imgsPending\":2}",
+     "  1274 ms  shift       0.0542 section.kit-card, figure.kit-image, p.brand-assets-module__GHEyxG__status",
+     "  1278 ms  state       {\"h1\":\"Assets\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"Ready to download.\"],\"imgsPending\":0}",
+     "  1284 ms  shift       0.3229 section.kit-card, figcaption.brand-assets-module__GHEyxG__caption"
+    ]
+   }
+  ],
+  "notes": [
+   "choosing: Direction 1: Editorial Soft Shapes",
+   "aria-checked after 3 s: true",
+   "after choose: {\"selected\":2,\"live\":[\"Saved\",\"Saved\",\"Logo chosen\\n6 of 6 concepts ready\",\"Editorial Soft Shapes chosen\\n3 of 3 ready\"]}"
+  ]
+ },
+ {
+  "scenario": "delete-project",
+  "width": 1440,
+  "account": "audit-pro",
+  "steps": [
+   {
+    "label": "projects-before-delete",
+    "frames": [
+     "live__delete-project__1440__00-projects-before-delete.jpg"
+    ],
+    "entries": []
+   },
+   {
+    "label": "confirm-delete",
+    "frames": [
+     "live__delete-project__1440__01-confirm-delete-0ms.jpg",
+     "live__delete-project__1440__02-confirm-delete-80ms.jpg",
+     "live__delete-project__1440__03-confirm-delete-250ms.jpg",
+     "live__delete-project__1440__04-confirm-delete-600ms.jpg",
+     "live__delete-project__1440__05-confirm-delete-1200ms.jpg",
+     "live__delete-project__1440__06-confirm-delete-2500ms.jpg",
+     "live__delete-project__1440__07-confirm-delete-4000ms.jpg",
+     "live__delete-project__1440__08-confirm-delete-7000ms.jpg"
+    ],
+    "entries": [
+     "     8 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[\"dialog.project-lifecycle-dialog\"],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    26 ms  pointerdown button.button.project-delete-confirm",
+     "    26 ms  focus       button.button.project-delete-confirm",
+     "    28 ms  state       {\"h1\":\"Projects.\",\"busy\":1,\"dialogs\":[\"dialog.project-lifecycle-dialog\"],\"details\":[],\"live\":[\"Moving to Deleted projects…\"],\"imgsPending\":0}",
+     "    42 ms  shift       0.0189 (after input) dialog.project-lifecycle-dialog",
+     "  1197 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"“Untitled brand” moved to Deleted projects. View deleted projects Dele\"],\"imgsPending\":0}",
+     "  1199 ms  shift       0.2102 section.projects-grid[Projects], div.projects-toolbar"
+    ]
+   }
+  ],
+  "notes": [
+   "dialog: \"Delete “Untitled brand”? This moves the project to Deleted projects and requests cancellation of active work. Work already started may still finish or incur usage. Its assets and history are kept. Restoring won’t restart cancelled AI work. Cancel Stop active w\"",
+   "after delete: {\"dialogs\":0,\"cards\":4,\"live\":[\"“Untitled brand” moved to Deleted projects.\\nView deleted projects\\nDeleted\"],\"focus\":\"Skip to content\\nEmbel\\nHome\\nPro\"}",
+   "dialog: \"Delete “Untitled brand”? This moves the project to Deleted projects and requests cancellation of active work. Work already started may still finish or incur usage. Its assets and history are kept. Restoring won’t restart cancelled AI work. Cancel Stop active w\"",
+   "no Untitled brand left after 2 deletion(s)"
+  ]
+ }
+]

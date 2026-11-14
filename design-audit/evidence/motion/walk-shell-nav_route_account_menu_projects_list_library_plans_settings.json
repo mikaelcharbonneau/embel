@@ -1,0 +1,1731 @@
+[
+ {
+  "scenario": "nav-route-changes",
+  "width": 1440,
+  "account": "audit-pro",
+  "steps": [
+   {
+    "label": "home-full-load",
+    "frames": [
+     "shell__nav-route-changes__1440__00-home-full-load-100ms.jpg",
+     "shell__nav-route-changes__1440__01-home-full-load-400ms.jpg",
+     "shell__nav-route-changes__1440__02-home-full-load-900ms.jpg",
+     "shell__nav-route-changes__1440__03-home-full-load-1600ms.jpg",
+     "shell__nav-route-changes__1440__04-home-full-load-2600ms.jpg",
+     "shell__nav-route-changes__1440__05-home-full-load-4000ms.jpg"
+    ],
+    "entries": [
+     "    73 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\"],\"imgsPending\":1}",
+     "   106 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\"],\"imgsPending\":0}",
+     "   229 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Loading your projects…\"],\"imgsPending\":0}",
+     "   244 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   244 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   244 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   244 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   244 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   322 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading your projects…\"],\"imgsPending\":0}",
+     "   339 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   364 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   364 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   364 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   364 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   364 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   364 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   364 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   364 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   364 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   364 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   364 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   364 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   426 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   426 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   426 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   426 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   426 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   426 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   661 ms  shift       0.0018 span.project-card-module__yo1VFG__next",
+     "   760 ms  shift       0.0018 span.project-card-module__yo1VFG__next",
+     "   764 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   775 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   790 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   794 ms  shift       0.0018 span.project-card-module__yo1VFG__next",
+     "   798 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   810 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "home-to-projects",
+    "frames": [
+     "shell__nav-route-changes__1440__06-home-to-projects-0ms.jpg",
+     "shell__nav-route-changes__1440__07-home-to-projects-60ms.jpg",
+     "shell__nav-route-changes__1440__08-home-to-projects-150ms.jpg",
+     "shell__nav-route-changes__1440__09-home-to-projects-400ms.jpg",
+     "shell__nav-route-changes__1440__10-home-to-projects-900ms.jpg",
+     "shell__nav-route-changes__1440__11-home-to-projects-1600ms.jpg",
+     "shell__nav-route-changes__1440__12-home-to-projects-2600ms.jpg"
+    ],
+    "entries": [
+     "    26 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    28 ms  pointerdown a.journey-module__MmLfbq__navLink",
+     "    28 ms  focus       a.journey-module__MmLfbq__navLink",
+     "    69 ms  url         /brands",
+     "    69 ms  state       {\"h1\":\"Projects.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading your projects…\"],\"imgsPending\":1}",
+     "    81 ms  state       {\"h1\":\"Projects.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading your projects…\"],\"imgsPending\":0}",
+     "    94 ms  state       {\"h1\":\"Projects.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   109 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   109 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   109 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   109 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   109 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   109 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   109 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   109 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   109 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   109 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   109 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   109 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   160 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   160 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   160 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   160 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   160 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   160 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   377 ms  shift       0.0023 (after input) span.project-card-module__yo1VFG__next, span.project-card-module__yo1VFG__next",
+     "   427 ms  shift       0.0018 (after input) span.project-card-module__yo1VFG__next",
+     "   443 ms  state       {\"h1\":\"Projects.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   446 ms  state       {\"h1\":\"Projects.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   448 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   477 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "projects-to-library",
+    "frames": [
+     "shell__nav-route-changes__1440__13-projects-to-library-0ms.jpg",
+     "shell__nav-route-changes__1440__14-projects-to-library-60ms.jpg",
+     "shell__nav-route-changes__1440__15-projects-to-library-150ms.jpg",
+     "shell__nav-route-changes__1440__16-projects-to-library-400ms.jpg",
+     "shell__nav-route-changes__1440__17-projects-to-library-900ms.jpg",
+     "shell__nav-route-changes__1440__18-projects-to-library-1600ms.jpg",
+     "shell__nav-route-changes__1440__19-projects-to-library-2600ms.jpg"
+    ],
+    "entries": [
+     "    17 ms  pointerdown a.journey-module__MmLfbq__navLink",
+     "    17 ms  focus       a.journey-module__MmLfbq__navLink",
+     "    46 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    68 ms  url         /assets",
+     "    68 ms  state       {\"h1\":\"Your visual library.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading assets…\"],\"imgsPending\":0}",
+     "   136 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":3}",
+     "   146 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   211 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   247 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   256 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   296 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "library-to-home",
+    "frames": [
+     "shell__nav-route-changes__1440__20-library-to-home-0ms.jpg",
+     "shell__nav-route-changes__1440__21-library-to-home-60ms.jpg",
+     "shell__nav-route-changes__1440__22-library-to-home-150ms.jpg",
+     "shell__nav-route-changes__1440__23-library-to-home-400ms.jpg",
+     "shell__nav-route-changes__1440__24-library-to-home-900ms.jpg",
+     "shell__nav-route-changes__1440__25-library-to-home-1600ms.jpg",
+     "shell__nav-route-changes__1440__26-library-to-home-2600ms.jpg"
+    ],
+    "entries": [
+     "     5 ms  pointerdown a.journey-module__MmLfbq__navLink",
+     "     5 ms  focus       a.journey-module__MmLfbq__navLink",
+     "    21 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    40 ms  url         /",
+     "    40 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading your projects…\"],\"imgsPending\":0}",
+     "    55 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    55 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    55 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    55 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    55 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    89 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   121 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   121 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   121 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   121 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   121 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   121 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   121 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   121 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   121 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   121 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   121 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   121 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   388 ms  shift       0.0035 (after input) span.project-card-module__yo1VFG__next, span.project-card-module__yo1VFG__next",
+     "   406 ms  shift       0.0018 (after input) span.project-card-module__yo1VFG__next",
+     "   408 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   421 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   425 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   429 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   472 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "home-to-projects-second-visit",
+    "frames": [
+     "shell__nav-route-changes__1440__27-home-to-projects-second-visit-0ms.jpg",
+     "shell__nav-route-changes__1440__28-home-to-projects-second-visit-60ms.jpg",
+     "shell__nav-route-changes__1440__29-home-to-projects-second-visit-150ms.jpg",
+     "shell__nav-route-changes__1440__30-home-to-projects-second-visit-400ms.jpg",
+     "shell__nav-route-changes__1440__31-home-to-projects-second-visit-900ms.jpg",
+     "shell__nav-route-changes__1440__32-home-to-projects-second-visit-1600ms.jpg"
+    ],
+    "entries": [
+     "     4 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    23 ms  pointerdown a.journey-module__MmLfbq__navLink",
+     "    23 ms  focus       a.journey-module__MmLfbq__navLink",
+     "    62 ms  url         /brands",
+     "    62 ms  state       {\"h1\":\"Projects.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading your projects…\"],\"imgsPending\":1}",
+     "    63 ms  state       {\"h1\":\"Projects.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading your projects…\"],\"imgsPending\":0}",
+     "    87 ms  state       {\"h1\":\"Projects.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   103 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   103 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   103 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   103 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   103 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   103 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   103 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   104 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   104 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   104 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   104 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   104 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   170 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   170 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   170 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   437 ms  shift       0.0023 (after input) span.project-card-module__yo1VFG__next, span.project-card-module__yo1VFG__next",
+     "   461 ms  state       {\"h1\":\"Projects.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   470 ms  shift       0.0018 (after input) span.project-card-module__yo1VFG__next",
+     "   479 ms  state       {\"h1\":\"Projects.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   485 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   504 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "browser-back",
+    "frames": [
+     "shell__nav-route-changes__1440__33-browser-back-0ms.jpg",
+     "shell__nav-route-changes__1440__34-browser-back-150ms.jpg",
+     "shell__nav-route-changes__1440__35-browser-back-400ms.jpg",
+     "shell__nav-route-changes__1440__36-browser-back-900ms.jpg",
+     "shell__nav-route-changes__1440__37-browser-back-1600ms.jpg"
+    ],
+    "entries": [
+     "    24 ms  url         /",
+     "    25 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading your projects…\"],\"imgsPending\":0}",
+     "    32 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    32 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    32 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    32 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    32 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    74 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    97 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    97 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    97 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    97 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    97 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    97 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    97 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    97 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    97 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    97 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    97 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    97 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   130 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   130 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   130 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   130 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   130 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   130 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   398 ms  shift       0.0018 (after input) span.project-card-module__yo1VFG__next",
+     "   401 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   416 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   430 ms  shift       0.0035 (after input) span.project-card-module__yo1VFG__next, span.project-card-module__yo1VFG__next",
+     "   439 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   459 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   464 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   }
+  ],
+  "notes": []
+ },
+ {
+  "scenario": "nav-route-changes",
+  "width": 390,
+  "account": "audit-pro",
+  "steps": [
+   {
+    "label": "home-full-load",
+    "frames": [
+     "shell__nav-route-changes__390__00-home-full-load-100ms.jpg",
+     "shell__nav-route-changes__390__01-home-full-load-400ms.jpg",
+     "shell__nav-route-changes__390__02-home-full-load-900ms.jpg",
+     "shell__nav-route-changes__390__03-home-full-load-1600ms.jpg",
+     "shell__nav-route-changes__390__04-home-full-load-2600ms.jpg",
+     "shell__nav-route-changes__390__05-home-full-load-4000ms.jpg"
+    ],
+    "entries": [
+     "    47 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\"],\"imgsPending\":1}",
+     "    71 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\"],\"imgsPending\":0}",
+     "   150 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Loading your projects…\"],\"imgsPending\":0}",
+     "   169 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   169 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   169 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   169 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   169 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   170 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   170 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   170 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   196 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading your projects…\"],\"imgsPending\":0}",
+     "   212 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   236 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   236 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   236 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   236 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   236 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   236 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   236 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   236 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   236 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   236 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   236 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   236 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   302 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   302 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   453 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   484 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   486 ms  shift       0.0171 (after input) span.project-card-module__yo1VFG__next"
+    ]
+   },
+   {
+    "label": "home-to-projects",
+    "frames": [
+     "shell__nav-route-changes__390__06-home-to-projects-0ms.jpg",
+     "shell__nav-route-changes__390__07-home-to-projects-60ms.jpg",
+     "shell__nav-route-changes__390__08-home-to-projects-150ms.jpg",
+     "shell__nav-route-changes__390__09-home-to-projects-400ms.jpg",
+     "shell__nav-route-changes__390__10-home-to-projects-900ms.jpg",
+     "shell__nav-route-changes__390__11-home-to-projects-1600ms.jpg",
+     "shell__nav-route-changes__390__12-home-to-projects-2600ms.jpg"
+    ],
+    "entries": [
+     "    40 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    42 ms  pointerdown a.journey-module__MmLfbq__navLink",
+     "    42 ms  focus       a.journey-module__MmLfbq__navLink",
+     "   120 ms  url         /brands",
+     "   120 ms  state       {\"h1\":\"Projects.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading your projects…\"],\"imgsPending\":1}",
+     "   130 ms  state       {\"h1\":\"Projects.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading your projects…\"],\"imgsPending\":0}",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   137 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   184 ms  state       {\"h1\":\"Projects.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   203 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   203 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   203 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   203 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   203 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   203 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   203 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   203 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   203 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   203 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   203 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   203 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   254 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   254 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   254 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   254 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   254 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   254 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   556 ms  shift       0.0159 span.project-card-module__yo1VFG__next",
+     "   570 ms  shift       0.0109 span.project-card-module__yo1VFG__next",
+     "   594 ms  state       {\"h1\":\"Projects.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   613 ms  state       {\"h1\":\"Projects.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   616 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   640 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "projects-to-library",
+    "frames": [
+     "shell__nav-route-changes__390__13-projects-to-library-0ms.jpg",
+     "shell__nav-route-changes__390__14-projects-to-library-60ms.jpg",
+     "shell__nav-route-changes__390__15-projects-to-library-150ms.jpg",
+     "shell__nav-route-changes__390__16-projects-to-library-400ms.jpg",
+     "shell__nav-route-changes__390__17-projects-to-library-900ms.jpg",
+     "shell__nav-route-changes__390__18-projects-to-library-1600ms.jpg",
+     "shell__nav-route-changes__390__19-projects-to-library-2600ms.jpg"
+    ],
+    "entries": [
+     "    11 ms  pointerdown a.journey-module__MmLfbq__navLink",
+     "    12 ms  focus       a.journey-module__MmLfbq__navLink",
+     "    27 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    52 ms  url         /assets",
+     "    52 ms  state       {\"h1\":\"Your visual library.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading assets…\"],\"imgsPending\":0}",
+     "    92 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":3}",
+     "   114 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   123 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   163 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "library-to-home",
+    "frames": [
+     "shell__nav-route-changes__390__20-library-to-home-0ms.jpg",
+     "shell__nav-route-changes__390__21-library-to-home-60ms.jpg",
+     "shell__nav-route-changes__390__22-library-to-home-150ms.jpg",
+     "shell__nav-route-changes__390__23-library-to-home-400ms.jpg",
+     "shell__nav-route-changes__390__24-library-to-home-900ms.jpg",
+     "shell__nav-route-changes__390__25-library-to-home-1600ms.jpg",
+     "shell__nav-route-changes__390__26-library-to-home-2600ms.jpg"
+    ],
+    "entries": [
+     "     3 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    18 ms  pointerdown a.journey-module__MmLfbq__navLink",
+     "    18 ms  focus       a.journey-module__MmLfbq__navLink",
+     "    80 ms  url         /",
+     "    80 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading your projects…\"],\"imgsPending\":0}",
+     "    99 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    99 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    99 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    99 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    99 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   198 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   215 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   215 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   215 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   215 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   215 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   215 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   215 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   215 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   215 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   215 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   215 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   215 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   281 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   281 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   430 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   451 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   514 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   515 ms  shift       0.0171 (after input) span.project-card-module__yo1VFG__next"
+    ]
+   },
+   {
+    "label": "home-to-projects-second-visit",
+    "frames": [
+     "shell__nav-route-changes__390__27-home-to-projects-second-visit-0ms.jpg",
+     "shell__nav-route-changes__390__28-home-to-projects-second-visit-60ms.jpg",
+     "shell__nav-route-changes__390__29-home-to-projects-second-visit-150ms.jpg",
+     "shell__nav-route-changes__390__30-home-to-projects-second-visit-400ms.jpg",
+     "shell__nav-route-changes__390__31-home-to-projects-second-visit-900ms.jpg",
+     "shell__nav-route-changes__390__32-home-to-projects-second-visit-1600ms.jpg"
+    ],
+    "entries": [
+     "    25 ms  pointerdown a.journey-module__MmLfbq__navLink",
+     "    25 ms  focus       a.journey-module__MmLfbq__navLink",
+     "    41 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    63 ms  url         /brands",
+     "    63 ms  state       {\"h1\":\"Projects.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading your projects…\"],\"imgsPending\":1}",
+     "    71 ms  state       {\"h1\":\"Projects.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading your projects…\"],\"imgsPending\":0}",
+     "    74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    74 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    74 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    74 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    74 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    74 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    75 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    75 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    75 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    75 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    75 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    75 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    75 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    75 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    75 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    75 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    75 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    75 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    75 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    75 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    93 ms  state       {\"h1\":\"Projects.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   107 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   107 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   107 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   107 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   107 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   108 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   108 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   108 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   108 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   108 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   108 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   108 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   157 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   157 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   157 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   157 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   157 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   157 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   441 ms  shift       0.0109 (after input) span.project-card-module__yo1VFG__next",
+     "   466 ms  state       {\"h1\":\"Projects.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   477 ms  state       {\"h1\":\"Projects.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   504 ms  state       {\"h1\":\"Projects.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   508 ms  shift       0.0159 (after input) span.project-card-module__yo1VFG__next",
+     "   524 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   528 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "browser-back",
+    "frames": [
+     "shell__nav-route-changes__390__33-browser-back-0ms.jpg",
+     "shell__nav-route-changes__390__34-browser-back-150ms.jpg",
+     "shell__nav-route-changes__390__35-browser-back-400ms.jpg",
+     "shell__nav-route-changes__390__36-browser-back-900ms.jpg",
+     "shell__nav-route-changes__390__37-browser-back-1600ms.jpg"
+    ],
+    "entries": [
+     "    25 ms  url         /",
+     "    25 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading your projects…\"],\"imgsPending\":0}",
+     "    41 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    41 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    41 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    41 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    41 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    82 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   106 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   106 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   106 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   106 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   106 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   106 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   106 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   106 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   106 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   106 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   106 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   106 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   139 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   139 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   318 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   348 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   357 ms  shift       0.0171 (after input) span.project-card-module__yo1VFG__next"
+    ]
+   }
+  ],
+  "notes": []
+ },
+ {
+  "scenario": "account-menu",
+  "width": 1440,
+  "account": "audit-pro",
+  "steps": [
+   {
+    "label": "open-account-menu",
+    "frames": [
+     "shell__account-menu__1440__00-open-account-menu-0ms.jpg",
+     "shell__account-menu__1440__01-open-account-menu-80ms.jpg",
+     "shell__account-menu__1440__02-open-account-menu-200ms.jpg",
+     "shell__account-menu__1440__03-open-account-menu-500ms.jpg"
+    ],
+    "entries": [
+     "    13 ms  pointerdown summary[Account menu]",
+     "    14 ms  focus       summary[Account menu]",
+     "    16 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[\"details.workspace-account-menu\"],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "escape-closes-menu",
+    "frames": [
+     "shell__account-menu__1440__04-escape-closes-menu-0ms.jpg",
+     "shell__account-menu__1440__05-escape-closes-menu-150ms.jpg",
+     "shell__account-menu__1440__06-escape-closes-menu-400ms.jpg"
+    ],
+    "entries": [
+     "     1 ms  key         Escape",
+     "     1 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "outside-click-closes-menu",
+    "frames": [
+     "shell__account-menu__1440__07-outside-click-closes-menu-0ms.jpg",
+     "shell__account-menu__1440__08-outside-click-closes-menu-150ms.jpg",
+     "shell__account-menu__1440__09-outside-click-closes-menu-400ms.jpg"
+    ],
+    "entries": [
+     "     1 ms  pointerdown main",
+     "     1 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "     1 ms  focus       main"
+    ]
+   }
+  ],
+  "notes": [
+   "menu styles: {\"cls\":\"workspace-account-panel\",\"animation\":\"none\",\"transition\":\"0s\",\"origin\":\"144px 117px\",\"items\":[\"Account settings\",\"Plans and credits\",\"Generation activity\",\"\",\"Sign out\",\"Keep editing\",\"Discard edits and sign out\"],\"focus\":\"audit-pro@example.te\"}",
+   "after Escape: {\"open\":0,\"focus\":\"Account menu\"}",
+   "after outside click: {\"open\":0}"
+  ]
+ },
+ {
+  "scenario": "account-menu",
+  "width": 390,
+  "account": "audit-pro",
+  "steps": [
+   {
+    "label": "open-account-menu",
+    "frames": [
+     "shell__account-menu__390__00-open-account-menu-0ms.jpg",
+     "shell__account-menu__390__01-open-account-menu-80ms.jpg",
+     "shell__account-menu__390__02-open-account-menu-200ms.jpg",
+     "shell__account-menu__390__03-open-account-menu-500ms.jpg"
+    ],
+    "entries": [
+     "    22 ms  pointerdown summary[Account menu]",
+     "    22 ms  focus       summary[Account menu]",
+     "    23 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[\"details.workspace-account-menu\"],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "escape-closes-menu",
+    "frames": [
+     "shell__account-menu__390__04-escape-closes-menu-0ms.jpg",
+     "shell__account-menu__390__05-escape-closes-menu-150ms.jpg",
+     "shell__account-menu__390__06-escape-closes-menu-400ms.jpg"
+    ],
+    "entries": [
+     "     1 ms  key         Escape",
+     "     2 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "outside-click-closes-menu",
+    "frames": [
+     "shell__account-menu__390__07-outside-click-closes-menu-0ms.jpg",
+     "shell__account-menu__390__08-outside-click-closes-menu-150ms.jpg",
+     "shell__account-menu__390__09-outside-click-closes-menu-400ms.jpg"
+    ],
+    "entries": [
+     "     3 ms  pointerdown a.project-card-module__yo1VFG__link[View brand kit · Kestrel Analy]",
+     "     3 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "     3 ms  focus       a.project-card-module__yo1VFG__link[View brand kit · Kestrel Analy]",
+     "    74 ms  url         /brands/account/3a39586e-13f3-42e6-b72b-f4d33b3105a7/logo/deliverables",
+     "    74 ms  state       {\"h1\":\"Assets\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Loading project…\",\"Loading your chosen direction…\"],\"imgsPending\":0}",
+     "    83 ms  shift       0.0088 (after input) main, details.workspace-account-menu",
+     "   132 ms  state       {\"h1\":\"Assets\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saved\",\"Loading your chosen direction…\"],\"imgsPending\":0}",
+     "   133 ms  shift       0.0500 (after input) main"
+    ]
+   }
+  ],
+  "notes": [
+   "menu styles: {\"cls\":\"workspace-account-panel\",\"animation\":\"none\",\"transition\":\"0s\",\"origin\":\"144px 117px\",\"items\":[\"Account settings\",\"Plans and credits\",\"Generation activity\",\"\",\"Sign out\",\"Keep editing\",\"Discard edits and sign out\"],\"focus\":\"audit-pro@example.te\"}",
+   "after Escape: {\"open\":0,\"focus\":\"Account menu\"}",
+   "after outside click: {\"open\":0}"
+  ]
+ },
+ {
+  "scenario": "projects-list",
+  "width": 1440,
+  "account": "audit-free",
+  "steps": [
+   {
+    "label": "hover-project-card",
+    "frames": [
+     "shell__projects-list__1440__00-hover-project-card-0ms.jpg",
+     "shell__projects-list__1440__01-hover-project-card-100ms.jpg",
+     "shell__projects-list__1440__02-hover-project-card-300ms.jpg"
+    ],
+    "entries": [
+     "    40 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "open-card-options",
+    "frames": [
+     "shell__projects-list__1440__03-open-card-options-0ms.jpg",
+     "shell__projects-list__1440__04-open-card-options-80ms.jpg",
+     "shell__projects-list__1440__05-open-card-options-200ms.jpg",
+     "shell__projects-list__1440__06-open-card-options-500ms.jpg"
+    ],
+    "entries": [
+     "    26 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    27 ms  pointerdown button.project-card-menu-trigger[Project options for Orchard La]",
+     "    27 ms  focus       button.project-card-menu-trigger[Project options for Orchard La]",
+     "    28 ms  focus       button.project-card-delete"
+    ]
+   },
+   {
+    "label": "choose-delete",
+    "frames": [
+     "shell__projects-list__1440__07-choose-delete-0ms.jpg",
+     "shell__projects-list__1440__08-choose-delete-80ms.jpg",
+     "shell__projects-list__1440__09-choose-delete-200ms.jpg",
+     "shell__projects-list__1440__10-choose-delete-500ms.jpg"
+    ],
+    "entries": [
+     "    15 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    33 ms  pointerdown button.project-card-delete",
+     "    36 ms  focus       h2",
+     "    36 ms  focus       button.button.secondary",
+     "    36 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[\"dialog.project-lifecycle-dialog\"],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "escape-closes-dialog",
+    "frames": [
+     "shell__projects-list__1440__11-escape-closes-dialog-0ms.jpg",
+     "shell__projects-list__1440__12-escape-closes-dialog-80ms.jpg",
+     "shell__projects-list__1440__13-escape-closes-dialog-200ms.jpg",
+     "shell__projects-list__1440__14-escape-closes-dialog-500ms.jpg"
+    ],
+    "entries": [
+     "     1 ms  key         Escape",
+     "     3 ms  focus       button.project-card-menu-trigger[Project options for Orchard La]",
+     "     3 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "type-search",
+    "frames": [
+     "shell__projects-list__1440__15-type-search-0ms.jpg",
+     "shell__projects-list__1440__16-type-search-100ms.jpg",
+     "shell__projects-list__1440__17-type-search-300ms.jpg",
+     "shell__projects-list__1440__18-type-search-800ms.jpg"
+    ],
+    "entries": [
+     "     3 ms  focus       input",
+     "     5 ms  key         char",
+     "     8 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    11 ms  shift       0.0436 (after input) article.project-card-module__yo1VFG__card.project-card",
+     "    50 ms  key         char",
+     "    94 ms  key         char",
+     "   138 ms  key         char",
+     "   182 ms  key         char"
+    ]
+   },
+   {
+    "label": "search-no-match",
+    "frames": [
+     "shell__projects-list__1440__19-search-no-match-0ms.jpg",
+     "shell__projects-list__1440__20-search-no-match-100ms.jpg",
+     "shell__projects-list__1440__21-search-no-match-300ms.jpg",
+     "shell__projects-list__1440__22-search-no-match-800ms.jpg"
+    ],
+    "entries": [
+     "     5 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"No matching projects Try a different project name. Clear search\"],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "clear-search",
+    "frames": [
+     "shell__projects-list__1440__23-clear-search-0ms.jpg",
+     "shell__projects-list__1440__24-clear-search-100ms.jpg",
+     "shell__projects-list__1440__25-clear-search-300ms.jpg",
+     "shell__projects-list__1440__26-clear-search-800ms.jpg"
+    ],
+    "entries": [
+     "     4 ms  key         Delete",
+     "     9 ms  state       {\"h1\":\"Projects.\",\"busy\":8,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    19 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    20 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    20 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    20 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    20 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    20 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    70 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    70 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    70 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    70 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    70 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    70 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   146 ms  state       {\"h1\":\"Projects.\",\"busy\":7,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   154 ms  shift       0.0018 (after input) span.project-card-module__yo1VFG__next",
+     "   253 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   253 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   300 ms  state       {\"h1\":\"Projects.\",\"busy\":6,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   303 ms  shift       0.0010 (after input) span.project-card-module__yo1VFG__next",
+     "   335 ms  state       {\"h1\":\"Projects.\",\"busy\":6,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   369 ms  state       {\"h1\":\"Projects.\",\"busy\":5,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   371 ms  shift       0.0024 (after input) span.project-card-module__yo1VFG__next",
+     "   378 ms  state       {\"h1\":\"Projects.\",\"busy\":4,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   387 ms  shift       0.0015 (after input) span.project-card-module__yo1VFG__next",
+     "   396 ms  state       {\"h1\":\"Projects.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   404 ms  shift       0.0011 (after input) span.project-card-module__yo1VFG__next",
+     "   418 ms  state       {\"h1\":\"Projects.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   420 ms  shift       0.0015 (after input) span.project-card-module__yo1VFG__next",
+     "   429 ms  state       {\"h1\":\"Projects.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   434 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   437 ms  shift       0.0048 (after input) span.project-card-module__yo1VFG__next, span.project-card-module__yo1VFG__next"
+    ]
+   },
+   {
+    "label": "open-sort",
+    "frames": [
+     "shell__projects-list__1440__27-open-sort-0ms.jpg",
+     "shell__projects-list__1440__28-open-sort-100ms.jpg",
+     "shell__projects-list__1440__29-open-sort-300ms.jpg"
+    ],
+    "entries": [
+     "    22 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    25 ms  pointerdown summary[Sort projects]",
+     "    25 ms  focus       summary[Sort projects]",
+     "    26 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[\"details.projects-control\"],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "reload-with-3s-api-delay",
+    "frames": [
+     "shell__projects-list__1440__30-reload-with-3s-api-delay-300ms.jpg",
+     "shell__projects-list__1440__31-reload-with-3s-api-delay-1000ms.jpg",
+     "shell__projects-list__1440__32-reload-with-3s-api-delay-2000ms.jpg",
+     "shell__projects-list__1440__33-reload-with-3s-api-delay-3200ms.jpg",
+     "shell__projects-list__1440__34-reload-with-3s-api-delay-3600ms.jpg",
+     "shell__projects-list__1440__35-reload-with-3s-api-delay-4200ms.jpg",
+     "shell__projects-list__1440__36-reload-with-3s-api-delay-5500ms.jpg"
+    ],
+    "entries": [
+     "    49 ms  state       {\"h1\":\"Your projects.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Checking your account…\"],\"imgsPending\":1}",
+     "    80 ms  state       {\"h1\":\"Your projects.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Checking your account…\"],\"imgsPending\":0}",
+     "   130 ms  state       {\"h1\":\"Projects.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Loading your projects…\",\"Checking recovery availability…\"],\"imgsPending\":1}",
+     "   135 ms  state       {\"h1\":\"Projects.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Loading your projects…\"],\"imgsPending\":1}",
+     "   138 ms  state       {\"h1\":\"Projects.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Loading your projects…\"],\"imgsPending\":0}",
+     "   152 ms  state       {\"h1\":\"Projects.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading your projects…\"],\"imgsPending\":0}",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   154 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "  3168 ms  state       {\"h1\":\"Projects.\",\"busy\":8,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "  3187 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "  3188 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "  3188 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "  3188 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "  3188 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "  3188 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "  3188 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "  3188 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "  3188 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "  3188 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "  3188 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)"
+    ]
+   }
+  ],
+  "notes": [
+   "options menu: {\"cls\":\"project-card-menu\",\"animation\":\"none\",\"transition\":\"0s\",\"origin\":\"84px 26px\",\"focus\":\"Delete\"}",
+   "delete dialog: {\"cls\":\"project-lifecycle-dialog\",\"animation\":\"none\",\"transition\":\"0s\",\"backdrop\":\"rgba(25, 25, 25, 0.4)\",\"focus\":\"Cancel\"}",
+   "after Escape: {\"dialogs\":0,\"focus\":\"Project options for Orchard Lane Cider\"}"
+  ]
+ },
+ {
+  "scenario": "projects-list",
+  "width": 390,
+  "account": "audit-free",
+  "steps": [
+   {
+    "label": "open-card-options",
+    "frames": [
+     "shell__projects-list__390__00-open-card-options-0ms.jpg",
+     "shell__projects-list__390__01-open-card-options-80ms.jpg",
+     "shell__projects-list__390__02-open-card-options-200ms.jpg",
+     "shell__projects-list__390__03-open-card-options-500ms.jpg"
+    ],
+    "entries": [
+     "    38 ms  state       {\"h1\":\"Projects.\",\"busy\":5,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    43 ms  pointerdown button.project-card-menu-trigger[Project options for Orchard La]",
+     "    43 ms  focus       button.project-card-menu-trigger[Project options for Orchard La]",
+     "    46 ms  focus       button.project-card-delete"
+    ]
+   },
+   {
+    "label": "choose-delete",
+    "frames": [
+     "shell__projects-list__390__04-choose-delete-0ms.jpg",
+     "shell__projects-list__390__05-choose-delete-80ms.jpg",
+     "shell__projects-list__390__06-choose-delete-200ms.jpg",
+     "shell__projects-list__390__07-choose-delete-500ms.jpg"
+    ],
+    "entries": [
+     "     9 ms  state       {\"h1\":\"Projects.\",\"busy\":5,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    29 ms  pointerdown button.project-card-delete",
+     "    33 ms  focus       h2",
+     "    33 ms  focus       button.button.secondary",
+     "    33 ms  state       {\"h1\":\"Projects.\",\"busy\":5,\"dialogs\":[\"dialog.project-lifecycle-dialog\"],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "escape-closes-dialog",
+    "frames": [
+     "shell__projects-list__390__08-escape-closes-dialog-0ms.jpg",
+     "shell__projects-list__390__09-escape-closes-dialog-80ms.jpg",
+     "shell__projects-list__390__10-escape-closes-dialog-200ms.jpg",
+     "shell__projects-list__390__11-escape-closes-dialog-500ms.jpg"
+    ],
+    "entries": [
+     "     1 ms  key         Escape",
+     "     3 ms  focus       button.project-card-menu-trigger[Project options for Orchard La]",
+     "     3 ms  state       {\"h1\":\"Projects.\",\"busy\":5,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "type-search",
+    "frames": [
+     "shell__projects-list__390__12-type-search-0ms.jpg",
+     "shell__projects-list__390__13-type-search-100ms.jpg",
+     "shell__projects-list__390__14-type-search-300ms.jpg",
+     "shell__projects-list__390__15-type-search-800ms.jpg"
+    ],
+    "entries": [
+     "     5 ms  focus       input",
+     "     6 ms  key         char",
+     "     8 ms  state       {\"h1\":\"Projects.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "     9 ms  shift       0.1640 (after input) article.project-card-module__yo1VFG__card.project-card",
+     "    49 ms  key         char",
+     "    72 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    72 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    94 ms  key         char",
+     "   111 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   123 ms  shift       0.0123 (after input) span.project-card-module__yo1VFG__next",
+     "   138 ms  key         char",
+     "   183 ms  key         char"
+    ]
+   },
+   {
+    "label": "search-no-match",
+    "frames": [
+     "shell__projects-list__390__16-search-no-match-0ms.jpg",
+     "shell__projects-list__390__17-search-no-match-100ms.jpg",
+     "shell__projects-list__390__18-search-no-match-300ms.jpg",
+     "shell__projects-list__390__19-search-no-match-800ms.jpg"
+    ],
+    "entries": [
+     "     6 ms  state       {\"h1\":\"Projects.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"No matching projects Try a different project name. Clear search\"],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "clear-search",
+    "frames": [
+     "shell__projects-list__390__20-clear-search-0ms.jpg",
+     "shell__projects-list__390__21-clear-search-100ms.jpg",
+     "shell__projects-list__390__22-clear-search-300ms.jpg",
+     "shell__projects-list__390__23-clear-search-800ms.jpg"
+    ],
+    "entries": [
+     "     7 ms  key         Delete",
+     "    11 ms  state       {\"h1\":\"Projects.\",\"busy\":8,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    30 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    30 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    30 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "    31 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    64 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    64 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    64 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    64 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "    64 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "    64 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   151 ms  state       {\"h1\":\"Projects.\",\"busy\":7,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   337 ms  state       {\"h1\":\"Projects.\",\"busy\":7,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   349 ms  state       {\"h1\":\"Projects.\",\"busy\":7,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   358 ms  state       {\"h1\":\"Projects.\",\"busy\":6,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   365 ms  shift       0.0109 (after input) span.project-card-module__yo1VFG__next",
+     "   398 ms  state       {\"h1\":\"Projects.\",\"busy\":6,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   404 ms  state       {\"h1\":\"Projects.\",\"busy\":5,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   414 ms  shift       0.0159 (after input) span.project-card-module__yo1VFG__next"
+    ]
+   },
+   {
+    "label": "open-sort",
+    "frames": [
+     "shell__projects-list__390__24-open-sort-0ms.jpg",
+     "shell__projects-list__390__25-open-sort-100ms.jpg",
+     "shell__projects-list__390__26-open-sort-300ms.jpg"
+    ],
+    "entries": [
+     "    26 ms  state       {\"h1\":\"Projects.\",\"busy\":5,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    28 ms  pointerdown summary[Sort projects]",
+     "    28 ms  focus       summary[Sort projects]",
+     "    29 ms  state       {\"h1\":\"Projects.\",\"busy\":5,\"dialogs\":[],\"details\":[\"details.projects-control\"],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "reload-with-3s-api-delay",
+    "frames": [
+     "shell__projects-list__390__27-reload-with-3s-api-delay-300ms.jpg",
+     "shell__projects-list__390__28-reload-with-3s-api-delay-1000ms.jpg",
+     "shell__projects-list__390__29-reload-with-3s-api-delay-2000ms.jpg",
+     "shell__projects-list__390__30-reload-with-3s-api-delay-3200ms.jpg",
+     "shell__projects-list__390__31-reload-with-3s-api-delay-3600ms.jpg",
+     "shell__projects-list__390__32-reload-with-3s-api-delay-4200ms.jpg",
+     "shell__projects-list__390__33-reload-with-3s-api-delay-5500ms.jpg"
+    ],
+    "entries": [
+     "    57 ms  state       {\"h1\":\"Your projects.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Checking your account…\"],\"imgsPending\":1}",
+     "    96 ms  state       {\"h1\":\"Your projects.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Checking your account…\"],\"imgsPending\":0}",
+     "   153 ms  state       {\"h1\":\"Projects.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Loading your projects…\",\"Checking recovery availability…\"],\"imgsPending\":1}",
+     "   158 ms  state       {\"h1\":\"Projects.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Loading your projects…\"],\"imgsPending\":1}",
+     "   174 ms  state       {\"h1\":\"Projects.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading your projects…\"],\"imgsPending\":0}",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "   175 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "  3187 ms  state       {\"h1\":\"Projects.\",\"busy\":8,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on div.project-card-module__yo1VFG__preview.project-card-module__yo1VFG__block (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineTitle (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineDate (1.6s ease-in-out xinfinite)",
+     "  3208 ms  animation   project-card-module__yo1VFG__pulse on span.project-card-module__yo1VFG__block.project-card-module__yo1VFG__lineStep (1.6s ease-in-out xinfinite)"
+    ]
+   }
+  ],
+  "notes": [
+   "options menu: {\"cls\":\"project-card-menu\",\"animation\":\"none\",\"transition\":\"0s\",\"origin\":\"84px 28px\",\"focus\":\"Delete\"}",
+   "delete dialog: {\"cls\":\"project-lifecycle-dialog\",\"animation\":\"none\",\"transition\":\"0s\",\"backdrop\":\"rgba(25, 25, 25, 0.4)\",\"focus\":\"Cancel\"}",
+   "after Escape: {\"dialogs\":0,\"focus\":\"Project options for Orchard Lane Cider\"}"
+  ]
+ },
+ {
+  "scenario": "library",
+  "width": 1440,
+  "account": "audit-pro",
+  "steps": [
+   {
+    "label": "load-library",
+    "frames": [
+     "shell__library__1440__00-load-library-200ms.jpg",
+     "shell__library__1440__01-load-library-700ms.jpg",
+     "shell__library__1440__02-load-library-1400ms.jpg",
+     "shell__library__1440__03-load-library-2400ms.jpg",
+     "shell__library__1440__04-load-library-4000ms.jpg"
+    ],
+    "entries": [
+     "    45 ms  state       {\"h1\":\"Your visual library.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Checking your account…\"],\"imgsPending\":1}",
+     "    69 ms  state       {\"h1\":\"Your visual library.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Checking your account…\"],\"imgsPending\":0}",
+     "   133 ms  state       {\"h1\":\"Your visual library.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Loading assets…\"],\"imgsPending\":0}",
+     "   170 ms  state       {\"h1\":\"Your visual library.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading assets…\"],\"imgsPending\":0}",
+     "   191 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":3}",
+     "   238 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   373 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   388 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   394 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   439 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "tab-all-generations",
+    "frames": [
+     "shell__library__1440__05-tab-all-generations-0ms.jpg",
+     "shell__library__1440__06-tab-all-generations-80ms.jpg",
+     "shell__library__1440__07-tab-all-generations-250ms.jpg",
+     "shell__library__1440__08-tab-all-generations-700ms.jpg",
+     "shell__library__1440__09-tab-all-generations-1500ms.jpg"
+    ],
+    "entries": [
+     "    12 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    23 ms  pointerdown button",
+     "    23 ms  focus       button",
+     "    27 ms  state       {\"h1\":\"Your visual library.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading assets…\"],\"imgsPending\":0}",
+     "   108 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   177 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   210 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   212 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   260 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "tab-kept-assets",
+    "frames": [
+     "shell__library__1440__10-tab-kept-assets-0ms.jpg",
+     "shell__library__1440__11-tab-kept-assets-80ms.jpg",
+     "shell__library__1440__12-tab-kept-assets-250ms.jpg",
+     "shell__library__1440__13-tab-kept-assets-700ms.jpg",
+     "shell__library__1440__14-tab-kept-assets-1500ms.jpg"
+    ],
+    "entries": [
+     "    24 ms  pointerdown button",
+     "    24 ms  focus       button",
+     "    31 ms  state       {\"h1\":\"Your visual library.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading assets…\"],\"imgsPending\":0}",
+     "    73 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   123 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   127 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   142 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   178 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "view-details",
+    "frames": [
+     "shell__library__1440__15-view-details-0ms.jpg",
+     "shell__library__1440__16-view-details-150ms.jpg",
+     "shell__library__1440__17-view-details-500ms.jpg",
+     "shell__library__1440__18-view-details-1200ms.jpg"
+    ],
+    "entries": [
+     "     1 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    31 ms  pointerdown button.assets-open-detail[View details of Brand board fr]",
+     "    31 ms  focus       button.assets-open-detail[View details of Brand board fr]",
+     "    38 ms  focus       h2",
+     "    41 ms  focus       button.assets-open-detail[View details of Brand board fr]",
+     "    41 ms  focus       h2",
+     "    42 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[\"dialog.assets-detail\"],\"details\":[],\"live\":[\"Loading version history…\"],\"imgsPending\":0}",
+     "    52 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    52 ms  focus       button.assets-open-detail[View details of Brand board fr]"
+    ]
+   },
+   {
+    "label": "hover-library-card",
+    "frames": [
+     "shell__library__1440__19-hover-library-card-0ms.jpg",
+     "shell__library__1440__20-hover-library-card-120ms.jpg",
+     "shell__library__1440__21-hover-library-card-300ms.jpg"
+    ],
+    "entries": [
+     "    38 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   }
+  ],
+  "notes": [
+   "card controls: [\"Kept assets\",\"All generations\",\"Refresh\",\"Open Brand board from Bright Harbor Lear\",\"View details of Brand board from Bright \",\"Actions for Brand board from Bright Harb\",\"Like Brand board from Bright Harbor Lear\",\"Save Brand board from Bright Harbor Lear\",\"Open Brand board from Maison Aurélie\",\"View details of Brand board from Maison \",\"Actions for Brand board from Maison Auré\",\"Like Brand board from Maison Aurélie\",\"Save Brand board from Maison Aurélie\",\"Open Brand board from Kestrel Analytics\",\"View details of Brand board from Kestrel\",\"Actions for Brand board from Kestrel Ana\",\"Like Brand board from Kestrel Analytics\",\"Save Brand board from Kestrel Analytics\"]",
+   "after view details: {\"dialogs\":0}"
+  ]
+ },
+ {
+  "scenario": "library",
+  "width": 390,
+  "account": "audit-pro",
+  "steps": [
+   {
+    "label": "load-library",
+    "frames": [
+     "shell__library__390__00-load-library-200ms.jpg",
+     "shell__library__390__01-load-library-700ms.jpg",
+     "shell__library__390__02-load-library-1400ms.jpg",
+     "shell__library__390__03-load-library-2400ms.jpg",
+     "shell__library__390__04-load-library-4000ms.jpg"
+    ],
+    "entries": [
+     "    38 ms  state       {\"h1\":\"Your visual library.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Checking your account…\"],\"imgsPending\":1}",
+     "    64 ms  state       {\"h1\":\"Your visual library.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Checking your account…\"],\"imgsPending\":0}",
+     "   127 ms  state       {\"h1\":\"Your visual library.\",\"busy\":3,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Loading assets…\"],\"imgsPending\":0}",
+     "   151 ms  state       {\"h1\":\"Your visual library.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading assets…\"],\"imgsPending\":0}",
+     "   167 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":3}",
+     "   187 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   217 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   237 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "tab-all-generations",
+    "frames": [
+     "shell__library__390__05-tab-all-generations-0ms.jpg",
+     "shell__library__390__06-tab-all-generations-80ms.jpg",
+     "shell__library__390__07-tab-all-generations-250ms.jpg",
+     "shell__library__390__08-tab-all-generations-700ms.jpg",
+     "shell__library__390__09-tab-all-generations-1500ms.jpg"
+    ],
+    "entries": [
+     "    11 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    26 ms  pointerdown button",
+     "    26 ms  focus       button",
+     "    28 ms  state       {\"h1\":\"Your visual library.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading assets…\"],\"imgsPending\":0}",
+     "    87 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   135 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   161 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "tab-kept-assets",
+    "frames": [
+     "shell__library__390__10-tab-kept-assets-0ms.jpg",
+     "shell__library__390__11-tab-kept-assets-80ms.jpg",
+     "shell__library__390__12-tab-kept-assets-250ms.jpg",
+     "shell__library__390__13-tab-kept-assets-700ms.jpg",
+     "shell__library__390__14-tab-kept-assets-1500ms.jpg"
+    ],
+    "entries": [
+     "    28 ms  pointerdown button",
+     "    28 ms  focus       button",
+     "    34 ms  state       {\"h1\":\"Your visual library.\",\"busy\":1,\"dialogs\":[],\"details\":[],\"live\":[\"Loading assets…\"],\"imgsPending\":0}",
+     "    60 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   101 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":1}",
+     "   146 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "view-details",
+    "frames": [
+     "shell__library__390__15-view-details-0ms.jpg",
+     "shell__library__390__16-view-details-150ms.jpg",
+     "shell__library__390__17-view-details-500ms.jpg",
+     "shell__library__390__18-view-details-1200ms.jpg"
+    ],
+    "entries": [
+     "    26 ms  pointerdown button.assets-open-detail[View details of Brand board fr]",
+     "    26 ms  focus       button.assets-open-detail[View details of Brand board fr]",
+     "    33 ms  focus       h2",
+     "    35 ms  focus       button.assets-open-detail[View details of Brand board fr]",
+     "    36 ms  focus       h2",
+     "    36 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[\"dialog.assets-detail\"],\"details\":[],\"live\":[\"Loading version history…\"],\"imgsPending\":0}",
+     "    47 ms  state       {\"h1\":\"Your visual library.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    47 ms  focus       button.assets-open-detail[View details of Brand board fr]"
+    ]
+   }
+  ],
+  "notes": [
+   "card controls: [\"Kept assets\",\"All generations\",\"Refresh\",\"Open Brand board from Bright Harbor Lear\",\"View details of Brand board from Bright \",\"Actions for Brand board from Bright Harb\",\"Like Brand board from Bright Harbor Lear\",\"Save Brand board from Bright Harbor Lear\",\"Open Brand board from Maison Aurélie\",\"View details of Brand board from Maison \",\"Actions for Brand board from Maison Auré\",\"Like Brand board from Maison Aurélie\",\"Save Brand board from Maison Aurélie\",\"Open Brand board from Kestrel Analytics\",\"View details of Brand board from Kestrel\",\"Actions for Brand board from Kestrel Ana\",\"Like Brand board from Kestrel Analytics\",\"Save Brand board from Kestrel Analytics\"]",
+   "after view details: {\"dialogs\":0}"
+  ]
+ },
+ {
+  "scenario": "plans",
+  "width": 1440,
+  "account": "audit-free",
+  "steps": [
+   {
+    "label": "load-plans",
+    "frames": [
+     "shell__plans__1440__00-load-plans-200ms.jpg",
+     "shell__plans__1440__01-load-plans-700ms.jpg",
+     "shell__plans__1440__02-load-plans-1400ms.jpg",
+     "shell__plans__1440__03-load-plans-2400ms.jpg"
+    ],
+    "entries": [
+     "    76 ms  state       {\"h1\":\"Plans\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Checking your account…\"],\"imgsPending\":0}",
+     "   131 ms  state       {\"h1\":\"Plans\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\"],\"imgsPending\":0}",
+     "   156 ms  shift       0.0260 ul.plans-grid[Plans], p.plans-footnote",
+     "   158 ms  state       {\"h1\":\"Plans\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "click-upgrade",
+    "frames": [
+     "shell__plans__1440__04-click-upgrade-0ms.jpg",
+     "shell__plans__1440__05-click-upgrade-80ms.jpg",
+     "shell__plans__1440__06-click-upgrade-250ms.jpg",
+     "shell__plans__1440__07-click-upgrade-700ms.jpg",
+     "shell__plans__1440__08-click-upgrade-1500ms.jpg",
+     "shell__plans__1440__09-click-upgrade-3000ms.jpg"
+    ],
+    "entries": [
+     "     9 ms  state       {\"h1\":\"Plans\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    24 ms  pointerdown button.button.primary",
+     "    24 ms  focus       button.button.primary",
+     "   689 ms  state       {\"h1\":\"Plans\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Payments are unavailable right now. Nothing was charged. Try again sho\"],\"imgsPending\":0}",
+     "   689 ms  shift       0.0072 ul.plans-grid[Plans], p.plans-footnote"
+    ]
+   }
+  ],
+  "notes": [
+   "after upgrade click: {\"live\":[\"Payments are unavailable right now. Nothing was charged. Try again shortly.\"],\"focus\":\"Skip to content\\nEmbel\\nHome\\nPro\",\"scrollTop\":0}"
+  ]
+ },
+ {
+  "scenario": "plans",
+  "width": 390,
+  "account": "audit-free",
+  "steps": [
+   {
+    "label": "load-plans",
+    "frames": [
+     "shell__plans__390__00-load-plans-200ms.jpg",
+     "shell__plans__390__01-load-plans-700ms.jpg",
+     "shell__plans__390__02-load-plans-1400ms.jpg",
+     "shell__plans__390__03-load-plans-2400ms.jpg"
+    ],
+    "entries": [
+     "    72 ms  state       {\"h1\":\"Plans\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Checking your account…\"],\"imgsPending\":0}",
+     "   132 ms  state       {\"h1\":\"Plans\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\"],\"imgsPending\":0}",
+     "   159 ms  state       {\"h1\":\"Plans\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   170 ms  shift       0.1509 (after input) ul.plans-grid[Plans], p.plans-footnote"
+    ]
+   },
+   {
+    "label": "click-upgrade",
+    "frames": [
+     "shell__plans__390__04-click-upgrade-0ms.jpg",
+     "shell__plans__390__05-click-upgrade-80ms.jpg",
+     "shell__plans__390__06-click-upgrade-250ms.jpg",
+     "shell__plans__390__07-click-upgrade-700ms.jpg",
+     "shell__plans__390__08-click-upgrade-1500ms.jpg",
+     "shell__plans__390__09-click-upgrade-3000ms.jpg"
+    ],
+    "entries": [
+     "    19 ms  pointerdown button.button.primary",
+     "    19 ms  focus       button.button.primary",
+     "    22 ms  state       {\"h1\":\"Plans\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    34 ms  scroll      main top=156",
+     "    37 ms  state       {\"h1\":\"Plans\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Payments are unavailable right now. Nothing was charged. Try again sho\"],\"imgsPending\":0}",
+     "    51 ms  shift       0.0448 (after input) ul.plans-grid[Plans], p.plans-footnote"
+    ]
+   }
+  ],
+  "notes": [
+   "after upgrade click: {\"live\":[\"Payments are unavailable right now. Nothing was charged. Try again shortly.\"],\"focus\":\"Skip to content\\nHome\\nProjects\\n\",\"scrollTop\":0}"
+  ]
+ },
+ {
+  "scenario": "settings",
+  "width": 1440,
+  "account": "audit-pro",
+  "steps": [
+   {
+    "label": "load-settings",
+    "frames": [
+     "shell__settings__1440__00-load-settings-200ms.jpg",
+     "shell__settings__1440__01-load-settings-700ms.jpg",
+     "shell__settings__1440__02-load-settings-1400ms.jpg",
+     "shell__settings__1440__03-load-settings-2400ms.jpg"
+    ],
+    "entries": [
+     "    42 ms  state       {\"h1\":\"Settings.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Sign in to edit your profile and preferences.\",\"Checking account…\"],\"imgsPending\":1}",
+     "    68 ms  state       {\"h1\":\"Settings.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Sign in to edit your profile and preferences.\",\"Checking account…\"],\"imgsPending\":0}",
+     "   136 ms  state       {\"h1\":\"Settings.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Checking your account settings…\"],\"imgsPending\":0}",
+     "   141 ms  shift       0.0059 section.sg-card.sg-session[Sign out]",
+     "   162 ms  state       {\"h1\":\"Settings.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "tab-usage",
+    "frames": [
+     "shell__settings__1440__04-tab-usage-0ms.jpg",
+     "shell__settings__1440__05-tab-usage-80ms.jpg",
+     "shell__settings__1440__06-tab-usage-250ms.jpg",
+     "shell__settings__1440__07-tab-usage-700ms.jpg",
+     "shell__settings__1440__08-tab-usage-1500ms.jpg"
+    ],
+    "entries": [
+     "     0 ms  state       {\"h1\":\"Settings.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    22 ms  pointerdown button",
+     "    23 ms  focus       button",
+     "    28 ms  state       {\"h1\":\"Settings.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Loading usage…\"],\"imgsPending\":0}",
+     "   275 ms  state       {\"h1\":\"Settings.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Usage loaded.\"],\"imgsPending\":0}",
+     "   287 ms  shift       0.0082 (after input) p.recorded-usage-note"
+    ]
+   },
+   {
+    "label": "tab-account",
+    "frames": [
+     "shell__settings__1440__09-tab-account-0ms.jpg",
+     "shell__settings__1440__10-tab-account-80ms.jpg",
+     "shell__settings__1440__11-tab-account-250ms.jpg",
+     "shell__settings__1440__12-tab-account-700ms.jpg"
+    ],
+    "entries": [
+     "     9 ms  state       {\"h1\":\"Settings.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Usage loaded.\"],\"imgsPending\":0}",
+     "    33 ms  pointerdown button",
+     "    33 ms  focus       button",
+     "    43 ms  state       {\"h1\":\"Settings.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "save-changes",
+    "frames": [
+     "shell__settings__1440__13-save-changes-0ms.jpg",
+     "shell__settings__1440__14-save-changes-80ms.jpg",
+     "shell__settings__1440__15-save-changes-250ms.jpg",
+     "shell__settings__1440__16-save-changes-700ms.jpg",
+     "shell__settings__1440__17-save-changes-1500ms.jpg",
+     "shell__settings__1440__18-save-changes-3000ms.jpg"
+    ],
+    "entries": [
+     "    26 ms  state       {\"h1\":\"Settings.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"You have unsaved changes.\"],\"imgsPending\":0}",
+     "    31 ms  pointerdown button.button.primary",
+     "    31 ms  focus       button.button.primary",
+     "    37 ms  state       {\"h1\":\"Settings.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saving your profile and preferences…\"],\"imgsPending\":0}",
+     "    46 ms  scroll      main top=12",
+     "    94 ms  state       {\"h1\":\"Settings.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Profile and date preferences saved to your account.\"],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "save-changes-offline",
+    "frames": [
+     "shell__settings__1440__19-save-changes-offline-0ms.jpg",
+     "shell__settings__1440__20-save-changes-offline-80ms.jpg",
+     "shell__settings__1440__21-save-changes-offline-250ms.jpg",
+     "shell__settings__1440__22-save-changes-offline-700ms.jpg",
+     "shell__settings__1440__23-save-changes-offline-1500ms.jpg",
+     "shell__settings__1440__24-save-changes-offline-3000ms.jpg",
+     "shell__settings__1440__25-save-changes-offline-6000ms.jpg"
+    ],
+    "entries": [
+     "    22 ms  pointerdown button.button.primary",
+     "    23 ms  focus       button.button.primary",
+     "    28 ms  state       {\"h1\":\"Settings.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saving your profile and preferences…\"],\"imgsPending\":0}",
+     "    43 ms  state       {\"h1\":\"Settings.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"You have unsaved changes.\",\"Saving could not be confirmed. Your edits are still here. Check the sa\"],\"imgsPending\":0}",
+     "    55 ms  shift       0.0064 (after input) section.sg-card[Plan and credits]"
+    ]
+   }
+  ],
+  "notes": [],
+  "error": "locator.fill: Timeout 30000ms exceeded. | Call log: |   - waiting for getByRole('textbox', { name: 'Full name' })"
+ },
+ {
+  "scenario": "settings",
+  "width": 390,
+  "account": "audit-pro",
+  "steps": [
+   {
+    "label": "load-settings",
+    "frames": [
+     "shell__settings__390__00-load-settings-200ms.jpg",
+     "shell__settings__390__01-load-settings-700ms.jpg",
+     "shell__settings__390__02-load-settings-1400ms.jpg",
+     "shell__settings__390__03-load-settings-2400ms.jpg"
+    ],
+    "entries": [
+     "    55 ms  state       {\"h1\":\"Settings.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Sign in to edit your profile and preferences.\",\"Checking account…\"],\"imgsPending\":1}",
+     "    82 ms  state       {\"h1\":\"Settings.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Sign in to edit your profile and preferences.\",\"Checking account…\"],\"imgsPending\":0}",
+     "   155 ms  state       {\"h1\":\"Settings.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\",\"Checking your account settings…\"],\"imgsPending\":0}",
+     "   190 ms  state       {\"h1\":\"Settings.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Your settings are saved.\"],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "tab-usage",
+    "frames": [
+     "shell__settings__390__04-tab-usage-0ms.jpg",
+     "shell__settings__390__05-tab-usage-80ms.jpg",
+     "shell__settings__390__06-tab-usage-250ms.jpg",
+     "shell__settings__390__07-tab-usage-700ms.jpg",
+     "shell__settings__390__08-tab-usage-1500ms.jpg"
+    ],
+    "entries": [
+     "    32 ms  pointerdown button",
+     "    32 ms  focus       button",
+     "    36 ms  state       {\"h1\":\"Settings.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Loading usage…\"],\"imgsPending\":0}",
+     "    83 ms  state       {\"h1\":\"Settings.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Usage loaded.\"],\"imgsPending\":0}",
+     "    89 ms  shift       0.0170 (after input) p.recorded-usage-note"
+    ]
+   },
+   {
+    "label": "tab-account",
+    "frames": [
+     "shell__settings__390__09-tab-account-0ms.jpg",
+     "shell__settings__390__10-tab-account-80ms.jpg",
+     "shell__settings__390__11-tab-account-250ms.jpg",
+     "shell__settings__390__12-tab-account-700ms.jpg"
+    ],
+    "entries": [
+     "    14 ms  state       {\"h1\":\"Settings.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Usage loaded.\"],\"imgsPending\":0}",
+     "    30 ms  pointerdown button",
+     "    30 ms  focus       button",
+     "    40 ms  state       {\"h1\":\"Settings.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Your settings are saved.\"],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "save-changes",
+    "frames": [
+     "shell__settings__390__13-save-changes-0ms.jpg",
+     "shell__settings__390__14-save-changes-80ms.jpg",
+     "shell__settings__390__15-save-changes-250ms.jpg",
+     "shell__settings__390__16-save-changes-700ms.jpg",
+     "shell__settings__390__17-save-changes-1500ms.jpg",
+     "shell__settings__390__18-save-changes-3000ms.jpg"
+    ],
+    "entries": [
+     "    21 ms  pointerdown button.button.primary",
+     "    21 ms  focus       button.button.primary",
+     "    26 ms  state       {\"h1\":\"Settings.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saving your profile and preferences…\"],\"imgsPending\":0}",
+     "    37 ms  scroll      main top=564",
+     "    42 ms  state       {\"h1\":\"Settings.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Profile and date preferences saved to your account.\"],\"imgsPending\":0}"
+    ]
+   },
+   {
+    "label": "save-changes-offline",
+    "frames": [
+     "shell__settings__390__19-save-changes-offline-0ms.jpg",
+     "shell__settings__390__20-save-changes-offline-80ms.jpg",
+     "shell__settings__390__21-save-changes-offline-250ms.jpg",
+     "shell__settings__390__22-save-changes-offline-700ms.jpg",
+     "shell__settings__390__23-save-changes-offline-1500ms.jpg",
+     "shell__settings__390__24-save-changes-offline-3000ms.jpg",
+     "shell__settings__390__25-save-changes-offline-6000ms.jpg"
+    ],
+    "entries": [
+     "    19 ms  state       {\"h1\":\"Settings.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"You have unsaved changes.\"],\"imgsPending\":0}",
+     "    30 ms  pointerdown button.button.primary",
+     "    30 ms  focus       button.button.primary",
+     "    35 ms  state       {\"h1\":\"Settings.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"Saving your profile and preferences…\"],\"imgsPending\":0}",
+     "    50 ms  state       {\"h1\":\"Settings.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[\"You have unsaved changes.\",\"Saving could not be confirmed. Your edits are still here. Check the sa\"],\"imgsPending\":0}",
+     "    62 ms  shift       0.0215 (after input) section.sg-card[Plan and credits]"
+    ]
+   }
+  ],
+  "notes": [],
+  "error": "locator.fill: Timeout 30000ms exceeded. | Call log: |   - waiting for getByRole('textbox', { name: 'Full name' })"
+ }
+]

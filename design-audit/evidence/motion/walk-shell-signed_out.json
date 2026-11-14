@@ -1,0 +1,122 @@
+[
+ {
+  "scenario": "signed-out-home-load",
+  "width": 1440,
+  "account": "signed-out",
+  "steps": [
+   {
+    "label": "load",
+    "frames": [
+     "shell__signed-out-home-load__1440__00-load-100ms.jpg",
+     "shell__signed-out-home-load__1440__01-load-401ms.jpg",
+     "shell__signed-out-home-load__1440__02-load-901ms.jpg",
+     "shell__signed-out-home-load__1440__03-load-1602ms.jpg",
+     "shell__signed-out-home-load__1440__04-load-2601ms.jpg",
+     "shell__signed-out-home-load__1440__05-load-4001ms.jpg"
+    ],
+    "entries": [
+     "   132 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\"],\"imgsPending\":1}",
+     "   227 ms  longtask    50 ms",
+     "   228 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":2,\"dialogs\":[],\"details\":[],\"live\":[\"Checking account…\"],\"imgsPending\":0}",
+     "   342 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   344 ms  shift       0.0033 div.journey-module__MmLfbq__capsule.journey-module__MmLfbq__navCapsule"
+    ]
+   }
+  ],
+  "notes": []
+ },
+ {
+  "scenario": "signed-out-composer",
+  "width": 1440,
+  "account": "signed-out",
+  "steps": [
+   {
+    "label": "focus-composer",
+    "frames": [
+     "shell__signed-out-composer__1440__00-focus-composer-56ms.jpg",
+     "shell__signed-out-composer__1440__01-focus-composer-121ms.jpg",
+     "shell__signed-out-composer__1440__02-focus-composer-412ms.jpg"
+    ],
+    "entries": [
+     "    16 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    47 ms  pointerdown textarea",
+     "    48 ms  focus       textarea"
+    ]
+   },
+   {
+    "label": "type-first-characters",
+    "frames": [
+     "shell__signed-out-composer__1440__03-type-first-characters-303ms.jpg",
+     "shell__signed-out-composer__1440__04-type-first-characters-318ms.jpg",
+     "shell__signed-out-composer__1440__05-type-first-characters-501ms.jpg"
+    ],
+    "entries": [
+     "     4 ms  key         char",
+     "    14 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    46 ms  shift       0.0034 (after input) div.home-examples",
+     "    47 ms  key         char",
+     "    83 ms  key         char",
+     "   120 ms  key         char",
+     "   156 ms  key         char",
+     "   192 ms  key         char",
+     "   228 ms  key         char",
+     "   267 ms  key         char"
+    ]
+   }
+  ],
+  "notes": [],
+  "error": "page.evaluate: TypeError: Failed to execute 'getComputedStyle' on 'Window': parameter 1 is not of type 'Element'. |     at eval (eval at evaluate (:311:30), <anonymous>:3:19) |     at UtilityScript.evaluate (<anonymous>:313:16)"
+ },
+ {
+  "scenario": "signed-out-sign-in-overlay",
+  "width": 1440,
+  "account": "signed-out",
+  "steps": [
+   {
+    "label": "send-prompt-signed-out",
+    "frames": [
+     "shell__signed-out-sign-in-overlay__1440__00-send-prompt-signed-out-118ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__01-send-prompt-signed-out-135ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__02-send-prompt-signed-out-201ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__03-send-prompt-signed-out-452ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__04-send-prompt-signed-out-1004ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__05-send-prompt-signed-out-2001ms.jpg"
+    ],
+    "entries": [
+     "     3 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    70 ms  pointerdown button.button.primary",
+     "    71 ms  focus       button.button.primary",
+     "   117 ms  shift       0.0011 (after input) p.field-hint, div.home-examples, button.text-link",
+     "   125 ms  shift       0.0011 (after input) p.field-hint, div.home-examples, button.text-link",
+     "   532 ms  url         /sign-in",
+     "   532 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":3}",
+     "   539 ms  focus       button.icon-button.auth-overlay-close[Close sign-in]",
+     "   541 ms  focus       button.button.primary",
+     "   542 ms  focus       button.icon-button.auth-overlay-close[Close sign-in]",
+     "   542 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[\"dialog.auth-overlay\"],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "   558 ms  shift       0.0478 (after input) dialog.auth-overlay"
+    ]
+   },
+   {
+    "label": "escape-closes-overlay",
+    "frames": [
+     "shell__signed-out-sign-in-overlay__1440__06-escape-closes-overlay-16ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__07-escape-closes-overlay-82ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__08-escape-closes-overlay-202ms.jpg",
+     "shell__signed-out-sign-in-overlay__1440__09-escape-closes-overlay-602ms.jpg"
+    ],
+    "entries": [
+     "     1 ms  key         Escape",
+     "    15 ms  url         /",
+     "    15 ms  state       {\"h1\":\"Your next brand starts here.\",\"busy\":0,\"dialogs\":[],\"details\":[],\"live\":[],\"imgsPending\":0}",
+     "    17 ms  focus       button.button.primary"
+    ]
+   }
+  ],
+  "notes": [
+   "dialog styles: {\"cls\":\"auth-overlay\",\"animation\":\"none\",\"transition\":\"0s\",\"backdrop\":\"rgba(25, 25, 25, 0.333)\",\"backdropFilter\":\"blur(3px)\",\"focus\":\"BUTTON\"}",
+   "after escape: {\"dialogs\":0,\"url\":\"/\",\"prompt\":74,\"focus\":\"BUTTON\"}"
+  ],
+  "error": "locator.click: Error: strict mode violation: getByRole('link', { name: 'Sign in', exact: true }) resolved to 2 elements: |     1) <a href=\"/sign-in\" class=\"button small signed-out-sign-in\">Sign in</a> aka getByRole('banner').getByRole('link', { name: 'Sign in' }) |     2) <a href=\"/sign-in\" class=\"text-link\">Sign in</a> aka locator('#main-content').getByRole('link', { name: 'Sign in' })"
+ }
+]

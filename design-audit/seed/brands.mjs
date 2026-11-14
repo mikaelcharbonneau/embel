@@ -361,6 +361,54 @@ export const BRANDS = [
     ],
     slogans: ["Where confidence learns to read", "Bright minds, steady progress", "Every child, a little brighter"],
   }),
+  // Third showcase brand (owner approved November 14, 2026) for the Home examples (IMG-007): a
+  // different sector and mood from Kestrel and Orchard Lane, and boards about products, not people.
+  brand({
+    key: "tidewild",
+    account: "pro",
+    stage: "complete",
+    showcase: true,
+    name: "Tidewild Hot Sauce",
+    brief:
+      "A small-batch hot sauce maker on the Nova Scotia coast. We ferment local peppers with sea salt and wild ingredients like haskap berries and sea buckthorn, and sell bold, bright sauces at farmers markets, in local grocers and online across Canada.",
+    competitors: [
+      ["Bravado Spice Co.", "Toronto small-batch hot sauces with a cult following."],
+      ["Yellowbird Foods", "Austin hot sauces made with fresh, simple ingredients."],
+      ["Marie Sharp's", "Belizean habanero sauces sold around the world."],
+    ],
+    audiences: [
+      ["Adventurous home cooks", "People who collect sauces and try new heat."],
+      ["Local food lovers", "Shoppers who seek out Maritime-made products."],
+      ["Gift buyers", "People looking for a bright, giftable bottle."],
+    ],
+    positionings: [
+      ["Heat with a sense of place", "Coastal ingredients you can taste."],
+      ["Fermented for flavour", "Slow, living sauces, not just heat."],
+      ["The Maritimes in a bottle", "A local favourite to share or gift."],
+    ],
+    personalities: [
+      ["Bold and playful", "Bright, punchy and a little cheeky."],
+      ["Crafted and coastal", "Honest, salty and handmade."],
+      ["Fiery and modern", "Sharp, graphic and confident."],
+    ],
+    slogans: ["Wild heat from the coast", "Fermented by the sea", "Bring the tide to the table"],
+    palette: [
+      ["#D7263D", "#1B998B"],
+      ["#F46036", "#2E294E"],
+      ["#1F3A5F", "#F7B32B"],
+    ],
+    fonts: [
+      ["Manrope", "Geist"],
+      ["Fraunces", "Lora"],
+      ["Geist", "Geist Mono"],
+    ],
+    directions: [
+      "Bold market colour: hot-pepper red and sea green, chunky hand-cut shapes, wave and pepper patterns; example uses on a bottle label, a farmers-market stall banner and an Instagram post. Show products and places, no people.",
+      "Coastal craft: deep ocean blue and golden sea buckthorn, a woodcut-style illustration and a warm serif; example uses on a gift box, a shelf talker and a recipe card. Show products and places, no people.",
+      "Graphic heat: orange flame and dark indigo, oversized type and bold stripes; example uses on a hot sauce bottle, a delivery box and a website banner. Show products and places, no people.",
+    ],
+    refine: false,
+  }),
 ];
 
 export const ACCOUNTS = [

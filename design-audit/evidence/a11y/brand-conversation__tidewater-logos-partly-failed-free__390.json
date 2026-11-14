@@ -1,0 +1,3559 @@
+{
+ "slug": "brand-conversation__tidewater-logos-partly-failed-free",
+ "account": "audit-free",
+ "route": "/brands/account/23ae45f6-263d-4103-b723-8db5847fd876?view=strategy",
+ "width": 390,
+ "doc": {
+  "url": "/brands/account/23ae45f6-263d-4103-b723-8db5847fd876?view=strategy",
+  "title": "Strategy · Embel",
+  "lang": "en",
+  "viewportMeta": "width=device-width, initial-scale=1",
+  "h1": [],
+  "headings": [
+   "H2 Strategy",
+   "H3 Which personality feels right?",
+   "H3 Which name feels right?",
+   "H3 Which slogan do you like?",
+   "H2 What do you like?"
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "header": 12,
+   "footer": 1,
+   "aside": 0,
+   "form": 2,
+   "[role=\"search\"]": 0,
+   "section[aria-label], section[aria-labelledby]": 9
+  },
+  "navLabels": [
+   "Brand journey",
+   "Project navigation"
+  ],
+  "skipLink": [
+   {
+    "text": "Skip to content",
+    "href": "#main-content",
+    "targetExists": true
+   }
+  ],
+  "liveRegions": 9,
+  "dialogsOpen": [],
+  "overflowX": 0,
+  "bodyText": "Skip to content Tidewater Kayak Tours , complete , complete Identity 4 Saved audit-free@example.test A You Guided sea kayak tours and sunset paddles around the islands of Tofino, British Columbia, for beginners and families, with gear rental and small groups of eight. Edit brief Strategy Complete Ed",
+  "focusableCount": 90
+ },
+ "contrast": [
+  {
+   "fg": "#b0afac",
+   "bg": "#f1f0ee",
+   "size": 13,
+   "weight": 400,
+   "ratio": 1.92,
+   "required": 4.5,
+   "disabled": true,
+   "bgImage": false,
+   "opacity": 0.48,
+   "count": 2,
+   "samples": [
+    "button.logo-creation-module__UDtEIW__primaryButton[Refine] \"Refine\" «Refine» in div.logo-creation-module__UDtEIW__composerTools > div.logo-creation-module__UDtEIW__generationAction > div.logo-creation-module__UDtEIW__generationActionRow",
+    "button.logo-creation-module__UDtEIW__primaryButton \"Continue\" «Continue» in div.project-logo-creation > div > div.logo-creation-module__UDtEIW__composerFooter"
+   ],
+   "pass": false
+  },
+  {
+   "fg": "#82817b",
+   "bg": "#f7f7f5",
+   "size": 16,
+   "weight": 400,
+   "ratio": 3.64,
+   "required": 4.5,
+   "placeholder": true,
+   "disabled": false,
+   "count": 1,
+   "samples": [
+    "textarea[Describe a change to this logo] placeholder «Choose a concept, then describe a change»"
+   ],
+   "pass": false
+  },
+  {
+   "fg": "#82817b",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 400,
+   "ratio": 3.9,
+   "required": 4.5,
+   "placeholder": true,
+   "disabled": false,
+   "count": 1,
+   "samples": [
+    "textarea#_r_4_[Reply in your own words, or ask a questi] placeholder «Reply in your own words, or ask a questi»"
+   ],
+   "pass": false
+  },
+  {
+   "fg": "#757575",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 4.6,
+   "required": 4.5,
+   "placeholder": true,
+   "disabled": false,
+   "count": 1,
+   "samples": [
+    "input[Search brands] placeholder «Search brands, colors or styles…»"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 12,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 6,
+   "samples": [
+    "span.guided-user-label «You» in section.guided-journey-section > div.guided-brief-turn > div.guided-user-turn",
+    "span.guided-assistant-label «Embel · Personality · 1 of 3» in section.guided-journey-section > article.guided-assistant-message > div.guided-assistant-identity",
+    "span.guided-assistant-label «Embel · Name · 2 of 3» in section.guided-journey-section > article.guided-assistant-message > div.guided-assistant-identity"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 8,
+   "samples": [
+    "button \"Liked · 2\" «Liked» in article.guided-assistant-message > div.inspiration-toolbar > div.inspiration-views",
+    "span «·» in div.inspiration-toolbar > div.inspiration-views > button",
+    "span «2» in div.inspiration-toolbar > div.inspiration-views > button"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#fdfdfd",
+   "size": 12,
+   "weight": 400,
+   "ratio": 5.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 3,
+   "samples": [
+    "dt «Competitors» in section.strategy-summary > dl > div",
+    "dt «Audience» in section.strategy-summary > dl > div",
+    "dt «Positioning» in section.strategy-summary > dl > div"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#fefefe",
+   "size": 10,
+   "weight": 400,
+   "ratio": 5.48,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span.journey-module__MmLfbq__stepMark «4» in ol.journey-module__MmLfbq__steps > li > span.journey-module__MmLfbq__step"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 7,
+   "samples": [
+    "button \"Logos\" «Logos» in article.guided-assistant-message > div.inspiration-toolbar > div.inspiration-categories",
+    "button \"Colors\" «Colors» in article.guided-assistant-message > div.inspiration-toolbar > div.inspiration-categories",
+    "button \"Typefaces\" «Typefaces» in article.guided-assistant-message > div.inspiration-toolbar > div.inspiration-categories"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 12,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 4,
+   "samples": [
+    "p «No image preview yet» in ol.logo-creation-module__UDtEIW__concepts > li.logo-creation-module__UDtEIW__galleryCard > div.logo-creation-module__UDtEIW__galleryPreview",
+    "p «Failed» in ol.logo-creation-module__UDtEIW__concepts > li.logo-creation-module__UDtEIW__galleryCard > div.logo-creation-module__UDtEIW__galleryCaption",
+    "p «No image preview yet» in ol.logo-creation-module__UDtEIW__concepts > li.logo-creation-module__UDtEIW__galleryCard > div.logo-creation-module__UDtEIW__galleryPreview"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#3d6448",
+   "bg": "#fdfdfd",
+   "size": 12,
+   "weight": 400,
+   "ratio": 6.64,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span.strategy-summary-state «Complete» in section.guided-journey-section > section.strategy-summary > div.strategy-summary-head"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#3d6448",
+   "bg": "#fefefe",
+   "size": 12,
+   "weight": 400,
+   "ratio": 6.7,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span.journey-module__MmLfbq__save \"Saved\" «Saved» in div.workspace-main > header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#3a3a37",
+   "bg": "#fdfdfd",
+   "size": 13,
+   "weight": 400,
+   "ratio": 11.25,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span «For our audience, we are your first paddle, done r» in dl > div > dd.strategy-summary-positioning"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 12,
+   "weight": 500,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.workspace-account-avatar «A» in div.journey-module__MmLfbq__end > details.workspace-account-menu > summary"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 15,
+   "weight": 400,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 4,
+   "samples": [
+    "p.guided-assistant-copy «Three personality directions.» in div.guided-interview-scroll > section.guided-journey-section > article.guided-assistant-message",
+    "p.guided-assistant-copy «A few slogan ideas.» in div.guided-interview-scroll > section.guided-journey-section > article.guided-assistant-message",
+    "p.guided-assistant-copy «Your voice is set. Now let’s shape how Tidewater K» in section.guided-journey-section > div.inspiration-workspace > article.guided-assistant-message"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 17,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "h2.inspiration-question \"What do you like?\" «What do you like?» in section.guided-journey-section > div.inspiration-workspace > article.guided-assistant-message"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 13,
+   "weight": 400,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "button \"Browse\" «Browse» in article.guided-assistant-message > div.inspiration-toolbar > div.inspiration-views",
+    "span «Pick the concept you like most» in section.logo-creation-module__UDtEIW__gallery > div.logo-creation-module__UDtEIW__galleryToolbar > p.logo-creation-module__UDtEIW__galleryProgress"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#fdfdfd",
+   "size": 15,
+   "weight": 500,
+   "ratio": 17.33,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "h2#_r_2_-title \"Strategy\" «Strategy» in section.guided-journey-section > section.strategy-summary > div.strategy-summary-head"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#fdfdfd",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.33,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "li «Families on vacation» in div > dd > ul.strategy-summary-list"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#fdfdfd",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.33,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 4,
+   "samples": [
+    "strong «Your first paddle, done right» in dl > div > dd.strategy-summary-positioning",
+    "h3#_r_5_-question \"Which personality feels right?\" «Which personality feels right?» in article.guided-assistant-message > section.guided-choice-answer > div.guided-choice-answer-copy",
+    "h3 \"Which name feels right?\" «Which name feels right?» in article.guided-assistant-message > section.guided-choice-answer > div.guided-choice-answer-copy"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#fefefe",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.48,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span.journey-module__MmLfbq__projectTitle «Tidewater Kayak Tours» in div.journey-module__MmLfbq__capsule > details.journey-module__MmLfbq__tools > summary.journey-module__MmLfbq__projectName"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.skip-link \"Skip to content\" «Skip to content» in div.app-shell"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 13,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.journey-module__MmLfbq__stepLabel «Identity» in ol.journey-module__MmLfbq__steps > li > span.journey-module__MmLfbq__step"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "p «Guided sea kayak tours and sunset paddles around t» in div.guided-brief-turn > div.guided-user-turn > div.guided-user-message",
+    "p «Wordmark, Lettermark or monogram, Pictorial mark, » in div > div.guided-assistant-message > div.logo-types-summary",
+    "span «Choose a concept above to change it» in form.logo-creation-module__UDtEIW__conceptsComposer > div.logo-creation-module__UDtEIW__composerHeader > div.logo-creation-module__UDtEIW__composerSelection"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 450,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 6,
+   "samples": [
+    "button.button.secondary.small \"Edit strategy\" «Edit strategy» in section.guided-journey-section > section.strategy-summary > div.strategy-summary-head",
+    "button.button.secondary.small[Edit your answer: Which personality feel] \"Edit answer\" «Edit answer» in section.guided-journey-section > article.guided-assistant-message > section.guided-choice-answer",
+    "button.button.secondary.small \"Change name\" «Change name» in section.guided-journey-section > article.guided-assistant-message > section.guided-choice-answer"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 11,
+   "samples": [
+    "span «Pacific Paddle Co» in div > dd.strategy-summary-chips > span.strategy-summary-chip",
+    "span «Clayoquot Kayaks» in div > dd.strategy-summary-chips > span.strategy-summary-chip",
+    "span «Adventurous and welcoming» in div.guided-choice-answer-copy > ul > li"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 13,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "button \"Brands\" «Brands» in article.guided-assistant-message > div.inspiration-toolbar > div.inspiration-categories"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 9,
+   "samples": [
+    "strong «Archi-Tex» in article.inspiration-brand > header.inspiration-brand-header > button.inspiration-brand-title",
+    "strong «Asteor» in article.inspiration-brand > header.inspiration-brand-header > button.inspiration-brand-title",
+    "strong «Astrix Builders» in article.inspiration-brand > header.inspiration-brand-header > button.inspiration-brand-title"
+   ],
+   "pass": true
+  }
+ ],
+ "edges": [
+  {
+   "kind": "field",
+   "fill": "#ffffff",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": null,
+   "best": 1,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "input[Search brands]"
+   ]
+  },
+  {
+   "kind": "field",
+   "fill": "#ffffff",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": null,
+   "best": 1,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "textarea#_r_4_[Reply in your own words, or ask a questi]"
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#f7f7f5",
+   "fillRatio": 1.07,
+   "borderRatio": 1.19,
+   "best": 1.19,
+   "pass": false,
+   "count": 4,
+   "samples": [
+    "button.inspiration-more \"Show more brands\"",
+    "button.inspiration-footer-link \"Add your own references\"",
+    "button.logo-creation-module__UDtEIW__secondaryButton[More concepts] \"More concepts\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#fdfdfd",
+   "fillRatio": 1.01,
+   "borderRatio": 1.26,
+   "best": 1.26,
+   "pass": false,
+   "count": 4,
+   "samples": [
+    "button.button.secondary.small \"Edit strategy\"",
+    "button.button.secondary.small[Edit your answer: Which personality feel] \"Edit answer\"",
+    "button.button.secondary.small \"Change name\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": 1.28,
+   "best": 1.28,
+   "pass": false,
+   "count": 2,
+   "samples": [
+    "button.logo-creation-module__UDtEIW__secondaryButton \"Change logo types\"",
+    "button.button.secondary.small \"View new response ↓\""
+   ]
+  },
+  {
+   "kind": "field",
+   "fill": "#f7f7f5",
+   "border": "#e4e3df",
+   "outside": "#ffffff",
+   "fillRatio": 1.07,
+   "borderRatio": 1.28,
+   "best": 1.28,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "textarea[Describe a change to this logo]"
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#191919",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 17.58,
+   "borderRatio": null,
+   "best": 17.58,
+   "pass": true,
+   "count": 1,
+   "samples": [
+    "button \"Brands\""
+   ]
+  }
+ ],
+ "targets": {
+  "total": 90,
+  "under44": 26,
+  "under24": [
+   {
+    "target": "input[Search brands]",
+    "where": "article.guided-assistant-message > div.inspiration-toolbar > label.inspiration-search",
+    "width": 242,
+    "height": 19.5,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "button.inspiration-brand-title \"Archi-Tex Open brand\"",
+    "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+    "width": 222,
+    "height": 23,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "button.inspiration-brand-title \"Asteor Open brand\"",
+    "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+    "width": 222,
+    "height": 23,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "button.inspiration-brand-title \"Astrix Builders Open brand\"",
+    "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+    "width": 222,
+    "height": 23,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "button.inspiration-brand-title \"Auraic Open brand\"",
+    "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+    "width": 222,
+    "height": 23,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "button.inspiration-brand-title \"Aurox Open brand\"",
+    "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+    "width": 222,
+    "height": 23,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "button.inspiration-brand-title \"AutoNex Open brand\"",
+    "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+    "width": 222,
+    "height": 23,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "button.inspiration-brand-title \"Avelo Open brand\"",
+    "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+    "width": 222,
+    "height": 23,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "button.inspiration-brand-title \"Avoova Open brand\"",
+    "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+    "width": 222,
+    "height": 23,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   }
+  ]
+ },
+ "fields": [
+  {
+   "field": "input[Search brands]",
+   "type": "search",
+   "label": "Search brands",
+   "autocomplete": null,
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 13
+  },
+  {
+   "field": "textarea[Describe a change to this logo]",
+   "type": "textarea",
+   "label": "Describe a change to this logo",
+   "autocomplete": null,
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 16
+  },
+  {
+   "field": "textarea#_r_4_[Reply in your own words, or ask a questi]",
+   "type": "textarea",
+   "label": "Message Embel",
+   "autocomplete": null,
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": "false",
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 16
+  }
+ ],
+ "clipped": [
+  "span (ellipsis, clamp none) «Pacific Paddle Co»",
+  "span (ellipsis, clamp none) «Clayoquot Kayaks»"
+ ],
+ "axe": {
+  "violations": [
+   {
+    "id": "heading-order",
+    "impact": "moderate",
+    "tags": [
+     "best-practice"
+    ],
+    "help": "Heading levels should only increase by one",
+    "count": 1,
+    "nodes": [
+     {
+      "target": "li[data-concept-ordinal=\"0\"] > .logo-creation-module__UDtEIW__galleryCaption > h3",
+      "html": "<h3 class=\"sr-only\">Concept 1</h3>",
+      "why": "Fix any of the following: Heading order invalid"
+     }
+    ]
+   },
+   {
+    "id": "landmark-unique",
+    "impact": "moderate",
+    "tags": [
+     "best-practice"
+    ],
+    "help": "Landmarks should have a unique role or role/label/title (i.e. accessible name) combination",
+    "count": 1,
+    "nodes": [
+     {
+      "target": "#journey-strategy",
+      "html": "<section id=\"journey-strategy\" class=\"guided-journey-section\" data-journey-section=\"strategy\" aria-label=\"Strategy\" tabindex=\"-1\">",
+      "why": "Fix any of the following: The landmark must have a unique aria-label, aria-labelledby, or title to make landmarks distinguishable"
+     }
+    ]
+   }
+  ],
+  "incomplete": [
+   {
+    "id": "aria-prohibited-attr",
+    "count": 5,
+    "help": "Elements must only use permitted ARIA attributes"
+   },
+   {
+    "id": "color-contrast",
+    "count": 9,
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+   }
+  ]
+ },
+ "walk": [
+  {
+   "el": "a.skip-link \"Skip to content\"",
+   "where": "div.app-shell",
+   "x": 8,
+   "y": 8,
+   "w": 130,
+   "h": 45,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.skip-link \"Skip to content\"@8,8"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__brandIcon[Embel home]",
+   "where": "div.workspace-main > header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule",
+   "x": 17,
+   "y": 17,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__brandIcon[Embel home]@17,17"
+  },
+  {
+   "el": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary[Project: Tidewater Kayak Tours. Switch p] \"Tidewater Kayak Tours\"",
+   "where": "header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule > details.journey-module__MmLfbq__tools",
+   "x": 67,
+   "y": 19,
+   "w": 189,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary[Project: Tidewater Kayak Tours. Switch p] \"Tidewater Kayak Tours\"@67,19"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__step \", complete\"",
+   "where": "nav.journey-module__MmLfbq__stepsNav > ol.journey-module__MmLfbq__steps > li",
+   "x": 17,
+   "y": 67,
+   "w": 40,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__step \", complete\"@17,67"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__step \", complete\"",
+   "where": "nav.journey-module__MmLfbq__stepsNav > ol.journey-module__MmLfbq__steps > li",
+   "x": 59,
+   "y": 67,
+   "w": 40,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__step \", complete\"@59,67"
+  },
+  {
+   "el": "summary[Account menu] \"audit-free@example.test A\"",
+   "where": "div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > details.workspace-account-menu",
+   "x": 337,
+   "y": 17,
+   "w": 36,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary[Account menu] \"audit-free@example.test A\"@337,17"
+  },
+  {
+   "el": "div#_r_0_.guided-interview-scroll[Conversation] \"You Guided sea kayak tours and sunset pa\"",
+   "where": "section.project-workspace > div.project-workspace-content > div.guided-interview",
+   "x": 0,
+   "y": 116,
+   "w": 390,
+   "h": 728,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset -3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "div#_r_0_.guided-interview-scroll[Conversation] \"You Guided sea kayak tours and sunset pa\"@0,116"
+  },
+  {
+   "el": "button.brief-edit-trigger \"Edit brief\"",
+   "where": "section.guided-journey-section > div.guided-brief-turn > div.guided-brief-editor",
+   "x": 318,
+   "y": 190,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "border-color",
+    "background",
+    "color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.brief-edit-trigger \"Edit brief\"@318,190"
+  },
+  {
+   "el": "button.button.secondary.small \"Edit strategy\"",
+   "where": "section.guided-journey-section > section.strategy-summary > div.strategy-summary-head",
+   "x": 243,
+   "y": 401,
+   "w": 106,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.33,
+   "behind": "#fdfdfd",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small \"Edit strategy\"@243,401"
+  },
+  {
+   "el": "button.button.secondary.small[Edit your answer: Which personality feel] \"Edit answer\"",
+   "where": "section.guided-journey-section > article.guided-assistant-message > section.guided-choice-answer",
+   "x": 251,
+   "y": 388,
+   "w": 100,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.27,
+   "behind": "#fdfdfd",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small[Edit your answer: Which personality feel] \"Edit answer\"@251,388"
+  },
+  {
+   "el": "button.button.secondary.small \"Change name\"",
+   "where": "section.guided-journey-section > article.guided-assistant-message > section.guided-choice-answer",
+   "x": 238,
+   "y": 596,
+   "w": 113,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.27,
+   "behind": "#fdfdfd",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small \"Change name\"@238,596"
+  },
+  {
+   "el": "button.button.secondary.small[Edit your answer: Which slogan do you li] \"Edit answer\"",
+   "where": "section.guided-journey-section > article.guided-assistant-message > section.guided-choice-answer",
+   "x": 251,
+   "y": 388,
+   "w": 100,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.27,
+   "behind": "#fdfdfd",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small[Edit your answer: Which slogan do you li] \"Edit answer\"@251,388"
+  },
+  {
+   "el": "button \"Browse\"",
+   "where": "article.guided-assistant-message > div.inspiration-toolbar > div.inspiration-views",
+   "x": 68,
+   "y": 655,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Browse\"@68,655"
+  },
+  {
+   "el": "button \"Liked · 2\"",
+   "where": "article.guided-assistant-message > div.inspiration-toolbar > div.inspiration-views",
+   "x": 126,
+   "y": 655,
+   "w": 55,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Liked · 2\"@126,655"
+  },
+  {
+   "el": "input[Search brands]",
+   "where": "article.guided-assistant-message > div.inspiration-toolbar > label.inspiration-search",
+   "x": 109,
+   "y": 398,
+   "w": 242,
+   "h": 20,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "input[Search brands]@109,398"
+  },
+  {
+   "el": "button \"Brands\"",
+   "where": "article.guided-assistant-message > div.inspiration-toolbar > div.inspiration-categories",
+   "x": 72,
+   "y": 336,
+   "w": 66,
+   "h": 38,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Brands\"@72,336"
+  },
+  {
+   "el": "button \"Logos\"",
+   "where": "article.guided-assistant-message > div.inspiration-toolbar > div.inspiration-categories",
+   "x": 140,
+   "y": 336,
+   "w": 60,
+   "h": 38,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Logos\"@140,336"
+  },
+  {
+   "el": "button \"Colors\"",
+   "where": "article.guided-assistant-message > div.inspiration-toolbar > div.inspiration-categories",
+   "x": 202,
+   "y": 336,
+   "w": 62,
+   "h": 38,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Colors\"@202,336"
+  },
+  {
+   "el": "button \"Typefaces\"",
+   "where": "article.guided-assistant-message > div.inspiration-toolbar > div.inspiration-categories",
+   "x": 266,
+   "y": 336,
+   "w": 84,
+   "h": 38,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Typefaces\"@266,336"
+  },
+  {
+   "el": "button \"Socials\"",
+   "where": "article.guided-assistant-message > div.inspiration-toolbar > div.inspiration-categories",
+   "x": 353,
+   "y": 336,
+   "w": 67,
+   "h": 38,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button \"Socials\"@353,336"
+  },
+  {
+   "el": "button \"Visuals\"",
+   "where": "article.guided-assistant-message > div.inspiration-toolbar > div.inspiration-categories",
+   "x": 319,
+   "y": 336,
+   "w": 67,
+   "h": 38,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Visuals\"@319,336"
+  },
+  {
+   "el": "button.inspiration-brand-title \"Archi-Tex Open brand\"",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": -20,
+   "y": 462,
+   "w": 222,
+   "h": 23,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-title \"Archi-Tex Open brand\"@-20,462"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-brand-like[Unlike the whole Archi-Tex brand]",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 210,
+   "y": 451,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-heart.inspiration-brand-like[Unlike the whole Archi-Tex brand]@210,451"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Archi-Tex: logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 499,
+   "w": 137,
+   "h": 77,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Archi-Tex: logo]@-26,499"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Archi-Tex logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 77,
+   "y": 503,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Archi-Tex logo]@77,503"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Archi-Tex: colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 117,
+   "y": 499,
+   "w": 137,
+   "h": 77,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Archi-Tex: colors]@117,499"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Archi-Tex colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 503,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Archi-Tex colors]@220,503"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Archi-Tex: typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 559,
+   "w": 280,
+   "h": 140,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.43,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Archi-Tex: typefaces]@-26,559"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Archi-Tex typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 563,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.43,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Archi-Tex typefaces]@220,563"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Archi-Tex: socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 355,
+   "w": 114,
+   "h": 106,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Archi-Tex: socials]@-26,355"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Archi-Tex socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 54,
+   "y": 359,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Archi-Tex socials]@54,359"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Archi-Tex: visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 94,
+   "y": 355,
+   "w": 160,
+   "h": 106,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Archi-Tex: visuals]@94,355"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Archi-Tex visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 359,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Archi-Tex visuals]@220,359"
+  },
+  {
+   "el": "button.inspiration-brand-title \"Asteor Open brand\"",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": -20,
+   "y": 498,
+   "w": 222,
+   "h": 23,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-title \"Asteor Open brand\"@-20,498"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-brand-like[Like the whole Asteor brand]",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 210,
+   "y": 487,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-heart.inspiration-brand-like[Like the whole Asteor brand]@210,487"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Asteor: logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 535,
+   "w": 280,
+   "h": 116,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 1.05,
+   "behind": "#1e1e1e",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Asteor: logo]@-26,535"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Asteor logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 539,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 1.05,
+   "behind": "#1e1e1e",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Asteor logo]@220,539"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Asteor: colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 628,
+   "w": 142,
+   "h": 72,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Asteor: colors]@-26,628"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Asteor colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 82,
+   "y": 632,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Asteor colors]@82,632"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Asteor: typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 122,
+   "y": 628,
+   "w": 132,
+   "h": 72,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Asteor: typefaces]@122,628"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Asteor typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 632,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Asteor typefaces]@220,632"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Asteor: socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 353,
+   "w": 135,
+   "h": 110,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.43,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Asteor: socials]@-26,353"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Asteor socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 75,
+   "y": 357,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.43,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Asteor socials]@75,357"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Asteor: visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 115,
+   "y": 353,
+   "w": 139,
+   "h": 110,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Asteor: visuals]@115,353"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Asteor visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 357,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Asteor visuals]@220,357"
+  },
+  {
+   "el": "button.inspiration-brand-title \"Astrix Builders Open brand\"",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": -20,
+   "y": 500,
+   "w": 222,
+   "h": 23,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-title \"Astrix Builders Open brand\"@-20,500"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-brand-like[Like the whole Astrix Builders brand]",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 210,
+   "y": 489,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-heart.inspiration-brand-like[Like the whole Astrix Builders brand]@210,489"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Astrix Builders: logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 537,
+   "w": 165,
+   "h": 99,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Astrix Builders: logo]@-26,537"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Astrix Builders logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 105,
+   "y": 541,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Astrix Builders logo]@105,541"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Astrix Builders: colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 145,
+   "y": 537,
+   "w": 109,
+   "h": 99,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Astrix Builders: colors]@145,537"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Astrix Builders colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 541,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Astrix Builders colors]@220,541"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Astrix Builders: typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 543,
+   "w": 280,
+   "h": 158,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Astrix Builders: typefaces]@-26,543"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Astrix Builders typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 547,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Astrix Builders typefaces]@220,547"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Astrix Builders: socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 358,
+   "w": 120,
+   "h": 98,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Astrix Builders: socials]@-26,358"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Astrix Builders socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 60,
+   "y": 362,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Astrix Builders socials]@60,362"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Astrix Builders: visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 100,
+   "y": 358,
+   "w": 154,
+   "h": 98,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Astrix Builders: visuals]@100,358"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Astrix Builders visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 362,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Astrix Builders visuals]@220,362"
+  },
+  {
+   "el": "button.inspiration-brand-title \"Auraic Open brand\"",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": -20,
+   "y": 494,
+   "w": 222,
+   "h": 23,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-title \"Auraic Open brand\"@-20,494"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-brand-like[Like the whole Auraic brand]",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 210,
+   "y": 483,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-heart.inspiration-brand-like[Like the whole Auraic brand]@210,483"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Auraic: logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 531,
+   "w": 146,
+   "h": 91,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Auraic: logo]@-26,531"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Auraic logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 86,
+   "y": 535,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Auraic logo]@86,535"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Auraic: colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 126,
+   "y": 531,
+   "w": 128,
+   "h": 91,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Auraic: colors]@126,531"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Auraic colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 535,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Auraic colors]@220,535"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Auraic: typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 614,
+   "w": 125,
+   "h": 86,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Auraic: typefaces]@-26,614"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Auraic typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 65,
+   "y": 618,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Auraic typefaces]@65,618"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Auraic: socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 105,
+   "y": 614,
+   "w": 149,
+   "h": 86,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.43,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Auraic: socials]@105,614"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Auraic socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 618,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.43,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Auraic socials]@220,618"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Auraic: visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 329,
+   "w": 280,
+   "h": 158,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Auraic: visuals]@-26,329"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Auraic visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 333,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Auraic visuals]@220,333"
+  },
+  {
+   "el": "button.inspiration-brand-title \"Aurox Open brand\"",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": -20,
+   "y": 523,
+   "w": 222,
+   "h": 23,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-title \"Aurox Open brand\"@-20,523"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-brand-like[Like the whole Aurox brand]",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 210,
+   "y": 512,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-heart.inspiration-brand-like[Like the whole Aurox brand]@210,512"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Aurox: logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 560,
+   "w": 280,
+   "h": 107,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 1.02,
+   "behind": "#14173d",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Aurox: logo]@-26,560"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Aurox logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 564,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 1.02,
+   "behind": "#14173d",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Aurox logo]@220,564"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Aurox: colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 626,
+   "w": 141,
+   "h": 74,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Aurox: colors]@-26,626"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Aurox colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 81,
+   "y": 630,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Aurox colors]@81,630"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Aurox: typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 121,
+   "y": 626,
+   "w": 133,
+   "h": 74,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Aurox: typefaces]@121,626"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Aurox typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 630,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Aurox typefaces]@220,630"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Aurox: socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 357,
+   "w": 128,
+   "h": 103,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.46,
+   "behind": "#fffefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Aurox: socials]@-26,357"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Aurox socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 68,
+   "y": 361,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.46,
+   "behind": "#fffefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Aurox socials]@68,361"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Aurox: visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 108,
+   "y": 357,
+   "w": 146,
+   "h": 103,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Aurox: visuals]@108,357"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Aurox visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 361,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Aurox visuals]@220,361"
+  },
+  {
+   "el": "button.inspiration-brand-title \"AutoNex Open brand\"",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": -20,
+   "y": 497,
+   "w": 222,
+   "h": 23,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-title \"AutoNex Open brand\"@-20,497"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-brand-like[Like the whole AutoNex brand]",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 210,
+   "y": 486,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-heart.inspiration-brand-like[Like the whole AutoNex brand]@210,486"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open AutoNex: logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 534,
+   "w": 280,
+   "h": 86,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.2,
+   "behind": "#ebeff2",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open AutoNex: logo]@-26,534"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like AutoNex logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 538,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.2,
+   "behind": "#ebeff2",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like AutoNex logo]@220,538"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open AutoNex: colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 626,
+   "w": 280,
+   "h": 58,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 1.06,
+   "behind": "#121212",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open AutoNex: colors]@-26,626"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like AutoNex colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 630,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 1.06,
+   "behind": "#121212",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like AutoNex colors]@220,630"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open AutoNex: typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 615,
+   "w": 280,
+   "h": 85,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 1.06,
+   "behind": "#121212",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open AutoNex: typefaces]@-26,615"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like AutoNex typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 619,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 1.06,
+   "behind": "#121212",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like AutoNex typefaces]@220,619"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open AutoNex: socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 354,
+   "w": 191,
+   "h": 107,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.19,
+   "behind": "#f4f6f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open AutoNex: socials]@-26,354"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like AutoNex socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 131,
+   "y": 358,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.19,
+   "behind": "#f4f6f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like AutoNex socials]@131,358"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open AutoNex: visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 171,
+   "y": 354,
+   "w": 83,
+   "h": 107,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open AutoNex: visuals]@171,354"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like AutoNex visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 358,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like AutoNex visuals]@220,358"
+  },
+  {
+   "el": "button.inspiration-brand-title \"Avelo Open brand\"",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": -20,
+   "y": 499,
+   "w": 222,
+   "h": 23,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-title \"Avelo Open brand\"@-20,499"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-brand-like[Like the whole Avelo brand]",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 210,
+   "y": 488,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-heart.inspiration-brand-like[Like the whole Avelo brand]@210,488"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Avelo: logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 536,
+   "w": 280,
+   "h": 94,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 1.11,
+   "behind": "#030436",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Avelo: logo]@-26,536"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Avelo logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 540,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 1.11,
+   "behind": "#030436",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Avelo logo]@220,540"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Avelo: colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 559,
+   "w": 280,
+   "h": 141,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Avelo: colors]@-26,559"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Avelo colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 563,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Avelo colors]@220,563"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Avelo: typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 333,
+   "w": 280,
+   "h": 149,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Avelo: typefaces]@-26,333"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Avelo typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 337,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Avelo typefaces]@220,337"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Avelo: socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 488,
+   "w": 118,
+   "h": 104,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Avelo: socials]@-26,488"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Avelo socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 58,
+   "y": 492,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Avelo socials]@58,492"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Avelo: visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 98,
+   "y": 488,
+   "w": 156,
+   "h": 104,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Avelo: visuals]@98,488"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Avelo visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 492,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Avelo visuals]@220,492"
+  },
+  {
+   "el": "button.inspiration-brand-title \"Avoova Open brand\"",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": -20,
+   "y": 629,
+   "w": 222,
+   "h": 23,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-title \"Avoova Open brand\"@-20,629"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-brand-like[Like the whole Avoova brand]",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 210,
+   "y": 618,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-heart.inspiration-brand-like[Like the whole Avoova brand]@210,618"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Avoova: logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 602,
+   "w": 95,
+   "h": 98,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Avoova: logo]@-26,602"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Avoova logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 35,
+   "y": 606,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Avoova logo]@35,606"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Avoova: colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 75,
+   "y": 602,
+   "w": 179,
+   "h": 98,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Avoova: colors]@75,602"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Avoova colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 606,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Avoova colors]@220,606"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Avoova: typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 339,
+   "w": 280,
+   "h": 138,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Avoova: typefaces]@-26,339"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Avoova typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 343,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Avoova typefaces]@220,343"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Avoova: socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": -26,
+   "y": 483,
+   "w": 110,
+   "h": 93,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.46,
+   "behind": "#fffefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Avoova: socials]@-26,483"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Avoova socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 50,
+   "y": 487,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.46,
+   "behind": "#fffefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Avoova socials]@50,487"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Avoova: visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 90,
+   "y": 483,
+   "w": 164,
+   "h": 93,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Avoova: visuals]@90,483"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Avoova visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 220,
+   "y": 487,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Avoova visuals]@220,487"
+  },
+  {
+   "el": "button.inspiration-more \"Show more brands\"",
+   "where": "div.inspiration-workspace > article.guided-assistant-message > div.inspiration-feed",
+   "x": 39,
+   "y": 605,
+   "w": 149,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-more \"Show more brands\"@39,605"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Unlike test upload moodboard]",
+   "where": "article.inspiration-brand > div.inspiration-yours-grid > div.inspiration-yours-tile",
+   "x": 220,
+   "y": 393,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "img (not fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Unlike test upload moodboard]@220,393"
+  },
+  {
+   "el": "button.inspiration-footer-link \"Add your own references\"",
+   "where": "article.guided-assistant-message > div.inspiration-feed > footer.inspiration-footer",
+   "x": 85,
+   "y": 601,
+   "w": 178,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-footer-link \"Add your own references\"@85,601"
+  },
+  {
+   "el": "button.logo-creation-module__UDtEIW__secondaryButton \"Change logo types\"",
+   "where": "div > div.guided-assistant-message > div.logo-types-summary",
+   "x": -16,
+   "y": 386,
+   "w": 149,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "button.logo-creation-module__UDtEIW__secondaryButton \"Change logo types\"@-16,386"
+  },
+  {
+   "el": "button.logo-creation-module__UDtEIW__secondaryButton[More concepts] \"More concepts\"",
+   "where": "div.logo-creation-module__UDtEIW__generationActions > div.logo-creation-module__UDtEIW__generationAction > div.logo-creation-module__UDtEIW__generationActionRow",
+   "x": 137,
+   "y": 513,
+   "w": 126,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.logo-creation-module__UDtEIW__secondaryButton[More concepts] \"More concepts\"@137,513"
+  },
+  {
+   "el": "button.logo-creation-module__UDtEIW__secondaryButton[Retry 2 failed concepts] \"Retry 2 failed concepts\"",
+   "where": "div.logo-creation-module__UDtEIW__generationActions > div.logo-creation-module__UDtEIW__generationAction > div.logo-creation-module__UDtEIW__generationActionRow",
+   "x": 87,
+   "y": 569,
+   "w": 176,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.logo-creation-module__UDtEIW__secondaryButton[Retry 2 failed concepts] \"Retry 2 failed concepts\"@87,569"
+  },
+  {
+   "el": "div.logo-creation-module__UDtEIW__galleryPreview[Select concept 1]",
+   "where": "section.logo-creation-module__UDtEIW__gallery > ol.logo-creation-module__UDtEIW__concepts > li.logo-creation-module__UDtEIW__galleryCard",
+   "x": -34,
+   "y": 500,
+   "w": 296,
+   "h": 200,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "div.logo-creation-module__UDtEIW__galleryPreview[Select concept 1]@-34,500"
+  },
+  {
+   "el": "div.logo-creation-module__UDtEIW__galleryPreview[Select concept 2]",
+   "where": "section.logo-creation-module__UDtEIW__gallery > ol.logo-creation-module__UDtEIW__concepts > li.logo-creation-module__UDtEIW__galleryCard",
+   "x": -34,
+   "y": 308,
+   "w": 296,
+   "h": 200,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "div.logo-creation-module__UDtEIW__galleryPreview[Select concept 2]@-34,308"
+  },
+  {
+   "el": "div.logo-creation-module__UDtEIW__galleryPreview[Select concept 3]",
+   "where": "section.logo-creation-module__UDtEIW__gallery > ol.logo-creation-module__UDtEIW__concepts > li.logo-creation-module__UDtEIW__galleryCard",
+   "x": -34,
+   "y": 500,
+   "w": 296,
+   "h": 200,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "div.logo-creation-module__UDtEIW__galleryPreview[Select concept 3]@-34,500"
+  },
+  {
+   "el": "div.logo-creation-module__UDtEIW__galleryPreview[Select concept 6]",
+   "where": "section.logo-creation-module__UDtEIW__gallery > ol.logo-creation-module__UDtEIW__concepts > li.logo-creation-module__UDtEIW__galleryCard",
+   "x": -34,
+   "y": 308,
+   "w": 296,
+   "h": 200,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 2,
+   "coveredBy": null,
+   "key": "div.logo-creation-module__UDtEIW__galleryPreview[Select concept 6]@-34,308"
+  },
+  {
+   "el": "textarea[Describe a change to this logo]",
+   "where": "div.project-logo-creation > div > form.logo-creation-module__UDtEIW__conceptsComposer",
+   "x": 85,
+   "y": 584,
+   "w": 264,
+   "h": 66,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "textarea[Describe a change to this logo]@85,584"
+  },
+  {
+   "el": "button.button.secondary.small \"View new response ↓\"",
+   "where": "div.floating-composer-module__jOAFyG__body > div.guided-floating-input > div.guided-new-response",
+   "x": 114,
+   "y": 733,
+   "w": 162,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small \"View new response ↓\"@114,733"
+  },
+  {
+   "el": "textarea#_r_4_[Reply in your own words, or ask a questi]",
+   "where": "div.floating-composer-module__jOAFyG__body > div.guided-floating-input > form.conversation-composer",
+   "x": 29,
+   "y": 782,
+   "w": 293,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "on ancestor: box-shadow, border-color",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "textarea#_r_4_[Reply in your own words, or ask a questi]@29,782"
+  }
+ ],
+ "walkTruncated": false,
+ "hover": []
+}

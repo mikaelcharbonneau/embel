@@ -1,0 +1,58 @@
+
+=== out-of-credits-and-disabled @1440 (audit-free)
+  note: the Logo step was already open (logo inputs were saved earlier)
+  note: explore disabled: {"disabled":true,"cursor":"not-allowed","bg":"rgb(241, 240, 238)","color":"rgb(105, 105, 101)"}
+  note: the Logo step was already open (logo inputs were saved earlier)
+  note: out-of-credits prompt: {"tag":"DIV","role":null,"cls":"out-of-credits-copy","position":"static","animation":"none","transition":"0s","focus":"Skip to content\nFromagerie Bér"}
+  -- hover-logo-type-toggle  [3 frame(s)]
+         14 ms  scroll      div.guided-interview-scroll[Conversation] top=3395
+         47 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","6 types chosen"],"imgsPending":5}
+  -- toggle-logo-type  [4 frame(s)]
+         31 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","6 types chosen"],"imgsPending":5}
+         35 ms  pointerdown button.naming-approach-option
+         35 ms  focus       button.naming-approach-option
+         40 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","5 types chosen","Complete your saved logo inputs to continue."],"imgsPending":5}
+         50 ms  shift       0.0030 (after input) div.logo-creation-module__UDtEIW__generationAction[Explore six concepts]
+  -- explore-disabled  [1 frame(s)]
+  -- explore-with-zero-credits  [6 frame(s)]
+         30 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","6 types chosen"],"imgsPending":5}
+         37 ms  pointerdown button.logo-creation-module__UDtEIW__primaryButton[Explore six concepts]
+         37 ms  focus       button.logo-creation-module__UDtEIW__primaryButton[Explore six concepts]
+         41 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","6 types chosen","Request in progress…"],"imgsPending":5}
+         50 ms  shift       0.0010 (after input) div.logo-creation-module__UDtEIW__generationAction[Explore six concepts]
+        112 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","6 types chosen","Request in progress…","You’re out of credits for this month Your work is saved. A paid plan a"],"imgsPending":5}
+        170 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","6 types chosen","Not ready yet.","You’re out of credits for this month Your work is saved. A paid plan a"],"imgsPending":5}
+        183 ms  shift       0.0061 (after input) div.logo-creation-module__UDtEIW__generationAction[Explore six concepts], p.logo-types-count
+  -- not-now  [4 frame(s)]
+         10 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","6 types chosen","Not ready yet.","You’re out of credits for this month Your work is saved. A paid plan a"],"imgsPending":5}
+         77 ms  pointerdown button.button.secondary
+         77 ms  focus       button.button.secondary
+         79 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","6 types chosen","Not ready yet."],"imgsPending":5}
+
+=== out-of-credits-and-disabled @390 (audit-free)
+  note: the Logo step was already open (logo inputs were saved earlier)
+  note: explore disabled: {"disabled":true,"cursor":"not-allowed","bg":"rgb(241, 240, 238)","color":"rgb(105, 105, 101)"}
+  note: the Logo step was already open (logo inputs were saved earlier)
+  note: out-of-credits prompt: {"tag":"DIV","role":null,"cls":"out-of-credits-copy","position":"static","animation":"none","transition":"0s","focus":"Skip to content\nFromagerie Bér"}
+  -- toggle-logo-type  [4 frame(s)]
+         13 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","6 types chosen"],"imgsPending":2}
+         15 ms  scroll      div.guided-interview-scroll[Conversation] top=5990
+         34 ms  pointerdown button.naming-approach-option
+         35 ms  focus       button.naming-approach-option
+         39 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","5 types chosen","Complete your saved logo inputs to continue."],"imgsPending":2}
+  -- explore-disabled  [1 frame(s)]
+  -- explore-with-zero-credits  [6 frame(s)]
+          2 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","6 types chosen"],"imgsPending":2}
+         16 ms  scroll      div.guided-interview-scroll[Conversation] top=5990
+         35 ms  pointerdown button.logo-creation-module__UDtEIW__primaryButton[Explore six concepts]
+         36 ms  focus       button.logo-creation-module__UDtEIW__primaryButton[Explore six concepts]
+         40 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","6 types chosen","Request in progress…"],"imgsPending":2}
+         70 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","6 types chosen","Request in progress…","You’re out of credits for this month Your work is saved. A paid plan a"],"imgsPending":2}
+         91 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","6 types chosen","Not ready yet.","You’re out of credits for this month Your work is saved. A paid plan a"],"imgsPending":2}
+  -- not-now  [4 frame(s)]
+         21 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","6 types chosen","Not ready yet.","You’re out of credits for this month Your work is saved. A paid plan a"],"imgsPending":2}
+         37 ms  pointerdown button.button.secondary
+         37 ms  focus       button.button.secondary
+         38 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","6 types chosen","Not ready yet."],"imgsPending":2}
+
+Wrote /Users/mikael/embel/design-audit/evidence/motion/walk-brand-out_of_credits.json

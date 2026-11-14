@@ -1,0 +1,93 @@
+
+=== out-of-credits-and-disabled @1440 (audit-free)  ERROR: locator.scrollIntoViewIfNeeded: Timeout 30000ms exceeded. | Call log: |   - waiting for getByRole('article', { name: 'Inspiration gallery', exact: true }).getByRole('button', { name: 'Continue', exact: true })
+  note: explore disabled: {"disabled":true,"cursor":"not-allowed","bg":"rgb(241, 240, 238)","color":"rgb(105, 105, 101)"}
+  -- continue-from-inspiration-to-logo  [7 frame(s)]
+         35 ms  pointerdown button.inspiration-continue
+         35 ms  focus       button.inspiration-continue
+         62 ms  state       {"h1":"Logo","busy":2,"dialogs":[],"details":[],"live":["Saved","Choose at least one type","Getting ready…","Loading saved concepts…","Loading saved logo details…"],"imgsPending":5}
+         73 ms  scroll      div.guided-interview-scroll[Conversation] top=3544
+         83 ms  animation   embel-flow-enter on div.logo-in-conversation.flow-enter (0.16s ease-out x1)
+        117 ms  state       {"h1":"Logo","busy":2,"dialogs":[],"details":[],"live":["Saved","Choose at least one type","Complete your saved logo inputs to continue.","Loading saved concepts…","Loading saved logo details…"],"imgsPending":5}
+        118 ms  shift       0.0019 (after input) div.logo-creation-module__UDtEIW__generationAction[Explore six concepts]
+        161 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Choose at least one type","Complete your saved logo inputs to continue.","Enter a brand name before generating."],"imgsPending":5}
+        180 ms  scroll      div.guided-interview-scroll[Conversation] top=3416
+        187 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Choose at least one type","Preparing saved inputs…","Enter a brand name before generating."],"imgsPending":5}
+        200 ms  shift       0.0013 (after input) div.logo-creation-module__UDtEIW__generationAction[Explore six concepts]
+        311 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Choose at least one type","Request in progress…","Enter a brand name before generating."],"imgsPending":5}
+        312 ms  shift       0.0001 (after input) div.logo-creation-module__UDtEIW__generationAction[Explore six concepts]
+        424 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","Choose at least one type","Preparing saved inputs…","Enter a brand name before generating."],"imgsPending":5}
+        426 ms  shift       0.0001 (after input) div.logo-creation-module__UDtEIW__generationAction[Explore six concepts]
+  -- hover-logo-type-toggle  [3 frame(s)]
+         20 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","6 types chosen","Preparing saved inputs…"],"imgsPending":5}
+  -- toggle-logo-type  [4 frame(s)]
+          7 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","6 types chosen","Preparing saved inputs…"],"imgsPending":5}
+       1185 ms  scroll      div.guided-interview-scroll[Conversation] top=3395
+       1210 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","6 types chosen"],"imgsPending":5}
+       1211 ms  shift       0.0012 div.logo-creation-module__UDtEIW__generationAction[Explore six concepts]
+       1371 ms  pointerdown button.naming-approach-option
+       1371 ms  focus       button.naming-approach-option
+       1376 ms  state       {"h1":"Logo","busy":0,"dialogs":[],"details":[],"live":["Saved","5 types chosen","Complete your saved logo inputs to continue."],"imgsPending":5}
+       1386 ms  shift       0.0030 (after input) div.logo-creation-module__UDtEIW__generationAction[Explore six concepts]
+  -- explore-disabled  [1 frame(s)]
+
+=== out-of-credits-and-disabled @390 (audit-free)  ERROR: locator.scrollIntoViewIfNeeded: Timeout 30000ms exceeded. | Call log: |   - waiting for getByRole('article', { name: 'Inspiration gallery', exact: true }).getByRole('button', { name: 'Continue', exact: true })
+
+Wrote /Users/mikael/embel/design-audit/evidence/motion/walk-brand-out_of_credits.json
+
+=== settings-dialogs @1440 (audit-pro)
+  note: delete account dialog: {"cls":"auth-signout-dialog account-delete-dialog","animation":"none","focus":"INPUT","backdrop":"rgba(25, 25, 25, 0.333)","buttons":["Cancel","Delete account (disabled)"]}
+  note: after Escape: {"dialogs":0,"focus":"Skip to content\nEmbel\nHome\nPro"}
+  note: sign-out confirmation: {"dialogs":["auth-signout-dialog"],"text":["audit-pro@example.test A audit-pro@example.test Account settings Plans and credits Generation activity Sign out Sign out with unsaved account edits? Saved work ","Sign out with unsaved account edits? Saved work stays in your account. Unsaved edits will be discarded only after sign-out is confirmed. Keep editing Discard ed"]}
+  -- open-delete-account-dialog  [4 frame(s)]
+         13 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["Your settings are saved."],"imgsPending":0}
+         15 ms  scroll      main top=474
+         34 ms  pointerdown button.button.danger
+         34 ms  focus       button.button.danger
+         38 ms  focus       input
+         39 ms  focus       button.button.danger
+         40 ms  focus       input
+         40 ms  state       {"h1":"Settings.","busy":0,"dialogs":["dialog.auth-signout-dialog.account-delete-dialog"],"details":[],"live":["Your settings are saved."],"imgsPending":0}
+  -- escape-closes-delete-account  [3 frame(s)]
+          1 ms  key         Escape
+          3 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["Your settings are saved."],"imgsPending":0}
+  -- sign-out-with-unsaved-edits  [4 frame(s)]
+         32 ms  pointerdown button.auth-session-action
+         32 ms  focus       button.auth-session-action
+         34 ms  focus       button.button.secondary
+         34 ms  state       {"h1":"Settings.","busy":0,"dialogs":["dialog.auth-signout-dialog"],"details":["details.workspace-account-menu"],"live":["You have unsaved changes."],"imgsPending":0}
+  -- keep-editing  [3 frame(s)]
+         21 ms  state       {"h1":"Settings.","busy":0,"dialogs":["dialog.auth-signout-dialog"],"details":["details.workspace-account-menu"],"live":["You have unsaved changes."],"imgsPending":0}
+         25 ms  pointerdown button.button.secondary
+         26 ms  focus       button.auth-session-action
+         26 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":["details.workspace-account-menu"],"live":["You have unsaved changes."],"imgsPending":0}
+
+=== settings-dialogs @390 (audit-pro)
+  note: delete account dialog: {"cls":"auth-signout-dialog account-delete-dialog","animation":"none","focus":"INPUT","backdrop":"rgba(25, 25, 25, 0.333)","buttons":["Cancel","Delete account (disabled)"]}
+  note: after Escape: {"dialogs":0,"focus":"Skip to content\nHome\nProjects\n"}
+  note: sign-out confirmation: {"dialogs":["auth-signout-dialog"],"text":["audit-pro@example.test A audit-pro@example.test Account settings Plans and credits Generation activity Sign out Sign out with unsaved account edits? Saved work ","Sign out with unsaved account edits? Saved work stays in your account. Unsaved edits will be discarded only after sign-out is confirmed. Keep editing Discard ed"]}
+  -- open-delete-account-dialog  [4 frame(s)]
+         12 ms  scroll      main top=1010
+         13 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["Your settings are saved."],"imgsPending":0}
+         45 ms  pointerdown button.button.danger
+         45 ms  focus       button.button.danger
+         49 ms  focus       input
+         52 ms  focus       button.button.danger
+         52 ms  focus       input
+         53 ms  state       {"h1":"Settings.","busy":0,"dialogs":["dialog.auth-signout-dialog.account-delete-dialog"],"details":[],"live":["Your settings are saved."],"imgsPending":0}
+  -- escape-closes-delete-account  [3 frame(s)]
+          1 ms  state       {"h1":"Settings.","busy":0,"dialogs":["dialog.auth-signout-dialog.account-delete-dialog"],"details":[],"live":["Your settings are saved."],"imgsPending":0}
+          1 ms  key         Escape
+          3 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":[],"live":["Your settings are saved."],"imgsPending":0}
+  -- sign-out-with-unsaved-edits  [4 frame(s)]
+         30 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":["details.workspace-account-menu"],"live":["You have unsaved changes."],"imgsPending":0}
+         32 ms  pointerdown button.auth-session-action
+         32 ms  focus       button.auth-session-action
+         34 ms  focus       button.button.secondary
+         35 ms  state       {"h1":"Settings.","busy":0,"dialogs":["dialog.auth-signout-dialog"],"details":["details.workspace-account-menu"],"live":["You have unsaved changes."],"imgsPending":0}
+  -- keep-editing  [3 frame(s)]
+          5 ms  state       {"h1":"Settings.","busy":0,"dialogs":["dialog.auth-signout-dialog"],"details":["details.workspace-account-menu"],"live":["You have unsaved changes."],"imgsPending":0}
+         24 ms  pointerdown button.button.secondary
+         27 ms  focus       button.auth-session-action
+         27 ms  state       {"h1":"Settings.","busy":0,"dialogs":[],"details":["details.workspace-account-menu"],"live":["You have unsaved changes."],"imgsPending":0}
+
+Wrote /Users/mikael/embel/design-audit/evidence/motion/walk-shell-settings_dialogs.json

@@ -1,0 +1,962 @@
+{
+ "slug": "brand-identity__kestrel-pro",
+ "account": "audit-pro",
+ "route": "/brands/account/b6978256-d33b-4cf4-842e-af637a43a3d8/identity",
+ "width": 390,
+ "doc": {
+  "url": "/brands/account/b6978256-d33b-4cf4-842e-af637a43a3d8/identity",
+  "title": "Identity · Embel",
+  "lang": "en",
+  "viewportMeta": "width=device-width, initial-scale=1",
+  "h1": [
+   "Build a visual starting point"
+  ],
+  "headings": [
+   "H1 Build a visual starting point",
+   "H2 References",
+   "H3 test upload moodboard"
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 1,
+   "header": 8,
+   "footer": 0,
+   "aside": 2,
+   "form": 4,
+   "[role=\"search\"]": 0,
+   "section[aria-label], section[aria-labelledby]": 12
+  },
+  "navLabels": [
+   "Brand journey"
+  ],
+  "skipLink": [
+   {
+    "text": "Skip to content",
+    "href": "#main-content",
+    "targetExists": true
+   }
+  ],
+  "liveRegions": 2,
+  "dialogsOpen": [],
+  "overflowX": 0,
+  "bodyText": "Skip to content Kestrel Analytics , complete , complete Identity 4 , next step Saved audit-pro@example.test A Untitled brand Build a visual starting point Collect references for saved identity systems. Inspiration likes guide logo previews separately. Back to project Moodboard Saved systems Add your",
+  "focusableCount": 20
+ },
+ "contrast": [
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 11,
+   "samples": [
+    "span «Untitled brand» in div.project-workbench-canvas > header.identity-references-heading > div",
+    "a.text-link \"Back to project\" «Back to project» in div.page > div.project-workbench-canvas > header.identity-references-heading",
+    "p «Choose the elements you want to explore.» in section.identity-references > div.identity-reference-section-heading > div"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 6,
+   "samples": [
+    "span «Add your own reference» in div > section.context-details-module__qccFGG__root > button.context-details-module__qccFGG__trigger",
+    "span «↗» in div > section.context-details-module__qccFGG__root > button.context-details-module__qccFGG__trigger",
+    "button.text-link[Show elements for test upload moodboard] \"Show elements\" «Show elements» in article.identity-reference-card > div.identity-reference-controls > div.identity-reference-control-row"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 12,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "p «Untitled brand» in aside.project-dock > div.project-dock-content > div.project-dock-heading",
+    "p.project-dock-note «Choose Ensemble or individual elements on a refere» in aside.project-dock > div.project-dock-content > div",
+    "p.project-dock-note «External reference discovery is not connected. You» in aside.project-dock > div.project-dock-content > div"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#3d6448",
+   "bg": "#ffffff",
+   "size": 12,
+   "weight": 400,
+   "ratio": 6.74,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.journey-module__MmLfbq__save \"Saved\" «Saved» in div.workspace-main > header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 12,
+   "weight": 500,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.workspace-account-avatar «A» in div.journey-module__MmLfbq__end > details.workspace-account-menu > summary"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 13,
+   "weight": 400,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "button \"Moodboard\" «Moodboard» in div.page > div.project-workbench-canvas > div.project-workbench-tabs"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 24,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 3,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "h1 \"Build a visual starting point\" «Build a visual starting point» in div.project-workbench-canvas > header.identity-references-heading > div"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 400,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p «Collect references for saved identity systems. Ins» in div.project-workbench-canvas > header.identity-references-heading > div"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 18,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "h2 \"References\" «References» in section.identity-references > div.identity-reference-section-heading > div"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.skip-link \"Skip to content\" «Skip to content» in div.app-shell"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.journey-module__MmLfbq__projectTitle «Kestrel Analytics» in div.journey-module__MmLfbq__capsule > details.journey-module__MmLfbq__tools > summary.journey-module__MmLfbq__projectName"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 13,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.journey-module__MmLfbq__stepLabel «Identity» in ol.journey-module__MmLfbq__steps > li > span.journey-module__MmLfbq__step"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 10,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.journey-module__MmLfbq__stepMark «4» in ol.journey-module__MmLfbq__steps > li > a.journey-module__MmLfbq__step"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 4,
+   "samples": [
+    "button \"Saved systems\" «Saved systems» in div.page > div.project-workbench-canvas > div.project-workbench-tabs",
+    "summary \"Exclude tags\" «Exclude tags» in section.identity-references > div.identity-reference-toolbar > details.identity-reference-tags",
+    "button.identity-reference-ensemble[Ensemble for test upload moodboard] \"Ensemble\" «Ensemble» in article.identity-reference-card > div.identity-reference-controls > div.identity-reference-control-row"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 2,
+   "samples": [
+    "h3 \"test upload moodboard\" «test upload moodboard» in div.identity-reference-grid > article.identity-reference-card > div.identity-reference-attribution",
+    "strong «Identity references» in aside.project-dock > div.project-dock-content > div.project-dock-heading"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 450,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.button.secondary.small \"Open logo setup\" «Open logo setup» in aside.project-dock > div.project-dock-content > div"
+   ],
+   "pass": true
+  }
+ ],
+ "edges": [
+  {
+   "kind": "button",
+   "fill": "#f1f0ee",
+   "border": "#e4e3df",
+   "outside": "#f7f7f5",
+   "fillRatio": 1.06,
+   "borderRatio": 1.19,
+   "best": 1.19,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "button \"Moodboard\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#f7f7f5",
+   "fillRatio": 1.07,
+   "borderRatio": 1.19,
+   "best": 1.19,
+   "pass": false,
+   "count": 2,
+   "samples": [
+    "button \"Saved systems\"",
+    "button.context-details-module__qccFGG__trigger \"Add your own reference ↗\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#f7f7f5",
+   "fillRatio": 1.07,
+   "borderRatio": 1.19,
+   "best": 1.19,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "summary \"Exclude tags\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": 1.28,
+   "best": 1.28,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "button.context-details-module__qccFGG__trigger \"Attribution ↗\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": 1.28,
+   "best": 1.28,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "a.button.secondary.small \"Open logo setup\""
+   ]
+  }
+ ],
+ "targets": {
+  "total": 20,
+  "under44": 7,
+  "under24": []
+ },
+ "fields": [],
+ "clipped": [],
+ "axe": {
+  "violations": [
+   {
+    "id": "aria-prohibited-attr",
+    "impact": "serious",
+    "tags": [
+     "wcag2a",
+     "wcag412"
+    ],
+    "help": "Elements must only use permitted ARIA attributes",
+    "count": 1,
+    "nodes": [
+     {
+      "target": ".identity-reference-indicators",
+      "html": "<div class=\"identity-reference-indicators\" aria-label=\"Saved choices for test upload moodboard\"></div>",
+      "why": "Fix all of the following: aria-label attribute cannot be used on a div with no valid role attribute."
+     }
+    ]
+   }
+  ],
+  "incomplete": [
+   {
+    "id": "aria-prohibited-attr",
+    "count": 1,
+    "help": "Elements must only use permitted ARIA attributes"
+   }
+  ]
+ },
+ "walk": [
+  {
+   "el": "a.skip-link \"Skip to content\"",
+   "where": "div.app-shell",
+   "x": 8,
+   "y": 8,
+   "w": 130,
+   "h": 45,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.skip-link \"Skip to content\"@8,8"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__brandIcon[Embel home]",
+   "where": "div.workspace-main > header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule",
+   "x": 17,
+   "y": 17,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__brandIcon[Embel home]@17,17"
+  },
+  {
+   "el": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary[Project: Kestrel Analytics. Switch proje] \"Kestrel Analytics\"",
+   "where": "header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule > details.journey-module__MmLfbq__tools",
+   "x": 67,
+   "y": 19,
+   "w": 152,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary[Project: Kestrel Analytics. Switch proje] \"Kestrel Analytics\"@67,19"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__step \", complete\"",
+   "where": "nav.journey-module__MmLfbq__stepsNav > ol.journey-module__MmLfbq__steps > li",
+   "x": 17,
+   "y": 67,
+   "w": 40,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__step \", complete\"@17,67"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__step \", complete\"",
+   "where": "nav.journey-module__MmLfbq__stepsNav > ol.journey-module__MmLfbq__steps > li",
+   "x": 59,
+   "y": 67,
+   "w": 40,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__step \", complete\"@59,67"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__step.journey-module__MmLfbq__stepNext \"4 , next step\"",
+   "where": "nav.journey-module__MmLfbq__stepsNav > ol.journey-module__MmLfbq__steps > li",
+   "x": 199,
+   "y": 67,
+   "w": 40,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__step.journey-module__MmLfbq__stepNext \"4 , next step\"@199,67"
+  },
+  {
+   "el": "summary[Account menu] \"audit-pro@example.test A\"",
+   "where": "div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > details.workspace-account-menu",
+   "x": 337,
+   "y": 17,
+   "w": 36,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary[Account menu] \"audit-pro@example.test A\"@337,17"
+  },
+  {
+   "el": "a.text-link \"Back to project\"",
+   "where": "div.page > div.project-workbench-canvas > header.identity-references-heading",
+   "x": 283,
+   "y": 191,
+   "w": 91,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.text-link \"Back to project\"@283,191"
+  },
+  {
+   "el": "button \"Moodboard\"",
+   "where": "div.page > div.project-workbench-canvas > div.project-workbench-tabs",
+   "x": 16,
+   "y": 313,
+   "w": 94,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Moodboard\"@16,313"
+  },
+  {
+   "el": "button \"Saved systems\"",
+   "where": "div.page > div.project-workbench-canvas > div.project-workbench-tabs",
+   "x": 120,
+   "y": 313,
+   "w": 116,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Saved systems\"@120,313"
+  },
+  {
+   "el": "button.context-details-module__qccFGG__trigger \"Add your own reference ↗\"",
+   "where": "div.project-workbench-canvas > div > section.context-details-module__qccFGG__root",
+   "x": 16,
+   "y": 377,
+   "w": 358,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.context-details-module__qccFGG__trigger \"Add your own reference ↗\"@16,377"
+  },
+  {
+   "el": "button.text-link \"Check references\"",
+   "where": "div > section.identity-references > div.identity-reference-section-heading",
+   "x": 269,
+   "y": 421,
+   "w": 105,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.text-link \"Check references\"@269,421"
+  },
+  {
+   "el": "summary \"Exclude tags\"",
+   "where": "section.identity-references > div.identity-reference-toolbar > details.identity-reference-tags",
+   "x": 242,
+   "y": 591,
+   "w": 132,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary \"Exclude tags\"@242,591"
+  },
+  {
+   "el": "button.identity-reference-ensemble[Ensemble for test upload moodboard] \"Ensemble\"",
+   "where": "article.identity-reference-card > div.identity-reference-controls > div.identity-reference-control-row",
+   "x": 30,
+   "y": 458,
+   "w": 83,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.identity-reference-ensemble[Ensemble for test upload moodboard] \"Ensemble\"@30,458"
+  },
+  {
+   "el": "button.text-link[Hide elements for test upload moodboard] \"Hide elements\"",
+   "where": "article.identity-reference-card > div.identity-reference-controls > div.identity-reference-control-row",
+   "x": 275,
+   "y": 458,
+   "w": 85,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.text-link[Hide elements for test upload moodboard] \"Hide elements\"@275,458"
+  },
+  {
+   "el": "button \"Logo\"",
+   "where": "article.identity-reference-card > div.identity-reference-controls > div.identity-reference-element-controls",
+   "x": 30,
+   "y": 511,
+   "w": 107,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Logo\"@30,511"
+  },
+  {
+   "el": "button \"Typography\"",
+   "where": "article.identity-reference-card > div.identity-reference-controls > div.identity-reference-element-controls",
+   "x": 142,
+   "y": 511,
+   "w": 107,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Typography\"@142,511"
+  },
+  {
+   "el": "button \"Colors\"",
+   "where": "article.identity-reference-card > div.identity-reference-controls > div.identity-reference-element-controls",
+   "x": 253,
+   "y": 511,
+   "w": 107,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Colors\"@253,511"
+  },
+  {
+   "el": "button \"Graphics\"",
+   "where": "article.identity-reference-card > div.identity-reference-controls > div.identity-reference-element-controls",
+   "x": 30,
+   "y": 560,
+   "w": 107,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Graphics\"@30,560"
+  },
+  {
+   "el": "button \"Images\"",
+   "where": "article.identity-reference-card > div.identity-reference-controls > div.identity-reference-element-controls",
+   "x": 142,
+   "y": 560,
+   "w": 107,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Images\"@142,560"
+  },
+  {
+   "el": "button \"Composition\"",
+   "where": "article.identity-reference-card > div.identity-reference-controls > div.identity-reference-element-controls",
+   "x": 253,
+   "y": 560,
+   "w": 107,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Composition\"@253,560"
+  },
+  {
+   "el": "button.context-details-module__qccFGG__trigger \"Attribution ↗\"",
+   "where": "article.identity-reference-card > div.identity-reference-attribution > section.context-details-module__qccFGG__root",
+   "x": 30,
+   "y": 546,
+   "w": 330,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.context-details-module__qccFGG__trigger \"Attribution ↗\"@30,546"
+  },
+  {
+   "el": "button \"Chat\"",
+   "where": "div.page > aside.project-dock > div.project-dock-tabs",
+   "x": 16,
+   "y": 671,
+   "w": 36,
+   "h": 47,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Chat\"@16,671"
+  },
+  {
+   "el": "button \"Controls\"",
+   "where": "div.page > aside.project-dock > div.project-dock-tabs",
+   "x": 80,
+   "y": 671,
+   "w": 59,
+   "h": 47,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Controls\"@80,671"
+  },
+  {
+   "el": "button.project-dock-toggle[Collapse Identity references panel]",
+   "where": "div.page > aside.project-dock > div.project-dock-tabs",
+   "x": 350,
+   "y": 671,
+   "w": 24,
+   "h": 47,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.project-dock-toggle[Collapse Identity references panel]@350,671"
+  },
+  {
+   "el": "a.button.secondary.small \"Open logo setup\"",
+   "where": "aside.project-dock > div.project-dock-content > div",
+   "x": 16,
+   "y": 784,
+   "w": 125,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.button.secondary.small \"Open logo setup\"@16,784"
+  }
+ ],
+ "walkTruncated": false,
+ "hover": []
+}

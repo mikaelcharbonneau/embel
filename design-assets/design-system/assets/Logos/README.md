@@ -1,0 +1,1 @@
+The Embel pixel-ring mark, copied from `public/embel-mark.svg` with its embedded metadata removed. A single-ink shape: set it in `color-text` (#191919), at 24 px or larger. In components it is drawn as a mask (`e-mark`) so it takes the text colour.

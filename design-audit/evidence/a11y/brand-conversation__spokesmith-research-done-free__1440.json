@@ -1,0 +1,1149 @@
+{
+ "slug": "brand-conversation__spokesmith-research-done-free",
+ "account": "audit-free",
+ "route": "/brands/account/689ea084-8902-46ef-b516-aaf916529143?view=strategy",
+ "width": 1440,
+ "doc": {
+  "url": "/brands/account/689ea084-8902-46ef-b516-aaf916529143?view=strategy",
+  "title": "Strategy · Embel",
+  "lang": "en",
+  "viewportMeta": "width=device-width, initial-scale=1",
+  "h1": [],
+  "headings": [
+   "H3 Which competitors should we keep in mind?"
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "header": 3,
+   "footer": 0,
+   "aside": 0,
+   "form": 1,
+   "[role=\"search\"]": 0,
+   "section[aria-label], section[aria-labelledby]": 2
+  },
+  "navLabels": [
+   "Brand journey",
+   "Project navigation"
+  ],
+  "skipLink": [
+   {
+    "text": "Skip to content",
+    "href": "#main-content",
+    "targetExists": true
+   }
+  ],
+  "liveRegions": 5,
+  "dialogsOpen": [],
+  "overflowX": 0,
+  "bodyText": "Skip to content Untitled brand Strategy 2 Voice 3 Identity 4 Assets Saved audit-free@example.test A You A mobile bicycle repair service that comes to your home or office in Montreal with a fully equipped cargo-bike workshop. We fix flats, tune gears, true wheels and service e-bikes the same day, so ",
+  "focusableCount": 18
+ },
+ "contrast": [
+  {
+   "fg": "#82817b",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 400,
+   "ratio": 3.9,
+   "required": 4.5,
+   "placeholder": true,
+   "disabled": false,
+   "count": 1,
+   "samples": [
+    "textarea#_r_3_[Reply in your own words, or ask a questi] placeholder «Reply in your own words, or ask a questi»"
+   ],
+   "pass": false
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f1f0ee",
+   "size": 14,
+   "weight": 450,
+   "ratio": 4.84,
+   "required": 4.5,
+   "disabled": true,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "button.button.primary \"Continue\" «Continue» in article.guided-assistant-message > fieldset.guided-choice-widget > div.guided-choice-actions"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 12,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "span.guided-user-label «You» in section.guided-journey-section > div.guided-brief-turn > div.guided-user-turn",
+    "span.guided-assistant-label «Embel · Competitors · 1 of 3» in section.guided-journey-section > article.guided-assistant-message > div.guided-assistant-identity"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 3,
+   "samples": [
+    "p#_r_4_-hint «Choose one or more options, then continue.» in article.guided-assistant-message > fieldset.guided-choice-widget > div.guided-choice-intro",
+    "span.guided-choice-count \"0 selected\" «0» in article.guided-assistant-message > fieldset.guided-choice-widget > div.guided-choice-actions",
+    "span.guided-choice-count \"0 selected\" «selected» in article.guided-assistant-message > fieldset.guided-choice-widget > div.guided-choice-actions"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 16,
+   "weight": 500,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "span.competitor-logo.competitor-logo-monogram «V» in div.guided-choice-options > div.guided-choice-card > label.guided-choice-target",
+    "span.competitor-logo.competitor-logo-monogram «A» in div.guided-choice-options > div.guided-choice-card > label.guided-choice-target",
+    "span.competitor-logo.competitor-logo-monogram «F» in div.guided-choice-options > div.guided-choice-card > label.guided-choice-target"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#fefefe",
+   "size": 10,
+   "weight": 400,
+   "ratio": 5.48,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 3,
+   "samples": [
+    "span.journey-module__MmLfbq__stepMark «2» in ol.journey-module__MmLfbq__steps > li > span.journey-module__MmLfbq__step",
+    "span.journey-module__MmLfbq__stepMark «3» in ol.journey-module__MmLfbq__steps > li > span.journey-module__MmLfbq__step",
+    "span.journey-module__MmLfbq__stepMark «4» in ol.journey-module__MmLfbq__steps > li > span.journey-module__MmLfbq__step"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#fefefe",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.48,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 3,
+   "samples": [
+    "span.journey-module__MmLfbq__stepLabel «Voice» in ol.journey-module__MmLfbq__steps > li > span.journey-module__MmLfbq__step",
+    "span.journey-module__MmLfbq__stepLabel «Identity» in ol.journey-module__MmLfbq__steps > li > span.journey-module__MmLfbq__step",
+    "span.journey-module__MmLfbq__stepLabel «Assets» in ol.journey-module__MmLfbq__steps > li > span.journey-module__MmLfbq__step"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 12,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 9,
+   "samples": [
+    "a.guided-choice-website \"Visit website for Velo Express Mobile (o\" «Visit website» in div.guided-choice-options > div.guided-choice-card > div.guided-choice-references",
+    "span.guided-choice-source-label «Sources» in div.guided-choice-card > div.guided-choice-references > div.guided-choice-sources",
+    "a \"Velo Express Mobile (opens in a new tab)\" «Velo Express Mobile» in div.guided-choice-sources > ul > li"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#3d6448",
+   "bg": "#fefefe",
+   "size": 12,
+   "weight": 400,
+   "ratio": 6.7,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span.journey-module__MmLfbq__save \"Saved\" «Saved» in div.workspace-main > header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#3a3a37",
+   "bg": "#f1f0ee",
+   "size": 12,
+   "weight": 500,
+   "ratio": 10.01,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.guided-choice-recommended «Recommended» in label.guided-choice-target > span.guided-choice-content > span.guided-choice-heading"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#3a3a37",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 400,
+   "ratio": 11.41,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "span «Same-day mobile tune-ups across the Plateau.» in label.guided-choice-target > span.guided-choice-content > span.guided-choice-description",
+    "span «A workshop cooperative with weekend repair clinics» in label.guided-choice-target > span.guided-choice-content > span.guided-choice-description",
+    "span «App-based bike repair booking in large Canadian ci» in label.guided-choice-target > span.guided-choice-content > span.guided-choice-description"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 12,
+   "weight": 500,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.workspace-account-avatar «A» in div.journey-module__MmLfbq__end > details.workspace-account-menu > summary"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 15,
+   "weight": 400,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "p.guided-assistant-copy «Here are competitors research found. Each one link» in div.guided-interview-scroll > section.guided-journey-section > article.guided-assistant-message"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 16,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "h3 \"Which competitors should we keep in mind\" «Which competitors should we keep in mind?» in article.guided-assistant-message > fieldset.guided-choice-widget > div.guided-choice-intro"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#fefefe",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.48,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span.journey-module__MmLfbq__projectTitle «Untitled brand» in div.journey-module__MmLfbq__capsule > details.journey-module__MmLfbq__tools > summary.journey-module__MmLfbq__projectName"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.skip-link \"Skip to content\" «Skip to content» in div.app-shell"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 13,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.journey-module__MmLfbq__stepLabel «Strategy» in ol.journey-module__MmLfbq__steps > li > span.journey-module__MmLfbq__step"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 15,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p «A mobile bicycle repair service that comes to your» in div.guided-brief-turn > div.guided-user-turn > div.guided-user-message"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 15,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "span#_r_4_-option-0-label.guided-choice-label «Velo Express Mobile» in label.guided-choice-target > span.guided-choice-content > span.guided-choice-heading",
+    "span#_r_4_-option-1-label.guided-choice-label «Atelier Roue Libre» in label.guided-choice-target > span.guided-choice-content > span.guided-choice-heading",
+    "span#_r_4_-option-2-label.guided-choice-label «FixMyRide» in label.guided-choice-target > span.guided-choice-content > span.guided-choice-heading"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 450,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 2,
+   "samples": [
+    "button.button.secondary.small \"Add a competitor\" «Add a competitor» in div.guided-choice-actions > div.competitor-widget-controls > div.competitor-widget-toolbar",
+    "button.button.secondary.small \"Suggest more\" «Suggest more» in div.guided-choice-actions > div.competitor-widget-controls > div.competitor-widget-toolbar"
+   ],
+   "pass": true
+  }
+ ],
+ "edges": [
+  {
+   "kind": "field",
+   "fill": "#ffffff",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": null,
+   "best": 1,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "textarea#_r_3_[Reply in your own words, or ask a questi]"
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#f7f7f5",
+   "fillRatio": 1.07,
+   "borderRatio": 1.19,
+   "best": 1.19,
+   "pass": false,
+   "count": 2,
+   "samples": [
+    "button.button.secondary.small \"Add a competitor\"",
+    "button.button.secondary.small \"Suggest more\""
+   ]
+  }
+ ],
+ "targets": {
+  "total": 18,
+  "under44": 13,
+  "under24": [
+   {
+    "target": "input#_r_4_-option-0[_r_4_-choices]",
+    "where": "div.guided-choice-options > div.guided-choice-card > label.guided-choice-target",
+    "width": 18,
+    "height": 18,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "input#_r_4_-option-1[_r_4_-choices]",
+    "where": "div.guided-choice-options > div.guided-choice-card > label.guided-choice-target",
+    "width": 18,
+    "height": 18,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "input#_r_4_-option-2[_r_4_-choices]",
+    "where": "div.guided-choice-options > div.guided-choice-card > label.guided-choice-target",
+    "width": 18,
+    "height": 18,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   }
+  ]
+ },
+ "fields": [
+  {
+   "field": "input#_r_4_-option-0[_r_4_-choices]",
+   "type": "checkbox",
+   "label": "V\nVelo Express Mobile\nRecommended\nSame-day mobile ",
+   "autocomplete": null,
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": "_r_4_-option-0-detail",
+   "disabled": false,
+   "fontSize": 14
+  },
+  {
+   "field": "input#_r_4_-option-1[_r_4_-choices]",
+   "type": "checkbox",
+   "label": "A\nAtelier Roue Libre\nA workshop cooperative with w",
+   "autocomplete": null,
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": "_r_4_-option-1-detail",
+   "disabled": false,
+   "fontSize": 14
+  },
+  {
+   "field": "input#_r_4_-option-2[_r_4_-choices]",
+   "type": "checkbox",
+   "label": "F\nFixMyRide\nApp-based bike repair booking in large",
+   "autocomplete": null,
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": "_r_4_-option-2-detail",
+   "disabled": false,
+   "fontSize": 14
+  },
+  {
+   "field": "textarea#_r_3_[Reply in your own words, or ask a questi]",
+   "type": "textarea",
+   "label": "Message Embel",
+   "autocomplete": null,
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": "false",
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 14
+  }
+ ],
+ "clipped": [],
+ "axe": {
+  "violations": [
+   {
+    "id": "page-has-heading-one",
+    "impact": "moderate",
+    "tags": [
+     "best-practice"
+    ],
+    "help": "Page should contain a level-one heading",
+    "count": 1,
+    "nodes": [
+     {
+      "target": "html",
+      "html": "<html lang=\"en\" class=\"geistsans_d5a4f12f-module__Ur3q_a__variable\">",
+      "why": "Fix all of the following: Page must have a level-one heading"
+     }
+    ]
+   }
+  ],
+  "incomplete": [
+   {
+    "id": "aria-prohibited-attr",
+    "count": 1,
+    "help": "Elements must only use permitted ARIA attributes"
+   },
+   {
+    "id": "color-contrast",
+    "count": 36,
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+   }
+  ]
+ },
+ "walk": [
+  {
+   "el": "a.skip-link \"Skip to content\"",
+   "where": "div.app-shell",
+   "x": 8,
+   "y": 8,
+   "w": 130,
+   "h": 45,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.skip-link \"Skip to content\"@8,8",
+   "crop": "focus/brand-conversation__spokesmith-research-done-free__1440__001.png"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__brandIcon[Embel home]",
+   "where": "div.workspace-main > header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule",
+   "x": 365,
+   "y": 22,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__brandIcon[Embel home]@365,22"
+  },
+  {
+   "el": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary[Project: Untitled brand. Switch project] \"Untitled brand\"",
+   "where": "header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule > details.journey-module__MmLfbq__tools",
+   "x": 415,
+   "y": 24,
+   "w": 135,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary[Project: Untitled brand. Switch project] \"Untitled brand\"@415,24"
+  },
+  {
+   "el": "summary[Account menu] \"audit-free@example.test A\"",
+   "where": "div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > details.workspace-account-menu",
+   "x": 1033,
+   "y": 22,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary[Account menu] \"audit-free@example.test A\"@1033,22"
+  },
+  {
+   "el": "div#_r_0_.guided-interview-scroll[Conversation] \"You A mobile bicycle repair service that\"",
+   "where": "section.project-workspace > div.project-workspace-content > div.guided-interview",
+   "x": 0,
+   "y": 72,
+   "w": 1440,
+   "h": 828,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset -3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "div#_r_0_.guided-interview-scroll[Conversation] \"You A mobile bicycle repair service that\"@0,72",
+   "crop": "focus/brand-conversation__spokesmith-research-done-free__1440__005.png"
+  },
+  {
+   "el": "button.brief-edit-trigger \"Edit brief\"",
+   "where": "section.guided-journey-section > div.guided-brief-turn > div.guided-brief-editor",
+   "x": 1072,
+   "y": 146,
+   "w": 40,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "border-color",
+    "background",
+    "color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.brief-edit-trigger \"Edit brief\"@1072,146"
+  },
+  {
+   "el": "input#_r_4_-option-0[_r_4_-choices]",
+   "where": "div.guided-choice-options > div.guided-choice-card > label.guided-choice-target",
+   "x": 1081,
+   "y": 490,
+   "w": 18,
+   "h": 18,
+   "focusVisible": true,
+   "indicator": "on ancestor: outline-style, outline-width",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "input#_r_4_-option-0[_r_4_-choices]@1081,490",
+   "crop": "focus/brand-conversation__spokesmith-research-done-free__1440__007.png"
+  },
+  {
+   "el": "a.guided-choice-website \"Visit website for Velo Express Mobile (o\"",
+   "where": "div.guided-choice-options > div.guided-choice-card > div.guided-choice-references",
+   "x": 385,
+   "y": 562,
+   "w": 70,
+   "h": 28,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.guided-choice-website \"Visit website for Velo Express Mobile (o\"@385,562"
+  },
+  {
+   "el": "a \"Velo Express Mobile (opens in a new tab)\"",
+   "where": "div.guided-choice-sources > ul > li",
+   "x": 526,
+   "y": 562,
+   "w": 111,
+   "h": 28,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a \"Velo Express Mobile (opens in a new tab)\"@526,562"
+  },
+  {
+   "el": "input#_r_4_-option-1[_r_4_-choices]",
+   "where": "div.guided-choice-options > div.guided-choice-card > label.guided-choice-target",
+   "x": 1081,
+   "y": 632,
+   "w": 18,
+   "h": 18,
+   "focusVisible": true,
+   "indicator": "on ancestor: outline-style, outline-width",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "input#_r_4_-option-1[_r_4_-choices]@1081,632"
+  },
+  {
+   "el": "a.guided-choice-website \"Visit website for Atelier Roue Libre (op\"",
+   "where": "div.guided-choice-options > div.guided-choice-card > div.guided-choice-references",
+   "x": 385,
+   "y": 703,
+   "w": 70,
+   "h": 28,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.guided-choice-website \"Visit website for Atelier Roue Libre (op\"@385,703"
+  },
+  {
+   "el": "a \"Atelier Roue Libre (opens in a new tab)\"",
+   "where": "div.guided-choice-sources > ul > li",
+   "x": 526,
+   "y": 703,
+   "w": 97,
+   "h": 28,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a \"Atelier Roue Libre (opens in a new tab)\"@526,703"
+  },
+  {
+   "el": "input#_r_4_-option-2[_r_4_-choices]",
+   "where": "div.guided-choice-options > div.guided-choice-card > label.guided-choice-target",
+   "x": 1081,
+   "y": 773,
+   "w": 18,
+   "h": 18,
+   "focusVisible": true,
+   "indicator": "on ancestor: outline-style, outline-width",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "input#_r_4_-option-2[_r_4_-choices]@1081,773"
+  },
+  {
+   "el": "a.guided-choice-website \"Visit website for FixMyRide (opens in a \"",
+   "where": "div.guided-choice-options > div.guided-choice-card > div.guided-choice-references",
+   "x": 385,
+   "y": 701,
+   "w": 70,
+   "h": 28,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.guided-choice-website \"Visit website for FixMyRide (opens in a \"@385,701"
+  },
+  {
+   "el": "a \"FixMyRide (opens in a new tab)\"",
+   "where": "div.guided-choice-sources > ul > li",
+   "x": 526,
+   "y": 701,
+   "w": 57,
+   "h": 28,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a \"FixMyRide (opens in a new tab)\"@526,701"
+  },
+  {
+   "el": "button.button.secondary.small \"Add a competitor\"",
+   "where": "div.guided-choice-actions > div.competitor-widget-controls > div.competitor-widget-toolbar",
+   "x": 368,
+   "y": 758,
+   "w": 153,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small \"Add a competitor\"@368,758"
+  },
+  {
+   "el": "button.button.secondary.small \"Suggest more\"",
+   "where": "div.guided-choice-actions > div.competitor-widget-controls > div.competitor-widget-toolbar",
+   "x": 529,
+   "y": 758,
+   "w": 134,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small \"Suggest more\"@529,758"
+  },
+  {
+   "el": "textarea#_r_3_[Reply in your own words, or ask a questi]",
+   "where": "div.floating-composer-module__jOAFyG__body > div.guided-floating-input > form.conversation-composer",
+   "x": 341,
+   "y": 838,
+   "w": 719,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "on ancestor: box-shadow, border-color",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "textarea#_r_3_[Reply in your own words, or ask a questi]@341,838",
+   "crop": "focus/brand-conversation__spokesmith-research-done-free__1440__018.png"
+  }
+ ],
+ "walkTruncated": false,
+ "hover": [
+  {
+   "kind": "a.skip-link",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#fefefe",
+    "ratio": 17.48,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "summary.",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#fefefe",
+    "ratio": 17.48,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": true
+  },
+  {
+   "kind": "main.",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "div.guided-interview-scroll",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "section.guided-journey-section",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "button.brief-edit-trigger",
+   "rest": {
+    "fg": "#696965",
+    "bg": "#f7f7f5",
+    "ratio": 5.13,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": true
+  },
+  {
+   "kind": "article.guided-assistant-message.flow-enter",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.guided-choice-website",
+   "rest": {
+    "fg": "#696965",
+    "bg": "#ffffff",
+    "ratio": 5.51,
+    "cursor": "pointer",
+    "size": 12,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 12,
+    "weight": 400
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.",
+   "rest": {
+    "fg": "#696965",
+    "bg": "#ffffff",
+    "ratio": 5.51,
+    "cursor": "pointer",
+    "size": 12,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 12,
+    "weight": 400
+   },
+   "changes": true
+  },
+  {
+   "kind": "button.button.secondary.small",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 450
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 450
+   },
+   "changes": true
+  }
+ ],
+ "reflow": {
+  "320": {
+   "viewport": "320x640",
+   "overflowX": 0,
+   "bodyScrollWidth": 320,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    }
+   ],
+   "minFontSize": 10,
+   "screenshot": "reflow/brand-conversation__spokesmith-research-done-free__320.png"
+  },
+  "zoom200": {
+   "viewport": "720x450",
+   "overflowX": 0,
+   "bodyScrollWidth": 720,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    }
+   ],
+   "minFontSize": 10,
+   "screenshot": "reflow/brand-conversation__spokesmith-research-done-free__zoom200.png"
+  }
+ }
+}

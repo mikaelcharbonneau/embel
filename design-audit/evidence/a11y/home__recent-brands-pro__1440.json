@@ -1,0 +1,1027 @@
+{
+ "slug": "home__recent-brands-pro",
+ "account": "audit-pro",
+ "route": "/",
+ "width": 1440,
+ "doc": {
+  "url": "/",
+  "title": "Embel — Brand workspace",
+  "lang": "en",
+  "viewportMeta": "width=device-width, initial-scale=1",
+  "h1": [
+   "Your next brand starts here."
+  ],
+  "headings": [
+   "H1 Your next brand starts here.",
+   "H2 Pick up where you left off",
+   "H3 Bright Harbor Learning",
+   "H3 Kestrel Analytics",
+   "H3 Maison Aurélie"
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 1,
+   "header": 3,
+   "footer": 0,
+   "aside": 0,
+   "form": 1,
+   "[role=\"search\"]": 0,
+   "section[aria-label], section[aria-labelledby]": 2
+  },
+  "navLabels": [
+   "Main navigation"
+  ],
+  "skipLink": [
+   {
+    "text": "Skip to content",
+    "href": "#main-content",
+    "targetExists": true
+   }
+  ],
+  "liveRegions": 1,
+  "dialogsOpen": [],
+  "overflowX": 0,
+  "bodyText": "Skip to content Embel Home Projects Library audit-pro@example.test A Your next brand starts here. Describe the idea. Embel asks a few questions, then builds the name, logo and look with you. Your prompt Add files or images An idea, a product, a place. Start in your own words. Send prompt Try an idea",
+  "focusableCount": 20
+ },
+ "contrast": [
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 15,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "p «Describe the idea. Embel asks a few questions, the» in div.page > div.home-intake > div.home-introduction"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "a.text-link \"All projects\" «All projects» in div.page > section.home-recent > div.home-recent-heading"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 12,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "span.project-card-module__yo1VFG__date «Today» in a.project-card-module__yo1VFG__link > div.project-card-module__yo1VFG__details > div.project-card-module__yo1VFG__row",
+    "span.project-card-module__yo1VFG__date «Today» in a.project-card-module__yo1VFG__link > div.project-card-module__yo1VFG__details > div.project-card-module__yo1VFG__row",
+    "span.project-card-module__yo1VFG__date «Today» in a.project-card-module__yo1VFG__link > div.project-card-module__yo1VFG__details > div.project-card-module__yo1VFG__row"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "span.project-card-module__yo1VFG__next «View brand kit» in article.project-card-module__yo1VFG__card > a.project-card-module__yo1VFG__link > div.project-card-module__yo1VFG__details",
+    "span.project-card-module__yo1VFG__next «View brand kit» in article.project-card-module__yo1VFG__card > a.project-card-module__yo1VFG__link > div.project-card-module__yo1VFG__details",
+    "span.project-card-module__yo1VFG__next «View brand kit» in article.project-card-module__yo1VFG__card > a.project-card-module__yo1VFG__link > div.project-card-module__yo1VFG__details"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 17,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "placeholder": true,
+   "disabled": false,
+   "count": 1,
+   "samples": [
+    "textarea#_R_pindplb_[An idea you can’t stop thinking about…] placeholder «An idea you can’t stop thinking about…»"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#3a3a37",
+   "bg": "#fefefe",
+   "size": 13,
+   "weight": 400,
+   "ratio": 11.34,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "a.journey-module__MmLfbq__navLink \"Projects\" «Projects» in nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+    "a.journey-module__MmLfbq__navLink \"Library\" «Library» in nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 12,
+   "weight": 500,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.workspace-account-avatar «A» in div.journey-module__MmLfbq__end > details.workspace-account-menu > summary"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 44,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 3,
+   "disabled": false,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "h1 \"Your next brand starts here.\" «Your next brand starts here» in div.page > div.home-intake > div.home-introduction",
+    "span «.» in div.home-intake > div.home-introduction > h1"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 16,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "h2#recent-heading \"Pick up where you left off\" «Pick up where you left off» in div.page > section.home-recent > div.home-recent-heading"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#fefefe",
+   "size": 15,
+   "weight": 600,
+   "ratio": 17.48,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span «Embel» in div.journey-module__MmLfbq__capsule > nav.journey-module__MmLfbq__mainNav > a.journey-module__MmLfbq__brand"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.skip-link \"Skip to content\" «Skip to content» in div.app-shell"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 13,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.journey-module__MmLfbq__navLink \"Home\" «Home» in nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "button \"A neighborhood coffee shop\" «A neighborhood coffee shop» in div.home-intake > div.home-examples > div.home-example-pills",
+    "button \"A skincare studio\" «A skincare studio» in div.home-intake > div.home-examples > div.home-example-pills",
+    "button \"An independent magazine\" «An independent magazine» in div.home-intake > div.home-examples > div.home-example-pills"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "h3.project-card-module__yo1VFG__title \"Bright Harbor Learning\" «Bright Harbor Learning» in a.project-card-module__yo1VFG__link > div.project-card-module__yo1VFG__details > div.project-card-module__yo1VFG__row",
+    "h3.project-card-module__yo1VFG__title \"Kestrel Analytics\" «Kestrel Analytics» in a.project-card-module__yo1VFG__link > div.project-card-module__yo1VFG__details > div.project-card-module__yo1VFG__row",
+    "h3.project-card-module__yo1VFG__title \"Maison Aurélie\" «Maison Aurélie» in a.project-card-module__yo1VFG__link > div.project-card-module__yo1VFG__details > div.project-card-module__yo1VFG__row"
+   ],
+   "pass": true
+  }
+ ],
+ "edges": [
+  {
+   "kind": "field",
+   "fill": "#ffffff",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": null,
+   "best": 1,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "textarea#_R_pindplb_[An idea you can’t stop thinking about…]"
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#f7f7f5",
+   "fillRatio": 1.07,
+   "borderRatio": 1.19,
+   "best": 1.19,
+   "pass": false,
+   "count": 3,
+   "samples": [
+    "button \"A neighborhood coffee shop\"",
+    "button \"A skincare studio\"",
+    "button \"An independent magazine\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": 1.28,
+   "best": 1.28,
+   "pass": false,
+   "count": 3,
+   "samples": [
+    "button.project-card-menu-trigger[Project options for Bright Harbor Learni]",
+    "button.project-card-menu-trigger[Project options for Kestrel Analytics]",
+    "button.project-card-menu-trigger[Project options for Maison Aurélie]"
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#191919",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 17.58,
+   "borderRatio": null,
+   "best": 17.58,
+   "pass": true,
+   "count": 1,
+   "samples": [
+    "button.button.primary.composer-send-icon \"Send prompt\""
+   ]
+  }
+ ],
+ "targets": {
+  "total": 20,
+  "under44": 10,
+  "under24": []
+ },
+ "fields": [
+  {
+   "field": "textarea#_R_pindplb_[An idea you can’t stop thinking about…]",
+   "type": "textarea",
+   "label": "Your prompt",
+   "autocomplete": null,
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": "false",
+   "describedBy": "_R_pindplb_-hint",
+   "disabled": false,
+   "fontSize": 17
+  }
+ ],
+ "clipped": [],
+ "axe": {
+  "violations": [],
+  "incomplete": [
+   {
+    "id": "color-contrast",
+    "count": 7,
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+   }
+  ]
+ },
+ "walk": [
+  {
+   "el": "a.skip-link \"Skip to content\"",
+   "where": "div.app-shell",
+   "x": 8,
+   "y": 8,
+   "w": 130,
+   "h": 45,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.skip-link \"Skip to content\"@8,8",
+   "crop": "focus/home__recent-brands-pro__1440__001.png"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__brand[Embel home] \"Embel\"",
+   "where": "header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule > nav.journey-module__MmLfbq__mainNav",
+   "x": 515,
+   "y": 22,
+   "w": 101,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__brand[Embel home] \"Embel\"@515,22"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__navLink \"Home\"",
+   "where": "nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+   "x": 637,
+   "y": 24,
+   "w": 68,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__navLink \"Home\"@637,24"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__navLink \"Projects\"",
+   "where": "nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+   "x": 707,
+   "y": 24,
+   "w": 81,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__navLink \"Projects\"@707,24"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__navLink \"Library\"",
+   "where": "nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+   "x": 789,
+   "y": 24,
+   "w": 73,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__navLink \"Library\"@789,24"
+  },
+  {
+   "el": "summary[Account menu] \"audit-pro@example.test A\"",
+   "where": "div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > details.workspace-account-menu",
+   "x": 883,
+   "y": 22,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary[Account menu] \"audit-pro@example.test A\"@883,22"
+  },
+  {
+   "el": "textarea#_R_pindplb_[An idea you can’t stop thinking about…]",
+   "where": "div.page > div.home-intake > form.conversation-composer",
+   "x": 341,
+   "y": 257,
+   "w": 758,
+   "h": 96,
+   "focusVisible": true,
+   "indicator": "on ancestor: border-color",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "textarea#_R_pindplb_[An idea you can’t stop thinking about…]@341,257",
+   "crop": "focus/home__recent-brands-pro__1440__007.png"
+  },
+  {
+   "el": "summary#_R_5epindplb_[Add files or images] \"Add files or images\"",
+   "where": "div.conversation-composer-footer > div.home-input-controls > details.home-input-popover",
+   "x": 351,
+   "y": 353,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary#_R_5epindplb_[Add files or images] \"Add files or images\"@351,353"
+  },
+  {
+   "el": "summary#_r_8_[Voice input]",
+   "where": "div.conversation-composer-footer > div.home-input-controls > details.home-input-popover",
+   "x": 999,
+   "y": 353,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary#_r_8_[Voice input]@999,353"
+  },
+  {
+   "el": "button.button.primary.composer-send-icon \"Send prompt\"",
+   "where": "div.home-intake > form.conversation-composer > div.conversation-composer-footer",
+   "x": 1049,
+   "y": 355,
+   "w": 40,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.primary.composer-send-icon \"Send prompt\"@1049,355"
+  },
+  {
+   "el": "button \"A neighborhood coffee shop\"",
+   "where": "div.home-intake > div.home-examples > div.home-example-pills",
+   "x": 455,
+   "y": 432,
+   "w": 196,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"A neighborhood coffee shop\"@455,432"
+  },
+  {
+   "el": "button \"A skincare studio\"",
+   "where": "div.home-intake > div.home-examples > div.home-example-pills",
+   "x": 660,
+   "y": 432,
+   "w": 132,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"A skincare studio\"@660,432"
+  },
+  {
+   "el": "button \"An independent magazine\"",
+   "where": "div.home-intake > div.home-examples > div.home-example-pills",
+   "x": 800,
+   "y": 432,
+   "w": 185,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"An independent magazine\"@800,432"
+  },
+  {
+   "el": "a.text-link \"All projects\"",
+   "where": "div.page > section.home-recent > div.home-recent-heading",
+   "x": 1159,
+   "y": 528,
+   "w": 89,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.text-link \"All projects\"@1159,528"
+  },
+  {
+   "el": "a.project-card-module__yo1VFG__link[View brand kit · Bright Harbor Learning] \"Bright Harbor Learning Today View brand \"",
+   "where": "section.home-recent > div.home-brand-grid > article.project-card-module__yo1VFG__card",
+   "x": 193,
+   "y": 579,
+   "w": 250,
+   "h": 199,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.project-card-module__yo1VFG__link[View brand kit · Bright Harbor Learning] \"Bright Harbor Learning Today View brand \"@193,579"
+  },
+  {
+   "el": "button.project-card-menu-trigger[Project options for Bright Harbor Learni]",
+   "where": "div.home-brand-grid > article.project-card-module__yo1VFG__card > div.project-card-actions",
+   "x": 399,
+   "y": 587,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.project-card-menu-trigger[Project options for Bright Harbor Learni]@399,587"
+  },
+  {
+   "el": "a.project-card-module__yo1VFG__link[View brand kit · Kestrel Analytics] \"Kestrel Analytics Today View brand kit\"",
+   "where": "section.home-recent > div.home-brand-grid > article.project-card-module__yo1VFG__card",
+   "x": 461,
+   "y": 579,
+   "w": 250,
+   "h": 199,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.project-card-module__yo1VFG__link[View brand kit · Kestrel Analytics] \"Kestrel Analytics Today View brand kit\"@461,579"
+  },
+  {
+   "el": "button.project-card-menu-trigger[Project options for Kestrel Analytics]",
+   "where": "div.home-brand-grid > article.project-card-module__yo1VFG__card > div.project-card-actions",
+   "x": 667,
+   "y": 587,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.project-card-menu-trigger[Project options for Kestrel Analytics]@667,587"
+  },
+  {
+   "el": "a.project-card-module__yo1VFG__link[View brand kit · Maison Aurélie] \"Maison Aurélie Today View brand kit\"",
+   "where": "section.home-recent > div.home-brand-grid > article.project-card-module__yo1VFG__card",
+   "x": 729,
+   "y": 579,
+   "w": 250,
+   "h": 199,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.project-card-module__yo1VFG__link[View brand kit · Maison Aurélie] \"Maison Aurélie Today View brand kit\"@729,579"
+  },
+  {
+   "el": "button.project-card-menu-trigger[Project options for Maison Aurélie]",
+   "where": "div.home-brand-grid > article.project-card-module__yo1VFG__card > div.project-card-actions",
+   "x": 935,
+   "y": 587,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.project-card-menu-trigger[Project options for Maison Aurélie]@935,587"
+  }
+ ],
+ "walkTruncated": false,
+ "hover": [
+  {
+   "kind": "a.skip-link",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.journey-module__MmLfbq__brand",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#fefefe",
+    "ratio": 17.48,
+    "cursor": "pointer",
+    "size": 15,
+    "weight": 600
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#fefefe",
+    "ratio": 17.48,
+    "cursor": "pointer",
+    "size": 15,
+    "weight": 600
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.journey-module__MmLfbq__navLink",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 500
+   },
+   "changes": false
+  },
+  {
+   "kind": "summary.",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#fefefe",
+    "ratio": 17.48,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": true
+  },
+  {
+   "kind": "main.",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "button.button.primary.composer-send-icon",
+   "rest": {
+    "fg": "#6a6a6a",
+    "bg": "#191919",
+    "ratio": 3.22,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 450
+   },
+   "hovered": {
+    "fg": "#6a6a6a",
+    "bg": "#191919",
+    "ratio": 3.22,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 450
+   },
+   "changes": false
+  },
+  {
+   "kind": "button.",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "changes": true
+  },
+  {
+   "kind": "h2.",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 16,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 16,
+    "weight": 500
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.text-link",
+   "rest": {
+    "fg": "#696965",
+    "bg": "#f7f7f5",
+    "ratio": 5.13,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#696965",
+    "bg": "#f7f7f5",
+    "ratio": 5.13,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.project-card-module__yo1VFG__link",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  }
+ ],
+ "reflow": {
+  "320": {
+   "viewport": "320x640",
+   "overflowX": 0,
+   "bodyScrollWidth": 320,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    }
+   ],
+   "minFontSize": 12,
+   "screenshot": "reflow/home__recent-brands-pro__320.png"
+  },
+  "zoom200": {
+   "viewport": "720x450",
+   "overflowX": 0,
+   "bodyScrollWidth": 720,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    }
+   ],
+   "minFontSize": 12,
+   "screenshot": "reflow/home__recent-brands-pro__zoom200.png"
+  }
+ }
+}

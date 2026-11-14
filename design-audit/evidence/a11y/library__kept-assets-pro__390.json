@@ -1,0 +1,908 @@
+{
+ "slug": "library__kept-assets-pro",
+ "account": "audit-pro",
+ "route": "/assets",
+ "width": 390,
+ "doc": {
+  "url": "/assets",
+  "title": "Library · Embel",
+  "lang": "en",
+  "viewportMeta": "width=device-width, initial-scale=1",
+  "h1": [
+   "Your visual library."
+  ],
+  "headings": [
+   "H1 Your visual library.",
+   "H2 Brand board",
+   "H2 Brand board",
+   "H2 Brand board"
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 1,
+   "header": 3,
+   "footer": 0,
+   "aside": 0,
+   "form": 0,
+   "[role=\"search\"]": 0,
+   "section[aria-label], section[aria-labelledby]": 1
+  },
+  "navLabels": [
+   "Main navigation"
+  ],
+  "skipLink": [
+   {
+    "text": "Skip to content",
+    "href": "#main-content",
+    "targetExists": true
+   }
+  ],
+  "liveRegions": 2,
+  "dialogsOpen": [],
+  "overflowX": 0,
+  "bodyText": "Skip to content Home Projects Library audit-pro@example.test A Your visual library. All the pieces of your projects, in one place. Kept assets All generations Refresh Search assets Project All projects Bright Harbor Learning Kestrel Analytics Maison Aurélie File type All formats SVG PNG WEBP JPEG PD",
+  "focusableCount": 23
+ },
+ "contrast": [
+  {
+   "fg": "#696965",
+   "bg": "#f1f0ee",
+   "size": 13,
+   "weight": 500,
+   "ratio": 4.84,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "strong «PNG» in button.assets-open > div.assets-preview > div.assets-file-placeholder"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f1f0ee",
+   "size": 13,
+   "weight": 400,
+   "ratio": 4.84,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span «Loading preview» in button.assets-open > div.assets-preview > div.assets-file-placeholder"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "p «All the pieces of your projects, in one place.» in div.assets-page > header.assets-heading > div"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 500,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "button#assets-tab-all_generations \"All generations\" «All generations» in section > div.assets-toolbar > div.assets-tabs"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "button.text-link.assets-refresh \"Refresh\" «Refresh» in div.assets-page > section > div.assets-toolbar"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 12,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 12,
+   "samples": [
+    "span «PNG» in article.assets-card > div.assets-card-body > div.assets-card-title",
+    "a.assets-brand \"Bright Harbor Learning\" «Bright Harbor Learning» in article.assets-card > div.assets-card-body > div.assets-card-context",
+    "span «·» in article.assets-card > div.assets-card-body > div.assets-card-context"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "placeholder": true,
+   "disabled": false,
+   "count": 1,
+   "samples": [
+    "input[Search assets] placeholder «Search assets»"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#3a3a37",
+   "bg": "#fefefe",
+   "size": 13,
+   "weight": 400,
+   "ratio": 11.34,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "a.journey-module__MmLfbq__navLink \"Home\" «Home» in nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+    "a.journey-module__MmLfbq__navLink \"Projects\" «Projects» in nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 12,
+   "weight": 500,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.workspace-account-avatar «A» in div.journey-module__MmLfbq__end > details.workspace-account-menu > summary"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 28,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 3,
+   "disabled": false,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "h1#assets-heading \"Your visual library.\" «Your visual library» in div.assets-page > header.assets-heading > div",
+    "span «.» in header.assets-heading > div > h1"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "button#assets-tab-my_selection \"Kept assets\" «Kept assets» in section > div.assets-toolbar > div.assets-tabs"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.skip-link \"Skip to content\" «Skip to content» in div.app-shell"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 13,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.journey-module__MmLfbq__navLink \"Library\" «Library» in nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "h2 \"Brand board\" «Brand board» in article.assets-card > div.assets-card-body > div.assets-card-title",
+    "h2 \"Brand board\" «Brand board» in article.assets-card > div.assets-card-body > div.assets-card-title",
+    "h2 \"Brand board\" «Brand board» in article.assets-card > div.assets-card-body > div.assets-card-title"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "summary[Actions for Brand board from Bright Harb] \"···\" «···» in div.assets-grid > article.assets-card > details.assets-card-options",
+    "summary[Actions for Brand board from Maison Auré] \"···\" «···» in div.assets-grid > article.assets-card > details.assets-card-options",
+    "summary[Actions for Brand board from Kestrel Ana] \"···\" «···» in div.assets-grid > article.assets-card > details.assets-card-options"
+   ],
+   "pass": true
+  }
+ ],
+ "edges": [
+  {
+   "kind": "field",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#f7f7f5",
+   "fillRatio": 1.07,
+   "borderRatio": 1.19,
+   "best": 1.19,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "input[Search assets]"
+   ]
+  },
+  {
+   "kind": "field",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#f7f7f5",
+   "fillRatio": 1.07,
+   "borderRatio": 1.19,
+   "best": 1.19,
+   "pass": false,
+   "count": 2,
+   "samples": [
+    "select[Project]",
+    "select[File type]"
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": 1.28,
+   "best": 1.28,
+   "pass": false,
+   "count": 3,
+   "samples": [
+    "summary[Actions for Brand board from Bright Harb] \"···\"",
+    "summary[Actions for Brand board from Maison Auré] \"···\"",
+    "summary[Actions for Brand board from Kestrel Ana] \"···\""
+   ]
+  }
+ ],
+ "targets": {
+  "total": 23,
+  "under44": 11,
+  "under24": [
+   {
+    "target": "a.assets-brand \"Bright Harbor Learning\"",
+    "where": "article.assets-card > div.assets-card-body > div.assets-card-context",
+    "width": 124.5,
+    "height": 20,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "a.assets-brand \"Maison Aurélie\"",
+    "where": "article.assets-card > div.assets-card-body > div.assets-card-context",
+    "width": 80.6,
+    "height": 20,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "a.assets-brand \"Kestrel Analytics\"",
+    "where": "article.assets-card > div.assets-card-body > div.assets-card-context",
+    "width": 91.5,
+    "height": 20,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   }
+  ]
+ },
+ "fields": [
+  {
+   "field": "input[Search assets]",
+   "type": "search",
+   "label": "Search assets",
+   "autocomplete": null,
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 14
+  },
+  {
+   "field": "select[Project]",
+   "type": "select",
+   "label": "Project\nAll projects\nBright Harbor Learning\nKestre",
+   "autocomplete": null,
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 14
+  },
+  {
+   "field": "select[File type]",
+   "type": "select",
+   "label": "File type\nAll formats\nSVG\nPNG\nWEBP\nJPEG\nPDF\nZIP\nJS",
+   "autocomplete": null,
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 14
+  }
+ ],
+ "clipped": [],
+ "axe": {
+  "violations": [],
+  "incomplete": [
+   {
+    "id": "color-contrast",
+    "count": 7,
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+   }
+  ]
+ },
+ "walk": [
+  {
+   "el": "a.skip-link \"Skip to content\"",
+   "where": "div.app-shell",
+   "x": 8,
+   "y": 8,
+   "w": 130,
+   "h": 45,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.skip-link \"Skip to content\"@8,8"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__brand[Embel home]",
+   "where": "header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule > nav.journey-module__MmLfbq__mainNav",
+   "x": 13,
+   "y": 13,
+   "w": 40,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__brand[Embel home]@13,13"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__navLink \"Home\"",
+   "where": "nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+   "x": 55,
+   "y": 15,
+   "w": 53,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__navLink \"Home\"@55,15"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__navLink \"Projects\"",
+   "where": "nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+   "x": 110,
+   "y": 15,
+   "w": 67,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__navLink \"Projects\"@110,15"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__navLink \"Library\"",
+   "where": "nav.journey-module__MmLfbq__mainNav > ul.journey-module__MmLfbq__navList > li",
+   "x": 179,
+   "y": 15,
+   "w": 60,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__navLink \"Library\"@179,15"
+  },
+  {
+   "el": "summary[Account menu] \"audit-pro@example.test A\"",
+   "where": "div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > details.workspace-account-menu",
+   "x": 341,
+   "y": 13,
+   "w": 36,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary[Account menu] \"audit-pro@example.test A\"@341,13"
+  },
+  {
+   "el": "button#assets-tab-my_selection \"Kept assets\"",
+   "where": "section > div.assets-toolbar > div.assets-tabs",
+   "x": 20,
+   "y": 182,
+   "w": 77,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button#assets-tab-my_selection \"Kept assets\"@20,182"
+  },
+  {
+   "el": "button.text-link.assets-refresh \"Refresh\"",
+   "where": "div.assets-page > section > div.assets-toolbar",
+   "x": 303,
+   "y": 182,
+   "w": 67,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.text-link.assets-refresh \"Refresh\"@303,182"
+  },
+  {
+   "el": "input[Search assets]",
+   "where": "section > div.assets-guided-filters > label.assets-search",
+   "x": 20,
+   "y": 247,
+   "w": 350,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "input[Search assets]@20,247"
+  },
+  {
+   "el": "select[Project]",
+   "where": "section > div.assets-guided-filters > label.assets-filter",
+   "x": 20,
+   "y": 303,
+   "w": 169,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "select[Project]@20,303"
+  },
+  {
+   "el": "select[File type]",
+   "where": "section > div.assets-guided-filters > label.assets-filter",
+   "x": 201,
+   "y": 303,
+   "w": 169,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "select[File type]@201,303"
+  },
+  {
+   "el": "button.assets-open[Open Brand board from Bright Harbor Lear]",
+   "where": "div.assets-results-body > div.assets-grid > article.assets-card",
+   "x": 21,
+   "y": 401,
+   "w": 348,
+   "h": 261,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset -4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.assets-open[Open Brand board from Bright Harbor Lear]@21,401"
+  },
+  {
+   "el": "a.assets-brand \"Bright Harbor Learning\"",
+   "where": "article.assets-card > div.assets-card-body > div.assets-card-context",
+   "x": 37,
+   "y": 700,
+   "w": 124,
+   "h": 20,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.assets-brand \"Bright Harbor Learning\"@37,700"
+  },
+  {
+   "el": "button.assets-open-detail[View details of Brand board from Bright ]",
+   "where": "article.assets-card > div.assets-card-body > div.assets-card-context",
+   "x": 321,
+   "y": 688,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 1,
+   "outside": 0,
+   "coveredBy": "div.assets-card-title (not fixed)",
+   "key": "button.assets-open-detail[View details of Brand board from Bright ]@321,688"
+  },
+  {
+   "el": "summary[Actions for Brand board from Bright Harb] \"···\"",
+   "where": "div.assets-grid > article.assets-card > details.assets-card-options",
+   "x": 325,
+   "y": 409,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary[Actions for Brand board from Bright Harb] \"···\"@325,409"
+  },
+  {
+   "el": "button.assets-open[Open Brand board from Maison Aurélie]",
+   "where": "div.assets-results-body > div.assets-grid > article.assets-card",
+   "x": 21,
+   "y": 282,
+   "w": 348,
+   "h": 261,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset -4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.assets-open[Open Brand board from Maison Aurélie]@21,282"
+  },
+  {
+   "el": "a.assets-brand \"Maison Aurélie\"",
+   "where": "article.assets-card > div.assets-card-body > div.assets-card-context",
+   "x": 37,
+   "y": 581,
+   "w": 81,
+   "h": 20,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.assets-brand \"Maison Aurélie\"@37,581"
+  },
+  {
+   "el": "button.assets-open-detail[View details of Brand board from Maison ]",
+   "where": "article.assets-card > div.assets-card-body > div.assets-card-context",
+   "x": 321,
+   "y": 569,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 1,
+   "outside": 0,
+   "coveredBy": "div.assets-card-title (not fixed)",
+   "key": "button.assets-open-detail[View details of Brand board from Maison ]@321,569"
+  },
+  {
+   "el": "summary[Actions for Brand board from Maison Auré] \"···\"",
+   "where": "div.assets-grid > article.assets-card > details.assets-card-options",
+   "x": 325,
+   "y": 290,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary[Actions for Brand board from Maison Auré] \"···\"@325,290"
+  },
+  {
+   "el": "button.assets-open[Open Brand board from Kestrel Analytics] \"PNG Loading preview\"",
+   "where": "div.assets-results-body > div.assets-grid > article.assets-card",
+   "x": 21,
+   "y": 479,
+   "w": 348,
+   "h": 261,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset -4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.assets-open[Open Brand board from Kestrel Analytics] \"PNG Loading preview\"@21,479"
+  },
+  {
+   "el": "a.assets-brand \"Kestrel Analytics\"",
+   "where": "article.assets-card > div.assets-card-body > div.assets-card-context",
+   "x": 37,
+   "y": 747,
+   "w": 92,
+   "h": 20,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.assets-brand \"Kestrel Analytics\"@37,747"
+  },
+  {
+   "el": "button.assets-open-detail[View details of Brand board from Kestrel]",
+   "where": "article.assets-card > div.assets-card-body > div.assets-card-context",
+   "x": 321,
+   "y": 735,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 1,
+   "outside": 0,
+   "coveredBy": "div.assets-card-title (not fixed)",
+   "key": "button.assets-open-detail[View details of Brand board from Kestrel]@321,735"
+  },
+  {
+   "el": "summary[Actions for Brand board from Kestrel Ana] \"···\"",
+   "where": "div.assets-grid > article.assets-card > details.assets-card-options",
+   "x": 325,
+   "y": 456,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary[Actions for Brand board from Kestrel Ana] \"···\"@325,456"
+  }
+ ],
+ "walkTruncated": false,
+ "hover": []
+}

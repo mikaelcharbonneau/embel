@@ -1,0 +1,1549 @@
+{
+ "slug": "brand-assets__kestrel-ready-pro",
+ "account": "audit-pro",
+ "route": "/brands/account/b6978256-d33b-4cf4-842e-af637a43a3d8/logo/deliverables",
+ "width": 390,
+ "doc": {
+  "url": "/brands/account/b6978256-d33b-4cf4-842e-af637a43a3d8/logo/deliverables",
+  "title": "Brand assets · Embel",
+  "lang": "en",
+  "viewportMeta": "width=device-width, initial-scale=1",
+  "h1": [],
+  "headings": [
+   "H2 Your brand kit",
+   "H2 Brand board",
+   "H2 Social images and templates",
+   "H2 Brand guidelines",
+   "H3 Overview",
+   "H3 Logo",
+   "H3 Colors",
+   "H3 Typography",
+   "H3 Voice",
+   "H3 Imagery",
+   "H2 Design system",
+   "H3 Preview",
+   "H3 Color tokens",
+   "H3 Type scale",
+   "H3 Spacing",
+   "H3 Corners",
+   "H3 Export"
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "header": 2,
+   "footer": 0,
+   "aside": 0,
+   "form": 0,
+   "[role=\"search\"]": 0,
+   "section[aria-label], section[aria-labelledby]": 6
+  },
+  "navLabels": [
+   "Brand journey",
+   "Guideline sections"
+  ],
+  "skipLink": [
+   {
+    "text": "Skip to content",
+    "href": "#main-content",
+    "targetExists": true
+   }
+  ],
+  "liveRegions": 4,
+  "dialogsOpen": [],
+  "overflowX": 0,
+  "bodyText": "Skip to content Kestrel Analytics , complete , complete , complete Assets Saved audit-pro@example.test A Assets Your brand kit Logo files, brand images, guidelines and design tokens for Kestrel Analytics, in your chosen direction, Editorial Soft Shapes. Download brand kit Ready to download. Embel · ",
+  "focusableCount": 49
+ },
+ "contrast": [
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 12,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "span.guided-assistant-label «Embel · Brand images · 1 of 3» in div.kit-journey > article.guided-assistant-message > div.guided-assistant-identity",
+    "span.guided-assistant-label «Embel · Brand guidelines · 2 of 3» in div.kit-journey > article.guided-assistant-message > div.guided-assistant-identity",
+    "span.guided-assistant-label «Embel · Design system · 3 of 3» in div.kit-journey > article.guided-assistant-message > div.guided-assistant-identity"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 4,
+   "samples": [
+    "span «5» in div.kit-journey > article.guided-assistant-message > div.kit-footer",
+    "span «social images · Next: Brand guidelines» in div.kit-journey > article.guided-assistant-message > div.kit-footer",
+    "span «Next: Design system» in div.kit-journey > article.guided-assistant-message > div.kit-footer"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 5,
+   "samples": [
+    "p «Logo files, brand images, guidelines and design to» in div.kit-journey > div.brand-assets-module__GHEyxG__summary > div",
+    "p «Kestrel Analytics» in div.kit-journey > div.brand-assets-module__GHEyxG__summary > div",
+    "p «,» in div.kit-journey > div.brand-assets-module__GHEyxG__summary > div"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 11,
+   "samples": [
+    "p.brand-assets-module__GHEyxG__status \"Ready to download.\" «Ready to download.» in div.kit-journey > div.brand-assets-module__GHEyxG__summary > div.brand-assets-module__GHEyxG__summaryAction",
+    "p.kit-hint «Posts and banners also come as editable SVG templa» in div.kit-journey > article.guided-assistant-message > section.kit-card",
+    "a \"Edit\" «Edit» in section.kit-card > section > div.kit-section-head"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 12,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 64,
+   "samples": [
+    "small «1024» in figure.kit-image > figcaption.brand-assets-module__GHEyxG__caption > span",
+    "small «×» in figure.kit-image > figcaption.brand-assets-module__GHEyxG__caption > span",
+    "small «1024» in figure.kit-image > figcaption.brand-assets-module__GHEyxG__caption > span"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 450,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "button.button.secondary \"Download guidelines\" «Download guidelines» in div.kit-journey > article.guided-assistant-message > div.kit-footer"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 10.8333,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 8,
+   "samples": [
+    "small «·» in div.kit-tokens > div > span",
+    "small «Buttons and key actions» in div.kit-tokens > div > span",
+    "small «·» in div.kit-tokens > div > span"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#3d6448",
+   "bg": "#fefefe",
+   "size": 12,
+   "weight": 400,
+   "ratio": 6.7,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span.journey-module__MmLfbq__save \"Saved\" «Saved» in div.workspace-main > header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#141414",
+   "bg": "#f2a541",
+   "size": 13,
+   "weight": 400,
+   "ratio": 8.97,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.brand-assets-module__GHEyxG__previewHighlight «Kestrel Analytics» in section.kit-card > section > div.kit-preview"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#3a3a37",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 400,
+   "ratio": 11.41,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p.kit-slogan «See every mile» in article.guided-assistant-message > section.kit-card > section"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#3a3a37",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 400,
+   "ratio": 11.41,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 11,
+   "samples": [
+    "p «Give the logo clear space and keep it away from ot» in article.guided-assistant-message > section.kit-card > section",
+    "p «Primary for large areas, accent sparingly for high» in article.guided-assistant-message > section.kit-card > section",
+    "p «Headings in the heading face, everything else in t» in article.guided-assistant-message > section.kit-card > section"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#fbf9f4",
+   "bg": "#0f2a3d",
+   "size": 14,
+   "weight": 400,
+   "ratio": 14.06,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span «Get started» in section > div.kit-preview > div.kit-preview-actions"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 12,
+   "weight": 500,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.workspace-account-avatar «A» in div.journey-module__MmLfbq__end > details.workspace-account-menu > summary"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 16,
+   "weight": 400,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 10,
+   "samples": [
+    "p.guided-assistant-copy «Kestrel Analytics» in section.brand-assets-module__GHEyxG__panel > div.kit-journey > article.guided-assistant-message",
+    "p.guided-assistant-copy «is coming together. Here are your brand images» in section.brand-assets-module__GHEyxG__panel > div.kit-journey > article.guided-assistant-message",
+    "p.guided-assistant-copy «in your chosen direction, Editorial Soft Shapes» in section.brand-assets-module__GHEyxG__panel > div.kit-journey > article.guided-assistant-message"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 12,
+   "weight": 400,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "pre.kit-code «/* Kestrel Analytics design tokens, from the chose» in article.guided-assistant-message > section.kit-card > section"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#fefefe",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.48,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span.journey-module__MmLfbq__projectTitle «Kestrel Analytics» in div.journey-module__MmLfbq__capsule > details.journey-module__MmLfbq__tools > summary.journey-module__MmLfbq__projectName"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#141414",
+   "bg": "#fbf9f4",
+   "size": 34,
+   "weight": 600,
+   "ratio": 17.5,
+   "required": 3,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p.kit-preview-title «See every mile» in section.kit-card > section > div.kit-preview"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#141414",
+   "bg": "#fbf9f4",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.5,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 2,
+   "samples": [
+    "p «For our audience, we are see the delay before it h» in section.kit-card > section > div.kit-preview",
+    "span «Learn more» in section > div.kit-preview > div.kit-preview-actions"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.skip-link \"Skip to content\" «Skip to content» in div.app-shell"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 13,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.journey-module__MmLfbq__stepLabel «Assets» in ol.journey-module__MmLfbq__steps > li > span.journey-module__MmLfbq__step"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 20,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "h2.brand-assets-module__GHEyxG__summaryTitle \"Your brand kit\" «Your brand kit» in div.kit-journey > div.brand-assets-module__GHEyxG__summary > div"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 13,
+   "weight": 450,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 4,
+   "samples": [
+    "button.button.primary \"Download brand kit\" «Download brand kit» in div.kit-journey > div.brand-assets-module__GHEyxG__summary > div.brand-assets-module__GHEyxG__summaryAction",
+    "a.button.primary \"Continue\" «Continue» in div.kit-journey > article.guided-assistant-message > div.kit-footer",
+    "a.button.primary \"Continue\" «Continue» in div.kit-journey > article.guided-assistant-message > div.kit-footer"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 4,
+   "samples": [
+    "h2#assets-board-title.brand-assets-module__GHEyxG__cardTitle \"Brand board\" «Brand board» in div.kit-journey > article.guided-assistant-message > section.kit-card",
+    "h2#assets-social-title.brand-assets-module__GHEyxG__cardTitle \"Social images and templates\" «Social images and templates» in div.kit-journey > article.guided-assistant-message > section.kit-card",
+    "h2#assets-guidelines-title.brand-assets-module__GHEyxG__cardTitle \"Brand guidelines\" «Brand guidelines» in div.kit-journey > article.guided-assistant-message > section.kit-card"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 700,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 6,
+   "samples": [
+    "strong «Your logo, colors and type on one page» in figure.kit-image > figcaption.brand-assets-module__GHEyxG__caption > span",
+    "strong «Profile image» in figure.kit-image > figcaption.brand-assets-module__GHEyxG__caption > span",
+    "strong «Square post template» in figure.kit-image > figcaption.brand-assets-module__GHEyxG__caption > span"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 450,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 17,
+   "samples": [
+    "button.button.secondary.small[Download brand board as PNG] \"Download PNG\" «Download PNG» in figure.kit-image > figcaption.brand-assets-module__GHEyxG__caption > span.kit-actions",
+    "button.button.secondary.small[Download profile image as PNG] \"Download PNG\" «Download PNG» in figure.kit-image > figcaption.brand-assets-module__GHEyxG__caption > span.kit-actions",
+    "button.button.secondary.small[Download square post template as PNG] \"Download PNG\" «Download PNG» in figure.kit-image > figcaption.brand-assets-module__GHEyxG__caption > span.kit-actions"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 27,
+   "samples": [
+    "a \"Overview\" «Overview» in div.kit-journey > article.guided-assistant-message > nav.kit-sections",
+    "a \"Logo\" «Logo» in div.kit-journey > article.guided-assistant-message > nav.kit-sections",
+    "a \"Colors\" «Colors» in div.kit-journey > article.guided-assistant-message > nav.kit-sections"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 12,
+   "samples": [
+    "h3 \"Overview\" «Overview» in section.kit-card > section > div.kit-section-head",
+    "h3 \"Logo\" «Logo» in section.kit-card > section > div.kit-section-head",
+    "h3 \"Colors\" «Colors» in section.kit-card > section > div.kit-section-head"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 28,
+   "weight": 600,
+   "ratio": 17.58,
+   "required": 3,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p.kit-brand-name «Kestrel Analytics» in article.guided-assistant-message > section.kit-card > section"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 2,
+   "samples": [
+    "dd «For our audience, we are see the delay before it h» in section > dl > div",
+    "dd «Operations managers» in section > dl > div"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 20,
+   "weight": 600,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 2,
+   "samples": [
+    "p «See every mile» in section > div.kit-type-pair > div",
+    "span «See every mile» in section > div.kit-scale > div"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 20,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p «For our audience, we are see the delay before it h» in section > div.kit-type-pair > div"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 48,
+   "weight": 600,
+   "ratio": 17.58,
+   "required": 3,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span «Kestrel Analytics» in section > div.kit-scale > div"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 32,
+   "weight": 600,
+   "ratio": 17.58,
+   "required": 3,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span «See every mile» in section > div.kit-scale > div"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span «For our audience, we are see the delay before it h» in section > div.kit-scale > div"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 13,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "button \"CSS\" «CSS» in section > div.kit-section-head > div.naming-filter"
+   ],
+   "pass": true
+  }
+ ],
+ "edges": [
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#f7f7f5",
+   "fillRatio": 1.07,
+   "borderRatio": 1.19,
+   "best": 1.19,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "button.button.secondary \"Download guidelines\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": 1.28,
+   "best": 1.28,
+   "pass": false,
+   "count": 20,
+   "samples": [
+    "button.button.secondary.small[Download brand board as PNG] \"Download PNG\"",
+    "button.button.secondary.small[Download profile image as PNG] \"Download PNG\"",
+    "button.button.secondary.small[Download square post template as PNG] \"Download PNG\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#191919",
+   "border": "#f7f7f5",
+   "outside": "#f7f7f5",
+   "fillRatio": 16.39,
+   "borderRatio": 1,
+   "best": 16.39,
+   "pass": true,
+   "count": 2,
+   "samples": [
+    "a.button.primary \"Continue\"",
+    "a.button.primary \"Continue\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#191919",
+   "border": "#f7f7f5",
+   "outside": "#f7f7f5",
+   "fillRatio": 16.39,
+   "borderRatio": 1,
+   "best": 16.39,
+   "pass": true,
+   "count": 1,
+   "samples": [
+    "button.button.primary[Download brand kit as a ZIP file] \"Download brand kit\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#191919",
+   "border": "#ffffff",
+   "outside": "#ffffff",
+   "fillRatio": 17.58,
+   "borderRatio": 1,
+   "best": 17.58,
+   "pass": true,
+   "count": 1,
+   "samples": [
+    "button.button.primary \"Download brand kit\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#191919",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 17.58,
+   "borderRatio": null,
+   "best": 17.58,
+   "pass": true,
+   "count": 1,
+   "samples": [
+    "button \"CSS\""
+   ]
+  }
+ ],
+ "targets": {
+  "total": 49,
+  "under44": 36,
+  "under24": [
+   {
+    "target": "a \"Edit\"",
+    "where": "section.kit-card > section > div.kit-section-head",
+    "width": 22.8,
+    "height": 19.5,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "a \"Edit\"",
+    "where": "section.kit-card > section > div.kit-section-head",
+    "width": 22.8,
+    "height": 19.5,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "a \"Edit\"",
+    "where": "section.kit-card > section > div.kit-section-head",
+    "width": 22.8,
+    "height": 19.5,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "a \"Edit\"",
+    "where": "section.kit-card > section > div.kit-section-head",
+    "width": 22.8,
+    "height": 19.5,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "a \"Edit\"",
+    "where": "section.kit-card > section > div.kit-section-head",
+    "width": 22.8,
+    "height": 19.5,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "a \"Edit\"",
+    "where": "section.kit-card > section > div.kit-section-head",
+    "width": 22.8,
+    "height": 19.5,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   }
+  ]
+ },
+ "fields": [],
+ "clipped": [
+  "span (ellipsis, clamp none) «Kestrel Analytics»",
+  "span (ellipsis, clamp none) «See every mile»",
+  "span (ellipsis, clamp none) «For our audience, we are see the delay before it h»",
+  "span (ellipsis, clamp none) «For our audience, we are see the delay before it h»"
+ ],
+ "axe": {
+  "violations": [],
+  "incomplete": [
+   {
+    "id": "color-contrast",
+    "count": 2,
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+   }
+  ]
+ },
+ "walkLooped": true,
+ "walk": [
+  {
+   "el": "a.skip-link \"Skip to content\"",
+   "where": "div.app-shell",
+   "x": 8,
+   "y": 8,
+   "w": 130,
+   "h": 45,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.skip-link \"Skip to content\"@8,8"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__brandIcon[Embel home]",
+   "where": "div.workspace-main > header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule",
+   "x": 17,
+   "y": 17,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__brandIcon[Embel home]@17,17"
+  },
+  {
+   "el": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary[Project: Kestrel Analytics. Switch proje] \"Kestrel Analytics\"",
+   "where": "header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule > details.journey-module__MmLfbq__tools",
+   "x": 67,
+   "y": 19,
+   "w": 152,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary[Project: Kestrel Analytics. Switch proje] \"Kestrel Analytics\"@67,19"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__step \", complete\"",
+   "where": "nav.journey-module__MmLfbq__stepsNav > ol.journey-module__MmLfbq__steps > li",
+   "x": 17,
+   "y": 67,
+   "w": 40,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__step \", complete\"@17,67"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__step \", complete\"",
+   "where": "nav.journey-module__MmLfbq__stepsNav > ol.journey-module__MmLfbq__steps > li",
+   "x": 59,
+   "y": 67,
+   "w": 40,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__step \", complete\"@59,67"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__step \", complete\"",
+   "where": "nav.journey-module__MmLfbq__stepsNav > ol.journey-module__MmLfbq__steps > li",
+   "x": 101,
+   "y": 67,
+   "w": 40,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 4px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__step \", complete\"@101,67"
+  },
+  {
+   "el": "summary[Account menu] \"audit-pro@example.test A\"",
+   "where": "div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > details.workspace-account-menu",
+   "x": 337,
+   "y": 17,
+   "w": 36,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary[Account menu] \"audit-pro@example.test A\"@337,17"
+  },
+  {
+   "el": "button.button.primary \"Download brand kit\"",
+   "where": "div.kit-journey > div.brand-assets-module__GHEyxG__summary > div.brand-assets-module__GHEyxG__summaryAction",
+   "x": 45,
+   "y": 272,
+   "w": 155,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.primary \"Download brand kit\"@45,272"
+  },
+  {
+   "el": "button.button.secondary.small[Download brand board as PNG] \"Download PNG\"",
+   "where": "figure.kit-image > figcaption.brand-assets-module__GHEyxG__caption > span.kit-actions",
+   "x": 79,
+   "y": 460,
+   "w": 120,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small[Download brand board as PNG] \"Download PNG\"@79,460"
+  },
+  {
+   "el": "button.button.secondary.small[Download profile image as PNG] \"Download PNG\"",
+   "where": "figure.kit-image > figcaption.brand-assets-module__GHEyxG__caption > span.kit-actions",
+   "x": 79,
+   "y": 769,
+   "w": 84,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small[Download profile image as PNG] \"Download PNG\"@79,769"
+  },
+  {
+   "el": "button.button.secondary.small[Download square post template as PNG] \"Download PNG\"",
+   "where": "figure.kit-image > figcaption.brand-assets-module__GHEyxG__caption > span.kit-actions",
+   "x": 175,
+   "y": 788,
+   "w": 84,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small[Download square post template as PNG] \"Download PNG\"@175,788"
+  },
+  {
+   "el": "button.button.secondary.small[Download square post template as editabl] \"Download SVG\"",
+   "where": "figure.kit-image > figcaption.brand-assets-module__GHEyxG__caption > span.kit-actions",
+   "x": 175,
+   "y": 804,
+   "w": 84,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small[Download square post template as editabl] \"Download SVG\"@175,804"
+  },
+  {
+   "el": "button.button.secondary.small[Download portrait post template as PNG] \"Download PNG\"",
+   "where": "figure.kit-image > figcaption.brand-assets-module__GHEyxG__caption > span.kit-actions",
+   "x": 271,
+   "y": 779,
+   "w": 84,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small[Download portrait post template as PNG] \"Download PNG\"@271,779"
+  },
+  {
+   "el": "button.button.secondary.small[Download portrait post template as edita] \"Download SVG\"",
+   "where": "figure.kit-image > figcaption.brand-assets-module__GHEyxG__caption > span.kit-actions",
+   "x": 271,
+   "y": 804,
+   "w": 84,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small[Download portrait post template as edita] \"Download SVG\"@271,804"
+  },
+  {
+   "el": "button.button.secondary.small[Download wide banner as PNG] \"Download PNG\"",
+   "where": "figure.kit-image > figcaption.brand-assets-module__GHEyxG__caption > span.kit-actions",
+   "x": 79,
+   "y": 460,
+   "w": 120,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small[Download wide banner as PNG] \"Download PNG\"@79,460"
+  },
+  {
+   "el": "button.button.secondary.small[Download wide banner as editable SVG] \"Download SVG\"",
+   "where": "figure.kit-image > figcaption.brand-assets-module__GHEyxG__caption > span.kit-actions",
+   "x": 205,
+   "y": 460,
+   "w": 119,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small[Download wide banner as editable SVG] \"Download SVG\"@205,460"
+  },
+  {
+   "el": "button.button.secondary.small[Download cover banner as PNG] \"Download PNG\"",
+   "where": "figure.kit-image > figcaption.brand-assets-module__GHEyxG__caption > span.kit-actions",
+   "x": 79,
+   "y": 634,
+   "w": 120,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small[Download cover banner as PNG] \"Download PNG\"@79,634"
+  },
+  {
+   "el": "button.button.secondary.small[Download cover banner as editable SVG] \"Download SVG\"",
+   "where": "figure.kit-image > figcaption.brand-assets-module__GHEyxG__caption > span.kit-actions",
+   "x": 205,
+   "y": 634,
+   "w": 119,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small[Download cover banner as editable SVG] \"Download SVG\"@205,634"
+  },
+  {
+   "el": "a.button.primary \"Continue\"",
+   "where": "div.kit-journey > article.guided-assistant-message > div.kit-footer",
+   "x": 282,
+   "y": 739,
+   "w": 92,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.button.primary \"Continue\"@282,739"
+  },
+  {
+   "el": "a \"Overview\"",
+   "where": "div.kit-journey > article.guided-assistant-message > nav.kit-sections",
+   "x": 60,
+   "y": 464,
+   "w": 81,
+   "h": 32,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a \"Overview\"@60,464"
+  },
+  {
+   "el": "a \"Logo\"",
+   "where": "div.kit-journey > article.guided-assistant-message > nav.kit-sections",
+   "x": 147,
+   "y": 464,
+   "w": 55,
+   "h": 32,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a \"Logo\"@147,464"
+  },
+  {
+   "el": "a \"Colors\"",
+   "where": "div.kit-journey > article.guided-assistant-message > nav.kit-sections",
+   "x": 209,
+   "y": 464,
+   "w": 64,
+   "h": 32,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a \"Colors\"@209,464"
+  },
+  {
+   "el": "a \"Typography\"",
+   "where": "div.kit-journey > article.guided-assistant-message > nav.kit-sections",
+   "x": 60,
+   "y": 502,
+   "w": 95,
+   "h": 32,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a \"Typography\"@60,502"
+  },
+  {
+   "el": "a \"Voice\"",
+   "where": "div.kit-journey > article.guided-assistant-message > nav.kit-sections",
+   "x": 161,
+   "y": 502,
+   "w": 59,
+   "h": 32,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a \"Voice\"@161,502"
+  },
+  {
+   "el": "a \"Imagery\"",
+   "where": "div.kit-journey > article.guided-assistant-message > nav.kit-sections",
+   "x": 226,
+   "y": 502,
+   "w": 74,
+   "h": 32,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a \"Imagery\"@226,502"
+  },
+  {
+   "el": "a \"Edit\"",
+   "where": "section.kit-card > section > div.kit-section-head",
+   "x": 332,
+   "y": 600,
+   "w": 23,
+   "h": 20,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a \"Edit\"@332,600"
+  },
+  {
+   "el": "a \"Edit\"",
+   "where": "section.kit-card > section > div.kit-section-head",
+   "x": 332,
+   "y": 470,
+   "w": 23,
+   "h": 20,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a \"Edit\"@332,470"
+  },
+  {
+   "el": "button.button.secondary.small \"Download logo PNG\"",
+   "where": "section.kit-card > section > div.kit-actions",
+   "x": 79,
+   "y": 460,
+   "w": 150,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small \"Download logo PNG\"@79,460"
+  },
+  {
+   "el": "button.button.secondary.small \"Download transparent logo PNG\"",
+   "where": "section.kit-card > section > div.kit-actions",
+   "x": 79,
+   "y": 506,
+   "w": 223,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small \"Download transparent logo PNG\"@79,506"
+  },
+  {
+   "el": "button.button.secondary.small \"Download reversed logo PNG\"",
+   "where": "section.kit-card > section > div.kit-actions",
+   "x": 79,
+   "y": 552,
+   "w": 205,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small \"Download reversed logo PNG\"@79,552"
+  },
+  {
+   "el": "a \"Edit\"",
+   "where": "section.kit-card > section > div.kit-section-head",
+   "x": 332,
+   "y": 625,
+   "w": 23,
+   "h": 20,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a \"Edit\"@332,625"
+  },
+  {
+   "el": "button[Copy Primary #0F2A3D] \"Primary #0F2A3D\"",
+   "where": "div.brand-assets-module__GHEyxG__palette > ul.brand-assets-module__GHEyxG__swatches > li",
+   "x": 79,
+   "y": 655,
+   "w": 111,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button[Copy Primary #0F2A3D] \"Primary #0F2A3D\"@79,655"
+  },
+  {
+   "el": "button[Copy Accent #F2A541] \"Accent #F2A541\"",
+   "where": "div.brand-assets-module__GHEyxG__palette > ul.brand-assets-module__GHEyxG__swatches > li",
+   "x": 198,
+   "y": 655,
+   "w": 107,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button[Copy Accent #F2A541] \"Accent #F2A541\"@198,655"
+  },
+  {
+   "el": "button[Copy Background #FBF9F4] \"Background #FBF9F4\"",
+   "where": "div.brand-assets-module__GHEyxG__palette > ul.brand-assets-module__GHEyxG__swatches > li",
+   "x": 79,
+   "y": 705,
+   "w": 132,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button[Copy Background #FBF9F4] \"Background #FBF9F4\"@79,705"
+  },
+  {
+   "el": "button[Copy Text #141414] \"Text #141414\"",
+   "where": "div.brand-assets-module__GHEyxG__palette > ul.brand-assets-module__GHEyxG__swatches > li",
+   "x": 219,
+   "y": 705,
+   "w": 101,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button[Copy Text #141414] \"Text #141414\"@219,705"
+  },
+  {
+   "el": "button.button.secondary.small[Copy CSS palette] \"Copy CSS palette\"",
+   "where": "section > div.brand-assets-module__GHEyxG__palette > div",
+   "x": 79,
+   "y": 759,
+   "w": 135,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.button.secondary.small[Copy CSS palette] \"Copy CSS palette\"@79,759"
+  }
+ ],
+ "walkTruncated": false,
+ "hover": []
+}

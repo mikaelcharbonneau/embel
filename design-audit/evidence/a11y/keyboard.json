@@ -1,0 +1,481 @@
+{
+ "skip-link": {
+  "firstTab": "a.skip-link \"Skip to content\"",
+  "skipLinkVisible": true,
+  "afterActivate": "main \"Projects. Every idea, in its own world. Deleted pr\"",
+  "nextTab": "a.text-link.projects-deleted-link \"Deleted projects\""
+ },
+ "home-signed-out-overlay": {
+  "composerFocus": {
+   "ownOutline": "none 3px",
+   "box": "conversation-composer is-initial home-composer ",
+   "boxBorder": "rgb(170, 169, 165)",
+   "boxOutline": "none 3px rgb(25, 25, 25)",
+   "boxShadow": "rgba(25, 25, 25, 0.2) 0px 16px 40px -16px",
+   "background": "rgb(255, 255, 255)"
+  },
+  "composerRest": {
+   "boxBorder": "rgb(228, 227, 223)",
+   "boxShadow": "rgba(25, 25, 25, 0.2) 0px 16px 40px -16px"
+  },
+  "url": "/sign-in",
+  "dialog": {
+   "found": true,
+   "tag": "dialog",
+   "modal": true,
+   "role": null,
+   "ariaModal": null,
+   "name": "Sign in to Embel",
+   "description": null,
+   "focusables": 9,
+   "size": "502x711",
+   "scrolls": false,
+   "focusOnOpen": "button.icon-button.auth-overlay-close \"Close sign-in\" [inside dialog]",
+   "tabStops": [
+    "a.text-link \"Return to your prompt\" [inside dialog]",
+    "input \"email\" [inside dialog]",
+    "input \"password\" [inside dialog]",
+    "button.auth-password-toggle \"Show password\" [inside dialog]",
+    "a.text-link.auth-forgot-link \"Forgot password?\" [inside dialog]",
+    "button.button.primary \"Sign in\" [inside dialog]",
+    "a.text-link \"Create account\" [inside dialog]",
+    "a.auth-browser-link.text-link \"Return to Home\" [inside dialog]",
+    "button.icon-button.auth-overlay-close \"Close sign-in\" [inside dialog]"
+   ],
+   "focusLeftDialog": false,
+   "closedByEscape": true,
+   "focusAfterClose": "textarea \"An idea you can’t stop thinking about…\""
+  },
+  "promptKept": "A neighbourhood bakery that delivers by bicycle"
+ },
+ "sign-in-wrong-password": {
+  "focusAfterError": "BODY (focus lost)",
+  "error": [
+   {
+    "text": "We couldn't sign you in with those details. Check your email and password and try again.",
+    "role": "alert",
+    "live": null,
+    "id": "auth-page-error",
+    "color": "rgb(160, 41, 41)",
+    "background": "rgb(255, 240, 238)",
+    "tabindex": null
+   }
+  ],
+  "fields": [
+   {
+    "name": "email",
+    "value": "audit-pro@example.test",
+    "invalid": null,
+    "describedby": null
+   },
+   {
+    "name": "password",
+    "value": "(0 chars)",
+    "invalid": null,
+    "describedby": "auth-page-error"
+   }
+  ],
+  "toggle": {
+   "size": "44x44",
+   "topElementAtCentre": "the toggle itself",
+   "pressed": "false",
+   "label": "Show password"
+  }
+ },
+ "sign-up-validation": {
+  "fields": [
+   {
+    "name": "email",
+    "type": "email",
+    "autocomplete": "username",
+    "required": true,
+    "minlength": null,
+    "describedby": null,
+    "describedText": null
+   },
+   {
+    "name": "password",
+    "type": "password",
+    "autocomplete": "new-password",
+    "required": true,
+    "minlength": "12",
+    "describedby": "auth-page-password-guidance",
+    "describedText": "Use at least 12 characters."
+   },
+   {
+    "name": "confirmPassword",
+    "type": "password",
+    "autocomplete": "new-password",
+    "required": true,
+    "minlength": "12",
+    "describedby": null,
+    "describedText": null
+   }
+  ],
+  "focusAfterMismatch": "input \"confirmPassword\"",
+  "errors": [
+   {
+    "text": "The passwords didn't match. Enter them again.",
+    "role": "alert"
+   }
+  ],
+  "fieldsAfter": [
+   {
+    "name": "email",
+    "len": 22,
+    "invalid": null,
+    "describedby": null
+   },
+   {
+    "name": "password",
+    "len": 0,
+    "invalid": null,
+    "describedby": "auth-page-error"
+   },
+   {
+    "name": "confirmPassword",
+    "len": 0,
+    "invalid": null,
+    "describedby": null
+   }
+  ],
+  "legalLinks": [
+   "Sign in",
+   "Return to Home"
+  ]
+ },
+ "projects-menu-and-delete": {
+  "menu": {
+   "items": [
+    "menuitem:Delete"
+   ],
+   "label": "Actions for Kestrel Analytics"
+  },
+  "focusOnOpen": "button.project-card-delete \"Delete\"",
+  "afterArrowDown": "button.project-card-delete \"Delete\"",
+  "menuClosedByEscape": true,
+  "focusAfterEscape": "button.project-card-menu-trigger \"Project options for Kestrel Analytics\"",
+  "deleteDialog": {
+   "found": true,
+   "tag": "dialog",
+   "modal": true,
+   "role": null,
+   "ariaModal": null,
+   "name": "Delete “Kestrel Analytics”?",
+   "description": "This moves the project to Deleted projects and requests cancellation of active w",
+   "focusables": 2,
+   "size": "460x256",
+   "scrolls": false,
+   "focusOnOpen": "button.button.secondary \"Cancel\" [inside dialog]",
+   "tabStops": [
+    "button.button.project-delete-confirm \"Stop active work and delete project\" [inside dialog]",
+    "button.button.secondary \"Cancel\" [inside dialog]"
+   ],
+   "focusLeftDialog": false,
+   "closedByEscape": true,
+   "focusAfterClose": "button.project-card-menu-trigger \"Project options for Kestrel Analytics\""
+  }
+ },
+ "account-menu": {
+  "items": [
+   "Account settings",
+   "Plans and credits",
+   "Generation activity",
+   "",
+   "Sign out",
+   "Keep editing",
+   "Discard edits and sign out"
+  ],
+  "tabStops": [
+   "a \"Account settings\"",
+   "a \"Plans and credits\"",
+   "button.icon-button.subtle \"Generation activity\"",
+   "button.auth-session-action \"Sign out\"",
+   "a.text-link.projects-deleted-link \"Deleted projects\"",
+   "a.button.primary \"New project\"",
+   "input \"Search projects\"",
+   "summary \"Sort projects\""
+  ],
+  "stillOpenAfterTabbingOut": true,
+  "closedByEscape": true,
+  "focusAfterEscape": "summary \"Account menu\""
+ },
+ "settings-tabs-and-delete-account": {
+  "afterArrowRight": "button \"Usage\"",
+  "selected": [
+   "Account:false:tabindex=-1",
+   "Usage:true:tabindex=0"
+  ],
+  "usageTable": "no table",
+  "deleteAccountDialog": {
+   "found": true,
+   "tag": "dialog",
+   "modal": true,
+   "role": null,
+   "ariaModal": null,
+   "name": "Delete your account?",
+   "description": "This permanently deletes your account, every project, your Strategy, Voice and I",
+   "focusables": 2,
+   "size": "480x382",
+   "scrolls": false,
+   "focusOnOpen": "input \"\" [inside dialog]",
+   "tabStops": [
+    "button.button.secondary \"Cancel\" [inside dialog]",
+    "BODY (focus lost)",
+    "input \"\" [inside dialog]"
+   ],
+   "focusLeftDialog": true,
+   "closedByEscape": true,
+   "focusAfterClose": "BODY (focus lost)"
+  }
+ },
+ "settings-offline-save": {
+  "nameBefore": "",
+  "focusAfter": "BODY (focus lost)",
+  "messages": [
+   {
+    "text": "You have unsaved changes.",
+    "role": "status",
+    "color": "rgb(105, 105, 101)",
+    "background": "rgba(0, 0, 0, 0)"
+   },
+   {
+    "text": "Saving could not be confirmed. Your edits are still here. Check the saved settings before trying another save.",
+    "role": "alert",
+    "color": "rgb(164, 42, 42)",
+    "background": "rgb(250, 238, 238)"
+   }
+  ]
+ },
+ "conversation-kestrel": {
+  "h1": [
+   "Logo (visually hidden)",
+   "Creative direction (visually hidden)"
+  ],
+  "liveLog": {
+   "live": "polite",
+   "tabindex": "0",
+   "label": "Conversation",
+   "descendants": 764,
+   "images": 57,
+   "nestedStatus": 6
+  },
+  "directionCards": {
+   "count": 3,
+   "group": "NO radiogroup parent",
+   "tabindex": [
+    0,
+    0,
+    0
+   ],
+   "checked": [
+    "true",
+    "false",
+    "false"
+   ],
+   "nestedControls": [
+    1,
+    1,
+    1
+   ],
+   "tag": "ARTICLE"
+  },
+  "logoConcepts": [
+   [
+    "select \"Versions for concept 1\" 131x32 tabindex=0",
+    "div[role=button] \"Select concept 1\" 237x200 tabindex=0 pressed=true",
+    "button \"Compare concept 1\" 0x0 tabindex=0 pressed=false",
+    "button \"Select concept 1\" 0x0 tabindex=0 pressed=true"
+   ],
+   [
+    "div[role=button] \"Select concept 2\" 237x200 tabindex=0 pressed=false",
+    "button \"Compare concept 2\" 0x0 tabindex=0 pressed=false",
+    "button \"Select concept 2\" 0x0 tabindex=0 pressed=false"
+   ],
+   [
+    "div[role=button] \"Select concept 3\" 237x200 tabindex=0 pressed=false",
+    "button \"Compare concept 3\" 0x0 tabindex=0 pressed=false",
+    "button \"Select concept 3\" 0x0 tabindex=0 pressed=false"
+   ],
+   [
+    "div[role=button] \"Select concept 4\" 237x200 tabindex=0 pressed=false",
+    "button \"Compare concept 4\" 0x0 tabindex=0 pressed=false",
+    "button \"Select concept 4\" 0x0 tabindex=0 pressed=false"
+   ],
+   [
+    "div[role=button] \"Select concept 5\" 237x200 tabindex=0 pressed=false",
+    "button \"Compare concept 5\" 0x0 tabindex=0 pressed=false",
+    "button \"Select concept 5\" 0x0 tabindex=0 pressed=false"
+   ],
+   [
+    "div[role=button] \"Select concept 6\" 237x200 tabindex=0 pressed=false",
+    "button \"Compare concept 6\" 0x0 tabindex=0 pressed=false",
+    "button \"Select concept 6\" 0x0 tabindex=0 pressed=false"
+   ]
+  ],
+  "largerViewDialog": {
+   "found": true,
+   "tag": "dialog",
+   "modal": true,
+   "role": null,
+   "ariaModal": null,
+   "name": "Editorial Soft Shapes",
+   "description": null,
+   "focusables": 1,
+   "size": "860x860",
+   "scrolls": true,
+   "focusOnOpen": "button.visual-directions-view-module__cGZDDW__closeButton \"Close larger preview\" [inside dialog]",
+   "tabStops": [
+    "BODY (focus lost)",
+    "dialog.visual-directions-view-module__cGZDDW__dialog \"Creative direction Editorial Soft Shapes × Rounded\" [inside dialog]",
+    "button.visual-directions-view-module__cGZDDW__closeButton \"Close larger preview\" [inside dialog]"
+   ],
+   "focusLeftDialog": true,
+   "closedByEscape": true,
+   "focusAfterClose": "button.visual-directions-view-module__cGZDDW__expandButton \"View Editorial Soft Shapes larger\""
+  },
+  "directionCardFocus": "article.visual-directions-view-module__cGZDDW__card.direction-choice-card \"Direction 2: Centered Linework\"",
+  "afterArrowRightOnRadio": "article.visual-directions-view-module__cGZDDW__card.direction-choice-card \"Direction 2: Centered Linework\"",
+  "tileFocus": {
+   "outline": "2px solid rgb(25, 25, 25) offset 3px",
+   "nearestClippingAncestor": "div.inspiration-brand-tile",
+   "elementRect": "165x93",
+   "parentRect": "165x93"
+  },
+  "inspirationOverlay": {
+   "found": true,
+   "tag": "dialog",
+   "modal": true,
+   "role": null,
+   "ariaModal": null,
+   "name": "Archi-Tex",
+   "description": null,
+   "focusables": 14,
+   "size": "1320x727",
+   "scrolls": false,
+   "focusOnOpen": "button.inspiration-overlay-step \"Previous image\" [inside dialog]",
+   "tabStops": [
+    "button.inspiration-overlay-step \"Next image\" [inside dialog]",
+    "button.inspiration-icon-button \"Close brand\" [inside dialog]",
+    "button.inspiration-overall \"Unlike the whole Archi-Tex brand\" [inside dialog]",
+    "button.inspiration-overlay-part \"Logo\" [inside dialog]",
+    "button.inspiration-heart.inspiration-overlay-like \"Like Archi-Tex logo\" [inside dialog]",
+    "button.inspiration-overlay-part \"Colors\" [inside dialog]",
+    "button.inspiration-heart.inspiration-overlay-like \"Like Archi-Tex colors\" [inside dialog]",
+    "button.inspiration-overlay-part \"Typefaces\" [inside dialog]",
+    "button.inspiration-heart.inspiration-overlay-like \"Like Archi-Tex typefaces\" [inside dialog]",
+    "button.inspiration-overlay-part \"Socials\" [inside dialog]"
+   ],
+   "focusLeftDialog": false,
+   "closedByEscape": true,
+   "focusAfterClose": "button.inspiration-brand-open \"Open Archi-Tex: logo\""
+  },
+  "heartOnFocus": {
+   "opacity": "1",
+   "size": "30x30",
+   "topElementAtCentre": "the heart itself",
+   "zIndex": "auto"
+  },
+  "afterChangeName": "BODY (focus lost)",
+  "nameDialogOpen": 0
+ },
+ "out-of-credits-prompt": {
+  "transientMessagesWhilePreparing": [],
+  "error": "page.waitForFunction: Timeout 45000ms exceeded."
+ },
+ "library-details": {
+  "control": "Open Brand board from Bright Harbor Learning",
+  "dialogsOpen": 0,
+  "focusAfter": "button.assets-open \"Open Brand board from Bright Harbor Learning\"",
+  "tabs": [
+   "Kept assets:true",
+   "All generations:false"
+  ]
+ },
+ "plans-upgrade": {
+  "focusAfter": "BODY (focus lost)",
+  "messages": [
+   {
+    "text": "Payments are unavailable right now. Nothing was charged. Try again shortly.",
+    "role": "alert",
+    "color": "rgb(164, 42, 42)",
+    "background": "rgba(0, 0, 0, 0)",
+    "inViewport": true
+   }
+  ],
+  "planCards": [
+   {
+    "tag": "li",
+    "current": null,
+    "label": null,
+    "text": "Free Current plan $0 / month 30 credits every month Try the "
+   },
+   {
+    "tag": "li",
+    "current": null,
+    "label": null,
+    "text": "Pro $7.99 / month 150 credits every month For building a bra"
+   },
+   {
+    "tag": "li",
+    "current": null,
+    "label": null,
+    "text": "Studio $27.99 / month 500 credits every month For people wor"
+   }
+  ]
+ },
+ "zoom-200-chrome": {
+  "viewport": "720x450 (1440x900 at 200%)",
+  "layers": {
+   "header": {
+    "top": 0,
+    "bottom": 124,
+    "height": 124
+   },
+   "composer": {
+    "top": 383,
+    "bottom": 437,
+    "height": 54
+   },
+   "contentHeightLeft": 259,
+   "shareLeft": "58%"
+  }
+ },
+ "tile-focus-crop": {
+  "focusVisible": true,
+  "clip": [
+   "button.inspiration-brand-open 364x151 overflow=visible radius=0px",
+   "div.inspiration-brand-tile 364x151 overflow=hidden radius=12px",
+   "div.inspiration-brand-row 364x151 overflow=visible radius=0px",
+   "div.inspiration-brand-bento 364x400 overflow=visible radius=0px"
+  ]
+ },
+ "focus-loss-on-submit": {
+  "trace": [
+   "101ms active=BODY buttonConnected=true disabled=false label=\"Upgrade to Pro\""
+  ],
+  "nextTabGoesTo": "button.button.primary \"Upgrade to Studio\""
+ },
+ "settings-usage": {
+  "table": {
+   "caption": null,
+   "ariaLabel": null,
+   "headers": [
+    "Step(col)",
+    "Date(col)",
+    "Tokens used(col)",
+    "Voice · Name(row)",
+    "Voice · Name(row)",
+    "Voice · Name(row)"
+   ],
+   "rows": 4,
+   "wrapOverflowX": "visible",
+   "wrapTabindex": null,
+   "tableWider": false
+  },
+  "panel": {
+   "labelledby": "settings-tab-usage",
+   "tabindex": "0"
+  }
+ }
+}

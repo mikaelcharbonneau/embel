@@ -1,0 +1,16 @@
+{
+  "route": "/v1/images/generations",
+  "usage": {
+    "input_tokens": 448,
+    "input_tokens_details": {
+      "image_tokens": 0,
+      "text_tokens": 448
+    },
+    "output_tokens": 824,
+    "output_tokens_details": {
+      "image_tokens": 824,
+      "text_tokens": 0
+    },
+    "total_tokens": 1272
+  }
+}
