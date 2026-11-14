@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { Icon } from "@/components/ui/icon";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/feedback";
+import { InlineMessage } from "@/components/ui/message";
+import { useBillingSummary, creditsLeft } from "@/components/billing/use-billing-summary";
+import { HomeCreditsLine, HomeExamples } from "./home-examples";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { useAccountProjectListing } from "./account-projects";
 import { ProjectCardActions } from "./project-card-actions";
@@ -12,10 +17,46 @@ import { ProjectCard, ProjectCardSkeletons, shortDate } from "./project-card";
 
 export { shortDate };
 
+/** Below the prompt. Signed out: the free start and three brands Embel made. Signed in: recent projects, or for an
+ * account with none yet, its credits and what it will get. While the account is checked, a neutral frame. */
 export function HomeRecentBrands() {
   const { session } = useAccountSession();
-  if (session.status !== "ready") return null;
+  if (session.status === "signed_out")
+    return (
+      <>
+        <HomeCreditsLine credits="signed_out" />
+        <HomeExamples title="Made with Embel" text="Each brand started as a short description of an idea." />
+      </>
+    );
+  if (session.status !== "ready") return session.status === "checking" ? <HomeRecentSkeleton /> : null;
   return <HomeAccountRecentBrands key={`${session.userId}:${session.generation}`} account={session} />;
+}
+
+function HomeRecentSkeleton() {
+  return (
+    <section className="home-section" aria-busy="true">
+      <span className="e-sr" role="status">
+        Loading your projects…
+      </span>
+      <Skeleton shape="title" width={25} />
+      <div className="home-project-grid">
+        <ProjectCardSkeletons count={3} />
+      </div>
+    </section>
+  );
+}
+
+function NewAccountHome() {
+  const billing = useBillingSummary();
+  return (
+    <>
+      {billing.status === "ready" && <HomeCreditsLine credits={creditsLeft(billing.summary)} />}
+      <HomeExamples
+        title="What you will get"
+        text="A logo, colours, type and example uses, built from your idea. These brands were made with Embel."
+      />
+    </>
+  );
 }
 
 function HomeAccountRecentBrands({ account }: { account: VerifiedAccount }) {
@@ -24,7 +65,7 @@ function HomeAccountRecentBrands({ account }: { account: VerifiedAccount }) {
   const heading = useRef<HTMLHeadingElement>(null);
   const brands = [...(listing?.items ?? [])]
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at) || a.id.localeCompare(b.id))
-    .slice(0, 4);
+    .slice(0, 3);
   function changed(project: LifecycleProject) {
     remove(project.id);
     setRemoved(project);
@@ -53,35 +94,41 @@ function HomeAccountRecentBrands({ account }: { account: VerifiedAccount }) {
   }
 
   const loading = (!listing && !error) || (!brands.length && pending);
+  if (!loading && listing && !brands.length && !listing.nextCursor && !removed && !error) return <NewAccountHome />;
   return (
-    <section className="home-recent" aria-labelledby="recent-heading">
-      <div className="home-recent-heading">
-        <h2 id="recent-heading" ref={heading} tabIndex={-1}>
-          Pick up where you left off
+    <section className="home-section" aria-labelledby="recent-heading">
+      <div className="home-section__head">
+        <h2 className="home-section__title" id="recent-heading" ref={heading} tabIndex={-1}>
+          Recent projects
         </h2>
-        <Link href="/brands" className="text-link">
+        <Link href="/brands" className="e-link e-link--standalone">
           All projects
-          <Icon name="arrow" size={16} />
+          <Icon name="arrow-right" size="sm" />
         </Link>
       </div>
       {removed && (
-        <div className="project-change-notice" role="status">
-          <span>“{removed.title}” moved to Deleted projects.</span>
-          <Link className="text-link" href="/brands?state=deleted">
-            View deleted projects
-          </Link>
-          <ProjectDeletionStatus account={account} project={removed} onUpdated={updateRemoved} compact />
-        </div>
+        <InlineMessage
+          actions={
+            <>
+              <Link className="e-button e-button--secondary e-button--sm" href="/brands?state=deleted">
+                View deleted projects
+              </Link>
+              <ProjectDeletionStatus account={account} project={removed} onUpdated={updateRemoved} compact />
+            </>
+          }
+        >
+          “{removed.title}” moved to Deleted projects.
+        </InlineMessage>
       )}
       {loading ? (
-        <div className="home-brand-grid" aria-busy="true">
-          <span className="sr-only" role="status">
+        <div className="home-project-grid" aria-busy="true">
+          <span className="e-sr" role="status">
             Loading your projects…
           </span>
-          <ProjectCardSkeletons count={4} />
+          <ProjectCardSkeletons count={3} />
         </div>
       ) : !listing ? null : brands.length ? (
-        <div className="home-brand-grid">
+        <div className="home-project-grid">
           {brands.map((brand) => (
             <ProjectCard
               key={brand.id}
@@ -103,26 +150,24 @@ function HomeAccountRecentBrands({ account }: { account: VerifiedAccount }) {
           ))}
         </div>
       ) : listing.nextCursor ? (
-        <p className="quiet-empty">
+        <p className="e-muted">
           More projects are available.{" "}
-          <Link className="text-link" href="/brands">
+          <Link className="e-link" href="/brands">
             View all projects
           </Link>
         </p>
-      ) : (
-        <div className="home-brands-empty">
-          <Icon name="brands" size={24} />
-          <h3>Your first brand starts here</h3>
-          <p>Describe your idea above. Your saved work will appear here.</p>
-        </div>
-      )}
+      ) : null}
       {error && (
-        <p className="form-error" role="alert">
-          Your projects could not be loaded.{" "}
-          <button type="button" className="text-link" disabled={pending} onClick={() => void reload()}>
-            Try again
-          </button>
-        </p>
+        <InlineMessage
+          tone="danger"
+          actions={
+            <Button size="sm" loading={pending} onClick={() => void reload()}>
+              Try again
+            </Button>
+          }
+        >
+          Your projects couldn’t be loaded.
+        </InlineMessage>
       )}
     </section>
   );
