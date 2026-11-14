@@ -1,160 +1,127 @@
-/* Plans page and the out-of-credits prompt. Neutral ink, rounded cards (November 6 redesign). */
-.plans-page.page {
-  max-width: calc(var(--container-page) + var(--space-gutter) * 2);
-  padding: var(--space-10) var(--space-gutter) var(--space-12);
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
+/* Plans page (D-031, D-033, D-066, D-076). Built from the design system: Card, Badge, Button, Inline message,
+ * Table and the plan parts (.e-plan, .e-stat, .e-list-check). Tokens only. */
+.plans-page {
+  display: grid;
+  gap: var(--space-8);
+  align-content: start;
+}
+.plans-heading {
+  display: grid;
+  gap: var(--space-1);
 }
 .plans-heading h1 {
   margin: 0;
-  font-size: var(--font-size-7);
-  line-height: 36px;
-  letter-spacing: -0.5px;
-  font-weight: 500;
+  font: var(--text-title-lg);
+  letter-spacing: var(--tracking-title-lg);
 }
 .plans-heading p {
-  margin: var(--space-1) 0 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-3);
-  line-height: 20px;
-}
-.plans-current {
-  display: grid;
-  grid-template-columns: auto auto 1fr;
-  align-items: end;
-  gap: var(--space-2) var(--space-10);
-  padding: var(--space-5) var(--space-6);
-  background: var(--color-bg-paper);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-}
-.plans-current > div {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-0-5);
-}
-.plans-current-label {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-2);
-}
-.plans-current strong {
-  font-size: var(--font-size-6);
-  font-weight: 500;
-}
-.plans-current p {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: var(--font-size-3);
-  justify-self: end;
-  text-align: right;
 }
+
+/* Your plan and credits: two labelled numbers, the renewal sentence on the right. */
+.plans-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4) var(--space-10);
+}
+.plans-summary__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-10);
+}
+.plans-summary__detail {
+  margin: 0;
+  font: var(--text-small);
+}
+.plans-summary__skeleton {
+  width: var(--space-16);
+  height: var(--space-6);
+}
+.plans-summary__skeleton--short {
+  width: var(--space-12);
+}
+
+/* A zero balance: the sentence and the upgrade on one row. */
+.plans-out-of-credits .e-message__body {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-4);
+}
+.plans-out-of-credits .e-message__actions {
+  margin-top: 0;
+}
+
+/* Three plans across from 1024 px, two at tablet width, one on a phone; actions line up at the bottom. */
 .plans-grid {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-4);
+  gap: var(--grid-gap);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(var(--space-16) * 4.5)), 1fr));
 }
 .plans-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-6);
-  background: var(--color-bg-paper);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-panel);
-  min-width: 0;
+  grid-template-rows: auto auto auto 1fr auto;
 }
-.plans-card[data-current] {
-  border-color: var(--color-text);
+.plans-card > * {
+  margin: 0;
 }
-.plans-card header {
+.plans-card__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
+  min-height: var(--badge-height);
 }
-.plans-card h2 {
+.plans-card__head h2 {
   margin: 0;
-  font-size: var(--font-size-4);
-  font-weight: 500;
+  font: var(--text-title-sm);
+  letter-spacing: var(--tracking-title-sm);
 }
-.plans-badge {
-  padding: 3px 10px;
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-selected);
-  color: var(--color-text);
-  font-size: var(--font-size-1);
-  font-weight: 500;
+.plans-card__outcome {
+  font: var(--text-title-sm);
+  letter-spacing: var(--tracking-title-sm);
 }
-.plans-price {
-  margin: 0;
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-1-5);
+.plans-card__list {
+  align-content: start;
+  padding: 0;
+  list-style: none;
 }
-.plans-price strong {
-  font-size: var(--font-size-8);
-  line-height: 40px;
-  font-weight: 500;
-  letter-spacing: -0.5px;
+.plans-card__list strong {
+  font-weight: var(--font-weight-semibold);
 }
-.plans-price span {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-3);
-}
-.plans-credits {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--font-size-3);
-  font-weight: 500;
-}
-.plans-description,
-.plans-hint {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-3);
-  line-height: 20px;
-  flex: 1;
-}
-.plans-card .button {
-  margin-top: auto;
-  width: 100%;
-}
-.plans-actions {
-  margin-top: auto;
-  display: flex;
-  flex-direction: column;
+.plans-card__actions {
+  display: grid;
   gap: var(--space-2);
 }
-.plans-actions .button {
-  margin-top: 0;
+.plans-card__note {
+  align-self: end;
+  font: var(--text-small);
 }
-.plans-message,
+
+.plans-sign-in {
+  margin: 0;
+  font: var(--text-small);
+}
+
+/* What a credit buys. */
+.plans-prices {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+}
+.plans-prices__note {
+  margin: 0;
+  max-width: var(--measure);
+  font: var(--text-small);
+}
 .plans-footnote {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: var(--font-size-2);
-  line-height: 18px;
-}
-.plans-error {
-  color: var(--color-text-danger);
-}
-.plans-notice {
-  margin: 0;
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-control);
-  background: var(--color-bg-sunken);
-  font-size: var(--font-size-3);
-}
-.plans-notice-positive {
-  background: var(--color-bg-positive-soft);
-  color: var(--color-text-positive);
+  font: var(--text-small);
 }
 
 .out-of-credits-prompt {

@@ -327,7 +327,7 @@ for (const [name, status, body] of [
 for (const [route, slug, text] of [
   ["/brands", "projects", "Sign in to see your projects"],
   ["/assets", "library", "Sign in to see your library"],
-  ["/plans", "plans", "Sign in to choose a plan."],
+  ["/plans", "plans", "to see your plan and credits."],
   ["/settings", "settings", "Sign in to edit your profile and preferences."],
   [`/brands/account/${MISSING_PROJECT}`, "project-workspace", "Sign in to see and save your work."],
 ])
@@ -473,13 +473,19 @@ state("library", "all-generations-free", "audit-free", async (page) => {
 });
 state("plans", "free-0-credits-upgrade-free", "audit-free", async (page) => {
   await open(page, "audit-free", "/plans");
-  await page.getByRole("button", { name: /Upgrade to Pro/u }).waitFor({ timeout: 30_000 });
+  await page
+    .getByRole("button", { name: /Upgrade to Pro/u })
+    .first()
+    .waitFor({ timeout: 30_000 });
   await loaded(page);
 });
 state("plans", "upgrade-unavailable-free", "audit-free", async (page) => {
   await open(page, "audit-free", "/plans");
-  await page.getByRole("button", { name: /Upgrade to Pro/u }).click();
-  await page.getByText(/Payments are unavailable/u).waitFor({ timeout: 30_000 });
+  await page
+    .getByRole("button", { name: /Upgrade to Pro/u })
+    .first()
+    .click();
+  await page.getByText(/payments are unavailable/iu).waitFor({ timeout: 30_000 });
   await loaded(page);
 });
 state("settings", "account-free", "audit-free", async (page) => {
@@ -547,8 +553,27 @@ state("brand-assets", "kestrel-preparing-pro", "audit-pro", async (page) => {
   await hold(page, "**/api/assets/**");
   await hold(page, "**/api/projects/*/logo/deliverables**");
   await open(page, "audit-pro", `/brands/account/${brand("kestrel")}/logo/deliverables`, { idle: false });
-  await page.getByText("Preparing…").first().waitFor({ timeout: 30_000 });
+  await page.getByRole("button", { name: "Preparing brand kit", exact: true }).waitFor({ timeout: 30_000 });
   await page.waitForTimeout(800);
+});
+// The other two tabs of the delivery page, and the toast after the kit downloads.
+for (const tab of ["Brand guidelines", "Design system"]) {
+  state("brand-assets", `kestrel-${tab.toLowerCase().replace(" ", "-")}-tab-pro`, "audit-pro", async (page) => {
+    await open(page, "audit-pro", `/brands/account/${brand("kestrel")}/logo/deliverables`);
+    await page.getByRole("status").filter({ hasText: "Ready to download." }).waitFor({ timeout: 120_000 });
+    await page.getByRole("tab", { name: tab, exact: true }).click();
+    await loaded(page, { extra: 1000 });
+  });
+}
+state("brand-assets", "kestrel-kit-downloaded-pro", "audit-pro", async (page) => {
+  await open(page, "audit-pro", `/brands/account/${brand("kestrel")}/logo/deliverables`);
+  await page.getByRole("status").filter({ hasText: "Ready to download." }).waitFor({ timeout: 120_000 });
+  await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Download brand kit", exact: true }).click(),
+  ]);
+  await page.getByText("Brand kit downloaded").waitFor({ timeout: 30_000 });
+  await page.waitForTimeout(400);
 });
 state("brand-identity", "kestrel-pro", "audit-pro", async (page) => {
   await open(page, "audit-pro", `/brands/account/${brand("kestrel")}/identity`);

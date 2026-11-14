@@ -1,7 +1,7 @@
 /* The conversation scrolls with its page below 1024 px (one column, the reply box docked at the bottom); at wide
    width the Workspace is the window and its chat and work scroll on their own. */
 .project-stage-strategy .project-workspace-content {
-  overflow: auto;
+  overflow: hidden auto;
 }
 .guided-interview {
   position: relative;

@@ -1,7 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { EmptyState, LoadingRegion, Skeleton } from "@/components/ui/feedback";
+import { InlineMessage } from "@/components/ui/message";
 import { logoUuidSchema } from "@/domain/logo-vector";
 import type { IdentityBatchState } from "@/domain/identity-jobs";
 import { getIdentityFreshness } from "@/domain/project-identity";
@@ -10,7 +12,6 @@ import { useProjectIdentity } from "@/components/identity/use-project-identity";
 import { useLogoDraftMemory } from "@/components/identity/logo-draft-memory-context";
 import { useLogoWorkspace } from "@/components/identity/use-logo-workspace";
 import { BrandAssetsPanel } from "@/features/brand-assets/components/brand-assets-panel";
-import stage from "@/styles/branding-stage.module.css";
 import { describeVisualDirections } from "./direction-presentation";
 import { accountProjectResponseSchema } from "@/domain/project-api";
 import type { ContextSnapshot } from "@/domain/projects";
@@ -20,16 +21,18 @@ export function BrandAssetsPage({ projectId }: { projectId: string }) {
   const { session } = useAccountSession();
   if (!logoUuidSchema.safeParse(projectId).success)
     return (
-      <section className={stage.frame}>
-        <h1 className={stage.title}>Project not found</h1>
-        <Link className={stage.actionLink} href="/brands">
-          Back to projects
-        </Link>
+      <section className="e-container e-page">
+        <EmptyState
+          danger
+          headingLevel={1}
+          icon="circle-alert"
+          title="Project not found"
+          action={<ButtonLink href="/brands">Back to projects</ButtonLink>}
+        />
       </section>
     );
   return (
-    <section className={`${stage.frame} kit-page`} aria-label="Assets">
-      <h1 className="sr-only">Assets</h1>
+    <section className="e-container e-page" aria-label="Assets">
       <AccountStatus />
       {session.status === "ready" && (
         <OwnedBrandAssets
@@ -136,45 +139,70 @@ function OwnedBrandAssets({ account, projectId }: { account: VerifiedAccount; pr
   );
 
   if (!isCurrent(account)) return null;
+  const waiting = (text: string) => (
+    <div className="e-stack e-stack--lg">
+      <h1 className="e-sr">Assets</h1>
+      <LoadingRegion label={text}>
+        <Skeleton shape="title" width={40} />
+      </LoadingRegion>
+      <p className="e-section__hint">{text}</p>
+    </div>
+  );
   if (identity.error || checked?.error || logo.error)
     return (
-      <div role="alert">
-        <p>{identity.error ?? checked?.error ?? logo.error}</p>
-        <button
-          className="identity-secondary-button"
-          type="button"
-          onClick={() => {
-            void identity.refresh();
-            void logo.reload(false);
-            setAttempt((value) => value + 1);
-          }}
+      <div className="e-stack e-stack--lg">
+        <h1 className="e-sr">Assets</h1>
+        <InlineMessage
+          tone="danger"
+          actions={
+            <Button
+              size="sm"
+              icon="rotate-ccw"
+              onClick={() => {
+                void identity.refresh();
+                void logo.reload(false);
+                setAttempt((value) => value + 1);
+              }}
+            >
+              Check saved direction
+            </Button>
+          }
         >
-          Check saved direction
-        </button>
+          {identity.error ?? checked?.error ?? logo.error}
+        </InlineMessage>
       </div>
     );
   if (!identity.checked || identity.loading || logo.status === "loading" || (batchId && !checked))
-    return <p role="status">Loading your chosen direction…</p>;
+    return waiting("Loading your chosen direction…");
   if (!system || !batchId || !sourceLogo || !sourceMatches || !fresh)
     return (
-      <div>
-        <h2 className={stage.sectionHeading}>
-          {system ? "Choose a current creative direction" : "Choose your creative direction first"}
-        </h2>
-        <p>
-          {system
+      <EmptyState
+        headingLevel={1}
+        icon="palette"
+        title={system ? "Choose a current creative direction" : "Choose your creative direction first"}
+        text={
+          system
             ? "Your saved direction uses earlier inputs. Return to Creative direction to choose a board built around your current logo."
-            : "Compare the three boards, then choose one to create your brand assets."}
-        </p>
-        <Link className="identity-primary-button" href={`/brands/account/${projectId}/logo/directions`}>
-          Choose a creative direction
-        </Link>
-      </div>
+            : "Compare the three boards, then choose one to create your brand assets."
+        }
+        action={
+          <ButtonLink variant="primary" href={`/brands/account/${projectId}/logo/directions`}>
+            Choose a creative direction
+          </ButtonLink>
+        }
+      />
     );
   if (!client || !logo.client || logo.workspace?.ownerId !== account.userId || logo.workspace.projectId !== projectId)
-    return <p role="status">Checking your saved logo…</p>;
+    return waiting("Checking your saved logo…");
   if (identity.strategyDirty || identity.preferencesDirty || logo.dirty || logo.pending)
-    return <p role="status">Save or resolve your changes before opening the kit. Your chosen direction is kept.</p>;
+    return (
+      <div className="e-stack e-stack--lg">
+        <h1 className="e-sr">Assets</h1>
+        <InlineMessage tone="warning" live>
+          Save or resolve your changes before opening the kit. Your chosen direction is kept.
+        </InlineMessage>
+      </div>
+    );
   const directionTitle = describeVisualDirections(batch.systems).find((direction) => direction.id === system.id)?.title;
   return (
     <BrandAssetsPanel

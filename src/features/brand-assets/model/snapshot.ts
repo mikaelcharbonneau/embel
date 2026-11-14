@@ -70,6 +70,7 @@ export function createBrandAssetSnapshot(input: {
     typography,
     typeNotes: system.components.typography.usageNotes,
     graphicNotes: system.components.graphics.direction,
+    imageryNotes: system.components.imagery.direction,
     compositionNotes: system.components.composition.direction,
     palette: {
       primary: role(design.paletteRoles.primary),

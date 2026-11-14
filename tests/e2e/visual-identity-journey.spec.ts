@@ -221,7 +221,7 @@ test("chosen concept leads to three directions, a saved choice and usable brand 
   const boardDownloadPromise = page.waitForEvent("download");
   await page
     .getByRole("region", { name: "Brand assets", exact: true })
-    .getByRole("button", { name: "Download brand board PNG", exact: true })
+    .getByRole("button", { name: "Download brand board as PNG", exact: true })
     .click();
   const boardDownload = await boardDownloadPromise;
   await boardDownload.saveAs(info.outputPath("brand-board.png"));
@@ -294,9 +294,11 @@ test("chosen concept leads to three directions, a saved choice and usable brand 
     await page.reload({ waitUntil: "domcontentloaded" });
     await sourceRead;
     await expect(page.getByRole("img", { name: "Cedar final brand board", exact: true })).toHaveCount(0);
-    await expect(kit).toBeEnabled();
+    // While the kit is still being prepared its button reads "Preparing brand kit"; a click queues the download.
+    const preparing = page.getByRole("button", { name: "Preparing brand kit", exact: true });
+    await expect(preparing).toBeEnabled();
     const second = page.waitForEvent("download", { timeout: 45_000 });
-    await kit.click();
+    await preparing.click();
     releaseLogo();
     reopened = await second;
   } finally {
