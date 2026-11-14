@@ -461,12 +461,18 @@ state("library", "all-generations-free", "audit-free", async (page) => {
 });
 state("plans", "free-0-credits-upgrade-free", "audit-free", async (page) => {
   await open(page, "audit-free", "/plans");
-  await page.getByRole("button", { name: /Upgrade to Pro/u }).first().waitFor({ timeout: 30_000 });
+  await page
+    .getByRole("button", { name: /Upgrade to Pro/u })
+    .first()
+    .waitFor({ timeout: 30_000 });
   await loaded(page);
 });
 state("plans", "upgrade-unavailable-free", "audit-free", async (page) => {
   await open(page, "audit-free", "/plans");
-  await page.getByRole("button", { name: /Upgrade to Pro/u }).first().click();
+  await page
+    .getByRole("button", { name: /Upgrade to Pro/u })
+    .first()
+    .click();
   await page.getByText(/payments are unavailable/iu).waitFor({ timeout: 30_000 });
   await loaded(page);
 });

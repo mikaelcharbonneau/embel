@@ -208,7 +208,10 @@ await recipe("out-of-credits", async () => {
 await recipe("upgrade-payments-unavailable", async () => {
   const { page } = await as("audit-free");
   await page.goto("/plans");
-  await page.getByRole("button", { name: /Upgrade to Pro/u }).first().click();
+  await page
+    .getByRole("button", { name: /Upgrade to Pro/u })
+    .first()
+    .click();
   await expect(page.getByText(/payments are unavailable right now/iu)).toBeVisible({ timeout: 30_000 });
   await shot(page, "upgrade-payments-unavailable");
 });
