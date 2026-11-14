@@ -101,7 +101,7 @@ test("keyboard navigation and signed-out pages are usable", async ({ page }) => 
     page.viewportSize()!.width,
   );
   await page.goto("/assets");
-  await expect(page.getByRole("heading", { level: 1, name: "Your visual library.", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Library", exact: true })).toBeVisible();
   await expect(page.locator("main .account-notice")).toContainText(
     /No verified account session|Account saving is unavailable/,
   );
