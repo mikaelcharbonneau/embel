@@ -322,7 +322,7 @@ describe("Naming API authentication, owner validation and actual byte bounds", (
     expect(await response.json()).toEqual({
       error: {
         code: "naming_history_capacity",
-        message: "This project's naming history has reached the generation limit. Your saved names are preserved.",
+        message: "This project’s naming history has reached the generation limit. Your saved names are preserved.",
       },
     });
   });
