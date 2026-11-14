@@ -60,11 +60,22 @@ async function startBrand(page, b) {
   return /\/brands\/account\/([0-9a-f-]{36})/u.exec(page.url())[1];
 }
 
+/** Send is the one way forward: it confirms what is chosen and names the next step. */
+async function sendNext(page, name) {
+  await page.getByRole("form", { name: "Reply", exact: true }).getByRole("button", { name, exact: true }).click();
+}
+const nextStep = {
+  "Which competitors should we keep in mind?": "Continue to Audience",
+  "Who should the brand speak to first?": "Continue to Positioning",
+  "Which positioning fits best?": "Continue to Voice",
+  "Which personality feels right?": "Continue to Name",
+};
+
 async function pick(page, groupName, role, label) {
   const group = question(page, groupName);
   await expect(group).toBeVisible({ timeout: GENERATION });
   await group.getByRole(role, { name: label, exact: true }).check();
-  await group.getByRole("button", { name: "Continue", exact: true }).click();
+  await sendNext(page, nextStep[groupName]);
 }
 
 async function strategy(page, b) {
@@ -73,7 +84,7 @@ async function strategy(page, b) {
   const competitors = question(page, "Which competitors should we keep in mind?");
   for (const [name] of b.competitors.slice(0, 2))
     await competitors.getByRole("checkbox", { name, exact: true }).check();
-  await competitors.getByRole("button", { name: "Continue", exact: true }).click();
+  await sendNext(page, "Continue to Audience");
   await pick(page, "Who should the brand speak to first?", "checkbox", b.audiences[0][0]);
   await pick(page, "Which positioning fits best?", "radio", b.positionings[0][0]);
   await expect(question(page, "Which personality feels right?")).toBeVisible({ timeout: GENERATION });
@@ -99,27 +110,28 @@ async function voice(page, b) {
   await page.getByRole("button", { name: "Continue", exact: true }).click();
 
   const names = page.getByRole("region", { name: "Naming exploration", exact: true });
-  await expect(names.getByRole("button", { name: /Choose this name$/u }).first()).toBeVisible({ timeout: GENERATION });
-  const card = names
-    .getByRole("article")
-    .filter({ has: page.getByRole("heading", { level: 3, name: b.name, exact: true }) });
-  if (!(await card.count())) throw new Error(`The planned name "${b.name}" is not among the generated names`);
-  await card
-    .first()
-    .getByRole("button", { name: /Choose this name$/u })
-    .click();
-  await page
-    .getByRole("article", { name: "Names", exact: true })
-    .getByRole("button", { name: "Continue", exact: true })
-    .click();
-  await expect(page.getByRole("article", { name: "Your name", exact: true }).getByRole("listitem")).toHaveText(b.name);
+  const radios = names.getByRole("radiogroup", { name: "Names", exact: true }).getByRole("radio");
+  await expect(radios.first()).toBeVisible({ timeout: GENERATION });
+  // Only the first 40 names are shown at once; reveal the rest before looking for the planned one.
+  const more = names.getByRole("button", { name: /^Show \d+ more names$/u });
+  while (await more.count()) await more.click();
+  const radio = names.getByRole("radio", { name: b.name, exact: true });
+  if (!(await radio.count())) throw new Error(`The planned name "${b.name}" is not among the generated names`);
+  await radio.first().check({ force: true });
+  await sendNext(page, "Continue to Slogan");
+  await expect(
+    page
+      .locator('[data-journey-section="voice"] details')
+      .filter({ has: page.locator(".e-answer__question", { hasText: /^Name$/u }) })
+      .locator("summary"),
+  ).toContainText(b.name);
 
   const slogan = question(page, "Which slogan do you like?");
   await expect(slogan).toBeVisible({ timeout: GENERATION });
   if (b.skipSlogan) await page.getByRole("button", { name: "Skip for now", exact: true }).click();
   else {
     await slogan.getByRole("radio", { name: b.slogans[0], exact: true }).check();
-    await slogan.getByRole("button", { name: "Continue", exact: true }).click();
+    await sendNext(page, "Continue to Identity");
   }
   await expect(page.getByRole("article", { name: "Inspiration gallery", exact: true })).toBeVisible({
     timeout: GENERATION,
@@ -131,7 +143,7 @@ async function inspiration(page, b, uploadFile) {
   const likes = gallery.getByRole("button", { name: /^Like the whole .+ brand$/u });
   await expect(likes.first()).toBeVisible({ timeout: GENERATION });
   await likes.nth(0).click();
-  await expect(gallery.getByText(/^1 liked/u)).toBeVisible();
+  await expect(page.getByRole("form", { name: "Reply", exact: true }).getByText("Inspiration: 1 liked")).toBeVisible();
   if (uploadFile) {
     await page.locator('input[type="file"][aria-label="Choose images to add"]').setInputFiles(uploadFile);
     const yours = page.getByRole("article", { name: "Your images", exact: true });
@@ -139,32 +151,37 @@ async function inspiration(page, b, uploadFile) {
     const like = yours.getByRole("button", { name: /^Like /u }).first();
     if (await like.count()) await like.click();
   }
-  await gallery.getByRole("button", { name: "Continue", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Explore six concepts", exact: true })).toBeVisible({
+  await sendNext(page, "Continue to Logo");
+  await expect(replyBox(page).getByRole("button", { name: "Draw six concepts", exact: true })).toBeVisible({
     timeout: GENERATION,
   });
 }
 
-/** The Logo step prepares its saved inputs first ("Preparing saved inputs…"); a reload helps it along. */
-async function exploreReady(page) {
-  const explore = page.getByRole("button", { name: "Explore six concepts", exact: true });
+const replyBox = (page) => page.getByRole("form", { name: "Reply", exact: true });
+
+/**
+ * The Logo step prepares its saved inputs first ("Preparing saved inputs…"), then Send in the reply box (the logo
+ * types as chips) draws the six concepts; a reload helps it along.
+ */
+async function drawReady(page) {
+  const draw = replyBox(page).getByRole("button", { name: "Draw six concepts", exact: true });
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      await expect(explore).toBeEnabled({ timeout: 60_000 });
-      return explore;
+      await expect(draw).toBeEnabled({ timeout: 60_000 });
+      return draw;
     } catch {
       await page.reload();
     }
   }
-  await expect(explore).toBeEnabled({ timeout: GENERATION });
-  return explore;
+  await expect(draw).toBeEnabled({ timeout: GENERATION });
+  return draw;
 }
 
 async function concepts(page, b) {
-  await (await exploreReady(page)).click();
+  await (await drawReady(page)).click();
   const grid = page.getByRole("region", { name: "Logo concepts", exact: true });
   const ready = 6 - (b.failedLogoSlots ?? 0);
-  await expect(grid.getByRole("img", { name: "Image preview of saved logo concept" })).toHaveCount(ready, {
+  await expect(grid.getByRole("button", { name: /^Concept [1-6]$/u })).toHaveCount(ready, {
     timeout: GENERATION,
   });
   if (b.failedLogoSlots) {
@@ -175,26 +192,31 @@ async function concepts(page, b) {
 
 async function chooseLogo(page, b) {
   const grid = page.getByRole("region", { name: "Logo concepts", exact: true });
-  await grid.getByRole("button", { name: "Select concept 1", exact: true }).click();
-  await expect(grid.getByText(/Logo chosen/u)).toBeVisible();
+  await grid.getByRole("button", { name: "Concept 1", exact: true }).click();
+  await expect(grid.getByRole("heading", { name: "Your logo", exact: true })).toBeVisible();
+  await expect(replyBox(page).getByText("Logo: Concept 1", { exact: true })).toBeVisible();
   if (b.refine) await refine(page, b);
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await sendNext(page, "Continue to Creative direction");
 }
 
 async function refine(page, b) {
-  // The composer under the concepts refines the chosen concept (a new version on its card).
-  await page.getByRole("textbox", { name: "Describe a change to this logo", exact: true }).fill(b.refineInstruction);
-  await page.getByRole("button", { name: "Refine", exact: true }).click();
-  await expect(page.getByText("Your refined logo is ready on its card.", { exact: true })).toBeVisible({
-    timeout: GENERATION,
-  });
+  // Text typed in the reply box with a concept chosen changes it: Send makes a new version on its card, which
+  // becomes the chosen logo.
+  await replyBox(page).getByRole("textbox").fill(b.refineInstruction);
+  await sendNext(page, "Send prompt");
+  await expect(replyBox(page).getByText(/^Logo: Concept 1 · Version \d+$/u)).toBeVisible({ timeout: GENERATION });
+  await replyBox(page).getByRole("textbox").fill("");
 }
 
 async function directions(page) {
   const step = page.getByRole("region", { name: "Creative direction", exact: true });
-  await expect(step.getByRole("img", { name: "Chosen logo concept", exact: true })).toBeVisible({
-    timeout: GENERATION,
-  });
+  // The directions build on the chosen logo, folded into the chat with its picture.
+  await expect(
+    page
+      .locator('[data-journey-section="identity"] details')
+      .filter({ has: page.locator(".e-answer__question", { hasText: /^Logo$/u }) })
+      .getByRole("img", { name: "Chosen logo concept", exact: true }),
+  ).toBeVisible({ timeout: GENERATION });
   await expect(
     step.getByRole("region", { name: "Creative directions", exact: true }).getByText("3 of 3 ready", { exact: true }),
   ).toBeVisible({ timeout: GENERATION });
@@ -203,11 +225,14 @@ async function directions(page) {
 
 async function complete(page) {
   const step = page.getByRole("region", { name: "Creative direction", exact: true });
-  const first = step.getByRole("radio", { name: /^Direction 1: /u });
+  const first = step
+    .getByRole("article", { name: /^Direction 1: /u })
+    .getByRole("button", { name: /^(Choose|Chosen)$/u });
   await expect(first).toBeEnabled({ timeout: GENERATION });
   await first.click();
-  await expect(first).toHaveAttribute("aria-checked", "true");
-  await step.getByRole("link", { name: "Continue", exact: true }).click();
+  await expect(first).toHaveAttribute("aria-pressed", "true");
+  await expect(replyBox(page).getByText(/^Direction: /u)).toBeVisible();
+  await sendNext(page, "Continue to Assets");
   await expect(page).toHaveURL(/\/logo\/deliverables/u, { timeout: 120_000 });
   const assets = page.getByRole("region", { name: "Brand assets", exact: true });
   await expect(assets.getByRole("status").filter({ hasText: "Ready to download." })).toBeVisible({

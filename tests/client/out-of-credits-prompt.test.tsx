@@ -10,6 +10,7 @@ vi.mock("next/link", () => ({
 }));
 import { OutOfCreditsPrompt } from "../../src/components/billing/out-of-credits-prompt";
 import { accountRequest } from "../../src/components/workspace/account-api";
+import { runWithCreditsInPlace } from "../../src/components/billing/out-of-credits";
 
 let host: HTMLDivElement;
 let root: Root;
@@ -73,5 +74,22 @@ describe("out-of-credits prompt", () => {
     act(() => root.render(createElement(OutOfCreditsPrompt, { pathname: "/plans" })));
     await refuse(402);
     expect(host.textContent).toBe("");
+  });
+
+  it("stays closed when the step that was refused shows the message in place, and tells that step", async () => {
+    act(() => root.render(createElement(OutOfCreditsPrompt, { pathname: "/brands/account/x/logo" })));
+    let outcome: { outOfCredits: boolean } | undefined;
+    await act(async () => {
+      outcome = await runWithCreditsInPlace(() => refuse(402));
+    });
+    expect(outcome?.outOfCredits).toBe(true);
+    expect(host.textContent).toBe("");
+    await act(async () => {
+      outcome = await runWithCreditsInPlace(() => refuse(429));
+    });
+    expect(outcome?.outOfCredits).toBe(false);
+    // Outside a step's own start, the app-wide prompt still answers.
+    await refuse(402);
+    expect(host.textContent).toContain("You’re out of credits for this month");
   });
 });

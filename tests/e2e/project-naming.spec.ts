@@ -1596,7 +1596,7 @@ test("Naming canvas: selected name, composer and results survive shell expansion
   await continuation.focus();
   await expect(continuation).toBeFocused();
   await showChat(page);
-  const composer = page.getByRole("textbox", { name: "Naming message", exact: true });
+  const composer = page.getByRole("textbox", { name: "Message Embel", exact: true });
   const canvas = page.locator("[data-naming-results-scroll]");
   await composer.fill("Unsent synthetic direction retained through navigation chrome changes");
   await composer.evaluate((element) => element.setAttribute("data-continuity", "original-composer"));

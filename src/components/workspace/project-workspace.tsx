@@ -34,6 +34,7 @@ import {
 } from "@/components/journey/project-header";
 import type { SaveState } from "@/components/journey/project-capsule";
 import { projectJourney, type JourneyStepView } from "@/domain/journey";
+import { WorkspaceNoticeContext } from "./workspace-layout";
 import { Icon } from "@/components/ui/icon";
 
 type Stage = "strategy" | "naming" | "identity" | "files";
@@ -124,6 +125,7 @@ function OwnedProjectShell({
   const [identityEvidence, setIdentityEvidence] = useState<ProjectStageEvidence | null>(null);
   const [logoEvidence, setLogoEvidence] = useState<ProjectStageEvidence | null>(null);
   const [conversation, setConversation] = useState<ConversationSteps | null>(null);
+  const [noticesHosted, setNoticesHosted] = useState(false);
   const reportIdentity = useCallback(
     (value: ProjectStageEvidence) => {
       if (!isCurrent(account) || value.ownerId !== account.userId || value.projectId !== projectId) return;
@@ -201,56 +203,63 @@ function OwnedProjectShell({
   const identityStatus = projectEvidenceStatus(identityEvidence, project?.current_revision);
   const logoStatus = projectEvidenceStatus(logoEvidence, project?.current_revision);
   const progress: ProjectProgress | null = project ? { projectId, nextHref } : null;
+  const notices = (
+    <>
+      {error && (
+        <div className="project-read-notice" role="alert">
+          {error}
+          <button type="button" className="text-link" onClick={() => setAttempt((value) => value + 1)}>
+            Check saved project
+          </button>
+        </div>
+      )}
+      {current?.conflict && (
+        <div className="project-read-notice" role="alert">
+          A newer project version is saved. Your edits are kept in this tab.{" "}
+          <Link className="text-link" href={projectStrategyHref(projectId)}>
+            Resolve in Strategy
+          </Link>
+        </div>
+      )}
+      {!inspiration && !brandBoard && handoff?.savedName && !handoff.strategyReady && (
+        <div className="project-read-notice" role="status">
+          Strategy needs review. Your saved name, {handoff.savedName}, is kept for review against the updated context.{" "}
+          <Link className="text-link" href={handoff.next.href}>
+            Continue Strategy review
+          </Link>
+        </div>
+      )}
+      {(
+        [
+          ["Logo", logoStatus, `/brands/account/${projectId}/logo`],
+          ["Identity", identityStatus, `/brands/account/${projectId}/logo/directions`],
+        ] as const
+      ).map(([label, status, href]) =>
+        status === "needs_review" || status === "recheck" ? (
+          <div className="project-read-notice" role="status" key={label}>
+            {status === "needs_review"
+              ? `${label} needs review. Earlier work is kept.`
+              : `Check ${label} against the current project version. Earlier work is kept.`}{" "}
+            <Link className="text-link" href={href}>
+              Review {label}
+            </Link>
+          </div>
+        ) : null,
+      )}
+    </>
+  );
   return (
     <ProjectProgressContext.Provider value={progress}>
       <ConversationStepContext.Provider value={setConversation}>
         <IdentityEvidenceContext.Provider value={reportIdentity}>
           <LogoEvidenceContext.Provider value={reportLogo}>
-            <section className={`project-workspace project-stage-${stage}`}>
-              {error && (
-                <div className="project-read-notice" role="alert">
-                  {error}
-                  <button type="button" className="text-link" onClick={() => setAttempt((value) => value + 1)}>
-                    Check saved project
-                  </button>
-                </div>
-              )}
-              {current?.conflict && (
-                <div className="project-read-notice" role="alert">
-                  A newer project version is saved. Your edits are kept in this tab.{" "}
-                  <Link className="text-link" href={projectStrategyHref(projectId)}>
-                    Resolve in Strategy
-                  </Link>
-                </div>
-              )}
-              {!inspiration && !brandBoard && handoff?.savedName && !handoff.strategyReady && (
-                <div className="project-read-notice" role="status">
-                  Strategy needs review. Your saved name, {handoff.savedName}, is kept for review against the updated
-                  context.{" "}
-                  <Link className="text-link" href={handoff.next.href}>
-                    Continue Strategy review
-                  </Link>
-                </div>
-              )}
-              {(
-                [
-                  ["Logo", logoStatus, `/brands/account/${projectId}/logo`],
-                  ["Identity", identityStatus, `/brands/account/${projectId}/logo/directions`],
-                ] as const
-              ).map(([label, status, href]) =>
-                status === "needs_review" || status === "recheck" ? (
-                  <div className="project-read-notice" role="status" key={label}>
-                    {status === "needs_review"
-                      ? `${label} needs review. Earlier work is kept.`
-                      : `Check ${label} against the current project version. Earlier work is kept.`}{" "}
-                    <Link className="text-link" href={href}>
-                      Review {label}
-                    </Link>
-                  </div>
-                ) : null,
-              )}
-              <div className="project-workspace-content">{children}</div>
-            </section>
+            <WorkspaceNoticeContext.Provider value={{ notices, host: setNoticesHosted }}>
+              <section className={`project-workspace project-stage-${stage}`}>
+                {/* Inside the side-chat Workspace the notices sit at the top of the work area instead. */}
+                {!noticesHosted && notices}
+                <div className="project-workspace-content">{children}</div>
+              </section>
+            </WorkspaceNoticeContext.Provider>
           </LogoEvidenceContext.Provider>
         </IdentityEvidenceContext.Provider>
       </ConversationStepContext.Provider>

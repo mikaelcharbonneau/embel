@@ -22,22 +22,6 @@
   line-height: 1.4;
   font-weight: 550;
 }
-.heading,
-.cardHeading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-}
-.eyebrow {
-  margin: 0 0 7px;
-  color: var(--color-text, var(--color-text));
-  font-size: var(--font-size-2, var(--font-size-2));
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-weight: 650;
-}
-.muted,
 .note {
   color: var(--color-text-muted, var(--color-text-muted));
   font-size: var(--font-size-2);
@@ -45,73 +29,6 @@
 }
 .note {
   margin: var(--space-3) 0;
-}
-.fields {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-  margin: var(--space-6) 0;
-}
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  min-width: 0;
-  font-size: var(--font-size-3);
-}
-.field input,
-.field textarea {
-  box-sizing: border-box;
-  width: 100%;
-  min-width: 0;
-  border: 1px solid var(--color-border-control);
-  background: var(--color-bg-canvas);
-  color: var(--color-text);
-  border-radius: var(--radius-control);
-  padding: 11px var(--space-3);
-  font: inherit;
-  line-height: 1.5;
-}
-.field textarea {
-  min-height: 88px;
-  resize: vertical;
-}
-.field input[aria-invalid="true"] {
-  border-color: var(--color-text, var(--color-border-selected));
-}
-.choice {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 44px;
-  box-sizing: border-box;
-  border: 1px solid var(--color-border, var(--color-border));
-  border-radius: 6px;
-  padding: var(--space-2) 11px;
-  font-size: var(--font-size-2);
-  cursor: pointer;
-}
-.choice:has(input:checked) {
-  border-color: var(--color-text, var(--color-border-selected));
-  background: var(--color-bg-selected, var(--color-bg-sunken));
-}
-.choice input,
-.permission input {
-  accent-color: var(--color-text, #191919);
-  width: 16px;
-  height: 16px;
-  flex: 0 0 16px;
-  margin: 0;
-}
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  margin-top: var(--space-5);
-}
-.actions:empty {
-  display: none;
 }
 .primaryButton,
 .secondaryButton {
@@ -156,29 +73,6 @@
   outline: 2px solid var(--color-text, var(--color-border-selected));
   outline-offset: 3px;
 }
-.references {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4);
-  margin-top: var(--space-5);
-}
-.aspects {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-.permission {
-  display: flex;
-  gap: var(--space-2);
-  align-items: flex-start;
-  font-size: var(--font-size-2, var(--font-size-2));
-  line-height: 1.5;
-  color: var(--color-text-muted, var(--color-text-muted));
-  margin-top: var(--space-3);
-}
-.permission input {
-  margin-top: var(--space-0-5);
-}
 .warning {
   padding: 13px 15px;
   margin: var(--space-4) 0;
@@ -188,178 +82,6 @@
   font-size: var(--font-size-2);
   line-height: 1.6;
 }
-.progress {
-  font-size: var(--font-size-3);
-  margin: var(--space-5) 0 14px;
-  font-weight: 550;
-}
-.concepts {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-6);
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.conceptCard {
-  min-width: 0;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  padding: var(--space-2);
-}
-.cardHeading {
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-.badge {
-  display: inline-block;
-  background: var(--color-bg-sunken);
-  color: var(--color-text-muted);
-  border-radius: var(--radius-pill);
-  font-size: var(--font-size-2, var(--font-size-2));
-  line-height: 1.5;
-  padding: var(--space-1) 7px;
-}
-.typeLabel {
-  font-size: var(--font-size-2, var(--font-size-2));
-  color: var(--color-text-muted, var(--color-text-muted));
-  line-height: 1.5;
-}
-.preview {
-  display: grid;
-  place-items: center;
-  aspect-ratio: 1;
-  background: var(--color-bg-canvas, var(--color-bg-canvas));
-  border: 1px solid var(--color-border, var(--color-border));
-  border-radius: 6px;
-  margin: 14px 0;
-  overflow: hidden;
-}
-.preview p {
-  color: var(--color-text-muted, var(--color-text-muted));
-  font-size: var(--font-size-2, var(--font-size-2));
-  text-align: center;
-  padding: var(--space-4);
-  line-height: 1.6;
-}
-.preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-/* Logo rasters carry a near-white background. Lift it to white and multiply it
-   into the light card so no lighter or darker square shows around the mark. */
-.preview img,
-.galleryPreview img,
-.composerThumbnail img,
-.comparison img {
-  mix-blend-mode: multiply;
-  filter: brightness(1.04);
-}
-.conceptCard button {
-  width: 100%;
-}
-.conceptCard button[aria-pressed="true"] {
-  background: var(--color-bg-selected, var(--color-bg-sunken));
-  border-color: var(--color-text, var(--color-border-selected));
-}
-.costs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-6);
-  margin: var(--space-5) 0;
-}
-.costs dt {
-  font-size: var(--font-size-2, var(--font-size-2));
-  color: var(--color-text-muted, var(--color-text-muted));
-  margin-bottom: 5px;
-}
-.costs dd {
-  font-size: var(--font-size-6);
-  margin: 0;
-}
-@media (max-width: 900px) {
-  .concepts {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (max-width: 600px) {
-  .panel {
-    padding: 18px;
-  }
-  .fields,
-  .references,
-  .concepts {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .heading {
-    flex-wrap: wrap;
-    align-items: flex-start;
-  }
-  .actions {
-    align-items: stretch;
-  }
-  .actions button {
-    flex: 1 1 140px;
-  }
-  .preview {
-    aspect-ratio: 4 / 3;
-  }
-}
-.conceptCard .cardHeading,
-.conceptCard > p {
-  margin-inline: var(--space-3);
-}
-.conceptCard .cardHeading {
-  margin-top: var(--space-3);
-}
-.conceptCard .preview {
-  margin: var(--space-3) 0;
-  border: 0;
-  border-radius: 6px;
-}
-.conceptCard > button {
-  margin-top: var(--space-2);
-}
-.comparison {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-5);
-}
-.comparisonEmpty {
-  display: grid;
-  place-items: center;
-  min-height: 200px;
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-card);
-  padding: var(--space-5);
-  color: var(--color-text-muted, var(--color-text-muted));
-  font-size: var(--font-size-2);
-  text-align: center;
-}
-@media (max-width: 600px) {
-  .comparison {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-.choice {
-  border-radius: var(--radius-pill);
-  font-size: var(--font-size-2, var(--font-size-2));
-  min-height: 44px;
-}
-.choice:has(input:checked) {
-  border-color: var(--color-text);
-  color: var(--color-text);
-  background: var(--color-bg-sunken);
-}
-.warning {
-  background: var(--color-bg-sunken);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-}
-
-/* Logo step (concepts screen): one toolbar row, the gallery, one refine area,
-   then the details link and Continue. */
 .conceptsScreen {
   position: relative;
 }
@@ -367,52 +89,6 @@
 .conceptsComposer[hidden],
 .conceptsComposer [hidden] {
   display: none !important;
-}
-.gallery {
-  min-width: 0;
-}
-.generationActions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  margin: 0 0 var(--space-5);
-}
-.generationActions:empty {
-  display: none;
-}
-.galleryToolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
-  min-height: 44px;
-  margin: 0 0 var(--space-4);
-}
-.galleryToolbar .generationActions {
-  margin: 0 0 0 auto;
-}
-.galleryToolbar .generationActionRow {
-  flex-direction: row-reverse;
-}
-.galleryProgress {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1) var(--space-2);
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-2);
-  line-height: 20px;
-}
-.galleryProgress > span:first-child:not(:only-child) {
-  color: var(--color-text);
-}
-.galleryProgress > span + span::before {
-  content: "·";
-  margin-right: var(--space-2);
-  color: var(--color-text-placeholder);
 }
 .savedInputReview {
   margin: 0 0 var(--space-5);
@@ -433,118 +109,6 @@
   white-space: normal;
   overflow-wrap: anywhere;
 }
-.conceptsScreen .gallery .concepts {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-4);
-}
-.galleryCard {
-  position: relative;
-  min-width: 0;
-  align-self: start;
-  background: var(--color-bg-paper);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  overflow: hidden;
-  transition: border-color 120ms;
-}
-/* Hover only darkens the outline a little; the chosen card also gets a ring and a badge. */
-.galleryCard:has(.galleryPreview[role="button"]):hover:not([data-selected="true"]) {
-  border-color: var(--color-border-strong);
-}
-.galleryCard[data-selected="true"] {
-  border-color: var(--color-text);
-  box-shadow: 0 0 0 1px var(--color-text);
-}
-.chosenBadge {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: 3px 10px 3px var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-paper);
-  color: var(--color-text-positive);
-  font-size: var(--font-size-1);
-  line-height: 18px;
-  pointer-events: none;
-}
-.galleryPreview {
-  display: grid;
-  place-items: center;
-  height: 200px;
-  background: var(--color-bg-paper);
-  overflow: hidden;
-  padding: var(--space-4);
-}
-.galleryPreview[role="button"] {
-  cursor: pointer;
-}
-.galleryPreview[role="button"]:focus-visible {
-  outline: 2px solid var(--color-text);
-  outline-offset: -4px;
-}
-.galleryPreview img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  min-height: 0;
-}
-.galleryPreview p {
-  font-size: var(--font-size-1);
-  line-height: 20px;
-  color: var(--color-text-muted);
-  text-align: center;
-}
-.galleryCaption {
-  padding: 10px var(--space-4);
-}
-/* Ready cards show only the image; the caption keeps its screen-reader heading. */
-.galleryCaption:not(:has(p)) {
-  padding: 0;
-}
-.galleryCaption > div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-.galleryCaption h3 {
-  margin: 0;
-  font-size: var(--branding-subheading-size, var(--font-size-3));
-  line-height: 1.4;
-  font-weight: 500;
-}
-.galleryCaption p {
-  margin: 0;
-  font-size: var(--font-size-1);
-  line-height: 18px;
-  color: var(--color-text-muted);
-}
-.versionPicker {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 1;
-  font-size: var(--font-size-1);
-  color: var(--color-text-muted);
-}
-.versionPicker select {
-  width: auto;
-  max-width: 180px;
-  min-height: 32px;
-  padding: 5px 9px;
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-paper);
-  color: var(--color-text);
-  font: inherit;
-}
-
-/* Refine area: the chosen logo, a text box and one Refine button. */
 .conceptsComposer {
   position: relative;
   display: flex;
@@ -668,72 +232,158 @@
   gap: var(--space-3);
   margin-top: var(--space-6);
 }
-.conceptsScreen :is(button, a, textarea, select, summary, [role="button"]):focus-visible {
-  outline: 2px solid var(--color-text);
-  outline-offset: 3px;
+
+/* ---------- The Logo step's work (November 13 redesign): heading row, results, logo types ---------- */
+.stepStack {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
 }
-@media (max-width: 1000px) {
-  .conceptsScreen .gallery .concepts {
+.step {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+}
+/* The step's heading: title and one muted line on the left, actions about the chosen result on the right. */
+.stepHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
+}
+.stepTitle {
+  margin: 0;
+  padding: 0;
+  font: var(--text-title-md);
+  letter-spacing: var(--tracking-title-md);
+}
+.stepActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+/* Results fit the window (decisions 1 and 3): three across, two rows for the six concepts, sized from this
+   container so they work in the one-column conversation and in the Workspace, where widening the chat narrows the
+   container and the tiles shrink. A tile is never taller than half the window's height less the heading, so both
+   rows stay in view (the Workspace sets --result-size; this is the same rule for the one-column layout). */
+.results {
+  container-type: inline-size;
+  min-width: 0;
+}
+.resultGrid {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: calc(var(--result-size, (100dvh - var(--space-24) * 3) / 2) * 3 + var(--grid-gap) * 2);
+  margin-inline: auto;
+}
+.resultGrid > li {
+  min-width: 0;
+}
+@container (max-width: 34rem) {
+  .resultGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-@media (max-width: 600px) {
-  .conceptsScreen .gallery .concepts {
+@container (max-width: 20rem) {
+  .resultGrid {
     grid-template-columns: minmax(0, 1fr);
   }
 }
-@media (max-width: 540px) {
-  .conceptsScreen :is(input, textarea, select) {
-    font-size: var(--font-size-4);
-  }
+.tile {
+  min-width: 0;
 }
 
-.generationAction {
+/* Which logo types should I explore? Choose any that apply, three across where there is room. */
+.typesQuestion {
+  display: grid;
+  gap: var(--space-3);
   min-width: 0;
-  text-align: left;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  container-type: inline-size;
+}
+.typesGrid {
+  display: grid;
+  gap: var(--grid-gap);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@container (max-width: 34rem) {
+  .typesGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container (max-width: 20rem) {
+  .typesGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.typesFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.typesFooter > :only-child {
+  margin-left: auto;
+}
+.typesSummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+}
+/* The same in one small line under Embel's message in the Workspace chat. */
+.typesLine {
+  margin: 0;
+  font: var(--text-small);
+  color: var(--color-text-muted);
+}
+.typesLine :global(.e-link) {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+}
+.typesLine :global(.e-link:disabled) {
+  color: var(--color-text-disabled);
+  text-decoration: none;
+  cursor: not-allowed;
+}
+
+/* A start or More concepts button with its one-line status (never a cost). */
+.generationAction {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
 }
 .generationActionRow {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px var(--space-4);
+  justify-content: flex-end;
+  gap: var(--space-2) var(--space-3);
 }
-.generationEstimate {
+.generationStatus {
+  font: var(--text-small);
   color: var(--color-text-muted);
-  font-size: var(--font-size-2);
-  line-height: 1.5;
 }
-.generationEstimate:empty {
+.generationStatus:empty {
   display: none;
 }
-.estimateRecovery {
-  margin-top: var(--space-2);
-  font-size: var(--font-size-2);
-}
-.estimateRecovery p {
-  margin: 0 0 var(--space-2);
-}
-
-/* Likes changed after these concepts: an offer to use them for the next concepts. */
-.likesUpdate {
+.recovery {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px var(--space-4);
-  margin: var(--space-4) 0;
-  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-bg-paper);
-  font-size: var(--font-size-2);
-  line-height: 1.5;
+  gap: var(--space-2) var(--space-3);
 }
-.likesUpdate p {
-  flex: 1 1 320px;
-  margin: 0;
-  color: var(--color-text);
-}
-.likesUpdate button {
-  flex: none;
+.likesUpdate {
+  min-width: 0;
 }

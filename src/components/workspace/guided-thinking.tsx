@@ -1,43 +1,25 @@
 "use client";
 
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
-import { ConversationComposer } from "./conversation-composer";
-import { FloatingComposer } from "./floating-composer";
-import { EmbelMark } from "@/components/ui/icon";
+import { Spinner } from "@/components/ui/button";
+import { GuidedChoicesLoading } from "./guided-interview-widgets";
+import { Workspace } from "./workspace-layout";
+import { WorkspaceReplyBox } from "./workspace-reply";
 
-export function GuidedThinking({
-  onStop,
-  stopping = false,
-  stopDisabled = false,
-  label = "Thinking…",
-  action,
-}: {
-  onStop?: () => void;
-  stopping?: boolean;
-  stopDisabled?: boolean;
-  label?: string;
-  action?: ReactNode;
-}) {
+/** Embel is composing a reply: a spinner beside one plain sentence. Stopping is in the reply box. */
+export function GuidedThinking({ label = "Thinking…", action }: { label?: string; action?: ReactNode }) {
   return (
-    <div
-      className="guided-thinking"
-      role="status"
-      aria-label={stopping ? "Stopping…" : label === "Thinking…" ? "Embel is thinking" : label}
-    >
-      <EmbelMark />
-      <span>{stopping ? "Stopping…" : label}</span>
+    <div className="e-thinking" role="status" aria-label={label === "Thinking…" ? "Embel is thinking" : label}>
+      <Spinner />
+      <span>{label}</span>
       {action}
-      {onStop && (
-        <button type="button" className="text-link" disabled={stopping || stopDisabled} onClick={onStop}>
-          Stop
-        </button>
-      )}
     </div>
   );
 }
 
-/** Keeps the submitted prompt visible while its account project is being saved. */
+/** Keeps the submitted prompt visible while its account project is being saved, in the shape of the conversation
+ * it opens into: the brief in the chat, the competitors' places in the work area. */
 export function OpeningGuidedConversation({
   prompt,
   status = "Saving your project…",
@@ -47,45 +29,36 @@ export function OpeningGuidedConversation({
   status?: string;
   href?: string | null;
 }) {
-  const transcript = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    transcript.current?.scrollTo({ top: transcript.current.scrollHeight, behavior: "instant" });
-  }, [prompt]);
   return (
-    <div className="guided-interview guided-interview-opening" data-composer="floating" aria-label="Brand conversation">
-      <div ref={transcript} className="guided-interview-scroll" role="log" aria-label="Conversation" aria-live="polite">
-        <div className="guided-brief-turn">
-          <div className="guided-user-turn">
-            <span className="guided-user-label">You</span>
-            <div className="guided-user-message guided-brief-message">
-              <p>{prompt}</p>
+    <div className="guided-interview guided-interview-opening">
+      <Workspace
+        log={
+          <>
+            <div className="e-turn e-turn--user e-turn--settled">
+              <div className="e-turn__bubble">
+                <p className="e-turn__text">{prompt}</p>
+              </div>
             </div>
-          </div>
-        </div>
-        <GuidedThinking
-          label={status}
-          action={
-            href && (
-              <Link className="text-link" href={href}>
-                Open saved project
-              </Link>
-            )
-          }
-        />
-      </div>
-      <FloatingComposer label="Strategy composer">
-        <ConversationComposer
-          project
-          value=""
-          onChange={() => {}}
-          onSend={() => {}}
-          label="Message Embel"
-          placeholder="Reply in your own words, or ask a question…"
-          disabled
-          readOnly
-          hint={null}
-        />
-      </FloatingComposer>
+            <article className="e-turn e-turn--settled" aria-label="Embel status">
+              <div className="e-turn__main">
+                <p className="e-turn__meta">Embel</p>
+                <GuidedThinking
+                  label={status}
+                  action={
+                    href && (
+                      <Link className="e-link" href={href}>
+                        Open saved project
+                      </Link>
+                    )
+                  }
+                />
+              </div>
+            </article>
+          </>
+        }
+        reply={<WorkspaceReplyBox value="" onChange={() => undefined} action={null} readOnly textDisabled />}
+        work={<GuidedChoicesLoading stage="competitors" title="Competitors" />}
+      />
     </div>
   );
 }
