@@ -225,7 +225,9 @@ async function directions(page) {
 
 async function complete(page) {
   const step = page.getByRole("region", { name: "Creative direction", exact: true });
-  const first = step.getByRole("article", { name: /^Direction 1: /u }).getByRole("button", { name: /^Choose(n)?$/u });
+  const first = step
+    .getByRole("article", { name: /^Direction 1: /u })
+    .getByRole("button", { name: /^(Choose|Chosen)$/u });
   await expect(first).toBeEnabled({ timeout: GENERATION });
   await first.click();
   await expect(first).toHaveAttribute("aria-pressed", "true");

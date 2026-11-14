@@ -197,7 +197,9 @@ test("a new brand goes from the first prompt to downloadable assets", async ({ p
     await expect(step.getByRole("img", { name: /^Saved Identity board for /u })).toHaveCount(3);
     await expectNoCostEstimate(page);
     // Each board has a real Choose button; the chosen one reads Chosen (pressed).
-    const first = step.getByRole("article", { name: /^Direction 1: /u }).getByRole("button", { name: /^Choose(n)?$/u });
+    const first = step
+      .getByRole("article", { name: /^Direction 1: /u })
+      .getByRole("button", { name: /^(Choose|Chosen)$/u });
     await expect(first).toBeEnabled({ timeout: GENERATION });
     await first.click();
     await expect(first).toHaveAttribute("aria-pressed", "true");
