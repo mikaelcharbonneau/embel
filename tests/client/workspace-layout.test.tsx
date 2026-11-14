@@ -173,6 +173,31 @@ describe("reply box", () => {
     expect(host.querySelector('button[type="submit"]')!.getAttribute("aria-label")).toBe("Continue to Assets");
   });
 
+  it("sends typed text to the step's handler and clears it only once the step has taken it", async () => {
+    let take: (taken: boolean) => void = () => undefined;
+    const onSendText = vi.fn(() => new Promise<boolean>((resolve) => (take = resolve)));
+    await act(async () =>
+      root.render(<Harness action={{ label: "Continue to Slogan", onSend: vi.fn(), onSendText }} />),
+    );
+    const textarea = host.querySelector("textarea")!;
+    const type = async (text: string) =>
+      act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(textarea, text);
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+    await type("Shorter names");
+    const send = host.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    expect(send.getAttribute("aria-label")).toBe("Send prompt");
+    await act(async () => send.click());
+    expect(onSendText).toHaveBeenCalledWith("Shorter names");
+    expect(sendText).not.toHaveBeenCalled();
+    await act(async () => take(false));
+    expect(textarea.value).toBe("Shorter names");
+    await act(async () => send.click());
+    await act(async () => take(true));
+    expect(textarea.value).toBe("");
+  });
+
   it("maps the Logo and Creative direction steps' external reply onto the reply box", () => {
     const send = vi.fn(),
       stop = vi.fn();

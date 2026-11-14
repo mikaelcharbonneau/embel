@@ -30,8 +30,9 @@ export type WorkspaceReplyAction = {
   label?: string;
   /** Called when Send is pressed with nothing typed. Without it, Send needs typed text. */
   onSend?: () => void;
-  /** Typed text for this step ("describe a change"). Without it, typed text is a message to Embel. */
-  onSendText?: (text: string) => void;
+  /** Typed text for this step ("describe a change"). Without it, typed text is a message to Embel. When it resolves
+   * true, the text was taken and the reply box clears it (unless it was changed meanwhile). */
+  onSendText?: (text: string) => void | Promise<boolean>;
   /** Why Send cannot start the work (no credits): Send is aria-disabled and described by this. */
   blockedReason?: string;
   /** Embel is working: Stop replaces Send. */
@@ -200,12 +201,20 @@ export function WorkspaceReplyBox({
   const canSendEmpty = Boolean(!typed && action?.onSend);
   const blocked = Boolean(!typed && action?.blockedReason);
   const sendLabel = typed ? "Send prompt" : (action?.label ?? "Send prompt");
+  const current = useRef({ value, onChange });
+  useEffect(() => {
+    current.current = { value, onChange };
+  });
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (working) return;
-    if (canSendText) sendText?.(value);
-    else if (canSendEmpty && !blocked) action?.onSend?.();
+    if (canSendText) {
+      const sent = value;
+      void Promise.resolve(sendText?.(sent)).then((taken) => {
+        if (taken === true && current.current.value === sent) current.current.onChange("");
+      });
+    } else if (canSendEmpty && !blocked) action?.onSend?.();
   }
 
   return (
