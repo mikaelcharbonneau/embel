@@ -58,11 +58,13 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const usesBottomFade = isHome;
   const accountProjectId = /^\/brands\/account\/([0-9a-f-]{36})(?:\/|$)/i.exec(pathname)?.[1]?.toLowerCase();
   // Until the project page reports its header, show the bar in its loading state
-  // rather than flashing the global navigation.
+  // rather than flashing the global navigation. A project that can't be opened gets the app's navigation back.
   const header =
     accountProjectId && session.status === "ready"
       ? projectHeader?.projectId === accountProjectId
-        ? projectHeader
+        ? projectHeader.unavailable
+          ? null
+          : projectHeader
         : { projectId: accountProjectId, projectName: "", steps: [], saveState: null }
       : null;
   const account = <WorkspaceAccount pathname={currentPathname} />;

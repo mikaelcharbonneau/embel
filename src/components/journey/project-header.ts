@@ -10,6 +10,8 @@ export type ProjectHeader = {
   projectName: string;
   steps: JourneyStepView[];
   saveState: SaveState | null;
+  /** The project couldn't be opened: the bar returns to the app's navigation instead of waiting for a name. */
+  unavailable?: boolean;
 };
 
 export const ProjectHeaderContext = createContext<(header: ProjectHeader | null) => void>(() => undefined);

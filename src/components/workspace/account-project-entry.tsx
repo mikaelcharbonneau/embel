@@ -8,12 +8,12 @@ import { accountProjectResponseSchema } from "@/domain/project-api";
 import { createAccountLogoClient } from "@/components/identity/account-logo-client";
 import { createAccountIdentityClient } from "@/components/identity/account-identity-client";
 import { logoWorkspaceV2Schema } from "@/domain/logo-workspace";
-import { projectStrategyHref } from "@/domain/project-handoff";
 import { AccountRequestError } from "./account-api";
 import { needsStrategyRecovery, reconcileAccountWorkspace } from "./account-draft-memory";
 import { boundedAccountRequest } from "./bounded-account-request";
 import { AccountProjectEditor } from "./account-project-editor";
-import { AccountStatus, useAccountSession, type VerifiedAccount } from "./account-session";
+import { useAccountSession, type VerifiedAccount } from "./account-session";
+import { ProjectAccountState, ProjectOpening, ProjectUnavailable } from "./project-page-state";
 import { readProjectContinuation } from "./project-continuation";
 
 const empty = () => null;
@@ -36,14 +36,7 @@ export function AccountProjectEntry({ projectId, view }: { projectId: string; vi
         }
       />
     );
-  if (session.status !== "ready")
-    return (
-      <div className="page">
-        <h1>Account project</h1>
-        <AccountStatus />
-        <Link href="/brands">Back to projects</Link>
-      </div>
-    );
+  if (session.status !== "ready") return <ProjectAccountState />;
   return (
     <OwnedProjectEntry
       key={`${session.userId}:${session.generation}:${projectId}`}
@@ -155,38 +148,28 @@ function OwnedProjectEntry({ account, projectId }: { account: VerifiedAccount; p
 
   if (!isCurrent(account)) return null;
   if (keepStrategy || needsStrategyRecovery(owned)) return <AccountProjectEditor projectId={projectId} />;
-  return (
-    <div className="page">
-      <h1>Opening your project</h1>
-      {failed ? (
-        <div role="alert">
-          <p>Your saved work could not be checked. Try again, or open Strategy to review the project.</p>
-          <button
-            className="button secondary"
-            type="button"
-            onClick={() => {
-              setFailed(false);
-              setDestination(null);
-              setAttempt((value) => value + 1);
-            }}
-          >
-            Try opening again
-          </button>
-          <Link className="text-link" href={projectStrategyHref(projectId)}>
-            Open Strategy
-          </Link>
-        </div>
-      ) : (
-        <p role="status">
-          {destination ? (
-            <>
-              Opening your saved workspace… <Link href={destination}>Continue to workspace</Link>
-            </>
-          ) : (
-            "Checking your saved work…"
-          )}
-        </p>
-      )}
+  if (failed)
+    return (
+      <ProjectUnavailable
+        projectId={projectId}
+        reason="Your work is saved. Check your connection and try again."
+        onRetry={() => {
+          setFailed(false);
+          setDestination(null);
+          setAttempt((value) => value + 1);
+        }}
+      />
+    );
+  // While the saved work is read, a neutral frame; once its place is known the router opens it. The link stays as a
+  // way in should that navigation not happen.
+  return destination ? (
+    <div className="page e-container e-page">
+      <h1 className="e-sr">Opening your brand</h1>
+      <p role="status">
+        Opening your brand… <Link href={destination}>Continue</Link>
+      </p>
     </div>
+  ) : (
+    <ProjectOpening />
   );
 }

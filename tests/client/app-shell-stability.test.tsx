@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "@/components/workspace/app-shell";
 import { useAccountSession } from "@/components/workspace/account-session";
 import { DEFAULT_PROFILE_VALUES } from "@/domain/account-profile";
+import { ProjectAccountState, ProjectUnavailable } from "@/components/workspace/project-page-state";
 
 const route = vi.hoisted(() => ({ pathname: "/", auth: null as string | null, background: [] as string[] }));
 vi.mock("next/navigation", () => ({
@@ -181,6 +182,28 @@ describe("persistent workspace shell", () => {
     expect(mainNav()).not.toBeNull();
     expect(trigger()).toBe(button);
     expect(menu()).toBe(panel);
+  });
+
+  it("gives a brand that can't be opened the app's navigation back instead of a bar that keeps loading", async () => {
+    await render();
+    await until(() => expect(trigger().textContent).toBe("PN"));
+    const projectId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    route.pathname = `/brands/account/${projectId}`;
+    await render(<ProjectUnavailable projectId={projectId} reason="Check your connection and try again." />);
+    expect(host.querySelector("header")?.textContent).not.toContain("Loading project…");
+    expect(mainNav()).not.toBeNull();
+    expect(host.querySelector('[role="alert"] h1')?.textContent).toBe("We couldn’t open this brand");
+    expect(
+      [...host.querySelectorAll<HTMLAnchorElement>('[role="alert"] a')].map((link) => link.getAttribute("href")),
+    ).toEqual(["/brands"]);
+    route.pathname = "/";
+  });
+
+  it("opens a brand page on a neutral frame while the account is checked, never on signed-out wording", async () => {
+    sessionRead = () => new Promise(() => {});
+    await render(<ProjectAccountState />);
+    expect(host.querySelector('[role="status"][aria-label="Opening your brand"]')).not.toBeNull();
+    expect(host.querySelector("main")?.textContent).not.toMatch(/sign in|Account project|Back to projects/i);
   });
 
   it("keeps the underlying page highlighted when an auth dialog opens over it", async () => {
