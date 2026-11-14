@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { accountMenu, openAccountMenu } from "./account-check";
 
 // Every API and external destination is intercepted. No account or email is created.
 const owner = "aaaaaaaa-2222-4222-8222-222222222222";
@@ -121,8 +122,8 @@ test("signup: overlay dismissal retains pending authentication and the underlyin
   fixture.state.hold = true;
   await page.goto("/settings");
   await page.getByRole("tab", { name: "Notifications", exact: true }).click();
-  await page.getByLabel("Account menu", { exact: true }).click();
-  await page.locator(".workspace-account-menu").getByRole("link", { name: "Sign in", exact: true }).click();
+  await openAccountMenu(page);
+  await accountMenu(page).getByRole("menuitem", { name: "Sign in", exact: true }).click();
   await page.getByRole("dialog").getByRole("link", { name: "Create account", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Create your Embel account", exact: true });
   await expect(dialog).toBeVisible();
@@ -142,10 +143,8 @@ test("signup: overlay dismissal retains pending authentication and the underlyin
   expect(fixture.state.signupCount).toBe(1);
   fixture.release();
   // Route changes close the account menu; reopen it to inspect its actions.
-  await page.getByLabel("Account menu", { exact: true }).click();
-  await expect(
-    page.locator(".workspace-account-menu").getByRole("link", { name: "Sign in", exact: true }),
-  ).toBeVisible();
+  await openAccountMenu(page);
+  await expect(accountMenu(page).getByRole("menuitem", { name: "Sign in", exact: true })).toBeVisible();
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   expect(fixture.state.sessionReads).toBe(reads);
   expect(fixture.state.privateWrites).toBe(0);
@@ -160,8 +159,8 @@ test("signup: prompt and scope survive signup, email waiting and subsequent sign
     .getByRole("group", { name: "What to create", exact: true })
     .getByText("Name only", { exact: true })
     .click();
-  await page.getByLabel("Account menu", { exact: true }).click();
-  await page.locator(".workspace-account-menu").getByRole("link", { name: "Sign in", exact: true }).click();
+  await openAccountMenu(page);
+  await accountMenu(page).getByRole("menuitem", { name: "Sign in", exact: true }).click();
   await page.getByRole("dialog").getByRole("link", { name: "Create account", exact: true }).click();
   await expect(
     page.getByText("Your idea is kept. It will be waiting when you're signed in.", { exact: false }),

@@ -130,10 +130,11 @@ async function begin(page: Page, entry: "header" | "composer") {
     .getByRole("group", { name: "What to create", exact: true })
     .getByText("Name only", { exact: true })
     .click();
-  if (entry === "header") await page.getByLabel("Account menu", { exact: true }).click();
-  const signIn = page
-    .locator(entry === "header" ? ".topbar-account" : ".conversation-start-notice")
-    .getByRole("link", { name: "Sign in", exact: true });
+  // Signed out, the navigation pill offers Sign in directly.
+  const signIn = (entry === "header" ? page.getByRole("banner") : page.locator(".conversation-start-notice")).getByRole(
+    "link",
+    { name: "Sign in", exact: true },
+  );
   if (entry === "header") {
     await signIn.focus();
     await page.keyboard.press("Enter");
@@ -193,8 +194,7 @@ test("Home recovery: uncertain save stays immutable during sign-in remount and v
   const original = await page.evaluate(() => localStorage.getItem("fluid.local-drafts.v1"));
   state.signedIn = false;
   await page.reload();
-  await page.getByLabel("Account menu", { exact: true }).click();
-  await page.locator(".topbar-account").getByRole("link", { name: "Sign in", exact: true }).click();
+  await page.getByRole("banner").getByRole("link", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/sign-in$/);
   state.signedIn = true;
   state.holdSession = true;

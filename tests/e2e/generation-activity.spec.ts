@@ -1,5 +1,6 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { jobActivitySchema, type JobActivity, type JobActivityEntry } from "../../src/domain/job-activity";
+import { accountMenuButton, openAccountMenu } from "./account-check";
 
 // Synthetic owned API fixtures only. Every API request is intercepted; these
 // tests never authenticate, dispatch work or mutate a live account.
@@ -143,11 +144,10 @@ const trigger = (page: Page) =>
     .or(page.getByRole("button", { name: "Activity", exact: true }));
 const nothingYet = "Nothing has run yet";
 const loadFailure = /Your activity couldn’t be (?:loaded|refreshed)/;
-async function openAccountMenu(page: Page) {
-  const menu = page.locator(".workspace-account-menu");
-  await expect(menu.locator("summary")).toBeVisible();
-  if (!(await menu.evaluate((element) => (element as HTMLDetailsElement).open)))
-    await menu.getByLabel("Account menu", { exact: true }).click();
+/** Signed out, the pill swaps the account menu for Sign in and Create account. */
+async function expectSignedOutPill(page: Page) {
+  await expect(page.getByRole("banner").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
+  await expect(accountMenuButton(page)).toHaveCount(0);
 }
 async function openPage(page: Page) {
   await page.goto("/assets");
@@ -197,7 +197,7 @@ test("activity fixture: signed-out sessions expose no activity trigger or reques
   state.sessionOwner = null;
   await page.clock.install();
   await page.goto("/assets");
-  await expect(page.getByRole("banner").getByLabel("Account menu", { exact: true })).toContainText("Sign in");
+  await expectSignedOutPill(page);
   await page.clock.fastForward(30_000);
   await expect(trigger(page)).toHaveCount(0);
   expect(state.activityRequests).toBe(0);
@@ -321,7 +321,7 @@ for (const nextOwner of [otherOwnerId, null])
         await expect(dialog(page).getByText(nothingYet, { exact: true })).toBeVisible();
       } else {
         await expect(trigger(page)).toHaveCount(0);
-        await expect(page.getByRole("banner").getByLabel("Account menu", { exact: true })).toContainText("Sign in");
+        await expectSignedOutPill(page);
       }
       held.release();
       await expect.poll(() => held.settled).toBe(true);
@@ -338,7 +338,7 @@ test("activity privacy fixture: a foreign-owner response invalidates the current
   await openPage(page);
   await trigger(page).click();
   await expect(trigger(page)).toHaveCount(0);
-  await expect(page.getByRole("banner").getByLabel("Account menu", { exact: true })).toContainText("Sign in");
+  await expectSignedOutPill(page);
   for (const title of Object.values(titles)) await expect(page.getByText(title, { exact: true })).toHaveCount(0);
 });
 
@@ -365,7 +365,7 @@ test("activity privacy fixture: a 401 clears previously displayed private rows",
   state.sessionOwner = null;
   await page.clock.fastForward(3001);
   await expect(trigger(page)).toHaveCount(0);
-  await expect(page.getByRole("banner").getByLabel("Account menu", { exact: true })).toContainText("Sign in");
+  await expectSignedOutPill(page);
   for (const title of Object.values(titles)) await expect(page.getByText(title, { exact: true })).toHaveCount(0);
   const reads = state.activityRequests;
   await page.clock.fastForward(30_000);
