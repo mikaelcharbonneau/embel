@@ -8,7 +8,8 @@ import type { AccountIdentityClient } from "../../../src/components/identity/acc
 import type { VerifiedAccount } from "../../../src/components/workspace/account-session";
 import type { PreparedBrandAssets } from "../../../src/features/brand-assets/client/build-pack";
 import { BrandAssetError } from "../../../src/features/brand-assets/model/snapshot";
-import { brandPaletteFiles } from "../../../src/features/brand-assets/model/guides";
+import { designTokens, designTokensCss } from "../../../src/features/brand-assets/model/design-tokens";
+import { ToastProvider } from "../../../src/components/ui/toast";
 
 const mocks = vi.hoisted(() => ({ build: vi.fn() }));
 vi.mock("../../../src/features/brand-assets/client/build-pack", () => ({ buildBrandAssetPack: mocks.build }));
@@ -112,10 +113,12 @@ function setup() {
       revalidate,
       onRefreshSelection: refreshSelection,
     });
-    await act(async () => root!.render(strict ? createElement(StrictMode, null, panel) : panel));
+    const tree = createElement(ToastProvider, null, panel);
+    await act(async () => root!.render(strict ? createElement(StrictMode, null, tree) : tree));
   }
   async function download(clicks = 1) {
-    const action = button("Download brand kit");
+    // While the kit is still being prepared the same button reads "Preparing brand kit" and queues the download.
+    const action = button("Download brand kit") ?? button("Preparing brand kit");
     expect(action?.disabled).toBe(false);
     await act(async () => {
       for (let i = 0; i < clicks; i++) action!.click();
@@ -151,13 +154,14 @@ describe("brand kit palette", () => {
     await f.render();
     const color = f.snapshot.colors[0]!;
     const swatch = f.button(`Copy ${color.name} ${color.hex}`)!;
+    const toast = () => document.querySelector(".e-toast-region")?.textContent ?? "";
     await act(async () => swatch.click());
     expect(writeText).toHaveBeenCalledExactlyOnceWith(color.hex);
-    expect(swatch.textContent).not.toContain("Copied");
+    expect(toast()).not.toContain("Copied");
     await act(async () => write.resolve());
-    expect(swatch.textContent).toContain("Copied");
-    await act(async () => vi.advanceTimersByTimeAsync(2000));
-    expect(swatch.textContent).toContain(color.hex);
+    expect(toast()).toContain(`Copied ${color.hex}`);
+    await act(async () => vi.advanceTimersByTimeAsync(6000));
+    expect(toast()).not.toContain("Copied");
   });
 
   it("offers the exported CSS for manual copying when clipboard access is denied", async () => {
@@ -165,11 +169,11 @@ describe("brand kit palette", () => {
     vi.stubGlobal("navigator", { clipboard: { writeText } });
     const f = setup();
     await f.render();
-    await act(async () => f.button("Copy CSS palette")!.click());
-    const expected = new TextDecoder().decode(brandPaletteFiles(f.snapshot).css);
+    await act(async () => f.button("Copy the CSS")!.click());
+    const expected = designTokensCss(designTokens(f.snapshot));
     expect(writeText).toHaveBeenCalledExactlyOnceWith(expected);
     expect(f.container.querySelector("textarea")?.value).toBe(expected);
-    expect(f.button("Copy CSS palette")?.textContent).not.toContain("Copied");
+    expect(document.querySelector(".e-toast-region")?.textContent).not.toContain("Copied");
   });
 });
 

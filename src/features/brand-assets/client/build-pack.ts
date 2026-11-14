@@ -8,10 +8,13 @@ import {
   brandCopy,
   createBrandApplication,
   createFinalBrandBoard,
+  DEFAULT_DIRECTION_CROPS,
+  directionCrops,
   drawBrandArtwork,
   drawReversedLogo,
   drawTransparentLogo,
   editableBrandSvg,
+  type BrandCrop,
 } from "../model/artwork";
 import { brandGuideHtml, brandPackReadme, brandPaletteFiles } from "../model/guides";
 import { designTokens, designTokensCss, designTokensJson } from "../model/design-tokens";
@@ -31,7 +34,66 @@ export type PreparedBrandAssets = {
   files: readonly BrandAssetFile[];
   getArchive(): Uint8Array<ArrayBuffer>;
   vectorIncluded: boolean;
+  /** Brand images this browser could not draw; everything else is in `files`. */
+  failed?: readonly { name: string; label: string }[];
 };
+
+/** A small copy of the direction board, measured to choose its three details. */
+function measureCrops(direction: { image: CanvasImageSource }): readonly BrandCrop[] {
+  try {
+    const canvas = document.createElement("canvas"),
+      size = 128;
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return DEFAULT_DIRECTION_CROPS;
+    ctx.drawImage(direction.image, 0, 0, size, size);
+    return directionCrops(ctx.getImageData(0, 0, size, size).data, size, size);
+  } catch {
+    return DEFAULT_DIRECTION_CROPS;
+  }
+}
+/** Pictures for the guidelines file: smaller logo copies and the direction's
+ * details as JPEG, so the single HTML file stays light. Left out if this
+ * browser cannot encode them; the guidelines then show text only. */
+function guideImages(
+  logo: { image: CanvasImageSource; width: number; height: number },
+  reversed: { image: CanvasImageSource },
+  direction: { image: CanvasImageSource; width: number; height: number },
+  crops: readonly BrandCrop[],
+) {
+  try {
+    const scaled = (source: CanvasImageSource) => {
+      const scale = Math.min(1, 640 / logo.width, 640 / logo.height),
+        canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(logo.width * scale));
+      canvas.height = Math.max(1, Math.round(logo.height * scale));
+      canvas.getContext("2d")?.drawImage(source, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL("image/png");
+    };
+    const detail = (crop: BrandCrop) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 688;
+      canvas.height = 516;
+      let sx = crop.x * direction.width,
+        sy = crop.y * direction.height,
+        sw = crop.width * direction.width,
+        sh = crop.height * direction.height;
+      if (sw / sh > 4 / 3) {
+        sx += (sw - (sh * 4) / 3) / 2;
+        sw = (sh * 4) / 3;
+      } else {
+        sy += (sh - (sw * 3) / 4) / 2;
+        sh = (sw * 3) / 4;
+      }
+      canvas.getContext("2d")?.drawImage(direction.image, sx, sy, sw, sh, 0, 0, 688, 516);
+      return canvas.toDataURL("image/jpeg", 0.82);
+    };
+    return { logo: scaled(logo.image), logoReversed: scaled(reversed.image), crops: crops.map(detail) };
+  } catch {
+    return {};
+  }
+}
 const extension = (mime: string) =>
   mime === "image/png"
     ? "png"
@@ -49,12 +111,17 @@ const sameReference = (a: BrandAssetSnapshot["logo"]["reference"], b: BrandAsset
   a.versionId === b.versionId &&
   a.contentHash === b.contentHash;
 
-function preparedAssets(files: readonly BrandAssetFile[], vectorIncluded: boolean): PreparedBrandAssets {
+function preparedAssets(
+  files: readonly BrandAssetFile[],
+  vectorIncluded: boolean,
+  failed: readonly { name: string; label: string }[] = [],
+): PreparedBrandAssets {
   if (files.reduce((size, file) => size + file.bytes.length, 0) > 157_286_400) throw new BrandAssetError("size");
   let archive: Uint8Array<ArrayBuffer> | undefined;
   return {
     files,
     vectorIncluded,
+    failed,
     getArchive() {
       if (archive) return archive;
       const mtime = new Date("2000-01-01T00:00:00Z");
@@ -77,6 +144,11 @@ export async function buildBrandAssetPack(
     vectorRevisionId?: string | null;
     slogan?: string | null;
     positioning?: string | null;
+    /** The chosen direction's name, as shown on Creative direction. */
+    direction?: string | null;
+    audience?: readonly string[];
+    traits?: readonly string[];
+    date?: Date;
   },
   signal: AbortSignal,
 ): Promise<PreparedBrandAssets> {
@@ -113,12 +185,14 @@ export async function buildBrandAssetPack(
       };
       const transparent = derive(drawTransparentLogo),
         reversed = derive(drawReversedLogo);
+      const crops = measureCrops(direction);
       const images = { logo: transparent, logoReversed: reversed, direction },
-        board = createFinalBrandBoard(snapshot, copy),
+        board = createFinalBrandBoard(snapshot, copy, { direction: input.direction, crops }),
         applications = BRAND_APPLICATIONS.map((spec) => ({ spec, art: createBrandApplication(snapshot, spec, copy) }));
       const fonts = await loadBrandFonts([board, ...applications.map((row) => row.art)], signal);
       try {
-        const files: BrandAssetFile[] = [];
+        const files: BrandAssetFile[] = [],
+          failed: { name: string; label: string }[] = [];
         const render = async (
           name: string,
           label: string,
@@ -127,14 +201,23 @@ export async function buildBrandAssetPack(
           editable: boolean,
         ) => {
           checkBrandAssetSignal(signal);
-          const canvas = document.createElement("canvas"),
+          const canvas = document.createElement("canvas");
+          let fitted: typeof board, bytes: Uint8Array<ArrayBuffer>;
+          try {
             fitted = drawBrandArtwork(canvas, art, images, fonts.names);
+            bytes = await brandCanvasPng(canvas, signal);
+          } catch (error) {
+            // One image this browser cannot draw is reported; the rest of the kit stays usable.
+            if (!(error instanceof BrandAssetError) || error.reason !== "canvas") throw error;
+            failed.push({ name, label });
+            return;
+          }
           files.push({
             name: `${name}.png`,
             label,
             category,
             mimeType: "image/png",
-            bytes: await brandCanvasPng(canvas, signal),
+            bytes,
             width: art.width,
             height: art.height,
           });
@@ -172,6 +255,7 @@ export async function buildBrandAssetPack(
         for (const { spec, art } of applications)
           await render(`social/${spec.id}`, spec.label, "social", art, spec.editable);
         // Encoding releases the derived canvases, so it follows all artwork.
+        const pictures = guideImages(transparent, reversed, direction, crops);
         files.push(
           {
             name: "logo/logo-transparent.png",
@@ -228,10 +312,18 @@ export async function buildBrandAssetPack(
           },
           {
             name: "guides/brand-guide.html",
-            label: "Colors, font links and guide",
+            label: "Brand guidelines",
             category: "guide",
             mimeType: "text/html",
-            bytes: brandGuideHtml(snapshot, input.slogan ?? null),
+            bytes: brandGuideHtml(snapshot, {
+              slogan: input.slogan ?? null,
+              positioning: input.positioning ?? null,
+              audience: input.audience,
+              traits: input.traits,
+              direction: input.direction,
+              date: input.date,
+              images: pictures,
+            }),
           },
           {
             name: "README.txt",
@@ -261,7 +353,7 @@ export async function buildBrandAssetPack(
           },
         );
         checkBrandAssetSignal(signal);
-        return preparedAssets(files, vectorIncluded);
+        return preparedAssets(files, vectorIncluded, failed);
       } finally {
         fonts.release();
       }

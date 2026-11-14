@@ -72,10 +72,39 @@ describe("Plans page", () => {
     const text = host.textContent ?? "";
     for (const expected of ["Free", "$0", "Pro", "$7.99", "Studio", "$27.99", "150 credits every month", "500 credits"])
       expect(text).toContain(expected);
-    expect(host.querySelector('[data-current="true"] h2')?.textContent).toBe("Free");
-    expect(text).toContain("Credits left");
+    expect(host.querySelector('[data-selected="true"] h2')?.textContent).toBe("Free");
+    expect(text).toContain("Credits left this month");
     expect(text).toContain("12");
+    expect(text).toContain("New credits arrive on December 1.");
+    for (const expected of ["About 1 complete brand a month", "About 7 complete brands a month", "Recommended"])
+      expect(text).toContain(expected);
     expect(buttons()).toEqual(["Upgrade to Pro", "Upgrade to Studio"]);
+    expect(host.querySelector(".e-button--primary")?.textContent).toBe("Upgrade to Pro");
+  });
+
+  it("lists what a credit buys, in credits only", async () => {
+    await render();
+    const rows = [...host.querySelectorAll("table tbody tr")].map((row) => row.textContent);
+    expect(rows).toContain("Strategy · CompetitorsCompetitor research for your idea2");
+    expect(rows).toContain("Identity · LogoSix logo concepts6");
+    expect(host.textContent).toContain(
+      "A complete brand with every step done once uses 19 credits, or 18 without a slogan.",
+    );
+    expect(host.querySelector("table")?.textContent).not.toContain("$");
+  });
+
+  it("states a zero balance in one sentence with the renewal date and the upgrade beside it", async () => {
+    summary = { ...freeSummary, balance: 0 };
+    await render();
+    expect(host.textContent).toContain(
+      "You’ve used this month’s 30 credits. New credits arrive on December 1. Your work is saved.",
+    );
+    expect(host.textContent).not.toContain("Credits left this month");
+    const upgrade = host.querySelector<HTMLButtonElement>(".plans-out-of-credits button")!;
+    expect(upgrade.textContent).toBe("Upgrade to Pro");
+    await act(async () => upgrade.click());
+    const checkout = requests.find((request) => request.path === "/api/billing/checkout")!;
+    expect(JSON.parse(String(checkout.init.body))).toEqual({ plan: "pro" });
   });
 
   it("opens Checkout with one click, for the chosen plan and the signed-in account", async () => {
@@ -92,7 +121,14 @@ describe("Plans page", () => {
     summary = proSummary;
     await render();
     expect(buttons()).toEqual(["Manage plan", "Cancel plan", "Switch to Studio"]);
-    expect(host.textContent).toContain("To return to Free, use Cancel plan on your current plan.");
+    expect(host.textContent).toContain("If you cancel Pro, you return to Free when the month you paid for ends.");
+    expect(host.textContent).toContain("Your plan renews on December 5 with 150 new credits.");
+    // Cancel is quieter than Manage plan (D-076).
+    const classes = (label: string) =>
+      [...host.querySelectorAll("button")].find((button) => button.textContent === label)!.className;
+    expect(classes("Manage plan")).toContain("e-button--secondary");
+    expect(classes("Cancel plan")).toContain("e-button--quiet");
+    expect(host.textContent).not.toContain("Recommended");
     const manage = [...host.querySelectorAll("button")].find((button) => button.textContent === "Manage plan")!;
     await act(async () => manage.click());
     const portal = requests.find((request) => request.path === "/api/billing/portal")!;
@@ -120,12 +156,41 @@ describe("Plans page", () => {
     summary = freeSummary;
     await render("checkout_cancelled");
     expect(host.textContent).toContain("Checkout was cancelled. Nothing was charged.");
+    expect(host.querySelector(".e-message")?.getAttribute("role")).toBe("status");
+  });
+
+  it("shows a payment failure in the same inline message as the success, with Try again", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (path: string, init: RequestInit) => {
+        requests.push({ path, init });
+        if (path === "/api/billing") return Response.json({ billing: summary });
+        return new Response(null, { status: 503 });
+      }),
+    );
+    await render();
+    const upgrade = [...host.querySelectorAll("button")].find((button) => button.textContent === "Upgrade to Pro")!;
+    await act(async () => upgrade.click());
+    const alert = host.querySelector('.e-message--danger[role="alert"]')!;
+    expect(alert.textContent).toContain(
+      "Checkout couldn’t open because payments are unavailable right now. Nothing was charged.",
+    );
+    expect(assign).not.toHaveBeenCalled();
+    const retry = [...alert.querySelectorAll("button")].find((button) => button.textContent === "Try again")!;
+    await act(async () => retry.click());
+    expect(requests.filter((request) => request.path === "/api/billing/checkout")).toHaveLength(2);
   });
 
   it("asks a signed-out visitor to sign in and never calls the billing API", async () => {
     fixture.session = { status: "signed_out", generation: 1 };
     await render();
-    expect(host.textContent).toContain("Sign in to choose a plan.");
+    expect(host.textContent).toContain("Already have an account? Sign in to see your plan and credits.");
+    expect([...host.querySelectorAll("a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+      ["Create free account", "/sign-up"],
+      ["Create account to choose Pro", "/sign-up"],
+      ["Create account to choose Studio", "/sign-up"],
+      ["Sign in", "/sign-in"],
+    ]);
     expect(requests).toEqual([]);
   });
 });

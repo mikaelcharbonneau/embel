@@ -6,8 +6,11 @@ import { brandTextDirection, fontSupportsBrandText } from "@/domain/brand-board-
 /** Generated logos are raster images with an off-white background. Artwork
  * uses two copies derived from the saved original, both still raster images:
  * "logo" with the light background made transparent, for light colors, and
- * "logoReversed", a one-color white version for dark colors. */
+ * "logoReversed", a one-color white version for dark colors. "direction" is the
+ * chosen direction board, used for crops ("details from your direction"). */
 type ImageSource = "logo" | "logoReversed" | "direction";
+/** A part of a source image, in fractions of its width and height. */
+export type BrandCrop = { x: number; y: number; width: number; height: number };
 type TextShape = {
   kind: "text";
   text: string;
@@ -17,10 +20,13 @@ type TextShape = {
   family: string;
   weight: number;
   color: string;
+  /** The text box: left edge `x`, width `maxWidth`. */
   maxWidth: number;
-  align?: "left" | "center";
+  align?: "left" | "center" | "right";
   textLength?: number;
   group?: string;
+  /** Letter spacing in em. */
+  tracking?: number;
 };
 type Shape =
   | {
@@ -29,13 +35,30 @@ type Shape =
       y: number;
       width: number;
       height: number;
+      /** A color, or "none" for an outline only. */
       fill: string;
       radius?: number;
       opacity?: number;
+      /** An outline drawn on the rectangle's edge. */
+      stroke?: string;
+      strokeWidth?: number;
     }
   | { kind: "circle"; x: number; y: number; radius: number; fill: string; opacity?: number }
-  | { kind: "line"; x: number; y: number; x2: number; y2: number; color: string; width: number }
-  | { kind: "image"; source: ImageSource; x: number; y: number; width: number; height: number }
+  | { kind: "line"; x: number; y: number; x2: number; y2: number; color: string; width: number; opacity?: number }
+  | {
+      kind: "image";
+      source: ImageSource;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      /** Only this part of the source is drawn. */
+      crop?: BrandCrop;
+      /** contain keeps the whole picture (the default); cover fills the box. */
+      fit?: "contain" | "cover";
+      /** Where a contained picture sits in its box. */
+      anchor?: "center" | "start";
+    }
   | TextShape;
 export type BrandArtwork = { width: number; height: number; title: string; nodes: Shape[] };
 export const BRAND_APPLICATIONS = [
@@ -46,6 +69,12 @@ export const BRAND_APPLICATIONS = [
   { id: "banner-cover", label: "Cover banner", width: 1584, height: 396, editable: true },
 ] as const;
 type BrandApplication = (typeof BRAND_APPLICATIONS)[number];
+
+/** Embel's own hairline (the design system's neutral-300), written out because
+ * exported files cannot read the app's CSS variables. */
+export const EXPORT_RULE = "#C9C8C2";
+/** Embel's ink (neutral-900), the last-resort text color on a brand surface. */
+const EXPORT_INK = "#191919";
 
 /** Saved words used in the artwork. A missing or unrenderable line is left out,
  * never replaced with placeholder text. */
@@ -76,6 +105,72 @@ export function logoSurfaces(snapshot: BrandAssetSnapshot): { light: string; dar
   const dark = [p.primary, p.text, ...colors].find((hex) => contrast("#FFFFFF", hex) >= 4.5) ?? null;
   return { light, dark };
 }
+/** A palette color that reads on `background` (4.5:1), preferring `preferred`. */
+function readableOn(snapshot: BrandAssetSnapshot, background: string, preferred: readonly string[] = []): string {
+  const choices = [
+    ...preferred,
+    snapshot.palette.text,
+    snapshot.palette.background,
+    ...snapshot.colors.map((color) => color.hex),
+  ];
+  return (
+    choices.find((hex) => contrast(hex, background) >= 4.5) ??
+    (contrast("#FFFFFF", background) >= contrast(EXPORT_INK, background) ? "#FFFFFF" : EXPORT_INK)
+  );
+}
+
+/** The four palette roles with plain words for how to use each, shared by the
+ * brand board and the guidelines. */
+export function brandRoleColors(snapshot: BrandAssetSnapshot) {
+  const p = snapshot.palette,
+    accent = contrast(p.accent, p.background);
+  return [
+    {
+      role: "primary",
+      name: "Primary",
+      hex: p.primary,
+      short: "Large areas",
+      use: "Large areas, buttons and key actions.",
+    },
+    {
+      role: "accent",
+      name: "Accent",
+      hex: p.accent,
+      short: accent >= 4.5 ? "Highlights and text" : accent >= 3 ? "Highlights and large type" : "Highlights, not text",
+      use:
+        accent >= 4.5
+          ? "Highlights, links and text."
+          : accent >= 3
+            ? "Highlights, fills and large type."
+            : "Highlights and fills. Not for text.",
+    },
+    { role: "background", name: "Background", hex: p.background, short: "Pages", use: "Page background." },
+    { role: "text", name: "Text", hex: p.text, short: "Body text", use: "Body text." },
+  ] as const;
+}
+
+/** Two template families (canvas page 5). "lines": a deep field with a fine grid
+ * and a rising line with data points, for directions built on grids, charts,
+ * maps or routes. "frames": the light page inside a double rule, for every
+ * other direction. Chosen from the direction's saved graphic treatment and its
+ * own words about graphics and imagery. */
+export type BrandTemplateFamily = "lines" | "frames";
+const LINE_CUES = /\b(grids?|graphs?|charts?|data|dashboards?|plots?|maps?|routes?|flight[- ]?paths?|coordinates?)\b/iu;
+export function brandTemplateFamily(snapshot: BrandAssetSnapshot): BrandTemplateFamily {
+  if (snapshot.design.graphic === "fine_lines") return "lines";
+  return LINE_CUES.test(`${snapshot.graphicNotes} ${snapshot.imageryNotes ?? ""}`) ? "lines" : "frames";
+}
+/** Field, ink and logo copy for a family, all from the saved palette. */
+export function templateTheme(snapshot: BrandAssetSnapshot) {
+  const p = snapshot.palette,
+    family = brandTemplateFamily(snapshot);
+  const field = family === "lines" ? (logoSurfaces(snapshot).dark ?? p.background) : p.background;
+  const ink = readableOn(snapshot, field, family === "lines" ? [p.background] : [p.primary]);
+  const accent = contrast(p.accent, field) >= 2 ? p.accent : ink;
+  const logo: ImageSource = isDarkColor(field) ? "logoReversed" : "logo";
+  return { family, field, ink, accent, logo };
+}
+type Theme = ReturnType<typeof templateTheme>;
 
 const rect = (x: number, y: number, width: number, height: number, fill: string, radius = 0): Shape => ({
   kind: "rect",
@@ -86,6 +181,17 @@ const rect = (x: number, y: number, width: number, height: number, fill: string,
   fill,
   radius,
 });
+/** An outline whose outer edge sits `inset` inside the artwork, like a CSS border. */
+const frame = (w: number, h: number, inset: number, width: number, color: string): Shape => ({
+  kind: "rect",
+  x: inset + width / 2,
+  y: inset + width / 2,
+  width: w - inset * 2 - width,
+  height: h - inset * 2 - width,
+  fill: "none",
+  stroke: color,
+  strokeWidth: width,
+});
 function text(
   snapshot: BrandAssetSnapshot,
   value: string,
@@ -95,74 +201,76 @@ function text(
   maxWidth: number,
   heading = false,
   color = snapshot.palette.text,
-  align: "left" | "center" = "left",
+  align: "left" | "center" | "right" = "left",
+  options: { weight?: number; tracking?: number } = {},
 ): TextShape {
   const style = heading ? snapshot.heading : snapshot.body;
-  return { kind: "text", text: value, x, y, size, maxWidth, family: style.family, weight: style.weight, color, align };
+  const weight =
+    options.weight === undefined
+      ? style.weight
+      : Math.min(style.font.maxWeight, Math.max(style.font.minWeight, options.weight));
+  return {
+    kind: "text",
+    text: value,
+    x,
+    y,
+    size,
+    maxWidth,
+    family: style.family,
+    weight,
+    color,
+    align,
+    ...(options.tracking ? { tracking: options.tracking } : {}),
+  };
 }
-function foreground(snapshot: BrandAssetSnapshot, background: string): string {
-  const choices = [snapshot.palette.text, ...snapshot.colors.map((color) => color.hex)];
-  const preferred = choices.find((color) => contrast(color, background) >= 4.5);
-  return preferred ?? (contrast("#FFFFFF", background) >= contrast("#191919", background) ? "#FFFFFF" : "#191919");
+
+/** A fine grid in the ink color, inside one region. */
+function grid(theme: Theme, x: number, y: number, width: number, height: number, cell: number, line: number): Shape[] {
+  const nodes: Shape[] = [];
+  for (let at = x; at <= x + width + 0.01; at += cell)
+    nodes.push({ kind: "line", x: at, y, x2: at, y2: y + height, color: theme.ink, width: line, opacity: 0.12 });
+  for (let at = y; at <= y + height + 0.01; at += cell)
+    nodes.push({ kind: "line", x, y: at, x2: x + width, y2: at, color: theme.ink, width: line, opacity: 0.12 });
+  return nodes;
 }
-function graphics(snapshot: BrandAssetSnapshot, width: number, height: number): Shape[] {
-  const { accent, primary } = snapshot.palette;
-  if (snapshot.design.graphic === "rounded_shapes")
-    return [
-      {
-        kind: "circle",
-        x: width * 0.8,
-        y: height * 0.2,
-        radius: Math.min(width, height) * 0.2,
-        fill: accent,
-        opacity: 0.65,
-      },
-      {
-        kind: "circle",
-        x: width * 0.88,
-        y: height * 0.22,
-        radius: Math.min(width, height) * 0.11,
-        fill: primary,
-        opacity: 0.35,
-      },
-    ];
-  if (snapshot.design.graphic === "fine_lines")
-    return Array.from({ length: 7 }, (_, i) => ({
-      kind: "line",
-      x: width * 0.72 + i * width * 0.035,
-      y: 0,
-      x2: width * 0.72 + i * width * 0.035,
-      y2: height,
-      color: accent,
-      width: 1.5,
-    }));
-  if (snapshot.design.graphic === "bold_blocks")
-    return [
-      rect(width * 0.78, 0, width * 0.22, height * 0.4, primary),
-      rect(width * 0.88, height * 0.4, width * 0.12, height * 0.6, accent),
-    ];
-  return [];
-}
-/** Original raster geometry is contained, never cropped or presented as vector.
- * No box is drawn behind it: the surface decides which logo copy sits on it. */
-function logoFrame(surface: string, x: number, y: number, width: number, height: number, inset = 0.08): Shape[] {
-  const pad = Math.min(width, height) * inset;
+/** A rising line across a region with three data points: two small ink dots and
+ * one larger accent dot. The line runs edge to edge; the dots sit inside. */
+function risingLine(
+  theme: Theme,
+  region: { x: number; y: number; width: number; height: number },
+  options: { top: number; degrees: number; stroke: number; dot: number; mark: number },
+): Shape[] {
+  const slope = Math.tan((options.degrees * Math.PI) / 180),
+    center = { x: region.x + region.width / 2, y: region.y + region.height * options.top };
+  const yAt = (x: number) => center.y - (x - center.x) * slope;
+  // The line in the design is 112% of the region wide before it is turned; the
+  // dots sit along it, each placed by its left edge.
+  const span = region.width * 1.12 * Math.cos((options.degrees * Math.PI) / 180);
+  const along = (t: number, radius: number) => {
+    const x = center.x + (t - 0.5) * span + radius;
+    return { x, y: yAt(x) };
+  };
+  const [first, second, third] = [along(0.2, options.dot), along(0.54, options.mark), along(0.84, options.dot)];
   return [
     {
-      kind: "image",
-      source: isDarkColor(surface) ? "logoReversed" : "logo",
-      x: x + pad,
-      y: y + pad,
-      width: width - pad * 2,
-      height: height - pad * 2,
+      kind: "line",
+      x: region.x,
+      y: yAt(region.x),
+      x2: region.x + region.width,
+      y2: yAt(region.x + region.width),
+      color: theme.accent,
+      width: options.stroke,
     },
+    { kind: "circle", x: first!.x, y: first!.y, radius: options.dot, fill: theme.ink },
+    { kind: "circle", x: second!.x, y: second!.y, radius: options.mark, fill: theme.accent },
+    { kind: "circle", x: third!.x, y: third!.y, radius: options.dot, fill: theme.ink },
   ];
 }
 
 // Wrapping estimates a generous average glyph width; drawing still shrinks a
 // line that measures wider, and lines of one block share the smallest size.
-const AVERAGE_ADVANCE = 0.56;
-function wrapLines(value: string, size: number, maxWidth: number, maxLines: number): string[] | null {
+const AVERAGE_ADVANCE = 0.5;
+function greedyLines(value: string, size: number, maxWidth: number): string[] {
   const perLine = Math.max(1, Math.floor(maxWidth / (size * AVERAGE_ADVANCE))),
     lines: string[] = [];
   for (const word of value.split(" ")) {
@@ -170,57 +278,90 @@ function wrapLines(value: string, size: number, maxWidth: number, maxLines: numb
     if (last !== undefined && `${last} ${word}`.length <= perLine) lines[lines.length - 1] = `${last} ${word}`;
     else lines.push(word);
   }
-  return lines.length <= maxLines ? lines : null;
+  return lines;
 }
-type Block = { text: string | null; heading: boolean; size: number; maxLines: number };
+/** Balanced wrapping: the fewest lines, then the narrowest width that keeps them. */
+function wrapLines(value: string, size: number, maxWidth: number, maxLines: number): string[] | null {
+  const lines = greedyLines(value, size, maxWidth);
+  if (lines.length > maxLines) return null;
+  let best = lines;
+  for (let width = maxWidth * 0.95; lines.length > 1 && width > maxWidth * 0.4; width *= 0.95) {
+    const narrower = greedyLines(value, size, width);
+    if (narrower.length !== lines.length) break;
+    best = narrower;
+  }
+  return best;
+}
+type Block = {
+  text: string | null;
+  heading: boolean;
+  size: number;
+  maxLines: number;
+  lineHeight: number;
+  /** Narrower than the column, for a measure. */
+  maxWidth?: number;
+  weight?: number;
+};
 type Column = {
   x: number;
   maxWidth: number;
   align: "left" | "center";
   top: number;
   bottom: number;
-  place: "center" | "bottom";
+  place: "top" | "center" | "bottom";
   color: string;
   group: string;
+  /** Space between blocks. */
+  gap: number;
 };
 /** Stacks saved text inside a column, leaving out blocks that cannot fit. */
-function textStack(snapshot: BrandAssetSnapshot, blocks: readonly Block[], column: Column): TextShape[] {
+function textStack(
+  snapshot: BrandAssetSnapshot,
+  blocks: readonly Block[],
+  column: Column,
+): { nodes: TextShape[]; height: number } {
   const laid = blocks.flatMap((block, index) => {
     if (!block.text) return [];
+    const width = Math.min(block.maxWidth ?? column.maxWidth, column.maxWidth);
     for (const scale of [1, 0.9, 0.8, 0.7, 0.6]) {
-      const lines = wrapLines(block.text, block.size * scale, column.maxWidth, block.maxLines);
-      if (lines) return [{ ...block, index, size: block.size * scale, lines }];
+      const lines = wrapLines(block.text, block.size * scale, width, block.maxLines);
+      if (lines) return [{ ...block, index, width, size: block.size * scale, lines }];
     }
     return [];
   });
-  const leading = (row: { heading: boolean; size: number }) => row.size * (row.heading ? 1.12 : 1.4);
-  const natural = laid.reduce(
-    (sum, row, index) => sum + row.lines.length * leading(row) + (index ? row.size * 0.9 : 0),
-    0,
-  );
+  const leading = (row: { size: number; lineHeight: number }) => row.size * row.lineHeight;
+  const natural = laid.reduce((sum, row, index) => sum + row.lines.length * leading(row) + (index ? column.gap : 0), 0);
   const available = column.bottom - column.top,
     fit = natural > available ? available / natural : 1;
-  let cursor = column.place === "bottom" ? column.bottom - natural * fit : column.top + (available - natural * fit) / 2;
-  return laid.flatMap((row, index) => {
+  let cursor =
+    column.place === "bottom"
+      ? column.bottom - natural * fit
+      : column.place === "top"
+        ? column.top
+        : column.top + (available - natural * fit) / 2;
+  const nodes = laid.flatMap((row, index) => {
     const size = row.size * fit,
       lineHeight = leading(row) * fit;
-    if (index) cursor += size * 0.9;
+    if (index) cursor += column.gap * fit;
     return row.lines.map((line) => {
       cursor += lineHeight;
+      const baseline = cursor - ((lineHeight - size) / 2 + size * 0.22);
       const node = text(
         snapshot,
         line,
         column.x,
-        cursor - lineHeight * 0.26,
+        baseline,
         size,
-        column.maxWidth,
+        row.width,
         row.heading,
         column.color,
         column.align,
+        row.weight === undefined ? {} : { weight: row.weight },
       );
       return { ...node, group: `${column.group}-${row.index}` };
     });
   });
+  return { nodes, height: natural * fit };
 }
 
 export function createBrandApplication(
@@ -229,226 +370,345 @@ export function createBrandApplication(
   copy: BrandCopy = brandCopy(snapshot),
 ): BrandArtwork {
   const { width: w, height: h } = spec,
-    p = snapshot.palette,
-    fg = foreground(snapshot, p.background),
-    pad = w * 0.065;
-  const nodes: Shape[] = [rect(0, 0, w, h, p.background), ...graphics(snapshot, w, h)];
-  // Bold blocks fill the right edge (fully above 40% height): text stays clear of them.
-  const blocks = snapshot.design.graphic === "bold_blocks",
-    clear = (x: number, maxWidth: number, upper = false) =>
-      blocks ? Math.min(maxWidth, w * (upper ? 0.75 : 0.85) - x) : maxWidth;
-  const posts = (
-    column: Omit<Column, "color" | "group">,
-    headingSize: number,
-    messageSize: number,
-    headingLines: number,
-    messageLines: number,
-  ) =>
-    textStack(
-      snapshot,
-      [
-        { text: copy.headline, heading: true, size: headingSize, maxLines: headingLines },
-        { text: copy.message, heading: false, size: messageSize, maxLines: messageLines },
-      ],
-      { ...column, color: fg, group: spec.id },
-    );
+    theme = templateTheme(snapshot),
+    lines = theme.family === "lines",
+    u = w / 100,
+    hairline = Math.max(1, w / 1080);
+  const nodes: Shape[] = [rect(0, 0, w, h, theme.field)];
+  const logo = (x: number, y: number, width: number, height: number, anchor: "center" | "start" = "center"): Shape => ({
+    kind: "image",
+    source: theme.logo,
+    x,
+    y,
+    width,
+    height,
+    anchor,
+  });
   if (spec.id === "profile") {
     // Fits inside a common circular profile crop, including the original rectangular artwork.
-    nodes.push(...logoFrame(p.background, w * 0.18, h * 0.18, w * 0.64, h * 0.64));
-  } else if (w / h > 2) {
-    const centered = snapshot.design.layout === "centered",
-      split = snapshot.design.layout === "split";
-    if (split) nodes.push(rect(0, 0, w * 0.4, h, p.primary));
-    const nameY = copy.tagline ? h * 0.43 : h * 0.57;
-    if (centered) {
-      nodes.push(...logoFrame(p.background, w * 0.065, h * 0.16, w * 0.23, h * 0.68));
+    if (lines) nodes.push(...grid(theme, 0, 0, w, h, 5 * u, hairline));
+    nodes.push(logo(w * 0.19, h * 0.19, w * 0.62, h * 0.62));
+  } else if (spec.id === "post-square" || spec.id === "post-portrait") {
+    const region = { x: w * 0.38, y: 0, width: w * 0.62, height: h * 0.52 };
+    if (lines)
       nodes.push(
-        text(snapshot, snapshot.name, w * 0.59, nameY, h * 0.17, blocks ? w * 0.32 : w * 0.55, true, fg, "center"),
+        ...grid(theme, region.x, region.y, region.width, region.height, 5 * u, hairline),
+        ...risingLine(theme, region, { top: 0.56, degrees: 16, stroke: 0.4 * u, dot: u, mark: 1.4 * u }),
       );
-      if (copy.tagline)
-        nodes.push(
-          text(snapshot, copy.tagline, w * 0.59, h * 0.66, h * 0.075, blocks ? w * 0.5 : w * 0.55, false, fg, "center"),
-        );
-    } else {
-      nodes.push(...logoFrame(split ? p.primary : p.background, pad, h * 0.17, w * 0.25, h * 0.66));
-      nodes.push(
-        text(
-          snapshot,
-          snapshot.name,
-          w * 0.43,
-          nameY,
-          h * 0.18,
-          clear(w * 0.43, w * 0.49, Boolean(copy.tagline)),
-          true,
-          fg,
-        ),
-      );
-      if (copy.tagline)
-        nodes.push(text(snapshot, copy.tagline, w * 0.43, h * 0.68, h * 0.075, clear(w * 0.43, w * 0.49), false, fg));
-    }
-  } else if (snapshot.design.layout === "centered") {
-    nodes.push(...logoFrame(p.background, w * 0.27, h * 0.14, w * 0.46, h * 0.25));
+    else nodes.push(frame(w, h, 3.2 * u, 0.35 * u, theme.ink), frame(w, h, 4.6 * u, 0.12 * u, theme.ink));
+    nodes.push(logo(8 * u, 8 * u, 24 * u, 24 * u, "start"));
     nodes.push(
-      ...posts(
+      ...textStack(
+        snapshot,
+        [
+          { text: copy.headline, heading: true, size: 10 * u, maxLines: 3, lineHeight: 1.04 },
+          { text: copy.message, heading: false, size: 3.5 * u, maxLines: 4, lineHeight: 1.4, maxWidth: 62 * u },
+        ],
         {
-          x: w / 2,
-          maxWidth: blocks ? w * 0.7 : w * 0.8,
-          align: "center",
-          top: h * 0.44,
-          bottom: h * 0.87,
-          place: "center",
-        },
-        w * 0.087,
-        w * 0.03,
-        3,
-        4,
-      ),
-    );
-    nodes.push(text(snapshot, snapshot.name, w / 2, h * 0.93, w * 0.024, w * 0.8, false, fg, "center"));
-  } else if (snapshot.design.layout === "split") {
-    nodes.push(rect(0, 0, w * 0.46, h, p.primary));
-    nodes.push(...logoFrame(p.primary, w * 0.055, h * 0.34, w * 0.35, h * 0.3));
-    nodes.push(
-      ...posts(
-        {
-          x: w * 0.52,
-          maxWidth: clear(w * 0.52, w * 0.41),
+          x: 8 * u,
+          maxWidth: 84 * u,
           align: "left",
-          top: blocks ? h * 0.44 : h * 0.12,
-          bottom: h * 0.85,
-          place: "center",
+          top: lines ? region.height + 3 * u : 36 * u,
+          bottom: h - 9 * u,
+          place: "bottom",
+          color: theme.ink,
+          group: spec.id,
+          gap: 2.6 * u,
         },
-        w * 0.075,
-        w * 0.026,
-        4,
-        6,
-      ),
+      ).nodes,
     );
-    nodes.push(text(snapshot, snapshot.name, w * 0.52, h * 0.92, w * 0.023, w * 0.41, false, fg));
   } else {
-    nodes.push(...logoFrame(p.background, pad, h * 0.08, w * 0.32, h * 0.19));
+    const cover = spec.id === "banner-cover";
+    if (lines) {
+      const region = { x: 0, y: 0, width: w * 0.44, height: h };
+      nodes.push(
+        ...grid(theme, region.x, region.y, region.width, region.height, 2.5 * u, hairline),
+        ...risingLine(theme, region, { top: 0.54, degrees: 12, stroke: 0.2 * u, dot: 0.5 * u, mark: 0.7 * u }),
+      );
+    } else nodes.push(frame(w, h, 1.4 * u, 0.18 * u, theme.ink), frame(w, h, 2 * u, 0.06 * u, theme.ink));
+    const box = (cover ? 13 : 17) * u,
+      left = w * 0.48,
+      textX = left + box + 4 * u;
+    nodes.push(logo(left, (h - box) / 2, box, box));
     nodes.push(
-      ...posts(
-        { x: pad, maxWidth: clear(pad, w * 0.82), align: "left", top: h * 0.42, bottom: h * 0.87, place: "bottom" },
-        w * 0.09,
-        w * 0.03,
-        3,
-        4,
-      ),
+      ...textStack(
+        snapshot,
+        [{ text: copy.headline, heading: true, size: (cover ? 3.4 : 4.4) * u, maxLines: 3, lineHeight: 1.1 }],
+        {
+          x: textX,
+          maxWidth: w * 0.94 - textX,
+          align: "left",
+          top: h * 0.14,
+          bottom: h * 0.86,
+          place: "center",
+          color: theme.ink,
+          group: spec.id,
+          gap: 0,
+        },
+      ).nodes,
     );
-    nodes.push(text(snapshot, snapshot.name, pad, h * 0.94, w * 0.024, w * 0.82, false, fg));
   }
   return { width: w, height: h, title: `${snapshot.name} — ${spec.label}`, nodes };
 }
-function placed(art: BrandArtwork, x: number, y: number, width: number): Shape[] {
-  const s = width / art.width;
-  return [
-    rect(x - 1, y - 1, width + 2, art.height * s + 2, "#D5D5D5"),
-    ...art.nodes.map((node) => {
-      const common = { ...node, x: x + node.x * s, y: y + node.y * s };
-      if (node.kind === "rect")
-        return { ...common, width: node.width * s, height: node.height * s, radius: (node.radius ?? 0) * s } as Shape;
-      if (node.kind === "circle") return { ...common, radius: node.radius * s } as Shape;
-      if (node.kind === "line")
-        return { ...common, x2: x + node.x2 * s, y2: y + node.y2 * s, width: node.width * s } as Shape;
-      if (node.kind === "image") return { ...common, width: node.width * s, height: node.height * s } as Shape;
-      return { ...common, size: node.size * s, maxWidth: node.maxWidth * s } as Shape;
-    }),
-  ];
+
+/** Three 4:3 windows across the middle of a picture, used when no crops were measured. */
+export const DEFAULT_DIRECTION_CROPS: readonly BrandCrop[] = [0, 1, 2].map((index) => ({
+  x: index / 3,
+  y: 0.375,
+  width: 1 / 3,
+  height: 0.25,
+}));
+/** Picks three details of the chosen direction board to show "in practice": the
+ * most colorful 4:3 windows that hold no pale page (photographs and graphics
+ * rather than panels of text or swatch rows), not overlapping, in reading order.
+ * `pixels` is RGBA of a small copy of the board. */
+export function directionCrops(pixels: Uint8ClampedArray, width: number, height: number, count = 3): BrandCrop[] {
+  const cw = Math.max(1, Math.round(width / 5)),
+    ch = Math.max(1, Math.round((cw * 3) / 4));
+  if (pixels.length < width * height * 4 || ch > height) return [...DEFAULT_DIRECTION_CROPS];
+  const step = Math.max(1, Math.round(cw / 8));
+  const windows: { x: number; y: number; score: number }[] = [];
+  for (let y = 0; y + ch <= height; y += step)
+    for (let x = 0; x + cw <= width; x += step) {
+      let n = 0,
+        rg = 0,
+        yb = 0,
+        rg2 = 0,
+        yb2 = 0,
+        l = 0,
+        l2 = 0,
+        pale = 0;
+      for (let row = y; row < y + ch; row++)
+        for (let col = x; col < x + cw; col++) {
+          const i = (row * width + col) * 4,
+            r = pixels[i]!,
+            g = pixels[i + 1]!,
+            b = pixels[i + 2]!;
+          const a = r - g,
+            c = (r + g) / 2 - b,
+            lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+          n++;
+          rg += a;
+          yb += c;
+          rg2 += a * a;
+          yb2 += c * c;
+          l += lum;
+          l2 += lum * lum;
+          // Page white and light greys: the paper behind text and swatches.
+          if (lum > 215 && Math.max(r, g, b) - Math.min(r, g, b) < 24) pale++;
+        }
+      const mrg = rg / n,
+        myb = yb / n,
+        srg = Math.max(0, rg2 / n - mrg * mrg),
+        syb = Math.max(0, yb2 / n - myb * myb),
+        sl = Math.sqrt(Math.max(0, l2 / n - (l / n) ** 2));
+      const colorfulness = Math.sqrt(srg + syb) + 0.3 * Math.sqrt(mrg * mrg + myb * myb);
+      windows.push({ x, y, score: (colorfulness + 0.25 * sl) * (1 - pale / n) ** 3 });
+    }
+  windows.sort((a, b) => b.score - a.score || a.y - b.y || a.x - b.x);
+  const chosen: { x: number; y: number }[] = [];
+  for (const candidate of windows) {
+    if (chosen.length === count) break;
+    if (chosen.every((other) => Math.abs(other.x - candidate.x) >= cw || Math.abs(other.y - candidate.y) >= ch))
+      chosen.push(candidate);
+  }
+  const crops = chosen
+    .sort((a, b) => a.y - b.y || a.x - b.x)
+    .map((window) => ({ x: window.x / width, y: window.y / height, width: cw / width, height: ch / height }));
+  return crops.length === count ? crops : [...DEFAULT_DIRECTION_CROPS];
 }
+
+/** The brand board (1600 × 2200): the logo on light and dark, the color roles,
+ * the type pair set in saved words and three details of the chosen direction. */
 export function createFinalBrandBoard(
   snapshot: BrandAssetSnapshot,
   copy: BrandCopy = brandCopy(snapshot),
+  extras: { direction?: string | null; crops?: readonly BrandCrop[] } = {},
 ): BrandArtwork {
   const p = snapshot.palette,
-    fg = foreground(snapshot, p.background),
     w = 1600,
     h = 2200,
-    round = snapshot.design.graphic === "rounded_shapes" ? 24 : 0;
-  const nodes: Shape[] = [rect(0, 0, w, h, p.background), ...graphics(snapshot, w, 340)];
-  nodes.push(
-    text(snapshot, "BRAND IDENTITY", 80, 72, 20, 1400, false, fg),
-    text(snapshot, snapshot.name, 80, copy.tagline ? 176 : 186, 100, 1440, true, fg),
-  );
-  if (copy.tagline) nodes.push(text(snapshot, copy.tagline, 80, 232, 30, 1440, false, fg));
-  // The logo on the brand background, and on a contrasting palette color.
-  const top = copy.tagline ? 270 : 250,
-    height = 690 - top,
+    u = w / 100,
+    pad = 6 * u,
+    inner = w - pad * 2,
+    gap = 2 * u,
+    section = 4.4 * u,
+    small = 1.5 * u,
+    title = 2.6 * u;
+  const paper = p.background,
+    ink = readableOn(snapshot, paper),
     surfaces = logoSurfaces(snapshot);
-  const second = isDarkColor(p.background) ? surfaces.light : surfaces.dark,
-    half = second && second !== p.background ? 700 : 1440;
-  const caption = (surface: string) =>
-    isDarkColor(surface) ? "ONE-COLOR REVERSED VERSION, FOR DARK BACKGROUNDS" : "YOUR LOGO";
+  const nodes: Shape[] = [rect(0, 0, w, h, paper)];
+  const heading = (value: string, y: number) => text(snapshot, value, pad, y + title * 0.8, title, inner, true, ink);
+  let y = pad;
   nodes.push(
-    { kind: "rect", x: 80, y: top, width: half, height, fill: fg, radius: round, opacity: 0.16 },
-    rect(81.5, top + 1.5, half - 3, height - 3, p.background, round),
+    text(snapshot, "BRAND BOARD", pad, y + small * 0.8, small, inner / 2, false, ink, "left", { tracking: 0.12 }),
   );
-  nodes.push(
-    ...logoFrame(p.background, 80, top, half, height, 0.14),
-    text(snapshot, caption(p.background), 80, 730, 18, half, false, fg),
-  );
-  if (half === 700)
+  const direction = cleanText(extras.direction);
+  if (direction)
     nodes.push(
-      rect(820, top, 700, height, second!, round),
-      ...logoFrame(second!, 820, top, 700, height, 0.14),
-      text(snapshot, caption(second!), 820, 730, 18, 700, false, fg),
+      text(snapshot, direction.toUpperCase(), pad + inner / 2, y + small * 0.8, small, inner / 2, false, ink, "right", {
+        tracking: 0.12,
+      }),
     );
-  nodes.push(text(snapshot, "Color palette", 80, 820, 42, 1400, true, fg));
-  const columns = Math.min(8, snapshot.colors.length),
-    cell = 1440 / columns;
-  snapshot.colors.forEach((color, index) => {
-    const x = 80 + (index % columns) * cell,
-      y = 860 + Math.floor(index / columns) * 140;
+  y += small * 1.2 + section;
+
+  // The logo on the page color, and the reversed copy on a dark palette color.
+  const tileW = (inner - gap) / 2,
+    tileH = (tileW * 3) / 4;
+  const second = isDarkColor(paper)
+    ? surfaces.light !== paper
+      ? surfaces.light
+      : null
+    : surfaces.dark && surfaces.dark !== paper
+      ? surfaces.dark
+      : null;
+  const tiles: [string, string][] = [[paper, "Logo"]];
+  if (second) tiles.push([second, isDarkColor(second) ? "Reversed, for dark backgrounds" : "On light backgrounds"]);
+  tiles.forEach(([surface, caption], index) => {
+    const x = pad + index * (tileW + gap);
     nodes.push(
-      rect(x, y, cell - 12, 74, fg),
-      rect(x + 1, y + 1, cell - 14, 72, color.hex),
-      text(snapshot, color.name, x, y + 100, 19, cell - 14, false, fg),
-      text(snapshot, color.hex, x, y + 126, 17, cell - 14, false, fg),
+      surface === paper
+        ? { kind: "rect", x, y, width: tileW, height: tileH, fill: surface, stroke: EXPORT_RULE, strokeWidth: 2 }
+        : rect(x, y, tileW, tileH, surface),
+      {
+        kind: "image",
+        source: isDarkColor(surface) ? "logoReversed" : "logo",
+        x: x + tileW * 0.15,
+        y: y + tileH * 0.07,
+        width: tileW * 0.7,
+        height: tileH * 0.86,
+      },
+      text(snapshot, caption, x, y + tileH + u + small * 0.8, small, tileW, false, ink),
     );
   });
-  const typeY = snapshot.colors.length > 8 ? 1190 : 1050;
-  nodes.push(text(snapshot, "Typography", 80, typeY, 42, 1400, true, fg));
-  nodes.push(
-    text(snapshot, `${snapshot.heading.family} · ${snapshot.heading.weight}`, 80, typeY + 54, 20, 700, false, fg),
-    text(snapshot, "A distinct voice.", 80, typeY + 144, 64, 700, true, fg),
+  y += tileH + u + small * 1.2 + section;
+
+  // Color palette: the four roles with their values and use.
+  nodes.push(heading("Color palette", y));
+  y += title * 1.2 + 1.6 * u;
+  const colW = (inner - gap * 3) / 4,
+    swatchH = (colW * 2) / 3,
+    name = 1.6 * u,
+    meta = 1.4 * u;
+  brandRoleColors(snapshot).forEach((color, index) => {
+    const x = pad + index * (colW + gap);
+    let line = y + swatchH + 0.8 * u;
+    nodes.push({
+      kind: "rect",
+      x,
+      y,
+      width: colW,
+      height: swatchH,
+      fill: color.hex,
+      stroke: EXPORT_RULE,
+      strokeWidth: 2,
+    });
+    nodes.push(text(snapshot, color.name, x, line + name * 0.85, name, colW, false, ink, "left", { weight: 600 }));
+    line += name * 1.2 + 0.8 * u;
+    nodes.push(text(snapshot, color.hex, x, line + meta * 0.85, meta, colW, false, ink));
+    line += meta * 1.2 + 0.8 * u;
+    nodes.push(text(snapshot, color.short, x, line + meta * 0.85, meta, colW, false, ink));
+  });
+  y += swatchH + 0.8 * u + name * 1.2 + (0.8 * u + meta * 1.2) * 2 + section;
+
+  // Typography: the heading face set in the saved slogan, the body face in the positioning.
+  nodes.push(heading("Typography", y));
+  y += title * 1.2 + 1.6 * u;
+  const stack = (place: Column["place"], top: number, bottom: number) =>
+    [
+      textStack(
+        snapshot,
+        [
+          {
+            text: `Headings · ${snapshot.heading.family} ${snapshot.heading.weight}`,
+            heading: false,
+            size: meta,
+            maxLines: 1,
+            lineHeight: 1.3,
+          },
+          { text: copy.headline ?? snapshot.name, heading: true, size: 5.2 * u, maxLines: 2, lineHeight: 1.05 },
+        ],
+        {
+          x: pad,
+          maxWidth: tileW,
+          align: "left",
+          top,
+          bottom,
+          place,
+          color: ink,
+          group: "board-heading",
+          gap: 0.8 * u,
+        },
+      ),
+      textStack(
+        snapshot,
+        [
+          {
+            text: `Body · ${snapshot.body.family} ${snapshot.body.weight}`,
+            heading: false,
+            size: meta,
+            maxLines: 1,
+            lineHeight: 1.3,
+          },
+          {
+            text: copy.message ?? copy.tagline ?? snapshot.name,
+            heading: false,
+            size: 2.1 * u,
+            maxLines: 3,
+            lineHeight: 1.45,
+          },
+        ],
+        {
+          x: pad + tileW + gap,
+          maxWidth: tileW,
+          align: "left",
+          top,
+          bottom,
+          place,
+          color: ink,
+          group: "board-body",
+          gap: 0.8 * u,
+        },
+      ),
+    ] as const;
+  const measured = stack("top", y, y + 600),
+    typeBottom = y + Math.max(measured[0].height, measured[1].height);
+  for (const column of stack("bottom", y, typeBottom)) nodes.push(...column.nodes);
+  y = typeBottom + section;
+
+  // In practice: three details of the chosen direction board.
+  nodes.push(heading("In practice", y));
+  y += title * 1.2 + 1.6 * u;
+  const cropW = (inner - gap * 2) / 3,
+    cropH = (cropW * 3) / 4;
+  const crops = extras.crops?.length === 3 ? extras.crops : DEFAULT_DIRECTION_CROPS;
+  crops.forEach((crop, index) =>
+    nodes.push({
+      kind: "image",
+      source: "direction",
+      x: pad + index * (cropW + gap),
+      y,
+      width: cropW,
+      height: cropH,
+      crop,
+      fit: "cover",
+    }),
   );
+  y += cropH + 0.8 * u;
   nodes.push(
-    text(snapshot, `${snapshot.body.family} · ${snapshot.body.weight}`, 870, typeY + 54, 20, 650, false, fg),
-    text(snapshot, "The details make the difference.", 870, typeY + 112, 30, 650, false, fg),
-    text(snapshot, "Aa Bb Cc 0123456789", 870, typeY + 164, 30, 650, false, fg),
-  );
-  // In practice: a square post beside a wide banner over a portrait post and the
-  // profile image, scaled to fill the space above the footer.
-  const appsY = typeY + 260,
-    footerY = 2140,
-    scale = Math.min(1, (footerY - 80 - (appsY + 40)) / 664),
-    at = (value: number) => value * scale;
-  const square = at(664),
-    column = at(736),
-    x2 = 80 + square + at(40),
-    banner = column / 3,
-    row = square - banner - at(24);
-  nodes.push(text(snapshot, "In practice", 80, appsY, 42, 1400, true, fg));
-  nodes.push(...placed(createBrandApplication(snapshot, BRAND_APPLICATIONS[1], copy), 80, appsY + 40, square));
-  nodes.push(...placed(createBrandApplication(snapshot, BRAND_APPLICATIONS[3], copy), x2, appsY + 40, column));
-  nodes.push(
-    ...placed(
-      createBrandApplication(snapshot, BRAND_APPLICATIONS[2], copy),
-      x2,
-      appsY + 40 + banner + at(24),
-      row * 0.8,
+    text(
+      snapshot,
+      direction ? `Details from your direction board, ${direction}.` : "Details from your direction board.",
+      pad,
+      y + meta * 0.85,
+      meta,
+      inner,
+      false,
+      ink,
     ),
   );
-  nodes.push(
-    ...placed(
-      createBrandApplication(snapshot, BRAND_APPLICATIONS[0], copy),
-      x2 + row * 0.8 + at(24),
-      appsY + 40 + banner + at(24),
-      row,
-    ),
-  );
-  nodes.push(text(snapshot, "Logo · Color palette · Fonts · Social templates", 80, footerY, 22, 1440, false, fg));
-  return { width: w, height: h, title: `${snapshot.name} — Brand identity`, nodes };
+  return { width: w, height: h, title: `${snapshot.name} — Brand board`, nodes };
 }
 
 export type BrandImages = Record<
@@ -505,10 +765,14 @@ export function drawReversedLogo(
     data[index] = data[index + 1] = data[index + 2] = 255;
   });
 }
+function setTracking(ctx: CanvasRenderingContext2D, node: TextShape) {
+  if (node.tracking && "letterSpacing" in ctx) ctx.letterSpacing = `${node.tracking * node.size}px`;
+}
 function fitText(ctx: CanvasRenderingContext2D, input: TextShape, family: string): TextShape {
   let node = input;
   const setFont = () => {
     ctx.font = `${node.weight} ${node.size}px "${family}"`;
+    setTracking(ctx, node);
   };
   ctx.direction = brandTextDirection(node.text);
   setFont();
@@ -520,6 +784,39 @@ function fitText(ctx: CanvasRenderingContext2D, input: TextShape, family: string
   // final width so the editable SVG preserves the same complete lettering.
   if (ctx.measureText(node.text).width > node.maxWidth) node = { ...node, textLength: node.maxWidth };
   return node;
+}
+/** Where a picture is drawn: the source rectangle and the box it fills. */
+function placement(node: Extract<Shape, { kind: "image" }>, source: { width: number; height: number }) {
+  const crop = node.crop ?? { x: 0, y: 0, width: 1, height: 1 };
+  let sx = crop.x * source.width,
+    sy = crop.y * source.height,
+    sw = crop.width * source.width,
+    sh = crop.height * source.height;
+  if (node.fit === "cover") {
+    const target = node.width / node.height;
+    if (sw / sh > target) {
+      sx += (sw - sh * target) / 2;
+      sw = sh * target;
+    } else {
+      sy += (sh - sw / target) / 2;
+      sh = sw / target;
+    }
+    return { sx, sy, sw, sh, dx: node.x, dy: node.y, dw: node.width, dh: node.height };
+  }
+  const scale = Math.min(node.width / sw, node.height / sh),
+    dw = sw * scale,
+    dh = sh * scale,
+    start = node.anchor === "start";
+  return {
+    sx,
+    sy,
+    sw,
+    sh,
+    dx: start ? node.x : node.x + (node.width - dw) / 2,
+    dy: start ? node.y : node.y + (node.height - dh) / 2,
+    dw,
+    dh,
+  };
 }
 export function drawBrandArtwork(
   canvas: HTMLCanvasElement,
@@ -551,10 +848,17 @@ export function drawBrandArtwork(
     ctx.save();
     if (node.kind === "rect") {
       ctx.globalAlpha = node.opacity ?? 1;
-      ctx.fillStyle = node.fill;
       ctx.beginPath();
       ctx.roundRect(node.x, node.y, node.width, node.height, node.radius ?? 0);
-      ctx.fill();
+      if (node.fill !== "none") {
+        ctx.fillStyle = node.fill;
+        ctx.fill();
+      }
+      if (node.stroke && node.strokeWidth) {
+        ctx.strokeStyle = node.stroke;
+        ctx.lineWidth = node.strokeWidth;
+        ctx.stroke();
+      }
     } else if (node.kind === "circle") {
       ctx.globalAlpha = node.opacity ?? 1;
       ctx.fillStyle = node.fill;
@@ -562,6 +866,7 @@ export function drawBrandArtwork(
       ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
       ctx.fill();
     } else if (node.kind === "line") {
+      ctx.globalAlpha = node.opacity ?? 1;
       ctx.strokeStyle = node.color;
       ctx.lineWidth = node.width;
       ctx.beginPath();
@@ -570,26 +875,19 @@ export function drawBrandArtwork(
       ctx.stroke();
     } else if (node.kind === "image") {
       const source = images[node.source],
-        scale = Math.min(node.width / source.width, node.height / source.height),
-        width = source.width * scale,
-        height = source.height * scale;
-      ctx.drawImage(
-        source.image,
-        node.x + (node.width - width) / 2,
-        node.y + (node.height - height) / 2,
-        width,
-        height,
-      );
+        at = placement(node, source);
+      ctx.drawImage(source.image, at.sx, at.sy, at.sw, at.sh, at.dx, at.dy, at.dw, at.dh);
     } else {
       node = fitText(
         ctx,
         node.group ? { ...node, size: Math.min(node.size, groups.get(node.group) ?? node.size) } : node,
         family(node),
       );
-      const x = node.align !== "center" && brandTextDirection(node.text) === "rtl" ? node.x + node.maxWidth : node.x;
+      const rtl = brandTextDirection(node.text) === "rtl";
+      const x = node.align === "center" ? node.x : node.align === "right" || rtl ? node.x + node.maxWidth : node.x;
       ctx.fillStyle = node.color;
       ctx.textBaseline = "alphabetic";
-      ctx.textAlign = node.align === "center" ? "center" : "start";
+      ctx.textAlign = node.align === "center" ? "center" : node.align === "right" ? "right" : "start";
       ctx.fillText(node.text, x, node.y, node.maxWidth);
     }
     ctx.restore();
@@ -605,19 +903,24 @@ const xml = (value: string) =>
 export function editableBrandSvg(artwork: BrandArtwork, images: BrandImages): Uint8Array {
   const nodes = artwork.nodes.map((node) => {
     if (node.kind === "rect")
-      return `<rect x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}" rx="${node.radius ?? 0}" fill="${node.fill}" opacity="${node.opacity ?? 1}"/>`;
+      return `<rect x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}" rx="${node.radius ?? 0}" fill="${node.fill}" opacity="${node.opacity ?? 1}"${node.stroke && node.strokeWidth ? ` stroke="${node.stroke}" stroke-width="${node.strokeWidth}"` : ""}/>`;
     if (node.kind === "circle")
       return `<circle cx="${node.x}" cy="${node.y}" r="${node.radius}" fill="${node.fill}" opacity="${node.opacity ?? 1}"/>`;
     if (node.kind === "line")
-      return `<line x1="${node.x}" y1="${node.y}" x2="${node.x2}" y2="${node.y2}" stroke="${node.color}" stroke-width="${node.width}"/>`;
+      return `<line x1="${node.x}" y1="${node.y}" x2="${node.x2}" y2="${node.y2}" stroke="${node.color}" stroke-width="${node.width}" opacity="${node.opacity ?? 1}"/>`;
     if (node.kind === "image") {
-      const url = images[node.source].dataUrl;
+      const source = images[node.source],
+        url = source.dataUrl;
       if (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(url)) throw new BrandAssetError("source");
-      return `<image x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}" preserveAspectRatio="xMidYMid meet" href="${url}"/>`;
+      const at = placement(node, source);
+      // A nested viewport shows exactly the drawn part of the source.
+      return `<svg x="${at.dx}" y="${at.dy}" width="${at.dw}" height="${at.dh}" viewBox="${at.sx} ${at.sy} ${at.sw} ${at.sh}" preserveAspectRatio="none"><image width="${source.width}" height="${source.height}" href="${url}"/></svg>`;
     }
     const direction = brandTextDirection(node.text),
-      x = node.align !== "center" && direction === "rtl" ? node.x + node.maxWidth : node.x;
-    return `<text x="${x}" y="${node.y}" font-family="${xml(node.family)}" font-weight="${node.weight}" font-size="${node.size}" fill="${node.color}" direction="${direction}" unicode-bidi="isolate" text-anchor="${node.align === "center" ? "middle" : "start"}"${node.textLength === undefined ? "" : ` textLength="${node.textLength}" lengthAdjust="spacingAndGlyphs"`}>${xml(node.text)}</text>`;
+      rtl = direction === "rtl",
+      x = node.align === "center" ? node.x : node.align === "right" || rtl ? node.x + node.maxWidth : node.x;
+    const anchor = node.align === "center" ? "middle" : node.align === "right" ? (rtl ? "start" : "end") : "start";
+    return `<text x="${x}" y="${node.y}" font-family="${xml(node.family)}" font-weight="${node.weight}" font-size="${node.size}" fill="${node.color}" direction="${direction}" unicode-bidi="isolate" text-anchor="${anchor}"${node.tracking ? ` letter-spacing="${node.tracking * node.size}"` : ""}${node.textLength === undefined ? "" : ` textLength="${node.textLength}" lengthAdjust="spacingAndGlyphs"`}>${xml(node.text)}</text>`;
   });
   return new TextEncoder().encode(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${artwork.width}" height="${artwork.height}" viewBox="0 0 ${artwork.width} ${artwork.height}"><title>${xml(artwork.title)}</title><desc>Editable text and shapes. The logo remains an embedded raster image made from your original logo: with its light background removed on light colors, and as a one-color reversed version on dark colors. Install the linked fonts before editing.</desc>${nodes.join("")}</svg>`,
