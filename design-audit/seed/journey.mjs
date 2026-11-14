@@ -176,7 +176,7 @@ async function concepts(page, b) {
   await (await exploreReady(page)).click();
   const grid = page.getByRole("region", { name: "Logo concepts", exact: true });
   const ready = 6 - (b.failedLogoSlots ?? 0);
-  await expect(grid.getByRole("img", { name: "Image preview of saved logo concept" })).toHaveCount(ready, {
+  await expect(grid.getByRole("button", { name: /^Concept [1-6]$/u })).toHaveCount(ready, {
     timeout: GENERATION,
   });
   if (b.failedLogoSlots) {
@@ -187,8 +187,8 @@ async function concepts(page, b) {
 
 async function chooseLogo(page, b) {
   const grid = page.getByRole("region", { name: "Logo concepts", exact: true });
-  await grid.getByRole("button", { name: "Select concept 1", exact: true }).click();
-  await expect(grid.getByText(/Logo chosen/u)).toBeVisible();
+  await grid.getByRole("button", { name: "Concept 1", exact: true }).click();
+  await expect(grid.getByRole("heading", { name: "Your logo", exact: true })).toBeVisible();
   if (b.refine) await refine(page, b);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
 }
@@ -215,10 +215,10 @@ async function directions(page) {
 
 async function complete(page) {
   const step = page.getByRole("region", { name: "Creative direction", exact: true });
-  const first = step.getByRole("radio", { name: /^Direction 1: /u });
+  const first = step.getByRole("article", { name: /^Direction 1: /u }).getByRole("button", { name: /^Choose(n)?$/u });
   await expect(first).toBeEnabled({ timeout: GENERATION });
   await first.click();
-  await expect(first).toHaveAttribute("aria-checked", "true");
+  await expect(first).toHaveAttribute("aria-pressed", "true");
   await step.getByRole("link", { name: "Continue", exact: true }).click();
   await expect(page).toHaveURL(/\/logo\/deliverables/u, { timeout: 120_000 });
   const assets = page.getByRole("region", { name: "Brand assets", exact: true });

@@ -7,6 +7,7 @@ import { AccountSessionProvider, useAccountSession } from "@/components/workspac
 import { LogoCreationWorkspace } from "@/components/logo-creation/logo-creation-workspace";
 import { syntheticRefinementWorkspaceHttp } from "../fixtures/logo-refinement-workspace-http";
 import { logoFixtureId as id } from "../fixtures/logo-creation";
+import type { StepReply } from "@/features/logo-creation/model/step-reply";
 
 // The Logo screen on the generation engine, with the actual account, client and memory
 // over synthetic same-origin HTTP. No provider, database or Storage service.
@@ -56,7 +57,11 @@ async function until(check: () => void, rounds = 100) {
 }
 const grid = () => host.querySelector('[aria-label="Logo concepts"]')!;
 const button = (text: string) => [...host.querySelectorAll("button")].find((node) => node.textContent === text) ?? null;
-async function mount(projectId: string, fetcher: typeof fetch) {
+async function mount(
+  projectId: string,
+  fetcher: typeof fetch,
+  props: Partial<Parameters<typeof LogoCreationWorkspace>[0]> = {},
+) {
   vi.stubGlobal("fetch", fetcher);
   function App() {
     const account = useAccountSession();
@@ -64,7 +69,7 @@ async function mount(projectId: string, fetcher: typeof fetch) {
       "main",
       null,
       createElement("button", { onClick: account.refresh }, "Recheck account"),
-      createElement(LogoCreationWorkspace, { projectId }),
+      createElement(LogoCreationWorkspace, { projectId, ...props }),
     );
   }
   await act(async () => root.render(createElement(AccountSessionProvider, null, createElement(App))));
@@ -156,12 +161,52 @@ describe("the Logo screen on the generation engine", () => {
     const refine = () => host.querySelector<HTMLButtonElement>('button[aria-label="Refine"]')!;
     await until(() => expect(refine().disabled).toBe(false));
     await act(async () => refine().click());
+    // The refusal shows the Out-of-credits message in place (D-015), once, with the way to Plans.
     await until(() =>
       expect(host.textContent).toContain(
-        "You've used this month's credits. They renew on December 1. Your logos are saved.",
+        "You’ve used this month’s credits. New credits arrive on December 1. Your work is saved.",
       ),
     );
+    expect(host.textContent!.split("used this month").length).toBe(2);
+    expect([...host.querySelectorAll("a")].some((link) => link.textContent === "See plans")).toBe(true);
     expect(host.textContent).not.toMatch(/\$\d/u);
+    expect(f.quotes).toEqual([]);
+  }, 30_000);
+
+  it("hands a Send-driven reply box the chosen concept, and Send with text changes it with one request", async () => {
+    const f = await syntheticRefinementWorkspaceHttp(),
+      projectId = f.workspace.projectId,
+      base = `/api/projects/${projectId}/logo`;
+    const posts: { kind: string; input: Record<string, unknown> }[] = [];
+    const fetcher: typeof fetch = async (input, init) => {
+      const path = String(input).split("?")[0]!;
+      if (path === `${base}/engine`) return Response.json({ engine: true, runs: [] });
+      if (path === `/api/projects/${projectId}/generations` && init?.method === "POST") {
+        posts.push(JSON.parse(String(init.body)));
+        return Response.json({ error: { code: "busy" } }, { status: 409 });
+      }
+      return f.fetcher(input, init);
+    };
+    let reply: StepReply | null = null;
+    const onContinue = vi.fn();
+    await mount(projectId, fetcher, { reply: "external", onReplyChange: (value) => (reply = value), onContinue });
+    // The reply box carries the step: no Continue button and no change box of its own.
+    expect(button("Continue")).toBeNull();
+    expect(host.querySelector('textarea[aria-label="Describe a change to this logo"]')).toBeNull();
+    await until(() => {
+      expect(reply?.chips.map((chip) => chip.label)).toEqual(["Logo: Concept 1"]);
+      expect(reply?.canSend).toBe(true);
+      expect(reply?.acceptsText).toBe(true);
+    });
+    expect(reply!.sendLabel).toBe("Continue to Creative direction");
+    expect(reply!.outOfCredits).toBe(false);
+    await act(async () => reply!.send("Make the lettering bolder"));
+    await until(() => expect(posts).toHaveLength(1));
+    expect(posts[0]!.kind).toBe("logo.refine");
+    expect(posts[0]!.input.instruction).toBe("Make the lettering bolder");
+    expect(onContinue).not.toHaveBeenCalled();
+    await act(async () => reply!.send(""));
+    expect(onContinue).toHaveBeenCalledTimes(1);
     expect(f.quotes).toEqual([]);
   }, 30_000);
 });

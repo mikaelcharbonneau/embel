@@ -37,7 +37,10 @@ for (const [name, family, direction] of [
       .filter({ hasText: name });
     await expect(sample).toBeVisible();
     await expect(sample).toHaveAttribute("dir", direction);
-    await page.getByRole("radio", { name: /^Direction 1:/ }).click();
+    await page
+      .getByRole("article", { name: /^Direction 1:/ })
+      .getByRole("button", { name: "Choose", exact: true })
+      .click();
     await page.getByRole("link", { name: "Continue", exact: true }).click();
     await expect(page).toHaveURL(assetsUrl);
     const kit = page.getByRole("button", { name: "Download brand kit", exact: true });

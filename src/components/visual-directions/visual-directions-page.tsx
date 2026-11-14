@@ -23,6 +23,11 @@ import { LogoVerifiedPreview } from "@/components/logo-creation/verified-preview
 import { describeVisualDirections } from "./direction-presentation";
 import { hasCurrentBrandAssets } from "./selected-assets";
 import stage from "@/styles/branding-stage.module.css";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { runWithCreditsInPlace } from "@/components/billing/out-of-credits";
+import { NoCreditsNote, OutOfCreditsInPlace, useCreditBalance } from "@/components/logo-creation/credits-in-place";
+import type { StepReply } from "@/features/logo-creation/model/step-reply";
+import { useStepReply } from "@/features/logo-creation/use-step-reply";
 import {
   VisualDirectionsView,
   type VisualDirectionCard,
@@ -32,9 +37,15 @@ import {
 export function VisualDirectionsPage({
   projectId,
   variant = "page",
+  reply = "inline",
+  onReplyChange,
 }: {
   projectId: string;
   variant?: "page" | "conversation";
+  /** "external": a Send-driven reply box (the Workspace chat) moves the step on. See `StepReply`. */
+  reply?: "inline" | "external";
+  /** The step's reply-box state: the chosen direction as a chip, and Send continuing to Assets. */
+  onReplyChange?: (reply: StepReply | null) => void;
 }) {
   const { session } = useAccountSession();
   const router = useRouter(),
@@ -61,6 +72,8 @@ export function VisualDirectionsPage({
       account={session}
       projectId={projectId}
       variant={variant}
+      reply={reply}
+      onReplyChange={onReplyChange}
     />
   );
   return variant === "conversation" ? (
@@ -111,11 +124,20 @@ function OwnedVisualDirections({
   account,
   projectId,
   variant,
+  reply,
+  onReplyChange,
 }: {
   account: VerifiedAccount;
   projectId: string;
   variant: "page" | "conversation";
+  reply: "inline" | "external";
+  onReplyChange?: (reply: StepReply | null) => void;
 }) {
+  const router = useRouter();
+  // Credits are shown, never money: at 0 the step marks it before the click (D-014); a start refused for lack of
+  // credits shows the Out-of-credits message here instead of the app-wide prompt (D-015). The server decides.
+  const credits = useCreditBalance(account);
+  const [ranOut, setRanOut] = useState(false);
   const { isCurrent } = useAccountSession(),
     memory = useLogoDraftMemory();
   const logo = useLogoWorkspace({ projectId, memory });
@@ -215,7 +237,13 @@ function OwnedVisualDirections({
     historyRequest.current?.abort();
     historyRequest.current = null;
     setHistory(null);
-    void generation.controller?.start(input);
+    setRanOut(false);
+    const controller = generation.controller;
+    if (!controller) return;
+    void runWithCreditsInPlace(() => controller.start(input)).then(({ outOfCredits }) => {
+      credits.refresh();
+      if (outOfCredits) setRanOut(true);
+    });
   }
   // Creative direction starts once on arrival with a newly chosen logo: the
   // Continue click on the logo step is the deliberate request. One marker per
@@ -278,7 +306,7 @@ function OwnedVisualDirections({
       if (client.current()) setChoosing(null);
     }
   }
-  if (!isCurrent(account) || !identity.verified || identity.verified.userId !== account.userId) return null;
+  const visible = Boolean(isCurrent(account) && identity.verified && identity.verified.userId === account.userId);
   const descriptions = describeVisualDirections(batch?.systems ?? []);
   const cards = [0, 1, 2].map((index) => {
     const system = batch?.systems[index];
@@ -328,6 +356,34 @@ function OwnedVisualDirections({
     !identity.referencesPending &&
     hasCurrentBrandAssets(selection, source);
   const chosenTitle = descriptions.find((description) => description.id === selectedSystem?.id)?.title;
+  const assetsHref = `/brands/account/${projectId}/logo/deliverables`;
+  const noCredits = credits.balance !== null && credits.balance <= 0;
+  // The reply box (decision 2): the chosen direction as a chip; Send continues to Assets.
+  const stepReply: StepReply | null = visible
+    ? {
+        step: "direction",
+        chips: chosenTitle && showAssets ? [{ id: "direction", label: `Direction: ${chosenTitle}` }] : [],
+        placeholder: showAssets ? "Press Send to continue to Assets…" : "Choose a direction, then press Send…",
+        sendLabel: "Continue to Assets",
+        canSend: showAssets && !unresolved,
+        acceptsText: false,
+        outOfCredits: false,
+        working: unresolved,
+        stopLabel: "Stop drawing",
+        send: () => {
+          if (showAssets) router.push(assetsHref);
+        },
+        stop:
+          unresolved && generation.stopAcknowledgedBatchId !== generation.batch?.batchId
+            ? () => {
+                if (generation.retained) void generation.controller?.closeOriginal();
+                else void generation.controller?.stop();
+              }
+            : undefined,
+      }
+    : null;
+  useStepReply(stepReply, onReplyChange);
+  if (!visible) return null;
   return (
     <VisualDirectionsView
       brandName={brandName}
@@ -348,12 +404,21 @@ function OwnedVisualDirections({
         )
       }
       cards={cards}
+      reply={reply}
+      creditsNotice={
+        ranOut ? (
+          <OutOfCreditsInPlace periodEnd={credits.periodEnd} onDismiss={() => setRanOut(false)} />
+        ) : noCredits ? (
+          <NoCreditsNote periodEnd={credits.periodEnd} />
+        ) : null
+      }
       generation={{
         status: visibleStatus,
         completed: requestBatch?.systems.length ?? 0,
         // Amounts stay on the Usage page; the journey shows no money (2026-11-06).
         usageLabel: null,
-        error: generation.error ?? identity.error ?? logo.error ?? shownHistory?.error,
+        // A refusal for lack of credits is told once, in place, by the Out-of-credits message.
+        error: ranOut ? null : (generation.error ?? identity.error ?? logo.error ?? shownHistory?.error),
         busy: Boolean(generation.busy || shownHistory?.busy),
         disabledReason: blockedReason,
         onGenerate: start,
@@ -381,9 +446,9 @@ function OwnedVisualDirections({
       }
       finalAction={
         showAssets && (
-          <Link className="identity-primary-button" href={`/brands/account/${projectId}/logo/deliverables`}>
+          <ButtonLink variant="primary" href={assetsHref}>
             Continue
-          </Link>
+          </ButtonLink>
         )
       }
       history={
@@ -392,21 +457,20 @@ function OwnedVisualDirections({
             <p>You are viewing an earlier saved set. The progress above is for your latest request.</p>
           )}
           {generation.retained && generation.lookup === "not_found" && (
-            <button
-              type="button"
-              className="identity-secondary-button"
+            <Button
+              size="sm"
               disabled={Boolean(generation.busy)}
               onClick={() => void generation.controller?.retryOriginal()}
             >
               Retry original request
-            </button>
+            </Button>
           )}
           {selectedBatchId && selectedBatchId !== batch?.batchId && (
             <p>
               Your chosen direction is in an earlier set.{" "}
               <button
                 type="button"
-                className="text-link"
+                className="e-link"
                 disabled={Boolean(shownHistory?.busy)}
                 onClick={() => void viewBatch(selectedBatchId)}
               >
@@ -418,19 +482,18 @@ function OwnedVisualDirections({
             <details>
               <summary>Earlier sets</summary>
               {earlierSets.map((batchId, index) => (
-                <button
+                <Button
                   key={batchId}
-                  type="button"
-                  className="identity-secondary-button"
+                  size="sm"
                   disabled={batch?.batchId === batchId || Boolean(shownHistory?.busy)}
                   onClick={() => void viewBatch(batchId)}
                 >
                   Saved set {earlierSets.length - index}
-                </button>
+                </Button>
               ))}
               {identity.nextCursor && (
                 <button
-                  className="text-link"
+                  className="e-link"
                   type="button"
                   disabled={identity.loadingMore}
                   onClick={() => void identity.loadMore()}

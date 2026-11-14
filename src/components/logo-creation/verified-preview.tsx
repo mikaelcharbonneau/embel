@@ -4,38 +4,36 @@ import type { IdentityAssetReceipt } from "../../domain/logo-deliverables";
 import type { AccountLogoClient } from "../identity/account-logo-client";
 import { privatePreviewIdentity } from "../assets/private-preview-identity";
 
-/** The shared client checks owner/hash/MIME and returns a releasable object URL.
- * Failed image reads leave their accepted immutable result metadata untouched. */
-export function LogoVerifiedPreview({
-  client,
-  receipt,
-  alt = "Image preview of saved logo concept",
-}: {
-  client: AccountLogoClient;
-  receipt: IdentityAssetReceipt;
-  alt?: string;
-}) {
+/** The shared client checks owner/hash/MIME and returns a releasable object URL (a blob, so its pixels are readable
+ * by the logo reveal). Failed image reads leave their accepted immutable result metadata untouched. */
+export function useVerifiedPreview(
+  client: AccountLogoClient | null,
+  receipt: IdentityAssetReceipt | null,
+): { url: string | null; failed: boolean } {
   const [state, setState] = useState<{
     client: AccountLogoClient;
     key: string;
     url: string | null;
     failed: boolean;
   } | null>(null);
-  const key = privatePreviewIdentity(receipt.reference, [
-    receipt.id,
-    receipt.publicationState,
-    receipt.purpose,
-    receipt.sourceReceiptId,
-    receipt.rightsEvidenceId,
-    receipt.verification.status,
-    receipt.verification.contentHash,
-    receipt.verification.mimeType,
-    receipt.verification.byteLength,
-  ]);
+  const key = receipt
+    ? privatePreviewIdentity(receipt.reference, [
+        receipt.id,
+        receipt.publicationState,
+        receipt.purpose,
+        receipt.sourceReceiptId,
+        receipt.rightsEvidenceId,
+        receipt.verification.status,
+        receipt.verification.contentHash,
+        receipt.verification.mimeType,
+        receipt.verification.byteLength,
+      ])
+    : null;
   if (state && (state.client !== client || state.key !== key)) setState(null);
   const readReceipt = useEffectEvent(() => receipt);
   useEffect(() => {
     const receipt = readReceipt();
+    if (!client || !key || !receipt) return;
     const controller = new AbortController();
     let preview: { url: string; release(): void } | null = null;
     void client
@@ -57,10 +55,23 @@ export function LogoVerifiedPreview({
     };
   }, [client, key]);
   const visible = state?.client === client && state.key === key ? state : null;
-  return visible?.url ? (
+  return { url: visible?.url ?? null, failed: Boolean(visible?.failed) };
+}
+
+export function LogoVerifiedPreview({
+  client,
+  receipt,
+  alt = "Image preview of saved logo concept",
+}: {
+  client: AccountLogoClient;
+  receipt: IdentityAssetReceipt;
+  alt?: string;
+}) {
+  const { url, failed } = useVerifiedPreview(client, receipt);
+  return url ? (
     // eslint-disable-next-line @next/next/no-img-element -- private verified object URL; no external image optimizer.
-    <img src={visible.url} alt={alt} />
+    <img src={url} alt={alt} />
   ) : (
-    <p>{visible?.failed ? "Image preview unavailable. Saved result retained." : "Loading image preview…"}</p>
+    <p>{failed ? "Image preview unavailable. Saved result retained." : "Loading image preview…"}</p>
   );
 }

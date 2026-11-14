@@ -50,12 +50,12 @@ const STATE = {
     });
     if (b.failedLogoSlots)
       await expect(page.getByRole("button", { name: `Retry ${b.failedLogoSlots} failed concepts` })).toBeVisible();
-    await expect(grid.getByText(/Logo chosen/u)).toHaveCount(0);
+    await expect(grid.getByRole("heading", { name: "Your logo", exact: true })).toHaveCount(0);
   },
   directions: async (page) => {
     const step = page.getByRole("region", { name: "Creative direction", exact: true });
     await expect(step.getByText("3 of 3 ready", { exact: true })).toBeVisible({ timeout: 60_000 });
-    await expect(step.getByRole("radio", { checked: true })).toHaveCount(0);
+    await expect(step.getByRole("button", { name: "Chosen", pressed: true })).toHaveCount(0);
   },
   complete: async (page, b, projectId) => {
     await page.goto(`/brands/account/${projectId}/logo/deliverables`);
