@@ -10,22 +10,22 @@
   display: grid;
   place-items: center;
   padding: 0;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 50%;
-  background: var(--paper);
-  color: var(--text);
+  background: var(--color-bg-paper);
+  color: var(--color-text);
   cursor: pointer;
   box-shadow: 0 1px 4px #19191908;
 }
 .project-card-menu-trigger:hover,
 .project-card-menu-trigger[aria-expanded="true"] {
-  background: var(--surface);
-  border-color: var(--border-strong);
+  background: var(--color-bg-sunken);
+  border-color: var(--color-border-strong);
 }
 .project-card-menu-trigger:focus-visible,
 .project-card-menu button:focus-visible,
 .project-restore-button:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--color-accent);
   outline-offset: 3px;
 }
 .project-card-menu {
@@ -34,9 +34,9 @@
   right: 0;
   min-width: 168px;
   padding: 5px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
-  background: var(--paper);
+  background: var(--color-bg-paper);
   box-shadow: 0 8px 24px #19191920;
 }
 .project-card-menu button {
@@ -55,11 +55,11 @@
   cursor: pointer;
 }
 .project-card-menu .project-card-delete {
-  color: var(--danger);
+  color: var(--color-text-danger);
 }
 .project-card-menu .project-card-delete:hover,
 .project-card-menu .project-card-delete:focus-visible {
-  background: var(--danger-soft);
+  background: var(--color-bg-danger-soft);
 }
 .project-restore-button {
   display: inline-flex;
@@ -67,27 +67,27 @@
   gap: 6px;
   min-height: 36px;
   padding: 5px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
-  background: var(--paper);
-  color: var(--text);
+  background: var(--color-bg-paper);
+  color: var(--color-text);
   font: inherit;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
 }
 .project-restore-button:hover {
-  background: var(--surface);
+  background: var(--color-bg-sunken);
 }
 .project-lifecycle-dialog {
   width: min(460px, calc(100vw - 32px));
   max-height: calc(100dvh - 32px);
   padding: 28px;
   overflow-y: auto;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
-  background: var(--paper);
-  color: var(--text);
+  background: var(--color-bg-paper);
+  color: var(--color-text);
   box-shadow: 0 18px 60px #19191926;
 }
 .project-lifecycle-dialog::backdrop {
@@ -104,23 +104,23 @@
 .project-lifecycle-dialog > p,
 .project-lifecycle-error p {
   margin: 0;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 14px;
   line-height: 22px;
 }
 .project-lifecycle-dialog .project-lifecycle-pending {
   margin-top: 18px;
-  color: var(--text);
+  color: var(--color-text);
 }
 .project-lifecycle-error {
   margin-top: 18px;
   padding: 14px;
-  border: 1px solid var(--danger-border);
+  border: 1px solid var(--color-border-danger-soft);
   border-radius: var(--radius-control);
-  background: var(--danger-soft);
+  background: var(--color-bg-danger-soft);
 }
 .project-lifecycle-error p {
-  color: var(--danger);
+  color: var(--color-text-danger);
 }
 .project-lifecycle-error .text-link {
   display: inline-flex;
@@ -137,9 +137,9 @@
   min-height: 44px;
 }
 .project-lifecycle-buttons .project-delete-confirm {
-  border-color: var(--danger);
-  background: var(--danger);
-  color: var(--on-accent);
+  border-color: var(--color-text-danger);
+  background: var(--color-text-danger);
+  color: var(--color-on-accent);
   white-space: normal;
 }
 .project-lifecycle-buttons .project-delete-confirm:hover:not(:disabled) {
@@ -156,10 +156,10 @@
   gap: 8px 12px;
   padding: 12px 16px;
   margin: 0 0 20px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
-  background: var(--paper);
-  color: var(--secondary);
+  background: var(--color-bg-paper);
+  color: var(--color-text-muted);
   font-size: 13px;
   line-height: 20px;
 }
@@ -201,15 +201,15 @@
   min-height: 24px;
   padding: 2px 8px;
   border-radius: var(--radius-pill);
-  background: var(--surface);
-  color: var(--secondary);
+  background: var(--color-bg-sunken);
+  color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 500;
   line-height: 20px;
 }
 .project-deletion-status p {
   margin: 0;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 12px;
   line-height: 18px;
 }

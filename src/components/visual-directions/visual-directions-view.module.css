@@ -2,10 +2,10 @@
    Embel's message, the toolbar and the three boards on the same edges. */
 /* section.workspace outranks the shared stage frame width and padding. */
 section.workspace {
-  max-width: calc(var(--page-max) + 2 * var(--branding-gutter, 32px));
+  max-width: calc(var(--container-page) + 2 * var(--branding-gutter, 32px));
   padding-top: 40px;
   padding-bottom: 120px;
-  color: var(--text);
+  color: var(--color-text);
 }
 .workspace *,
 .workspace *::before,
@@ -26,11 +26,11 @@ section.workspace {
   opacity: 1;
 }
 .workspace :is(button, a):focus-visible {
-  outline: 2px solid var(--accent-ink);
+  outline: 2px solid var(--color-text);
   outline-offset: 4px;
 }
 .label {
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -51,23 +51,23 @@ section.workspace {
 }
 .chosenLogoLabel {
   font-size: 13px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .changeLogo {
   display: inline-flex;
   align-items: center;
   min-height: 36px;
   padding: 0 14px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
-  background: var(--paper);
-  color: var(--text);
+  background: var(--color-bg-paper);
+  color: var(--color-text);
   font-size: 13px !important;
   text-decoration: none;
 }
 .changeLogo:hover {
-  background: var(--canvas);
-  border-color: var(--border-strong);
+  background: var(--color-bg-canvas);
+  border-color: var(--color-border-strong);
 }
 
 .generation {
@@ -90,18 +90,18 @@ section.workspace {
   min-width: 0;
   font-size: 13px;
   line-height: 20px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .toolbarStatus > span + span::before {
   content: "·";
   margin-right: 8px;
-  color: var(--placeholder);
+  color: var(--color-text-placeholder);
 }
 .toolbarStatus .selectionStatus {
-  color: var(--positive);
+  color: var(--color-text-positive);
 }
 .progressCount {
-  color: var(--text);
+  color: var(--color-text);
 }
 .toolbarActions {
   display: flex;
@@ -117,7 +117,7 @@ section.workspace {
   justify-content: center;
   align-items: center;
   gap: 6px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   padding: 10px 18px;
   font-size: 13px !important;
@@ -126,26 +126,26 @@ section.workspace {
   cursor: pointer;
 }
 .primaryButton {
-  background: var(--text);
-  border-color: var(--text);
-  color: var(--paper);
+  background: var(--color-text);
+  border-color: var(--color-text);
+  color: var(--color-bg-paper);
 }
 .primaryButton:hover:not(:disabled) {
-  background: var(--text-strong-hover);
+  background: var(--color-accent-hover);
 }
 .secondaryButton {
-  background: var(--paper);
-  color: var(--text);
+  background: var(--color-bg-paper);
+  color: var(--color-text);
 }
 .secondaryButton:hover:not(:disabled) {
-  background: var(--canvas);
-  border-color: var(--border-strong);
+  background: var(--color-bg-canvas);
+  border-color: var(--color-border-strong);
 }
 .primaryButton:disabled,
 .secondaryButton:disabled {
-  background: var(--surface);
-  border-color: var(--border);
-  color: var(--secondary);
+  background: var(--color-bg-sunken);
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
   cursor: not-allowed;
 }
 .textButton {
@@ -155,7 +155,7 @@ section.workspace {
   gap: 7px;
   min-height: var(--branding-action-height);
   padding: 8px 0;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   border: 0;
   background: none;
   font-size: 13px !important;
@@ -163,21 +163,21 @@ section.workspace {
   cursor: pointer;
 }
 .textButton:hover:not(:disabled) {
-  color: var(--text);
+  color: var(--color-text);
 }
 .textButton:disabled {
-  color: var(--placeholder);
+  color: var(--color-text-placeholder);
   cursor: not-allowed;
 }
 .helper {
   font-size: 13px;
   line-height: 1.6;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   margin-top: 8px !important;
 }
 .error {
   margin-top: 12px !important;
-  color: var(--danger);
+  color: var(--color-text-danger);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -202,18 +202,18 @@ section.workspace {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  background: var(--paper);
-  border: 1px solid var(--border);
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   overflow: hidden;
   transition: border-color 120ms;
 }
 .card:hover:not([data-selected="true"]):not([aria-disabled="true"]) {
-  border-color: var(--border-strong);
+  border-color: var(--color-border-strong);
 }
 .card[data-selected="true"] {
-  border-color: var(--text);
-  box-shadow: 0 0 0 1px var(--text);
+  border-color: var(--color-text);
+  box-shadow: 0 0 0 1px var(--color-text);
 }
 .cardTop {
   display: flex;
@@ -224,7 +224,7 @@ section.workspace {
   padding: 10px 16px;
 }
 .cardNumber {
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 .selectedBadge,
@@ -236,10 +236,10 @@ section.workspace {
   line-height: 1.4;
 }
 .selectedBadge {
-  color: var(--positive);
+  color: var(--color-text-positive);
 }
 .staleBadge {
-  color: var(--warning);
+  color: var(--color-text-warning);
 }
 .preview {
   min-width: 0;
@@ -247,7 +247,7 @@ section.workspace {
   display: grid;
   place-items: center;
   overflow: hidden;
-  background: var(--canvas);
+  background: var(--color-bg-canvas);
 }
 .preview > * {
   min-width: 0;
@@ -277,7 +277,7 @@ section.workspace {
   padding: 20px;
   font-size: 12px;
   line-height: 1.6;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   text-align: center;
 }
 .cardIntro {
@@ -312,12 +312,12 @@ section.workspace {
   border: 0;
   border-radius: var(--radius-pill);
   background: transparent;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   cursor: pointer;
 }
 .expandButton:hover {
-  background: var(--surface);
-  color: var(--text);
+  background: var(--color-bg-sunken);
+  color: var(--color-text);
 }
 .designDetails {
   display: grid;
@@ -326,7 +326,7 @@ section.workspace {
   align-items: start;
   margin: 0 16px;
   padding: 12px 0 14px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border);
 }
 .designDetails > div {
   min-width: 0;
@@ -360,7 +360,7 @@ section.workspace {
   white-space: nowrap;
 }
 .cardNotice {
-  color: var(--warning);
+  color: var(--color-text-warning);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -386,24 +386,24 @@ section.workspace {
   aspect-ratio: 1;
   min-width: 0;
   padding: 20px;
-  background: var(--canvas);
-  color: var(--border-strong);
+  background: var(--color-bg-canvas);
+  color: var(--color-border-strong);
 }
 .placeholder p {
   max-width: 160px;
   text-align: center;
   font-size: 13px;
   line-height: 1.6;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .emptyCaption {
   padding: 20px 16px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 12px;
   line-height: 1.6;
 }
 .workspace .nextHint {
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 .dialog {
@@ -414,9 +414,9 @@ section.workspace {
   margin: auto;
   padding: 0;
   overflow: auto;
-  color: var(--text);
-  background: var(--paper);
-  border: 1px solid var(--border);
+  color: var(--color-text);
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
 }
 .dialog::backdrop {
@@ -428,7 +428,7 @@ section.workspace {
   justify-content: space-between;
   gap: 20px;
   padding: 18px 24px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-border);
 }
 .dialogHeader h2 {
   margin-top: 3px;
@@ -439,16 +439,16 @@ section.workspace {
   flex-shrink: 0;
   width: var(--branding-action-height);
   height: var(--branding-action-height);
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
-  color: var(--text);
-  background: var(--paper);
+  color: var(--color-text);
+  background: var(--color-bg-paper);
   font-size: 20px !important;
   cursor: pointer;
 }
 .dialogPreview {
   min-width: 0;
-  background: var(--canvas);
+  background: var(--color-bg-canvas);
 }
 .dialogPreview :is(figure, div):has(img) {
   margin: 0;
@@ -471,7 +471,7 @@ section.workspace {
 }
 .dialogSummary {
   padding: 18px 24px 22px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 13px;
   line-height: 1.7;
 }

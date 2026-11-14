@@ -16,7 +16,7 @@
   box-sizing: border-box;
   padding: 0 6px 0 8px;
   background: rgb(255 255 255 / 92%);
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   box-shadow: 0 12px 32px -16px rgb(25 25 25 / 28%);
 }
@@ -27,7 +27,7 @@
   min-height: 44px;
   padding: 0 8px 0 10px;
   border-radius: var(--radius-pill);
-  color: var(--text);
+  color: var(--color-text);
   font-size: 15px;
   font-weight: 600;
 }
@@ -43,7 +43,7 @@
   width: 1px;
   height: 22px;
   margin: 0 4px;
-  background: var(--border);
+  background: var(--color-border);
 }
 .mainNav {
   display: flex;
@@ -74,11 +74,11 @@
   cursor: pointer;
 }
 .navLink:hover {
-  background: var(--surface);
+  background: var(--color-bg-sunken);
 }
 .navLink[aria-current="page"] {
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
   font-weight: 500;
 }
 .tools {
@@ -102,8 +102,8 @@
   margin: 0;
   padding: 6px;
   list-style: none;
-  background: var(--paper);
-  border: 1px solid var(--border);
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border);
   border-radius: 14px;
   box-shadow: 0 16px 40px -16px rgb(25 25 25 / 30%);
 }
@@ -114,11 +114,11 @@
   min-height: 44px;
   padding: 0 10px;
   border-radius: 10px;
-  color: var(--text);
+  color: var(--color-text);
   font-size: 14px;
 }
 .menu a:hover {
-  background: var(--surface);
+  background: var(--color-bg-sunken);
 }
 .end {
   margin-left: auto;
@@ -150,7 +150,7 @@
   display: none;
 }
 .projectSummary:hover {
-  background: var(--surface);
+  background: var(--color-bg-sunken);
 }
 .projectTitle {
   max-width: 220px;
@@ -158,16 +158,16 @@
   text-overflow: ellipsis;
 }
 .stepNext {
-  color: var(--text);
+  color: var(--color-text);
 }
 /* The next unfinished step is a link, but its mark stays an outline so it never reads as done. */
 a.step.stepNext .stepMark {
-  border: 1.5px solid var(--text);
+  border: 1.5px solid var(--color-text);
   background: transparent;
-  color: var(--text);
+  color: var(--color-text);
 }
 .stepNext:hover {
-  background: var(--surface);
+  background: var(--color-bg-sunken);
 }
 .steps {
   display: flex;
@@ -185,20 +185,20 @@ a.step.stepNext .stepMark {
   min-height: 40px;
   padding: 0 12px 0 8px;
   border-radius: var(--radius-pill);
-  color: var(--secondary);
+  color: var(--color-text-muted);
   white-space: nowrap;
 }
 .step[aria-current="step"] {
   padding-right: 14px;
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
   font-weight: 500;
 }
 a.step {
-  color: var(--text);
+  color: var(--color-text);
 }
 a.step:hover {
-  background: var(--surface);
+  background: var(--color-bg-sunken);
 }
 .stepMark {
   display: grid;
@@ -211,12 +211,12 @@ a.step:hover {
   font-size: 10px;
 }
 .step[aria-current="step"] .stepMark {
-  border: 5px solid var(--on-accent);
+  border: 5px solid var(--color-on-accent);
 }
 a.step .stepMark {
   border: 0;
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
 }
 .save {
   display: inline-flex;
@@ -224,11 +224,11 @@ a.step .stepMark {
   gap: 6px;
   padding: 0 6px;
   font-size: 12px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   white-space: nowrap;
 }
 .save[data-state="saved"] {
-  color: var(--positive);
+  color: var(--color-text-positive);
 }
 .save[data-state="error"] {
   color: #8f4242;
@@ -241,15 +241,15 @@ a.step .stepMark {
   gap: 6px;
   min-height: 40px;
   padding: 0 14px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
-  background: var(--paper);
-  color: var(--text);
+  background: var(--color-bg-paper);
+  color: var(--color-text);
   font-size: 13px;
   cursor: pointer;
 }
 .pillButton:hover:not(:disabled) {
-  background: var(--surface);
+  background: var(--color-bg-sunken);
 }
 
 .progress {
@@ -257,8 +257,8 @@ a.step .stepMark {
   flex-direction: column;
   gap: 14px;
   padding: 18px;
-  background: var(--paper);
-  border: 1px solid var(--border);
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   box-shadow: 0 12px 32px -18px rgb(25 25 25 / 22%);
 }
@@ -270,7 +270,7 @@ a.step .stepMark {
 .progressText {
   margin: 0;
   font-size: 14px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 /* Indeterminate: a soft light sweeps calmly across the whole bar, so it never
    reads as an amount of progress. */
@@ -279,14 +279,14 @@ a.step .stepMark {
   height: 4px;
   overflow: hidden;
   border-radius: var(--radius-pill);
-  background: var(--border);
+  background: var(--color-border);
 }
 .bar > span {
   position: absolute;
   inset: 0 auto 0 0;
   width: 50%;
   border-radius: inherit;
-  background: linear-gradient(90deg, transparent, var(--accent) 50%, transparent);
+  background: linear-gradient(90deg, transparent, var(--color-accent) 50%, transparent);
   animation: journey-bar 2.4s ease-in-out infinite;
 }
 .progressActions {
@@ -299,7 +299,7 @@ a.step .stepMark {
 .progressNote {
   margin: 0 auto 0 0;
   font-size: 13px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 @keyframes journey-bar {
   from {
@@ -312,7 +312,7 @@ a.step .stepMark {
 @media (prefers-reduced-motion: reduce) {
   .bar > span {
     width: 100%;
-    background: var(--border-strong);
+    background: var(--color-border-strong);
     animation: none;
   }
 }

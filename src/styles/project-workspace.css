@@ -1,11 +1,6 @@
 /* Fluid — Screens, project pages 3:16–3:29. Original 1440 × 900 shell. */
-.concept-project-workspace {
-  --canvas: #f7f7f5;
-  --paper: #fff;
-  --border: #e4e3df;
-}
 .concept-project-workspace .workspace-main {
-  background: var(--paper);
+  background: var(--color-bg-paper);
   background-image: none;
 }
 .concept-project-workspace .workspace-account-avatar {
@@ -26,14 +21,14 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
-  background: var(--canvas);
+  background: var(--color-bg-canvas);
 }
 .project-read-notice {
   padding: 12px 24px;
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-border);
   font-size: 13px;
 }
 .project-access-state {
@@ -61,7 +56,7 @@
   padding: 24px;
   flex: 1;
   min-width: 0;
-  background: var(--canvas);
+  background: var(--color-bg-canvas);
 }
 .project-workbench :is(h1, .project-workbench-heading h2) {
   font-size: 24px;
@@ -83,7 +78,7 @@
   width: 340px;
   flex: 0 0 340px;
   background: #fff;
-  border-left: 1px solid var(--border);
+  border-left: 1px solid var(--color-border);
   min-width: 0;
 }
 .project-dock.is-collapsed {
@@ -96,18 +91,18 @@
   gap: 28px;
   align-items: stretch;
   padding: 0 16px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-border);
 }
 .project-dock-tabs button {
   font-size: 13px;
   background: none;
   border: 0;
   padding: 0 4px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   position: relative;
 }
 .project-dock-tabs [aria-pressed="true"] {
-  color: var(--text);
+  color: var(--color-text);
 }
 .project-dock-tabs [aria-pressed="true"]::after {
   content: "";
@@ -116,7 +111,7 @@
   height: 2px;
   left: 0;
   right: 0;
-  background: var(--text);
+  background: var(--color-text);
 }
 .project-dock-tabs .project-dock-toggle {
   margin-left: auto;
@@ -144,7 +139,7 @@
 }
 .project-dock-heading p,
 .project-dock-chat p {
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 12px;
   line-height: 20px;
   margin-top: 8px;
@@ -182,7 +177,7 @@
   align-items: center;
   min-height: 28px;
   font-size: 11px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .project-conversation-marker > span:nth-child(2) {
   margin-left: auto;
@@ -195,7 +190,7 @@
 }
 .project-details-disclosure {
   margin-top: 12px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 .project-details-disclosure > summary {
@@ -258,7 +253,7 @@
 .project-strategy-workspace .conversation-composer {
   padding: 12px 14px;
   border-radius: 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   box-shadow: none;
 }
 .project-strategy-workspace .conversation-composer textarea {
@@ -282,7 +277,7 @@
 }
 .project-strategy-workspace .account-actions {
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   font-size: 12px;
 }
@@ -294,7 +289,7 @@
 .project-strategy-workspace .project-details-disclosure {
   margin-top: 24px;
   padding-top: 16px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border);
 }
 .project-strategy-workspace .project-continuity {
   display: grid;
@@ -325,7 +320,7 @@
 }
 .project-continuity-details dd {
   margin: 4px 0 0;
-  color: var(--text);
+  color: var(--color-text);
   overflow-wrap: anywhere;
 }
 .project-strategy-workspace .project-continuity h2 {
@@ -333,7 +328,7 @@
   font-size: 13px;
   line-height: 20px;
   font-weight: 500;
-  color: var(--text);
+  color: var(--color-text);
 }
 .project-strategy-workspace .project-continuity ul {
   display: flex;
@@ -348,7 +343,7 @@
 .project-strategy-workspace .project-continuity li .text-link {
   min-height: 36px;
   padding: 7px 10px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 7px;
   text-decoration: none;
 }
@@ -365,7 +360,7 @@
   width: 344px;
   flex: 0 0 344px;
   padding: 20px;
-  border-left: 1px solid var(--border);
+  border-left: 1px solid var(--color-border);
   overflow: auto;
 }
 .project-live-brief > div {
@@ -388,7 +383,7 @@
 .project-live-brief dt {
   font-size: 12px;
   font-weight: 500;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .project-live-brief dd {
   margin: 8px 0 0;
@@ -406,7 +401,7 @@
 }
 .project-brief-widget > p {
   font-size: 13px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   margin: 8px 0 16px;
 }
 .project-brief-widget .field-label {
@@ -431,7 +426,7 @@
 .project-personality-traits > p {
   font-size: 12px;
   line-height: 20px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   margin-bottom: 12px;
 }
 .project-personality-traits > div {
@@ -441,7 +436,7 @@
 }
 .project-personality-traits label {
   padding: 14px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 7px;
   display: flex;
   align-items: center;
@@ -458,13 +453,13 @@
 }
 .project-personality-traits small {
   display: block;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 12px;
   line-height: 18px;
   margin-top: 6px;
 }
 .project-personality-advanced > summary {
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 12px;
   cursor: pointer;
   padding-block: 8px;
@@ -515,7 +510,7 @@
 }
 .project-logo-creation [class*="conceptCard"] {
   background: #fff;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 0 0 14px;
   overflow: hidden;
@@ -525,7 +520,7 @@
   background: #f1f0ee;
 }
 .project-workspace :is(button, a, summary, input, textarea, select):focus-visible {
-  outline: 2px solid var(--accent-ink);
+  outline: 2px solid var(--color-text);
   outline-offset: 3px;
 }
 @media (max-width: 1150px) {
@@ -566,7 +561,7 @@
     width: 100%;
     flex-basis: auto;
     border-left: 0;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--color-border);
   }
   .project-dock.is-collapsed {
     width: 100%;

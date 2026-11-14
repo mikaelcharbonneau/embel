@@ -2,11 +2,11 @@
   width: min(620px, calc(100vw - 32px));
   max-height: calc(100svh - 40px);
   overflow: auto;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
   padding: 24px;
-  color: var(--text);
-  background: var(--paper);
+  color: var(--color-text);
+  background: var(--color-bg-paper);
 }
 .generation-activity-dialog::backdrop {
   background: #17171766;
@@ -31,15 +31,15 @@
 }
 .generation-activity-dialog > p,
 .generation-activity-note {
-  color: var(--secondary);
-  font-size: var(--font-ui);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
 }
 .generation-activity-error {
   margin-top: 16px;
   padding: 14px 16px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
 }
 .generation-activity-error p {
   margin: 0 0 10px;
@@ -60,7 +60,7 @@
   margin-top: 2px;
 }
 .generation-activity-list > li:hover {
-  background: var(--canvas);
+  background: var(--color-bg-canvas);
 }
 .generation-activity-row {
   display: flex;
@@ -79,7 +79,7 @@
   outline: none;
 }
 .generation-activity-row:focus-visible::after {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--color-accent);
   outline-offset: -2px;
 }
 .generation-activity-list strong {
@@ -89,31 +89,31 @@
 }
 .generation-activity-row > span {
   flex-shrink: 0;
-  color: var(--secondary);
-  font-size: var(--font-ui);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
 }
 .generation-activity-list li > div {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 12px;
   margin-top: 4px;
 }
 .generation-activity-list progress {
   width: 100%;
   height: 5px;
-  accent-color: var(--accent);
+  accent-color: var(--color-accent);
   margin-top: 10px;
 }
 .generation-activity-list p {
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
   margin: 6px 0 0;
 }
 .generation-activity-inline-link {
   position: relative;
   z-index: 1;
-  color: var(--text);
+  color: var(--color-text);
   text-decoration: underline;
   text-underline-offset: 2px;
 }

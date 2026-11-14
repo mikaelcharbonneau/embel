@@ -5,16 +5,16 @@
   gap: 10px;
 }
 .project-naming-muted {
-  color: var(--secondary);
-  font-size: var(--font-ui);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
   line-height: 1.65;
 }
 .project-naming-notice {
   padding: 14px 16px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 7px;
-  background: var(--paper);
-  font-size: var(--font-ui);
+  background: var(--color-bg-paper);
+  font-size: var(--font-size-2);
   line-height: 1.65;
   margin-bottom: 18px;
 }
@@ -39,8 +39,8 @@
   letter-spacing: -0.4px;
 }
 .project-naming-section-heading p {
-  font-size: var(--font-ui);
-  color: var(--secondary);
+  font-size: var(--font-size-2);
+  color: var(--color-text-muted);
   margin-top: 6px;
 }
 .project-naming-grid {
@@ -51,14 +51,14 @@
 }
 .project-naming-card {
   min-width: 0;
-  background: var(--paper);
-  border: 1px solid var(--border);
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 18px 17px 14px;
   scroll-margin-top: 24px;
 }
 .project-naming-card.is-selected {
-  border-color: var(--accent-ink);
+  border-color: var(--color-text);
 }
 .project-naming-card-title {
   display: flex;
@@ -82,20 +82,20 @@
   display: grid;
   place-items: center;
   border-radius: 5px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   flex-shrink: 0;
 }
 .project-naming-favorite:hover {
-  background: var(--surface);
+  background: var(--color-bg-sunken);
 }
 .project-naming-favorite[aria-pressed="true"] {
-  color: var(--accent-ink);
+  color: var(--color-text);
 }
 .project-naming-card > p {
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
   line-height: 1.65;
   margin: 14px 0 12px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   overflow-wrap: anywhere;
 }
 .project-naming-badges {
@@ -105,15 +105,15 @@
   margin-top: 10px;
 }
 .project-naming-badges span {
-  background: var(--surface);
-  color: var(--secondary);
+  background: var(--color-bg-sunken);
+  color: var(--color-text-muted);
   padding: 3px 6px;
   border-radius: 4px;
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
 }
 .project-naming-badges .is-selected {
-  color: var(--accent-ink);
-  background: var(--accent-soft);
+  color: var(--color-text);
+  background: var(--color-bg-selected);
 }
 .project-naming-card .project-naming-actions {
   margin-top: 17px;
@@ -122,18 +122,18 @@
 }
 .project-naming-card .button {
   padding: 8px 10px;
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
   min-height: 44px;
 }
 .project-naming-card .text-link {
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
 }
 .project-naming-card details {
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border);
   margin-top: 13px;
   padding-top: 8px;
-  font-size: var(--font-ui);
-  color: var(--secondary);
+  font-size: var(--font-size-2);
+  color: var(--color-text-muted);
 }
 .project-naming-card summary {
   padding: 4px 0;
@@ -145,9 +145,9 @@
   line-height: 1.6;
 }
 .project-naming-stale-choice {
-  background: var(--accent-soft);
+  background: var(--color-bg-selected);
   padding: 20px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   margin-bottom: 20px;
 }
@@ -156,8 +156,8 @@
   overflow-wrap: anywhere;
 }
 .project-naming-stale-choice p {
-  font-size: var(--font-ui);
-  color: var(--secondary);
+  font-size: var(--font-size-2);
+  color: var(--color-text-muted);
   line-height: 1.7;
   margin-top: 8px;
 }
@@ -165,13 +165,13 @@
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
   line-height: 1.7;
   margin: 16px 0;
 }
 .project-naming-stale-choice input {
   margin-top: 4px;
-  accent-color: var(--accent-ink);
+  accent-color: var(--color-text);
 }
 @media (max-width: 1150px) {
   .project-naming-grid {
@@ -199,7 +199,7 @@
   padding: 20px 18px 14px;
 }
 .project-naming-card.is-selected {
-  border-color: var(--text);
+  border-color: var(--color-text);
 }
 @media (max-width: 1190px) {
   .project-naming-grid {
@@ -224,7 +224,7 @@
   min-width: 0;
 }
 .naming-approach-widgets small {
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -240,10 +240,10 @@
   align-items: flex-start;
   text-align: left;
   padding: 14px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 9px;
-  background: var(--paper);
-  color: var(--text);
+  background: var(--color-bg-paper);
+  color: var(--color-text);
   min-width: 0;
 }
 .naming-approach-option strong,
@@ -253,22 +253,22 @@
 }
 .naming-approach-option span,
 .naming-directness span {
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 12px;
   line-height: 1.5;
 }
 .naming-approach-option[aria-pressed="true"],
 .naming-directness [aria-checked="true"] {
-  background: var(--accent-soft);
-  border-color: var(--accent-ink);
+  background: var(--color-bg-selected);
+  border-color: var(--color-text);
 }
 .naming-approach-option[aria-pressed="true"] strong,
 .naming-directness [aria-checked="true"] strong {
-  color: var(--accent-ink);
+  color: var(--color-text);
 }
 .naming-approach-option:focus-visible,
 .naming-directness button:focus-visible {
-  outline: 2px solid var(--accent-ink);
+  outline: 2px solid var(--color-text);
   outline-offset: 3px;
 }
 .naming-directness {
@@ -290,9 +290,9 @@
   gap: 4px;
   padding: 11px 13px;
   text-align: left;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: var(--paper);
+  background: var(--color-bg-paper);
 }
 .naming-approach-widgets label {
   display: grid;
@@ -306,10 +306,10 @@
 .naming-approach-widgets textarea {
   width: 100%;
   min-width: 0;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 7px;
-  background: var(--paper);
-  color: var(--text);
+  background: var(--color-bg-paper);
+  color: var(--color-text);
   padding: 10px;
   min-height: 44px;
   font: inherit;
@@ -319,7 +319,7 @@
   resize: vertical;
 }
 .naming-save-status {
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 .naming-feed-card {
@@ -337,16 +337,16 @@
   min-height: 44px;
   padding: 8px 5px;
   font-size: 12px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .naming-steering-choice input {
-  accent-color: var(--accent-ink);
+  accent-color: var(--color-text);
 }
 .naming-feed-tail {
   min-height: 130px;
   padding: 32px 12px;
   text-align: center;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 13px;
   line-height: 1.7;
 }

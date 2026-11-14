@@ -7,7 +7,7 @@
 
 .caption,
 .note {
-  color: var(--secondary, #696965);
+  color: var(--color-text-muted, #696965);
   font-size: 12px;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -15,7 +15,7 @@
 
 .sample {
   display: block;
-  color: var(--text, #191919);
+  color: var(--color-text, #191919);
   font-size: 22px;
   line-height: 1.35;
   font-style: normal;

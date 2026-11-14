@@ -1,6 +1,6 @@
 .recorded-usage {
-  background: var(--paper);
-  border: 1px solid var(--border);
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   padding: 24px;
   min-width: 0;
@@ -25,7 +25,7 @@
 }
 .recorded-usage-summary {
   margin-top: 4px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 13px;
   line-height: 20px;
   font-variant-numeric: tabular-nums;
@@ -36,17 +36,17 @@
 }
 .recorded-usage .recorded-usage-message {
   margin-top: 16px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 13px;
   line-height: 20px;
 }
 .recorded-usage .recorded-usage-error {
   margin-top: 16px;
   padding: 12px 14px;
-  border: 1px solid var(--danger-border);
+  border: 1px solid var(--color-border-danger-soft);
   border-radius: var(--radius-control);
-  background: var(--danger-soft);
-  color: var(--danger);
+  background: var(--color-bg-danger-soft);
+  color: var(--color-text-danger);
   font-size: 13px;
   line-height: 20px;
 }
@@ -75,24 +75,24 @@
 }
 .recorded-usage-table thead th {
   padding-block: 0 8px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 500;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-border);
 }
 .recorded-usage-table thead th:first-child {
   width: 45%;
 }
 .recorded-usage-entry > * {
   block-size: 45px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-border);
 }
 .recorded-usage-entry > th {
   font-weight: 500;
 }
 .recorded-usage-entry time,
 .recorded-usage-entry > td:last-child > [aria-hidden] {
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 /* Table margin (16px) plus the 29px column header row. */
 .recorded-usage-pending-frame {
@@ -101,11 +101,11 @@
 }
 .recorded-usage-pending-slot {
   min-block-size: 45px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-border);
 }
 .recorded-usage .recorded-usage-note {
   margin-top: 12px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 12px;
   line-height: 20px;
 }

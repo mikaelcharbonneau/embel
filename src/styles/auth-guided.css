@@ -41,7 +41,7 @@
   height: 44px;
   min-height: 44px;
   padding: 10px 12px;
-  border-color: var(--border);
+  border-color: var(--color-border);
   border-radius: var(--radius-control);
   line-height: 22px;
 }
@@ -52,7 +52,7 @@
   margin-top: 24px;
 }
 .auth-guided .auth-field input::placeholder {
-  color: var(--placeholder);
+  color: var(--color-text-placeholder);
   opacity: 1;
 }
 .auth-guided .auth-submit,
@@ -70,15 +70,15 @@
   font-size: 13px;
   line-height: 20px;
   text-align: center;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .auth-mode-switch .text-link {
   font-size: inherit;
-  color: var(--text);
+  color: var(--color-text);
   font-weight: 500;
   text-decoration: underline;
   text-underline-offset: 3px;
-  text-decoration-color: var(--border-strong);
+  text-decoration-color: var(--color-border-strong);
 }
 .auth-mode-switch .text-link:hover {
   text-decoration-color: currentColor;
@@ -87,7 +87,7 @@
   margin: 8px 0 0;
   font-size: 12px;
   line-height: 18px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .auth-guided .auth-confirm-password {
   margin-top: 24px;
@@ -96,7 +96,7 @@
   margin-top: 20px;
   font-size: 13px;
   line-height: 21px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .auth-confirmation-note p + p {
   margin-top: 12px;
@@ -126,7 +126,7 @@
   gap: 12px;
   font-size: 14px;
   line-height: 20px;
-  color: var(--text);
+  color: var(--color-text);
 }
 .auth-guided .prompt-recovery-notice {
   margin-top: 24px;
@@ -140,10 +140,10 @@
   max-height: calc(100svh - 32px);
   margin: auto;
   padding: 16px 16px 28px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
-  background: var(--paper);
-  color: var(--text);
+  background: var(--color-bg-paper);
+  color: var(--color-text);
   overflow: auto;
   box-shadow: 0 24px 80px #00000026;
 }

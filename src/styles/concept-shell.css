@@ -9,8 +9,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background-color: var(--canvas);
-  background-image: var(--dot-grid);
+  background-color: var(--color-bg-canvas);
+  background-image: var(--pattern-dot-grid);
   background-size: 22px 22px;
 }
 .concept-shell #main-content {
@@ -36,13 +36,13 @@
 }
 .signed-out-actions--nav .signed-out-sign-in {
   background: transparent;
-  color: var(--text);
+  color: var(--color-text);
 }
 .signed-out-actions--nav .signed-out-sign-in:hover {
-  background: var(--surface);
+  background: var(--color-bg-sunken);
 }
 .signed-out-actions--nav .button:focus-visible {
-  outline: 2px solid var(--accent-ink);
+  outline: 2px solid var(--color-text);
   outline-offset: 2px;
 }
 
@@ -61,13 +61,13 @@
   cursor: pointer;
 }
 .workspace-account-menu > summary:hover {
-  background: var(--surface);
+  background: var(--color-bg-sunken);
 }
 .workspace-account-menu > summary::-webkit-details-marker {
   display: none;
 }
 .workspace-account-menu > summary:focus-visible {
-  outline: 2px solid var(--accent-ink);
+  outline: 2px solid var(--color-text);
   outline-offset: 3px;
 }
 .workspace-account-avatar {
@@ -75,9 +75,9 @@
   place-items: center;
   width: 32px;
   height: 32px;
-  background: var(--accent-soft);
+  background: var(--color-bg-selected);
   border-radius: 50%;
-  color: var(--text);
+  color: var(--color-text);
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.02em;
@@ -90,8 +90,8 @@
   width: 288px;
   max-width: calc(100vw - 32px);
   padding: 6px;
-  background: var(--paper);
-  border: 1px solid var(--border);
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   box-shadow: 0 16px 40px -16px rgb(25 25 25 / 30%);
 }
@@ -100,19 +100,19 @@
   gap: 2px;
   padding: 10px 10px 12px;
   margin-bottom: 4px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-border);
   overflow-wrap: anywhere;
 }
 .workspace-account-identity strong {
   font-size: 14px;
   line-height: 20px;
   font-weight: 500;
-  color: var(--text);
+  color: var(--color-text);
 }
 .workspace-account-identity span {
   font-size: 13px;
   line-height: 18px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .workspace-account-links {
   display: flex;
@@ -132,7 +132,7 @@
   border: 0;
   border-radius: var(--radius-control);
   background: transparent;
-  color: var(--text);
+  color: var(--color-text);
   font-size: 13px;
   line-height: 20px;
   text-align: left;
@@ -141,7 +141,7 @@
 }
 .workspace-account-panel :is(.workspace-account-links, .auth-account-menu-actions) svg {
   flex: none;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .workspace-account-panel .auth-account-menu-actions {
   display: flex;
@@ -155,23 +155,23 @@
 .workspace-account-panel .workspace-account-links + .auth-account-menu-actions {
   margin-top: 4px;
   padding-top: 4px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border);
 }
 .workspace-account-panel .auth-account-menu-actions > span {
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .workspace-account-panel
   :is(.workspace-account-links, .auth-account-menu-actions)
   > :is(a, button):hover:not(:disabled) {
-  background: var(--surface);
-  color: var(--text);
+  background: var(--color-bg-sunken);
+  color: var(--color-text);
 }
 .workspace-account-panel :is(.workspace-account-links, .auth-account-menu-actions) > button:disabled {
-  color: var(--secondary);
+  color: var(--color-text-muted);
   cursor: default;
 }
 .workspace-account-panel :is(a, button):focus-visible {
-  outline: 2px solid var(--accent-ink);
+  outline: 2px solid var(--color-text);
   outline-offset: -2px;
 }
 @media (max-width: 600px) {

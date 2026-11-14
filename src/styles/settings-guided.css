@@ -1,7 +1,7 @@
 /* Settings page. All rules scoped because global CSS persists across routes. */
 .settings-guided.page {
-  max-width: calc(var(--page-max) + var(--page-gutter) * 2);
-  padding: 40px var(--page-gutter) 48px;
+  max-width: calc(var(--container-page) + var(--space-gutter) * 2);
+  padding: 40px var(--space-gutter) 48px;
   margin: 0 auto;
 }
 .settings-guided .sg-heading h1 {
@@ -12,11 +12,11 @@
   font-weight: 500;
 }
 .settings-guided .sg-heading h1 span {
-  color: var(--accent);
+  color: var(--color-accent);
 }
 .settings-guided .sg-heading > p {
   margin-top: 4px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 14px;
   line-height: 20px;
 }
@@ -25,7 +25,7 @@
   display: flex;
   gap: 24px;
   margin: 24px 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-border);
   overflow-x: auto;
 }
 .settings-guided .sg-tabs button {
@@ -33,7 +33,7 @@
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   background: transparent;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   white-space: nowrap;
   min-height: 44px;
   padding: 0 2px;
@@ -43,14 +43,14 @@
   flex-shrink: 0;
 }
 .settings-guided .sg-tabs button:hover {
-  color: var(--text);
+  color: var(--color-text);
 }
 .settings-guided .sg-tabs button[aria-selected="true"] {
-  border-bottom-color: var(--text);
-  color: var(--text);
+  border-bottom-color: var(--color-text);
+  color: var(--color-text);
 }
 .settings-guided .sg-tabs button:focus-visible {
-  outline: 2px solid var(--text);
+  outline: 2px solid var(--color-text);
   outline-offset: -2px;
 }
 .settings-guided .sg-content {
@@ -63,13 +63,13 @@
   display: none;
 }
 .settings-guided .sg-content:focus-visible {
-  outline: 2px solid var(--text);
+  outline: 2px solid var(--color-text);
   outline-offset: 4px;
   border-radius: var(--radius-card);
 }
 .settings-guided .sg-card {
-  background: var(--paper);
-  border: 1px solid var(--border);
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   padding: 24px;
   min-width: 0;
@@ -84,7 +84,7 @@
 .settings-guided .sg-card > header p {
   font-size: 13px;
   line-height: 20px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   margin-top: 4px;
 }
 .settings-guided .sg-card-body {
@@ -99,7 +99,7 @@
   gap: 24px;
   min-height: 76px;
   padding: 15px 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-border);
 }
 .settings-guided .sg-row:last-child {
   border-bottom: 0;
@@ -117,7 +117,7 @@
 .settings-guided .sg-row-copy p {
   font-size: 13px;
   line-height: 20px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   margin-top: 4px;
 }
 .settings-guided .sg-actions {
@@ -136,10 +136,10 @@
   height: 44px;
   padding: 11px 36px 11px 12px;
   appearance: none;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
-  background: var(--paper);
-  color: var(--secondary);
+  background: var(--color-bg-paper);
+  color: var(--color-text-muted);
   font-size: 14px;
   line-height: 20px;
   opacity: 1;
@@ -171,24 +171,24 @@
   height: 44px;
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
-  background: var(--paper);
-  color: var(--secondary);
+  background: var(--color-bg-paper);
+  color: var(--color-text-muted);
   font-size: 14px;
   opacity: 1;
 }
 .settings-guided .sg-field input:not(:disabled):not([readonly]),
 .settings-guided .sg-select-wrap select:not(:disabled) {
-  color: var(--text);
+  color: var(--color-text);
 }
 .settings-guided .sg-field input:not(:disabled):not([readonly]):focus-visible,
 .settings-guided .sg-select-wrap select:focus-visible {
-  outline: 2px solid var(--text);
+  outline: 2px solid var(--color-text);
   outline-offset: 1px;
 }
 .settings-guided .sg-field input[readonly] {
-  background: var(--surface);
+  background: var(--color-bg-sunken);
 }
 .settings-guided .sg-save {
   display: flex;
@@ -200,7 +200,7 @@
 .settings-guided .sg-save > p {
   font-size: 13px;
   line-height: 20px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .settings-guided .sg-save > div {
   display: flex;
@@ -211,16 +211,16 @@
 .settings-guided .sg-note {
   font-size: 13px;
   line-height: 20px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .settings-guided .sg-profile-note {
   margin-top: 12px;
 }
 .settings-guided .sg-profile-feedback {
   padding: 14px 16px;
-  border: 1px solid var(--danger-border);
-  background: var(--danger-soft);
-  color: var(--danger);
+  border: 1px solid var(--color-border-danger-soft);
+  background: var(--color-bg-danger-soft);
+  color: var(--color-text-danger);
   border-radius: var(--radius-control);
   font-size: 13px;
   line-height: 20px;
@@ -232,7 +232,7 @@
 }
 .settings-guided .sg-profile-conflict dt {
   font-size: 12px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .settings-guided .sg-profile-conflict dd {
   margin: 4px 0 0;
@@ -260,10 +260,10 @@
   justify-content: center;
   min-height: 44px;
   padding: 8px 16px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
-  background: var(--paper);
-  color: var(--text);
+  background: var(--color-bg-paper);
+  color: var(--color-text);
   font-size: 13px;
   line-height: 20px;
   font-weight: 450;
@@ -271,11 +271,11 @@
 }
 .settings-guided .sg-session span.auth-session-action {
   font-size: 13px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .settings-guided .sg-session :is(button, a).auth-session-action:hover:not(:disabled) {
-  background: var(--canvas);
-  border-color: var(--border-strong);
+  background: var(--color-bg-canvas);
+  border-color: var(--color-border-strong);
 }
 @media (max-width: 760px) {
   .settings-guided.page {
@@ -314,5 +314,5 @@
   flex-shrink: 0;
 }
 .settings-guided .sg-account-data-error {
-  color: var(--danger);
+  color: var(--color-text-danger);
 }

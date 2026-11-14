@@ -21,7 +21,7 @@
   width: min(100%, calc(var(--fc-max-width, 40rem) + 160px));
   height: var(--fc-backing-height, 0px);
   margin-inline: auto;
-  background: var(--fc-backing, var(--paper));
+  background: var(--fc-backing, var(--color-bg-paper));
   pointer-events: none;
   -webkit-mask-image:
     linear-gradient(to top, #000 calc(100% - 32px), transparent),
@@ -46,9 +46,9 @@
   min-width: 0;
   overflow: hidden;
   pointer-events: auto;
-  color: var(--text);
-  background: var(--paper);
-  border: 1px solid var(--border);
+  color: var(--color-text);
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border);
   border-radius: var(--fc-radius, var(--radius-panel));
   box-shadow:
     0 2px 5px #1919190a,
@@ -66,7 +66,7 @@
   display: none !important;
 }
 .panel:focus-within {
-  border-color: var(--border-strong);
+  border-color: var(--color-border-strong);
 }
 
 /* Only a panel with earlier messages has a toolbar: the button that opens them. */
@@ -85,7 +85,7 @@
   min-height: 32px;
   min-width: 32px;
   padding: 0 5px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   border: 0;
   border-radius: var(--radius-pill);
   background: transparent;
@@ -93,10 +93,10 @@
   cursor: pointer;
 }
 .tool:hover {
-  background: var(--surface);
+  background: var(--color-bg-sunken);
 }
 .tool:focus-visible {
-  outline: 2px solid var(--accent-ink);
+  outline: 2px solid var(--color-text);
   outline-offset: -2px;
 }
 
@@ -106,7 +106,7 @@
   max-height: min(24rem, calc(var(--fc-height, 75dvh) * 0.52));
   overflow: auto;
   overscroll-behavior: contain;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .body {

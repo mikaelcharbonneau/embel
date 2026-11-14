@@ -1,14 +1,14 @@
 .conversation-start-notice {
   margin-top: 10px;
-  color: var(--secondary);
-  font-size: var(--font-ui);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
 }
 .conversation-start-notice .field-hint {
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
 }
 .conversation-composer {
   position: relative;
-  background: var(--paper);
+  background: var(--color-bg-paper);
   border: 1px solid #cbc9c5;
   border-radius: 12px;
   padding: 14px 16px 12px;
@@ -51,8 +51,8 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--secondary);
-  font-size: var(--font-ui);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
   line-height: 1.55;
 }
 .conversation-composer-footer .button {
@@ -60,7 +60,7 @@
   gap: 13px;
   min-height: 44px;
   padding: 9px 13px;
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
 }
 .conversation-composer.is-initial {
   padding: 22px 24px 16px;
@@ -74,7 +74,7 @@
   line-height: 1.5;
 }
 .conversation-composer.is-initial .conversation-composer-footer > span {
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
 }
 .conversation-composer.is-initial .button {
   min-height: 44px;
@@ -140,7 +140,7 @@
   overflow-wrap: anywhere;
 }
 .conversation-project-title > svg {
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .conversation-project-title .icon-button {
   flex-shrink: 0;
@@ -151,9 +151,9 @@
   width: 100%;
   min-width: 90px;
   padding: 5px 8px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 5px;
-  background: var(--paper);
+  background: var(--color-bg-paper);
   font-size: 15px;
 }
 .conversation-project-meta {
@@ -165,10 +165,10 @@
 }
 .conversation-project-meta .account-project-links {
   margin: 0;
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
 }
 .conversation-project-meta .account-project-links .field-hint {
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
 }
 .conversation-account-actions:empty {
   display: none;
@@ -181,8 +181,8 @@
 }
 .conversation-account-disclosure {
   margin-top: 8px;
-  color: var(--secondary);
-  font-size: var(--font-ui);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
 }
 .conversation-account-disclosure > summary {
   width: fit-content;
@@ -195,8 +195,8 @@
 }
 .conversation-saved-details {
   margin-top: 18px;
-  color: var(--secondary);
-  font-size: var(--font-ui);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
 }
 .conversation-saved-details > summary {
   cursor: pointer;
@@ -208,17 +208,17 @@
   gap: 13px;
   padding: 16px;
   margin: 8px 0 0;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 7px;
-  background: var(--paper);
+  background: var(--color-bg-paper);
 }
 .conversation-saved-details dt {
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
 }
 .conversation-saved-details dd {
   margin: 4px 0 0;
-  color: var(--text);
-  font-size: var(--font-ui);
+  color: var(--color-text);
+  font-size: var(--font-size-2);
   line-height: 1.65;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -242,9 +242,9 @@
   width: fit-content;
   max-width: 88%;
   padding: 16px 18px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 12px 12px 3px 12px;
-  background: var(--accent-soft);
+  background: var(--color-bg-selected);
 }
 .conversation-message-meta {
   display: flex;
@@ -252,11 +252,11 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 7px;
-  font-size: var(--font-ui);
-  color: var(--secondary);
+  font-size: var(--font-size-2);
+  color: var(--color-text-muted);
 }
 .conversation-message-meta > span {
-  color: var(--accent-ink);
+  color: var(--color-text);
   font-weight: 500;
 }
 .conversation-message-meta time {
@@ -264,7 +264,7 @@
 }
 .conversation-user-entry > p,
 .conversation-saved-entry > p {
-  color: var(--text);
+  color: var(--color-text);
   font-size: 13px;
   line-height: 1.75;
   white-space: pre-wrap;
@@ -273,15 +273,15 @@
 .conversation-saved-entry {
   max-width: 88%;
   padding: 15px 18px;
-  border-left: 2px solid var(--border);
-  background: var(--paper);
+  border-left: 2px solid var(--color-border);
+  background: var(--color-bg-paper);
   border-radius: 0 7px 7px 0;
 }
 .conversation-entry-label {
   display: block;
   margin-bottom: 7px;
-  font-size: var(--font-ui);
-  color: var(--secondary);
+  font-size: var(--font-size-2);
+  color: var(--color-text-muted);
 }
 .conversation-service-entry {
   min-width: 0;
@@ -290,8 +290,8 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  color: var(--secondary);
-  font-size: var(--font-ui);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
   line-height: 1.65;
 }
 .conversation-service-note > svg {
@@ -301,9 +301,9 @@
   position: relative;
   min-width: 0;
   padding: 20px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
-  background: var(--paper);
+  background: var(--color-bg-paper);
 }
 .conversation-widget-heading {
   display: flex;
@@ -318,8 +318,8 @@
   height: 25px;
   flex: 0 0 25px;
   border-radius: 6px;
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
   font-size: 18px;
   line-height: 1;
   font-weight: 600;
@@ -337,18 +337,18 @@
   display: inline-flex;
   gap: 5px;
   align-items: center;
-  color: var(--secondary);
-  font-size: var(--font-ui);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
 }
 .conversation-review-state.is-reviewed {
-  color: var(--positive);
+  color: var(--color-text-positive);
 }
 .conversation-widget-body {
   margin-top: 17px;
 }
 .conversation-widget-body .editor-intro {
   margin: 0 0 16px;
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
   line-height: 1.7;
 }
 .conversation-widget-body .form-actions {
@@ -358,10 +358,10 @@
   min-height: 44px;
 }
 .conversation-widget-body .form-actions .button {
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
 }
 .conversation-widget-body .segment-card {
-  background: var(--canvas);
+  background: var(--color-bg-canvas);
 }
 .conversation-widget-body .segment-card.is-selected {
   border-color: #cbacc5;
@@ -372,7 +372,7 @@
 .conversation-widget-body .competitor-none {
   border: 0;
   border-radius: 6px;
-  background: var(--surface);
+  background: var(--color-bg-sunken);
   padding: 12px;
 }
 .conversation-widget-body .audience-empty,
@@ -382,9 +382,9 @@
   min-height: 0;
   padding: 18px;
   gap: 10px;
-  background: var(--canvas);
+  background: var(--color-bg-canvas);
   border-style: solid;
-  border-color: var(--border);
+  border-color: var(--color-border);
 }
 .conversation-widget-body .empty-icon {
   display: none;
@@ -403,12 +403,12 @@
 .conversation-widget-body .audience-empty .button,
 .conversation-widget-body .strategy-empty .button {
   min-height: 44px;
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
   margin-top: 3px;
 }
 .conversation-widget-body .personality-panel {
   padding: 18px 20px 3px;
-  background: var(--canvas);
+  background: var(--color-bg-canvas);
 }
 .conversation-widget-body .personality-panel-heading h2 {
   font-size: 13px;
@@ -422,7 +422,7 @@
 }
 .conversation-widget-body .strategy-review-notice {
   padding: 11px 13px;
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
 }
 .conversation-widget-empty {
   display: flex;
@@ -430,11 +430,11 @@
   justify-content: space-between;
   gap: 20px;
   padding: 17px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 7px;
-  background: var(--canvas);
-  font-size: var(--font-ui);
-  color: var(--secondary);
+  background: var(--color-bg-canvas);
+  font-size: var(--font-size-2);
+  color: var(--color-text-muted);
   line-height: 1.65;
 }
 .conversation-widget-empty .button {
@@ -449,7 +449,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
 }
 .conversation-selection-summary strong {
   font-weight: 500;
@@ -457,28 +457,28 @@
 }
 .conversation-selection-summary p {
   margin-top: 3px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   line-height: 1.65;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 .conversation-empty-summary {
-  color: var(--secondary);
-  font-size: var(--font-ui);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
 }
 .conversation-profile-summary {
   display: flex;
   flex-wrap: wrap;
   gap: 9px 20px;
   margin: 0;
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
 }
 .conversation-profile-summary > div {
   display: flex;
   gap: 7px;
 }
 .conversation-profile-summary dt {
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .conversation-profile-summary dd {
   margin: 0;
@@ -493,8 +493,8 @@
 .conversation-references {
   position: relative;
   margin-top: 15px;
-  font-size: var(--font-ui);
-  color: var(--secondary);
+  font-size: var(--font-size-2);
+  color: var(--color-text-muted);
 }
 .conversation-references > summary {
   cursor: pointer;
@@ -512,7 +512,7 @@
   list-style: none;
 }
 .conversation-references a {
-  color: var(--text);
+  color: var(--color-text);
   text-decoration: underline;
   text-underline-offset: 3px;
   overflow-wrap: anywhere;
@@ -520,11 +520,11 @@
 .conversation-references time {
   display: block;
   margin-top: 3px;
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
 }
 .conversation-feedback {
-  color: var(--secondary);
-  font-size: var(--font-ui);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
 }
 .conversation-compose-area {
   margin-top: 12px;
@@ -575,7 +575,7 @@
   padding-top: 20px;
 }
 .conversation-footer > .text-link {
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
 }
 .conversation-footer .inline-confirm {
   margin: 0;
@@ -618,13 +618,13 @@
   }
   .conversation-composer-footer > span {
     max-width: 155px;
-    font-size: var(--font-ui);
+    font-size: var(--font-size-2);
   }
   .conversation-composer-footer .button {
     min-height: 44px;
     padding-inline: 11px;
     gap: 8px;
-    font-size: var(--font-ui);
+    font-size: var(--font-size-2);
   }
   .conversation-composer.is-initial {
     padding: 16px;
@@ -634,7 +634,7 @@
     min-height: 155px;
   }
   .conversation-composer.is-initial .conversation-composer-footer > span {
-    font-size: var(--font-ui);
+    font-size: var(--font-size-2);
   }
   .conversation-project-title {
     gap: 7px;
@@ -646,13 +646,13 @@
     font-size: 16px;
   }
   .conversation-project-meta > .text-link {
-    font-size: var(--font-ui);
+    font-size: var(--font-size-2);
   }
   .conversation-user-entry {
     padding: 13px 15px;
   }
   .conversation-user-entry > p {
-    font-size: var(--font-ui);
+    font-size: var(--font-size-2);
   }
   .conversation-widget {
     padding: 15px 13px;
@@ -666,10 +666,10 @@
   }
   .conversation-widget-heading > .text-link {
     min-height: 44px;
-    font-size: var(--font-ui);
+    font-size: var(--font-size-2);
   }
   .conversation-review-state {
-    font-size: var(--font-ui);
+    font-size: var(--font-size-2);
   }
   .conversation-tool-avatar {
     width: 23px;
@@ -696,7 +696,7 @@
   }
   .conversation-widget-body .form-actions .button {
     min-height: 44px;
-    font-size: var(--font-ui);
+    font-size: var(--font-size-2);
   }
   .conversation-widget-empty {
     align-items: flex-start;
@@ -708,11 +708,11 @@
     margin-left: 0;
   }
   .conversation-selection-summary {
-    font-size: var(--font-ui);
+    font-size: var(--font-size-2);
   }
   .conversation-profile-summary {
     gap: 7px 16px;
-    font-size: var(--font-ui);
+    font-size: var(--font-size-2);
   }
   .conversation-page {
     padding-bottom: max(10px, env(safe-area-inset-bottom));
@@ -733,12 +733,12 @@
   border-radius: 10px;
 }
 .conversation-message-meta > span {
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .conversation-tool-avatar {
   border-radius: 50%;
-  background: var(--text);
-  color: var(--paper);
+  background: var(--color-text);
+  color: var(--color-bg-paper);
 }
 .conversation-widget {
   padding: 24px;
@@ -748,7 +748,7 @@
   letter-spacing: -0.4px;
 }
 .conversation-widget-body .segment-card {
-  background: var(--paper);
+  background: var(--color-bg-paper);
 }
 .conversation-widget-body .segment-card.is-selected {
   border-color: #5e6056;
@@ -805,7 +805,7 @@
 .conversation-user-entry > p,
 .conversation-saved-entry > p,
 .conversation-positioning-summary {
-  font-size: var(--font-body);
+  font-size: var(--font-size-3);
 }
 .conversation-project-title h1 {
   font-size: 18px;
@@ -828,5 +828,5 @@
 .conversation-context {
   margin-top: 24px;
   padding-top: 16px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border);
 }

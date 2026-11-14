@@ -10,7 +10,7 @@
   pointer-events: none;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  background: linear-gradient(transparent, var(--canvas));
+  background: linear-gradient(transparent, var(--color-bg-canvas));
   mask-image: linear-gradient(transparent, #000);
   -webkit-mask-image: linear-gradient(transparent, #000);
 }
@@ -47,13 +47,13 @@
   margin: 0;
   font-size: 15px;
   line-height: 24px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .concept-home .home-composer.conversation-composer {
   padding: 0;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
-  background: var(--paper);
+  background: var(--color-bg-paper);
   box-shadow: 0 16px 40px -16px rgb(25 25 25 / 20%);
   overflow: visible;
 }
@@ -78,7 +78,7 @@
   resize: none;
 }
 .concept-home .home-composer textarea::placeholder {
-  color: var(--secondary);
+  color: var(--color-text-muted);
   opacity: 1;
 }
 .concept-home .home-composer.conversation-composer .conversation-composer-footer {
@@ -106,8 +106,8 @@
   margin: 0;
   align-items: center;
   justify-content: center;
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
 }
 /* The send button fades while the box is empty; pressing it still explains why. */
 .concept-home .home-composer:has(textarea:placeholder-shown) .composer-send-icon {
@@ -137,7 +137,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  color: var(--text);
+  color: var(--color-text);
   padding: 0;
 }
 .concept-home .home-input-controls--compact .home-voice-popover {
@@ -161,17 +161,17 @@
 }
 .concept-home .home-example-pills button {
   min-height: 40px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   padding: 0 14px;
-  background: var(--paper);
-  color: var(--text);
+  background: var(--color-bg-paper);
+  color: var(--color-text);
   font-size: 13px;
   line-height: 18px;
   font-weight: 400;
 }
 .concept-home .home-example-pills button:hover:not(:disabled) {
-  background: var(--surface);
+  background: var(--color-bg-sunken);
 }
 .concept-home .home-recent {
   margin-top: 56px;
@@ -194,7 +194,7 @@
 .concept-home .home-recent-heading .text-link {
   font-size: 13px;
   gap: 6px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .home-brand-grid {
   display: grid;
@@ -209,16 +209,16 @@
   justify-content: center;
   gap: 8px;
   padding: 24px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
-  background: var(--paper);
+  background: var(--color-bg-paper);
   text-align: center;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .home-brands-empty h3 {
   font-size: 14px;
   font-weight: 500;
-  color: var(--text);
+  color: var(--color-text);
 }
 .home-brands-empty p {
   font-size: 13px;
@@ -325,7 +325,7 @@
 /* Scope switch inside the Home box: one segmented pill of native radios. */
 .concept-home .home-files-popover > summary {
   border-radius: 50%;
-  color: var(--text);
+  color: var(--color-text);
 }
 /* Phones: attach, dictate and send share the first row; the scope switch
    takes the full second row. */

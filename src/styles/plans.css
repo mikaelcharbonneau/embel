@@ -1,7 +1,7 @@
 /* Plans page and the out-of-credits prompt. Neutral ink, rounded cards (November 6 redesign). */
 .plans-page.page {
-  max-width: calc(var(--page-max) + var(--page-gutter) * 2);
-  padding: 40px var(--page-gutter) 48px;
+  max-width: calc(var(--container-page) + var(--space-gutter) * 2);
+  padding: 40px var(--space-gutter) 48px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -9,15 +9,15 @@
 }
 .plans-heading h1 {
   margin: 0;
-  font-size: var(--text-2xl);
+  font-size: var(--font-size-7);
   line-height: 36px;
   letter-spacing: -0.5px;
   font-weight: 500;
 }
 .plans-heading p {
   margin: 4px 0 0;
-  color: var(--secondary);
-  font-size: var(--text-md);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-3);
   line-height: 20px;
 }
 .plans-current {
@@ -26,8 +26,8 @@
   align-items: end;
   gap: 8px 40px;
   padding: 20px 24px;
-  background: var(--paper);
-  border: 1px solid var(--border);
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
 }
 .plans-current > div {
@@ -36,17 +36,17 @@
   gap: 2px;
 }
 .plans-current-label {
-  color: var(--secondary);
-  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
 }
 .plans-current strong {
-  font-size: var(--text-xl);
+  font-size: var(--font-size-6);
   font-weight: 500;
 }
 .plans-current p {
   margin: 0;
-  color: var(--secondary);
-  font-size: var(--text-md);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-3);
   justify-self: end;
   text-align: right;
 }
@@ -63,13 +63,13 @@
   flex-direction: column;
   gap: 12px;
   padding: 24px;
-  background: var(--paper);
-  border: 1px solid var(--border);
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
   min-width: 0;
 }
 .plans-card[data-current] {
-  border-color: var(--text);
+  border-color: var(--color-text);
 }
 .plans-card header {
   display: flex;
@@ -79,15 +79,15 @@
 }
 .plans-card h2 {
   margin: 0;
-  font-size: var(--text-lg);
+  font-size: var(--font-size-4);
   font-weight: 500;
 }
 .plans-badge {
   padding: 3px 10px;
   border-radius: var(--radius-pill);
-  background: var(--accent-soft);
-  color: var(--accent-ink);
-  font-size: var(--text-xs);
+  background: var(--color-bg-selected);
+  color: var(--color-text);
+  font-size: var(--font-size-1);
   font-weight: 500;
 }
 .plans-price {
@@ -103,22 +103,22 @@
   letter-spacing: -0.5px;
 }
 .plans-price span {
-  color: var(--secondary);
-  font-size: var(--text-md);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-3);
 }
 .plans-credits {
   margin: 0;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: var(--text-md);
+  font-size: var(--font-size-3);
   font-weight: 500;
 }
 .plans-description,
 .plans-hint {
   margin: 0;
-  color: var(--secondary);
-  font-size: var(--text-md);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-3);
   line-height: 20px;
   flex: 1;
 }
@@ -138,23 +138,23 @@
 .plans-message,
 .plans-footnote {
   margin: 0;
-  color: var(--secondary);
-  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
   line-height: 18px;
 }
 .plans-error {
-  color: var(--danger);
+  color: var(--color-text-danger);
 }
 .plans-notice {
   margin: 0;
   padding: 12px 16px;
   border-radius: var(--radius-control);
-  background: var(--surface);
-  font-size: var(--text-md);
+  background: var(--color-bg-sunken);
+  font-size: var(--font-size-3);
 }
 .plans-notice-positive {
-  background: var(--positive-soft);
-  color: var(--positive);
+  background: var(--color-bg-positive-soft);
+  color: var(--color-text-positive);
 }
 
 .out-of-credits-prompt {
@@ -167,19 +167,19 @@
   flex-direction: column;
   gap: 14px;
   padding: 18px 20px;
-  background: var(--paper);
-  border: 1px solid var(--border);
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
   box-shadow: 0 12px 32px rgb(25 25 25 / 0.12);
 }
 .out-of-credits-copy strong {
-  font-size: var(--text-md);
+  font-size: var(--font-size-3);
   font-weight: 500;
 }
 .out-of-credits-copy p {
   margin: 4px 0 0;
-  color: var(--secondary);
-  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
   line-height: 18px;
 }
 .out-of-credits-actions {

@@ -1,6 +1,6 @@
 .project-stage-strategy .project-workspace-content {
   overflow: hidden;
-  background: var(--paper);
+  background: var(--color-bg-paper);
 }
 .guided-interview {
   position: relative;
@@ -8,7 +8,7 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  background: var(--paper);
+  background: var(--color-bg-paper);
 }
 .page.home-page:has(.guided-interview-opening) {
   width: 100%;
@@ -25,7 +25,7 @@
   overflow-y: auto;
   overscroll-behavior-y: contain;
   scrollbar-gutter: stable;
-  padding: 56px max(24px, calc((100% - var(--conversation-max)) / 2)) 32px;
+  padding: 56px max(24px, calc((100% - var(--container-reading)) / 2)) 32px;
   display: flex;
   flex-direction: column;
   gap: 28px;
@@ -39,7 +39,7 @@
   max-width: min(600px, 88%);
   padding: 14px 18px;
   border-radius: 12px;
-  background: var(--surface, #f1f0ee);
+  background: var(--color-bg-sunken, #f1f0ee);
 }
 .guided-user-message p {
   white-space: pre-wrap;
@@ -106,7 +106,7 @@
 .guided-new-response > .button {
   pointer-events: auto;
   min-height: 44px;
-  background: var(--paper);
+  background: var(--color-bg-paper);
   box-shadow: 0 2px 8px #1919190d;
 }
 .guided-conversation-error {
@@ -114,7 +114,7 @@
   padding: 12px 14px;
   border-radius: 8px;
   background: #fff5f3;
-  color: var(--danger, #a52b2b);
+  color: var(--color-text-danger, #a52b2b);
   font-size: 13px;
   line-height: 20px;
 }
@@ -128,7 +128,7 @@
   align-items: center;
   gap: 12px;
   font-size: 13px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .guided-thinking > img {
   animation: guided-thinking-pulse 1.5s ease-in-out infinite;
@@ -231,11 +231,11 @@
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .brief-edit-trigger:is(:hover, :focus-visible) {
-  color: var(--text);
-  background: var(--paper);
+  color: var(--color-text);
+  background: var(--color-bg-paper);
 }
 @media (pointer: coarse) {
   .brief-edit-trigger {

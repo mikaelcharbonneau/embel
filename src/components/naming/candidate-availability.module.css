@@ -8,13 +8,13 @@
   gap: 2px;
   margin-bottom: 18px;
   padding: 3px;
-  background: var(--surface);
+  background: var(--color-bg-sunken);
   border-radius: 10px;
 }
 .tabs button {
   min-height: 36px;
   padding: 6px 10px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   background: transparent;
   border: 0;
   border-radius: 8px;
@@ -24,17 +24,17 @@
   cursor: pointer;
 }
 .tabs button:hover {
-  color: var(--text);
+  color: var(--color-text);
 }
 .tabs button[aria-selected="true"] {
-  color: var(--text);
-  background: var(--paper);
+  color: var(--color-text);
+  background: var(--color-bg-paper);
   box-shadow:
     0 1px 2px #19191914,
-    0 0 0 1px var(--border);
+    0 0 0 1px var(--color-border);
 }
 .tabs button:focus-visible {
-  outline: 2px solid var(--text);
+  outline: 2px solid var(--color-text);
   outline-offset: 1px;
 }
 .form {
@@ -48,7 +48,7 @@
   flex: 1 1 140px;
   min-width: 0;
   gap: 6px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 500;
 }
@@ -57,15 +57,15 @@
   min-height: 44px;
   min-width: 0;
   padding: 8px 12px;
-  color: var(--text);
-  background: var(--paper);
-  border: 1px solid var(--border);
+  color: var(--color-text);
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   font: inherit;
   font-size: 15px;
 }
 .form :is(input, select):focus-visible {
-  outline: 2px solid var(--text);
+  outline: 2px solid var(--color-text);
   outline-offset: -1px;
   border-color: transparent;
 }
@@ -78,7 +78,7 @@
 .section p,
 .status {
   margin: 8px 0 0;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -91,8 +91,8 @@
 .result {
   margin-top: 14px;
   padding: 14px 16px;
-  background: var(--paper);
-  border: 1px solid var(--border);
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   font-size: 14px;
   overflow-wrap: anywhere;
@@ -109,7 +109,7 @@
   font-weight: 600;
 }
 .result > p {
-  color: var(--text);
+  color: var(--color-text);
   font-size: 14px;
 }
 .pill {
@@ -118,8 +118,8 @@
   gap: 6px;
   padding: 3px 10px 3px 8px;
   border-radius: 999px;
-  background: var(--surface);
-  color: var(--secondary);
+  background: var(--color-bg-sunken);
+  color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
@@ -131,14 +131,14 @@
   background: currentColor;
 }
 .pill[data-tone="positive"] {
-  color: var(--positive);
+  color: var(--color-text-positive);
   background: #3d64481a;
 }
 .pill[data-tone="negative"] {
-  color: var(--text);
+  color: var(--color-text);
 }
 .pill[data-tone="negative"] .dot {
-  background: var(--accent-ink);
+  background: var(--color-text);
 }
 .more {
   margin-top: 6px;
@@ -146,13 +146,13 @@
 }
 .more > summary {
   width: fit-content;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 .more > summary:hover {
-  color: var(--text);
+  color: var(--color-text);
 }
 .more p {
   margin-top: 6px;
@@ -162,15 +162,15 @@
   margin: 6px 0 0;
   overflow: auto;
   padding-inline-start: 20px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 .meta {
   display: block;
   margin-top: 12px;
   padding-top: 10px;
-  border-top: 1px solid var(--border);
-  color: var(--secondary);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 .section a {
