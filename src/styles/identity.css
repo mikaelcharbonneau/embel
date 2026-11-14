@@ -1,6 +1,6 @@
 .project-identity {
-  margin-top: 38px;
-  padding-top: 28px;
+  margin-top: var(--space-10);
+  padding-top: var(--space-8);
   border-top: 1px solid var(--color-border);
 }
 .identity-section-heading {
@@ -8,7 +8,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
-  margin-bottom: 18px;
+  margin-bottom: var(--space-5);
 }
 .identity-section-heading h2 {
   font-size: 22px;
@@ -40,7 +40,7 @@
   justify-content: center;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
-  padding: 9px 14px;
+  padding: var(--space-3) var(--space-4);
   font-size: var(--font-size-2);
   font-weight: 500;
   line-height: 1.5;
@@ -72,19 +72,19 @@
 .identity-notice,
 .identity-recovery {
   border: 1px solid var(--color-border);
-  padding: 14px var(--space-4);
+  padding: var(--space-4) var(--space-4);
   background: var(--color-bg-paper);
   border-radius: var(--radius-control);
   font-size: var(--font-size-2);
   line-height: 1.7;
-  margin-bottom: 15px;
+  margin-bottom: var(--space-4);
 }
 .identity-error {
   border-color: var(--color-text);
 }
 .identity-recovery {
   background: var(--color-bg-sunken);
-  margin-top: 14px;
+  margin-top: var(--space-4);
 }
 .identity-recovery > p + p {
   margin-top: var(--space-2);
@@ -93,20 +93,20 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px var(--space-4);
-  margin-top: 15px;
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-4);
 }
 .identity-freshness {
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
   line-height: 1.6;
-  margin: 10px 0 var(--space-4);
+  margin: var(--space-3) 0 var(--space-4);
 }
 .identity-freshness-stale {
   color: var(--color-text);
 }
 .identity-empty {
-  padding: 30px 22px;
+  padding: var(--space-8) var(--space-6);
   background: var(--color-bg-paper);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
@@ -119,14 +119,14 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   padding: var(--space-6);
-  margin-bottom: 28px;
+  margin-bottom: var(--space-8);
 }
 .identity-badge {
   background: var(--color-bg-selected);
   color: var(--color-text);
   font-size: var(--font-size-2);
   border-radius: var(--radius-pill);
-  padding: 5px var(--space-2);
+  padding: var(--space-1-5) var(--space-2);
   white-space: nowrap;
 }
 .identity-board {
@@ -168,11 +168,11 @@
 .identity-acknowledgment {
   display: flex;
   align-items: flex-start;
-  gap: 9px;
+  gap: var(--space-2);
   font-size: var(--font-size-2);
   line-height: 1.7;
   background: var(--color-bg-selected);
-  padding: 15px;
+  padding: var(--space-4);
   border-radius: var(--radius-control);
   margin-top: var(--space-4);
 }
@@ -182,7 +182,7 @@
   flex-shrink: 0;
 }
 .identity-history {
-  margin-top: 28px;
+  margin-top: var(--space-8);
 }
 .identity-history-grid {
   display: grid;
@@ -201,10 +201,10 @@
   border-radius: 0;
 }
 .identity-history-card .identity-board-stale {
-  padding: var(--space-3) 15px 0;
+  padding: var(--space-3) var(--space-4) 0;
 }
 .identity-history-content {
-  padding: 15px;
+  padding: var(--space-4);
 }
 .identity-card-heading {
   display: flex;
@@ -220,7 +220,7 @@
 .identity-history-content > p {
   font-size: var(--font-size-2);
   color: var(--color-text-muted);
-  margin-top: 9px;
+  margin-top: var(--space-3);
   line-height: 1.6;
 }
 .identity-more {
@@ -230,13 +230,13 @@
 .identity-components {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 22px;
-  margin-top: 28px;
+  gap: var(--space-6);
+  margin-top: var(--space-8);
 }
 .identity-components > section {
   min-width: 0;
   border-top: 1px solid var(--color-border);
-  padding-top: 18px;
+  padding-top: var(--space-5);
 }
 .identity-components h4 {
   font-size: 15px;
@@ -259,7 +259,7 @@
 .identity-files ul {
   list-style: none;
   padding: 0;
-  margin: 0 0 15px;
+  margin: 0 0 var(--space-4);
   display: grid;
   gap: var(--space-3);
 }
@@ -269,7 +269,7 @@
 .identity-swatches li {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2);
   min-width: 0;
   font-size: var(--font-size-2);
 }
@@ -305,13 +305,13 @@
 .identity-component-editor summary,
 .identity-preferences summary {
   cursor: pointer;
-  padding: 9px 0;
+  padding: var(--space-3) 0;
   color: var(--color-text);
   font-size: var(--font-size-2);
   font-weight: 500;
 }
 .identity-component-editor form {
-  margin-top: 10px;
+  margin-top: var(--space-3);
 }
 .project-identity fieldset {
   border: 0;
@@ -326,7 +326,7 @@
   display: block;
   font-size: var(--font-size-2);
   font-weight: 500;
-  margin-bottom: 14px;
+  margin-bottom: var(--space-4);
 }
 .project-identity fieldset input,
 .project-identity textarea,
@@ -339,7 +339,7 @@
   color: var(--color-text);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
-  padding: 9px 10px;
+  padding: var(--space-3) var(--space-3);
   margin-top: var(--space-1-5);
   font-size: var(--font-size-2);
   font-weight: 400;
@@ -353,14 +353,14 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(80px, 0.7fr) auto;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2);
 }
 .identity-type-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0 var(--space-3);
-  padding-bottom: 14px;
-  margin-bottom: 14px;
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-4);
   border-bottom: 1px solid var(--color-border);
 }
 .identity-type-row > button {
@@ -373,14 +373,14 @@
   grid-column: 1 / -1;
 }
 .identity-files ul {
-  margin-top: 14px;
+  margin-top: var(--space-4);
 }
 .identity-files li {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2) 18px;
-  padding: 10px 0;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) 0;
   border-bottom: 1px solid var(--color-border);
 }
 .identity-files li > div {
@@ -399,14 +399,14 @@
   flex-basis: 100%;
 }
 .identity-preferences {
-  margin-top: 28px;
-  padding: 18px 22px;
+  margin-top: var(--space-8);
+  padding: var(--space-5) var(--space-6);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   background: var(--color-bg-paper);
 }
 .identity-preferences form {
-  padding-top: 15px;
+  padding-top: var(--space-4);
   max-width: 760px;
 }
 .identity-preferences fieldset label:first-of-type {
@@ -419,18 +419,18 @@
 }
 @media (max-width: 650px) {
   .project-identity {
-    margin-top: 28px;
+    margin-top: var(--space-8);
   }
   .identity-section-heading {
     flex-wrap: wrap;
-    gap: 10px;
+    gap: var(--space-2);
   }
   .identity-history-grid,
   .identity-components {
     grid-template-columns: 1fr;
   }
   .identity-system-detail {
-    padding: 17px;
+    padding: var(--space-5);
   }
   .identity-history-card .identity-board-image {
     aspect-ratio: 4 / 3;
@@ -442,10 +442,10 @@
     grid-column: 1 / -1;
     justify-self: start;
     margin-top: -10px;
-    margin-bottom: 10px;
+    margin-bottom: var(--space-3);
   }
   .identity-preferences {
-    padding: 15px 17px;
+    padding: var(--space-4) var(--space-5);
   }
 }
 
@@ -453,7 +453,7 @@
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
   line-height: 1.7;
-  margin: -3px 0 18px;
+  margin: -3px 0 var(--space-5);
 }
 #project-identity-title:focus-visible {
   outline: 2px solid var(--color-text);

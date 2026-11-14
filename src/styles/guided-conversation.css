@@ -25,7 +25,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin-bottom: 10px;
+  margin-bottom: var(--space-3);
   font-size: var(--font-size-2);
   font-weight: 500;
 }
@@ -46,7 +46,7 @@
    spaced like the messages inside it. */
 .guided-conversation-error {
   margin-bottom: var(--space-3);
-  padding: var(--space-3) 14px;
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-small);
   background: var(--color-bg-danger-soft);
   color: var(--color-text-danger);

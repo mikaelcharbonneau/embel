@@ -1,8 +1,8 @@
 .strategy-provider-note {
   display: flex;
   align-items: flex-start;
-  gap: 9px;
-  padding: 13px 15px;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-4);
   margin: -6px 0 var(--space-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-small);
@@ -23,16 +23,16 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 13px;
+  gap: var(--space-3);
   min-height: 275px;
   border: 1px dashed var(--color-border-strong);
   border-radius: var(--radius-card);
-  padding: 28px var(--space-6);
+  padding: var(--space-8) var(--space-6);
   text-align: center;
 }
 .strategy-empty h2 {
   font-size: 17px;
-  margin-top: 3px;
+  margin-top: var(--space-1);
 }
 .strategy-empty p {
   max-width: 370px;
@@ -46,9 +46,9 @@
 .strategy-review-notice {
   display: flex;
   align-items: flex-start;
-  gap: 9px;
-  padding: 14px var(--space-4);
-  margin-bottom: 18px;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-4);
+  margin-bottom: var(--space-5);
   background: var(--color-bg-warning-soft);
   border: 1px solid var(--color-border-warning-soft);
   border-radius: var(--radius-small);
@@ -68,7 +68,7 @@
   margin-top: var(--space-0-5);
 }
 .personality-panel {
-  padding: 22px var(--space-6) var(--space-2);
+  padding: var(--space-6) var(--space-6) var(--space-2);
   background: var(--color-bg-paper);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
@@ -84,7 +84,7 @@
   letter-spacing: 0;
 }
 .personality-scale-hint {
-  margin-top: 10px;
+  margin-top: var(--space-3);
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
   line-height: 1.65;
@@ -93,7 +93,7 @@
   margin-top: var(--space-2);
 }
 .personality-dimension {
-  padding: 18px 0 17px;
+  padding: var(--space-5) 0 var(--space-5);
 }
 .personality-dimension + .personality-dimension {
   border-top: 1px solid var(--color-border);
@@ -109,7 +109,7 @@
   font-weight: 500;
 }
 .personality-dimension-heading p {
-  margin-top: 3px;
+  margin-top: var(--space-1);
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
 }
@@ -117,7 +117,7 @@
   display: grid;
   place-items: center;
   min-width: 42px;
-  padding: 5px var(--space-2);
+  padding: var(--space-1-5) var(--space-2);
   border-radius: var(--radius-inset);
   background: var(--color-bg-selected);
   color: var(--color-text);
@@ -179,7 +179,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  margin-bottom: 18px;
+  margin-bottom: var(--space-5);
   padding: var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-small);
@@ -203,8 +203,8 @@
   display: block;
   width: 100%;
   min-height: 235px;
-  padding: 14px;
-  margin-top: 10px;
+  padding: var(--space-4);
+  margin-top: var(--space-3);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-small);
   background: var(--color-bg-paper);
@@ -222,7 +222,7 @@
   display: flex;
   justify-content: space-between;
   gap: var(--space-4);
-  margin-top: 10px;
+  margin-top: var(--space-3);
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
   line-height: 1.65;
@@ -234,42 +234,42 @@
 
 @media (max-width: 540px) {
   .strategy-provider-note {
-    padding: var(--space-3) 13px;
+    padding: var(--space-3) var(--space-4);
     font-size: var(--font-size-2);
   }
   .strategy-empty {
-    padding: 25px 18px;
+    padding: var(--space-6) var(--space-5);
   }
   .personality-panel {
-    padding: 19px var(--space-4) var(--space-1);
+    padding: var(--space-5) var(--space-4) var(--space-1);
   }
   .personality-panel-heading h2 {
     font-size: var(--font-size-2);
   }
   .personality-dimension {
-    padding-block: 17px;
+    padding-block: var(--space-5);
   }
   .personality-slider {
     height: 44px;
-    margin-top: 5px;
+    margin-top: var(--space-1-5);
   }
   .strategy-prerequisite {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-3);
-    padding: 14px;
+    padding: var(--space-4);
   }
   .strategy-prerequisite .button {
     min-height: 44px;
   }
   .positioning-input {
     min-height: 235px;
-    padding: 11px;
+    padding: var(--space-3);
     font-size: var(--font-size-4);
   }
   .positioning-input-footer {
     flex-wrap: wrap;
-    gap: 5px;
+    gap: var(--space-1);
   }
   .positioning-input-footer > span {
     margin-left: auto;

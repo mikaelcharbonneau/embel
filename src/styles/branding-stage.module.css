@@ -15,7 +15,7 @@
   min-width: 0;
   max-width: var(--branding-max-width);
   margin: 0 auto;
-  padding: 28px var(--branding-gutter) var(--space-10);
+  padding: var(--space-8) var(--branding-gutter) var(--space-10);
   overflow-wrap: anywhere;
 }
 
