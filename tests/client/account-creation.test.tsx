@@ -108,7 +108,7 @@ it("checks repeated passwords and clears both fields without sending a mismatche
   await render();
   const inputs = fill("different synthetic password");
   await submit();
-  expect(host.querySelector('[role="alert"]')?.textContent).toContain("passwords don't match");
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("passwords don’t match");
   expect(inputs.password.value).toBe("");
   expect(inputs.confirm.value).toBe("");
   expect(requestBodies).toEqual([]);
@@ -137,7 +137,7 @@ it("clears credentials immediately, admits one request, preserves recovery and a
   expect(host.querySelector("h1")?.textContent).toBe("Check your email");
   expect(document.activeElement).toBe(host.querySelector("h1"));
   expect(host.querySelector('input[type="password"]')).toBeNull();
-  expect(host.textContent).toContain("Your idea is kept. It will be waiting when you're signed in.");
+  expect(host.textContent).toContain("Your idea is kept. It will be waiting when you’re signed in.");
   expect(mocks.replace).not.toHaveBeenCalled();
   expect(localStorage.getItem("synthetic-draft")).toBe("Retained browser work");
   const storage = JSON.stringify({ local: { ...localStorage }, session: { ...sessionStorage } });
@@ -205,7 +205,7 @@ it("sanitizes rate limits and malformed responses, retains the form, then recove
   createResponse = async () => Response.json({ authenticated: true, access_token: "private" });
   fill();
   await submit();
-  expect(host.querySelector('[role="alert"]')?.textContent).toContain("couldn't be verified");
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("couldn’t be verified");
   expect(mocks.replace).not.toHaveBeenCalled();
   createResponse = async () => Response.json(pending);
   fill();

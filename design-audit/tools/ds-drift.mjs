@@ -158,7 +158,7 @@ const normHex = (hex) => {
   return h;
 };
 
-const tokenFile = "src/styles/tokens.css";
+const tokenFile = "src/styles/embel/tokens.css";
 const definedTokens = new Map(); // name -> value (from tokens.css)
 for (const d of declarations) if (d.file === tokenFile && d.prop.startsWith("--")) definedTokens.set(d.prop, d.value);
 

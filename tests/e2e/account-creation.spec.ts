@@ -91,7 +91,7 @@ test("signup: direct form validates passwords and waits for email without invent
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Create your Embel account", exact: true })).toBeVisible();
   const form = await fillSignup(page, "different inert password");
-  await expect(form.getByRole("alert")).toContainText("passwords don't match");
+  await expect(form.getByRole("alert")).toContainText("passwords don’t match");
   await expect(form.getByLabel("Password", { exact: true })).toHaveValue("");
   await expect(form.getByLabel("Confirm password", { exact: true })).toHaveValue("");
   expect(state.signupCount).toBe(0);
@@ -163,7 +163,7 @@ test("signup: prompt and scope survive signup, email waiting and subsequent sign
   await accountMenu(page).getByRole("menuitem", { name: "Sign in", exact: true }).click();
   await page.getByRole("dialog").getByRole("link", { name: "Create account", exact: true }).click();
   await expect(
-    page.getByText("Your idea is kept. It will be waiting when you're signed in.", { exact: false }),
+    page.getByText("Your idea is kept. It will be waiting when you’re signed in.", { exact: false }),
   ).toBeVisible();
   await fillSignup(page);
   await expect(page.getByRole("heading", { name: "Check your email", exact: true })).toBeVisible();
@@ -220,7 +220,7 @@ test("signup: malformed success keeps account private and preserves a retry path
   state.signupReply = { authenticated: true, unexpected: "provider detail" };
   await page.goto("/sign-up");
   const form = await fillSignup(page);
-  await expect(form.getByRole("alert")).toContainText("account response couldn't be verified");
+  await expect(form.getByRole("alert")).toContainText("account response couldn’t be verified");
   await expect(form.getByLabel("Password", { exact: true })).toHaveValue("");
   await expect(form.getByLabel("Confirm password", { exact: true })).toHaveValue("");
   await expect(page).toHaveURL(/\/sign-up$/);

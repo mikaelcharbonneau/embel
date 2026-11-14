@@ -40,7 +40,7 @@ test("composer supports multiline text and IME composition without premature sub
   await initial.press("Enter");
   await expect(signIn).toBeVisible();
   await expect(
-    signIn.getByText("Your idea is kept. It will be waiting when you're signed in.", { exact: false }),
+    signIn.getByText("Your idea is kept. It will be waiting when you’re signed in.", { exact: false }),
   ).toBeVisible();
   expect((await readDraft(page)).conversation?.filter((event) => event.kind === "user_message")).toMatchObject([
     { text: "First line\nSecond line" },

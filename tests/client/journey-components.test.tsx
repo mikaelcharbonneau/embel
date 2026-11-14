@@ -225,7 +225,7 @@ describe("decisions that must not regress", () => {
   it("explains a refused start once, beside its Try again, and clears the line by the button", async () => {
     const estimate = {
       canStart: false,
-      error: "You've used this month's credits. New credits arrive on December 1. Your logos are saved.",
+      error: "You’ve used this month’s credits. New credits arrive on December 1. Your logos are saved.",
       busy: false,
       refresh: vi.fn(),
       start: vi.fn(),
@@ -233,7 +233,7 @@ describe("decisions that must not regress", () => {
     await render(createElement(LogoGenerationAction, { estimate, label: "More concepts" }));
     expect(host.querySelector('[role="status"]')!.textContent).toBe("");
     expect(host.textContent).not.toContain("Not ready yet.");
-    expect(host.textContent!.match(/used this month's credits/g)).toHaveLength(1);
+    expect(host.textContent!.match(/used this month’s credits/g)).toHaveLength(1);
     expect([...host.querySelectorAll("button")].map((button) => button.textContent)).toContain("Try again");
   });
 });

@@ -203,7 +203,7 @@ export function AssetsJourney({
     <Button
       size="sm"
       icon="download"
-      aria-label={`Download ${label} as ${kind}`}
+      aria-label={`Download ${kind}: ${label}`}
       disabled={!file || disabled}
       onClick={() => file && downloadFile(file)}
     >

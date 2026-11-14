@@ -41,15 +41,15 @@ export async function requestSignUp(
 
 export function signUpErrorMessage(error: unknown): string {
   if (error instanceof SignUpRequestError) {
-    if (error.status === 400) return "The security check didn't pass. Please try again.";
+    if (error.status === 400) return "The security check didn’t pass. Please try again.";
     if (error.status === 429) return "Too many account attempts. Wait a little before trying again.";
     if (error.status === 503)
       return "Account creation is unavailable right now. Your work is kept. Please try again shortly.";
-    if (error.status === 403) return "This account request couldn't be verified. Refresh the page and try again.";
+    if (error.status === 403) return "This account request couldn’t be verified. Refresh the page and try again.";
     if (error.status === 413 || error.status === 422)
-      return "Account creation couldn't be completed with those details. Check your email and use a strong password of at least 12 characters.";
+      return "Account creation couldn’t be completed with those details. Check your email and use a strong password of at least 12 characters.";
     if (error.status === 502)
-      return "The account response couldn't be verified. Check your email or try signing in before trying again.";
+      return "The account response couldn’t be verified. Check your email or try signing in before trying again.";
   }
-  return "Account creation couldn't be confirmed. Check your connection and email before trying again.";
+  return "Account creation couldn’t be confirmed. Check your connection and email before trying again.";
 }

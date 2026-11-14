@@ -19,7 +19,7 @@ export function MediaFrame({
   inset = false,
   label,
   status,
-  failedText = "This image couldn't be shown.",
+  failedText = "This image couldn’t be shown.",
   className,
   onImageError,
   children,

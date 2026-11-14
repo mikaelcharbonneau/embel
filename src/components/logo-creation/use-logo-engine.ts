@@ -39,7 +39,7 @@ export function logoEngineErrorMessage(error: unknown, periodEnd: string | null 
     if (error.status === 402) return creditsMessage(periodEnd, "Your logos are saved.");
     if (error.status === 409)
       return "Your logo details changed or a set is still being drawn. Your work is kept; try again in a moment.";
-    if (error.status === 429) return "You've reached today's limit for this. Your logos are saved. Try again tomorrow.";
+    if (error.status === 429) return "You’ve reached today’s limit for this. Your logos are saved. Try again tomorrow.";
     if (error.status === 503) return "Logo drawing is unavailable right now. Nothing has started and nothing was used.";
   }
   return "This request could not be confirmed. Your logos are kept; check again before trying once more.";

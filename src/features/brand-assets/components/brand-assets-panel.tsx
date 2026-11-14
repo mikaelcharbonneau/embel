@@ -47,7 +47,7 @@ function errorMessage(error: unknown): string {
     if (error.reason === "font_coverage")
       return "This saved direction uses fonts that cannot render all of its text. Choose or generate a new direction with compatible fonts.";
     if (error.reason === "unsupported_text")
-      return "Some characters in this brand's text cannot yet be rendered in downloadable assets. Remove unsupported symbols or use a supported spelling before generating a new direction.";
+      return "Some characters in this brand’s text cannot yet be rendered in downloadable assets. Remove unsupported symbols or use a supported spelling before generating a new direction.";
     if (error.reason === "timeout") return "Preparing the kit took too long. Check your connection and try again.";
     if (error.reason === "canvas")
       return "This browser could not prepare the images. Please retry in a current browser.";

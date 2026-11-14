@@ -67,7 +67,7 @@ export function brandPackReadme(
     `${snapshot.name}: your brand kit`,
     ...(slogan ? [`Slogan: ${slogan}`] : []),
     "",
-    "What's in this kit",
+    "What’s in this kit",
     "- brand-board.png: your brand on one page.",
     `- logo/: your logo as you chose it, a copy with a transparent background and a one-color copy for dark backgrounds${vectorIncluded ? ", plus your saved SVG vector" : ""}.`,
     "- direction/: the creative direction you chose.",

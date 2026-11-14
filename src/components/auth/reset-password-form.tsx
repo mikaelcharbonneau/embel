@@ -50,7 +50,7 @@ export function ResetPasswordForm({ configured }: { configured: boolean }) {
     }
     if (password !== repeated) {
       clearPasswords();
-      setErrors({ confirm: "The two passwords don't match. Enter them again." });
+      setErrors({ confirm: "The two passwords don’t match. Enter them again." });
       passwordInput.current?.focus();
       return;
     }
@@ -86,10 +86,10 @@ export function ResetPasswordForm({ configured }: { configured: boolean }) {
       title={title}
       intro={
         saved
-          ? "You're signed in. Use your new password next time you sign in."
+          ? "You’re signed in. Use your new password next time you sign in."
           : expired
             ? "Reset links work once and only for a short time."
-            : "You'll stay signed in on this device."
+            : "You’ll stay signed in on this device."
       }
     >
       {!configured && (

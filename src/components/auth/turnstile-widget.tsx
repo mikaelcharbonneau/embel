@@ -59,7 +59,7 @@ export function readCaptcha(
   return {
     ok: false,
     message: handle?.failed()
-      ? "The security check couldn't load. Refresh the page or check your connection, then try again."
+      ? "The security check couldn’t load. Refresh the page or check your connection, then try again."
       : "Please wait for the security check to finish, then try again.",
   };
 }

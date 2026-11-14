@@ -64,7 +64,7 @@ describe("starting Logo work", () => {
   it("holds every action while an engine run works, and explains a refusal only on its own action", async () => {
     const engine: LogoEngineStarter = {
       busy: true,
-      error: "You've used this month's credits. Your logos are saved.",
+      error: "You’ve used this month’s credits. Your logos are saved.",
       errorKey: JSON.stringify(request),
       start: vi.fn(),
       clearError: vi.fn(),

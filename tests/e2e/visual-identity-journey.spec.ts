@@ -221,7 +221,7 @@ test("chosen concept leads to three directions, a saved choice and usable brand 
   const boardDownloadPromise = page.waitForEvent("download");
   await page
     .getByRole("region", { name: "Brand assets", exact: true })
-    .getByRole("button", { name: "Download brand board as PNG", exact: true })
+    .getByRole("button", { name: "Download PNG: brand board", exact: true })
     .click();
   const boardDownload = await boardDownloadPromise;
   await boardDownload.saveAs(info.outputPath("brand-board.png"));

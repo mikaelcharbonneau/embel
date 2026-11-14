@@ -17,7 +17,7 @@ it("names the same renewal day in the account menu, Plans and the out-of-credits
   expect(creditsRenewDate(periodEnd)).toBe("December 1");
   expect(nextCreditsDate({ periodEnd } as BillingSummary)).toBe("December 1");
   expect(creditsMessage(periodEnd, "Your logos are saved.")).toBe(
-    "You've used this month's credits. They renew on December 1. Your logos are saved.",
+    "You’ve used this month’s credits. They renew on December 1. Your logos are saved.",
   );
   expect(creditsRenewDate("not a date")).toBeNull();
   expect(creditsRenewDate(null)).toBeNull();

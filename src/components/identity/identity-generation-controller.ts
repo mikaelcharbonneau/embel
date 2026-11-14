@@ -49,7 +49,7 @@ export function identityGenerationErrorMessage(error: unknown, failure: string):
       return "Saved inputs changed. Check the latest before starting a new request. Existing systems and the original request are kept.";
     if (error.status === 402) return creditsMessage(null, "Your saved directions are kept.");
     if (error.status === 429)
-      return "You've reached today's limit for new directions. Your saved directions are kept. Try again tomorrow.";
+      return "You’ve reached today’s limit for new directions. Your saved directions are kept. Try again tomorrow.";
   }
   return failure;
 }

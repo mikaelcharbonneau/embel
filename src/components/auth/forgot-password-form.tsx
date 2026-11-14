@@ -62,7 +62,7 @@ export function ForgotPasswordForm({ configured, overlay = false }: { configured
       intro={
         sent
           ? "Use the link we sent to choose a new password."
-          : "Enter your email and we'll send you a link to choose a new password."
+          : "Enter your email and we’ll send you a link to choose a new password."
       }
     >
       {!configured && <InlineMessage>Password reset is unavailable right now. Please try again shortly.</InlineMessage>}

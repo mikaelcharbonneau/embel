@@ -85,9 +85,9 @@ const tab = (name) => page.getByRole("tab", { name, exact: true }).click();
 const zipFile = await save("Download brand kit", () =>
   page.getByRole("button", { name: "Download brand kit", exact: true }).click(),
 );
-await save("Download brand board as PNG", async () => {
+await save("Download PNG: brand board", async () => {
   await tab("Brand images");
-  await page.getByRole("button", { name: "Download brand board as PNG", exact: true }).click();
+  await page.getByRole("button", { name: "Download PNG: brand board", exact: true }).click();
 }).catch((e) => console.log(`  skipped brand board: ${e.message.split("\n")[0]}`));
 await save("Download guidelines", async () => {
   await tab("Brand guidelines");

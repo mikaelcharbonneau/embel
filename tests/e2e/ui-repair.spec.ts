@@ -99,7 +99,7 @@ test("sign-in recovery restores the prompt and scope from one retained browser c
     .click();
   await openAccountMenu(page);
   await accountMenu(page).getByRole("menuitem", { name: "Sign in", exact: true }).click();
-  await expect(page.getByText("Your idea is kept. It will be waiting when you're signed in.")).toBeVisible();
+  await expect(page.getByText("Your idea is kept. It will be waiting when you’re signed in.")).toBeVisible();
   // A full load, as after an authentication redirect, must use the retained sign-in copy.
   await page.goto("/");
   await expect(page.getByRole("textbox", { name: "Your prompt", exact: true })).toHaveValue(prompt);
