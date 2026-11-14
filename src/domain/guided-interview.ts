@@ -51,7 +51,6 @@ export const guidedPositioningDirectionSchema = z.strictObject({
   why: z.string().trim().min(1).max(1000),
   leads: z.array(z.string().trim().min(1).max(60)).min(1).max(5),
 });
-export type GuidedPositioningDirection = z.infer<typeof guidedPositioningDirectionSchema>;
 export const guidedSloganSchema = z.strictObject({ slogan: z.string().trim().min(1).max(120) });
 const optionFields = {
   id: identifier,

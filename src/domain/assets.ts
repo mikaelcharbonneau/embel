@@ -1,23 +1,6 @@
 import { z } from "zod";
 
 export const assetFormatSchema = z.enum(["svg", "png", "webp", "jpeg", "pdf", "zip", "json"]);
-export const assetVersionSchema = z.strictObject({
-  id: z.uuid(),
-  assetId: z.uuid(),
-  ownerId: z.uuid(),
-  projectId: z.uuid(),
-  inputRevision: z.number().int().positive(),
-  inputHash: z.string().regex(/^[a-f0-9]{64}$/),
-  contentHash: z.string().regex(/^[a-f0-9]{64}$/),
-  createdAt: z.iso.datetime({ offset: true }),
-  source: z.enum(["user_upload", "provider_generation", "vector_pipeline", "export_pipeline"]),
-  provider: z.string().max(100).optional(),
-  model: z.string().max(160).optional(),
-  providerRequestId: z.string().max(200).optional(),
-  // Only the dedicated, independently validated pipeline may mark vector output ready.
-  vectorStatus: z.enum(["not_applicable", "raster_only", "pending_validation", "validated_paths"]),
-  licenseEvidenceIds: z.array(z.string().min(1).max(200)).max(50),
-});
 
 type SelectionFlags = { id: string; ownerId: string; liked: boolean; saved: boolean; used: boolean };
 type VersionReference = { id: string; assetId: string; ownerId: string; inputRevision: number };

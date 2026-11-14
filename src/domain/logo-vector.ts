@@ -150,7 +150,6 @@ const rotation = z.number().min(-180).max(180);
 const color = z.string().regex(/^#[0-9A-F]{6}$/);
 const viewBox = z.tuple([coordinate, coordinate, dimension, dimension]);
 export const logoTransformSchema = z.strictObject({ x: coordinate, y: coordinate, scale, rotation });
-export type LogoTransform = z.infer<typeof logoTransformSchema>;
 
 /** Canonical absolute grammar; deliberately does not parse SVG/XML or convert paths. */
 function canonicalPathCommandCount(d: string): number | null {
@@ -213,7 +212,6 @@ export const logoVectorPathSchema = z.strictObject({
 });
 export type LogoVectorPath = z.infer<typeof logoVectorPathSchema>;
 export const logoComponentRoleSchema = z.enum(["symbol", "lettering", "illustration", "border", "whole_artwork"]);
-export type LogoComponentRole = z.infer<typeof logoComponentRoleSchema>;
 const text = z
   .string()
   .min(1)
@@ -242,7 +240,6 @@ export const logoTextSourceSchema = boundedLogoJson(
     shapingEngine: z.strictObject({ id: logoIdentifierSchema, version: logoIdentifierSchema }),
   }),
 );
-export type LogoTextSource = z.infer<typeof logoTextSourceSchema>;
 const componentShape = {
   id: logoIdentifierSchema,
   role: logoComponentRoleSchema,

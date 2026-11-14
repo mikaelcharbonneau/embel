@@ -419,4 +419,3 @@ export function identityReferenceBasis(snapshot: unknown) {
     })),
   });
 }
-export type IdentityReferenceBasis = ReturnType<typeof identityReferenceBasis>;

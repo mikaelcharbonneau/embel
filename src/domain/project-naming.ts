@@ -13,7 +13,6 @@ import { namingApproachSchema, namingPreferencesV2Schema } from "./naming-brain-
 import { namingChatCheckpointSchema } from "./naming-chat-checkpoint";
 export const NAMING_MAX_PAGE_SIZE = 100;
 export const NAMING_MAX_TRANSFORM_HISTORY = 32;
-export const NAMING_MUTATION_MAX_BYTES = 32_768;
 const revisionSchema = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 const counterSchema = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const timestampSchema = z.iso.datetime({ offset: true });
@@ -271,7 +270,6 @@ export const generatedNamingOriginV2Schema = z.discriminatedUnion("protocol", [
     responseId: z.string().min(1).max(300),
   }),
 ]);
-export type GeneratedNamingOriginV2 = z.infer<typeof generatedNamingOriginV2Schema>;
 export const generatedNamingOriginSchema = generatedNamingOriginV2Schema;
 /** Future initial ideation has a distinct honest provenance contract. It is not
  * a researched/verified Naming brain artifact and cannot acquire such claims. */
@@ -520,7 +518,6 @@ export const nameSelectionSchema = z
     path: ["previousSelectionId"],
   })
   .transform(freezeSnapshot);
-export type NameSelection = z.infer<typeof nameSelectionSchema>;
 export const nameRetentionSchema = z
   .strictObject({
     ...ownershipFields,
@@ -535,7 +532,6 @@ export const nameRetentionSchema = z
       value.revision === 0 ? !value.favorite && !value.saved && value.updatedAt === null : value.updatedAt !== null,
     { message: "Revision zero denotes untouched retention only" },
   );
-export type NameRetention = z.infer<typeof nameRetentionSchema>;
 export const namingListFilterSchema = z.enum(["all", "retained", "favorite", "saved"]);
 export const namingViewStateSchema = z.strictObject({
   pane: z.enum(["results", "screening", "workshop"]),
@@ -565,25 +561,21 @@ export const updateNamingPreferencesSchema = z.strictObject({
   expectedPreferencesVersion: counterSchema,
   preferences: namingPreferencesSchema,
 });
-export type UpdateNamingPreferences = z.infer<typeof updateNamingPreferencesSchema>;
 export const updateNameRetentionSchema = z.strictObject({
   candidateId: z.uuid(),
   expectedRevision: counterSchema,
   favorite: z.boolean(),
   saved: z.boolean(),
 });
-export type UpdateNameRetention = z.infer<typeof updateNameRetentionSchema>;
 export const selectProjectNameSchema = z.strictObject({
   candidateId: z.uuid(),
   expectedRevision: revisionSchema,
   acceptEarlierContext: z.boolean(),
 });
-export type SelectProjectName = z.infer<typeof selectProjectNameSchema>;
 export const updateNamingViewStateSchema = z.strictObject({
   expectedViewRevision: revisionSchema,
   viewState: namingViewStateSchema,
 });
-export type UpdateNamingViewState = z.infer<typeof updateNamingViewStateSchema>;
 export const transformProjectNamesSchema = z
   .strictObject({
     parentCandidateId: z.uuid(),
@@ -611,7 +603,6 @@ export const createBrandFromProjectNameSchema = z.strictObject({
   idempotencyKey: idempotencyKeySchema,
   acceptEarlierContext: z.boolean().default(false),
 });
-export type CreateBrandFromProjectName = z.infer<typeof createBrandFromProjectNameSchema>;
 
 /** Ownership still requires DB lookups; this rejects mismatched loaded parents. */
 export function validateProjectNameTransformParents(
@@ -675,7 +666,6 @@ export const nameTransformSchema = z
     }
   })
   .transform(freezeSnapshot);
-export type NameTransform = z.infer<typeof nameTransformSchema>;
 
 function sameScope(
   left: { ownerId: string; projectId: string },
@@ -699,12 +689,10 @@ export const listProjectNamesSchema = z.strictObject({
   batchId: z.uuid().optional(),
   query: z.string().max(200).default(""),
 });
-export type ListProjectNames = z.infer<typeof listProjectNamesSchema>;
 export const listNamingBatchesSchema = z.strictObject({
   cursor: namingCursorSchema.optional(),
   limit: z.number().int().min(1).max(NAMING_MAX_PAGE_SIZE).default(50),
 });
-export type ListNamingBatches = z.infer<typeof listNamingBatchesSchema>;
 export const projectNamePageSchema = z
   .strictObject({
     ...ownershipFields,
@@ -729,14 +717,6 @@ export const projectNamePageSchema = z
         message: "Continuation cursor must anchor the final returned row",
       });
   });
-export type ProjectNamePage = z.infer<typeof projectNamePageSchema>;
-export const listAccountNamesSchema = z.strictObject({
-  cursor: namingCursorSchema.optional(),
-  limit: z.number().int().min(1).max(NAMING_MAX_PAGE_SIZE).default(50),
-  filter: namingListFilterSchema.default("all"),
-  query: z.string().max(200).default(""),
-});
-export type ListAccountNames = z.infer<typeof listAccountNamesSchema>;
 export const accountNameEntrySchema = z
   .strictObject({
     candidate: projectNameCandidateSchema,
@@ -754,7 +734,6 @@ export const accountNameEntrySchema = z
       value.project.current_revision >= value.candidate.contextRevision,
     { message: "Library candidate and retention must belong to the owned project summary" },
   );
-export type AccountNameEntry = z.infer<typeof accountNameEntrySchema>;
 export const accountNamesPageSchema = z
   .strictObject({
     ownerId: z.uuid(),
@@ -779,7 +758,6 @@ export const accountNamesPageSchema = z
         message: "Continuation cursor must anchor the final returned candidate",
       });
   });
-export type AccountNamesPage = z.infer<typeof accountNamesPageSchema>;
 export const currentNameSelectionSchema = z
   .strictObject({ selection: nameSelectionSchema, candidate: projectNameCandidateSchema })
   .refine(
@@ -845,16 +823,4 @@ export const transformProjectNamesResponseSchema = z
     )
       ctx.addIssue({ code: "custom", message: "Returned candidates must match every output of this owned transform" });
   });
-export const createBrandFromProjectNameResponseSchema = selectProjectNameResponseSchema.refine(
-  (value) =>
-    value.project.scope === "complete_brand" && value.currentSelection.candidate.origin.kind === "account_copy",
-  { message: "Account promotion creates a complete brand with explicit copied provenance" },
-);
 export const projectNameResponseSchema = z.strictObject({ entry: projectNameEntrySchema });
-export type UpdateNamingPreferencesResponse = z.infer<typeof updateNamingPreferencesResponseSchema>;
-export type UpdateNameRetentionResponse = z.infer<typeof updateNameRetentionResponseSchema>;
-export type UpdateNamingViewStateResponse = z.infer<typeof updateNamingViewStateResponseSchema>;
-export type SelectProjectNameResponse = z.infer<typeof selectProjectNameResponseSchema>;
-export type ImportProjectNameResponse = z.infer<typeof importProjectNameResponseSchema>;
-export type TransformProjectNamesResponse = z.infer<typeof transformProjectNamesResponseSchema>;
-export type CreateBrandFromProjectNameResponse = z.infer<typeof createBrandFromProjectNameResponseSchema>;

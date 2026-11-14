@@ -1,8 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import type { AssetVersionReference } from "../../../domain/asset-library";
 import { verifiedAssetBytesSchema, type VerifiedAssetBytes } from "../../../domain/logo-deliverables";
-import type { LogoTraceSettings, LogoVectorDocument } from "../../../domain/logo-vector";
+import type { LogoTraceSettings } from "../../../domain/logo-vector";
 import type { LogoType } from "../../../domain/logo-workspace";
 import { LogoVectorError } from "../model/errors";
 import { runIdentityRasterProcess, runLogoConceptGrayscaleProcess } from "../../../server/image-process/process";
@@ -16,34 +15,6 @@ export const LOGO_RASTER_LIMITS = Object.freeze({
   teardownMs: 5_000,
 });
 export type LogoVectorWorkInput = { source: VerifiedAssetBytes; logoType: LogoType; settings: LogoTraceSettings };
-export type LogoRasterObservation = {
-  inputFormat: "png" | "jpeg" | "webp";
-  inputWidth: number;
-  inputHeight: number;
-  width: number;
-  height: number;
-  originalOrientation: number;
-  autoOriented: boolean;
-  inputColorSpace: string;
-  outputColorSpace: "srgb";
-  rgbaContentHash: string;
-  alphaStrategy: "exact-alpha-layers";
-  alphaLevels: number[];
-};
-export type LogoVectorConversionResult = {
-  source: AssetVersionReference;
-  sourceContentHash: string;
-  logoType: LogoType;
-  document: LogoVectorDocument;
-  svg: Uint8Array;
-  engine: {
-    name: "@visioncortex/vtracer";
-    version: "1.0.0-alpha.4";
-    artifactHash: string;
-    settings: LogoTraceSettings;
-  };
-  raster: LogoRasterObservation;
-};
 export function assertLogoConversionNotAborted(signal: AbortSignal): void {
   if (signal.aborted)
     throw new LogoVectorError("cancelled", "Logo conversion was cancelled. The original preview is unchanged.");

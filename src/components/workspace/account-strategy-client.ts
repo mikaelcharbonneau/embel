@@ -13,15 +13,6 @@ import {
 import { accountDraftChanged, type AccountWorkspace } from "./account-draft-memory";
 import { AccountRequestError } from "./account-api";
 import { creditsMessage } from "./credits-message";
-
-export const strategyLabels: Record<StrategyOperation, string> = {
-  "strategy.reformulate": "Response",
-  "strategy.competitors": "Competitor research",
-  "strategy.audience": "Audience proposal",
-  "strategy.personality": "Personality proposal",
-  "strategy.positioning": "Positioning proposal",
-  "strategy.slogan": "Slogan proposal",
-};
 type BoundedAPIAllowance = { billingMode: "openai_api"; spendControl?: undefined; maximumCostMicrousd: number };
 type UncappedAPIAllowance = { billingMode: "openai_api"; spendControl: "uncapped"; policyIdentity: string };
 type APIAllowance = BoundedAPIAllowance | UncappedAPIAllowance;

@@ -95,7 +95,6 @@ export const verifiedAssetBytesSchema = z
     "File observation must bind exact metadata and byte length",
   );
 export type VerifiedAssetBytes = z.infer<typeof verifiedAssetBytesSchema>;
-export type VerifiedUploadFile = { bytes: Uint8Array; mimeType: string; originalName: string };
 export const logoVectorDetailSchema = bounded(
   z
     .strictObject({
@@ -178,7 +177,6 @@ export const resolvedLogoVariantSchema = z
     (v) => (v.variant.applicability.status === "applicable") === (v.document !== null),
     "Applicable variants require resolved canonical geometry",
   );
-export type ResolvedLogoVariant = z.infer<typeof resolvedLogoVariantSchema>;
 export const resolvedLogoVariantSetSchema = z
   .strictObject({ set: logoVariantSetSchema, items: z.array(resolvedLogoVariantSchema).min(1).max(12) })
   .refine(
@@ -378,7 +376,6 @@ export const logoDeliverablesOverviewSchema = bounded(
     ),
   26_214_400,
 );
-export type LogoDeliverablesOverview = z.infer<typeof logoDeliverablesOverviewSchema>;
 const snapshotShape = {
   ...scope,
   brandName: text.min(1).max(200),
@@ -415,36 +412,3 @@ export const approvedLogoIdentitySnapshotSchema = z.strictObject(snapshotShape).
     issue(ctx, "Approvals must bind exact logo, selection, components and consistency");
 });
 export type ApprovedLogoIdentitySnapshot = z.infer<typeof approvedLogoIdentitySnapshotSchema>;
-export const approvedDeliverableSnapshotSchema = approvedLogoIdentitySnapshotSchema
-  .safeExtend({
-    inputRevisions: logoInputRevisionsSchema,
-    variants: logoVariantSetSchema,
-    resolvedVariants: resolvedLogoVariantSetSchema,
-    variantReview: logoVariantReviewSchema,
-    pngLongEdge,
-    socialSelections,
-    sourceSnapshotHash: hash,
-  })
-  .superRefine((v, ctx) => {
-    if (
-      !sameLogoScope(v, v.variants) ||
-      !sameLogoScope(v, v.variantReview) ||
-      v.variants.approvedLogoId !== v.logoApproval.id ||
-      v.variants.directionApprovalId !== v.directionApproval.id ||
-      v.variantReview.variantSetId !== v.variants.id ||
-      v.variantReview.approvedLogoId !== v.logoApproval.id ||
-      v.variantReview.directionApprovalId !== v.directionApproval.id ||
-      JSON.stringify(v.resolvedVariants.set) !== JSON.stringify(v.variants)
-    )
-      issue(ctx, "Resolved deliverables must match the exact approved variant set");
-    if (
-      v.variantReview.acceptedVariants.some(
-        (a) =>
-          !v.variants.items.some(
-            (i) => i.id === a.variantId && i.renderHash === a.renderHash && i.applicability.status === "applicable",
-          ),
-      )
-    )
-      issue(ctx, "Review must bind exact applicable render hashes");
-  });
-export type ApprovedDeliverableSnapshot = z.infer<typeof approvedDeliverableSnapshotSchema>;

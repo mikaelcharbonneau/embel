@@ -32,7 +32,6 @@ export const IDENTITY_HISTORY_MAX_PAGE_SIZE = 50;
 export const IDENTITY_MAX_PRODUCTION_FILES = 48;
 export const identityComponents = ["logo", "colors", "typography", "graphics", "imagery", "composition"] as const;
 export const identityComponentSchema = z.enum(identityComponents);
-export type IdentityComponent = z.infer<typeof identityComponentSchema>;
 const editableComponent = z.enum(["colors", "typography"]);
 const revision = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 const counter = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
@@ -738,7 +737,6 @@ export const identityComponentChangeSchema = z
       issue(ctx, "A user edit must record a real owned change to a new system version");
   })
   .transform(freeze);
-export type IdentityComponentChange = z.infer<typeof identityComponentChangeSchema>;
 export const identityRefinementResponseSchema = z
   .strictObject({
     system: identitySystemVersionSchema,
@@ -901,7 +899,6 @@ export const identitySessionSchema = z
     (value) => (value.identityRevision === 0) === (value.currentSelectionId === null),
     "The Identity selection head must match its revision",
   );
-export type IdentitySession = z.infer<typeof identitySessionSchema>;
 export const updateIdentityPreferencesSchema = z.strictObject({
   expectedPreferencesRevision: counter,
   preferences: identityPreferencesSchema,
@@ -916,7 +913,6 @@ export const updateIdentityPreferencesResponseSchema = z
       value.session.currentPreferencesRevision === value.preferences.revision,
     "Preference response must bind the exact owned session head",
   );
-export type UpdateIdentityPreferencesResponse = z.infer<typeof updateIdentityPreferencesResponseSchema>;
 /** Mutation-time freshness uses the new selection receipt, not an arbitrary later observation. */
 export const selectIdentitySystemResponseSchema = z
   .strictObject({ session: identitySessionSchema, currentSelection: identitySelectionWithSystemSchema })
@@ -1037,7 +1033,6 @@ export const identitySystemPageSchema = z
     )
       issue(ctx, "History continuation must bind its exact last row and project");
   });
-export type IdentitySystemPage = z.infer<typeof identitySystemPageSchema>;
 export const identitySystemDetailSchema = z
   .strictObject({
     ...ownership,
@@ -1058,7 +1053,6 @@ export const identitySystemDetailSchema = z
       issue(ctx, "System detail requires a comparable owned basis or explicit unavailability");
     }
   });
-export type IdentitySystemDetail = z.infer<typeof identitySystemDetailSchema>;
 export const identityProjectSchema = assetProjectSummarySchema.extend({ context: contextSnapshotSchema });
 /** Server capability for selection/refinement, independent of image generation or preference CAS. */
 export const identitySaveAvailabilitySchema = z.discriminatedUnion("status", [

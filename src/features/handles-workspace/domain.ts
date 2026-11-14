@@ -177,17 +177,6 @@ export const handlesSearchSchema = z
       ),
   })
   .strict();
-export type HandlesSearch = z.infer<typeof handlesSearchSchema>;
-export const emptyHandlesSearch = (): HandlesSearch => ({
-  names: "",
-  nameDraft: "",
-  imports: [],
-  platforms: platforms.map((platform) => platform.id),
-  options: { prefixes: "get, hello, try", suffixes: "hq, studio, co", separators: [""] },
-  title: "",
-  list: "Personal list",
-  savedSearches: [],
-});
 export const workspaceSchema = z
   .object({ version: z.literal(1), bundles: z.array(bundleSchema).max(200), search: handlesSearchSchema.optional() })
   .strict()
@@ -331,5 +320,3 @@ export function filterBundles(
 }
 export const groupKey = (bundle: HandleBundle) =>
   bundle.source.projectId ? `project:${bundle.source.projectId}` : `list:${bundle.list}`;
-export const groupLabel = (bundle: HandleBundle) =>
-  bundle.source.projectId ? (bundle.source.projectTitle ?? "Linked project") : bundle.list;

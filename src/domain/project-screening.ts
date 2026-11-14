@@ -157,4 +157,3 @@ export const screeningCheckResponseSchema = z
     if (!screeningResultMatches(value.criteria, value.result))
       ctx.addIssue({ code: "custom", message: "A lookup must match its exact criteria." });
   });
-export type ScreeningCheckResponse = z.infer<typeof screeningCheckResponseSchema>;

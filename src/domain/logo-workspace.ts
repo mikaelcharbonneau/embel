@@ -83,8 +83,6 @@ export const logoStagePayloadSchemas = {
     .refine((v) => v.approvalId === null || v.selectionId !== null, "Approval requires a selection"),
   deliverables: z.strictObject({ variantSetId: uuid.nullable(), exportManifestIds: ids }),
 };
-export type LogoStagePayloadMap = { [S in LogoStage]: z.infer<(typeof logoStagePayloadSchemas)[S]> };
-export type LogoStagePayload = LogoStagePayloadMap[LogoStage];
 const revisionShape = {
   version: z.literal(2),
   id: uuid,
@@ -203,7 +201,6 @@ export const logoWorkspaceV2Schema = bounded(
 );
 export type LogoWorkspaceV2 = z.infer<typeof logoWorkspaceV2Schema>;
 export const logoCurrentVectorSelectionSchema = z.strictObject({ ...scope, vectorRevisionId: uuid.nullable() });
-export type LogoCurrentVectorSelection = z.infer<typeof logoCurrentVectorSelectionSchema>;
 
 export const logoMutationReceiptSchema = bounded(
   z

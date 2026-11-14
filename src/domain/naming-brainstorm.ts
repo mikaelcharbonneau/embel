@@ -23,7 +23,6 @@ export const namingBrainstormCandidateSchema = z.strictObject({
   rationale: safeText,
   primaryApproach: namingApproachSchema,
 });
-export type NamingBrainstormCandidate = z.infer<typeof namingBrainstormCandidateSchema>;
 const constructedCandidate = namingBrainstormCandidateSchema.extend({
   construction: z.array(z.string().trim().min(1).max(100)).max(12),
 });

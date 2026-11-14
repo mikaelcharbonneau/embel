@@ -198,4 +198,3 @@ export function useReferenceUpload({
   }
   return { retained, busy, notice, setNotice, retry, upload, check, cancel, discardRejected, retryOriginal };
 }
-export type ReferenceUploadController = ReturnType<typeof useReferenceUpload>;

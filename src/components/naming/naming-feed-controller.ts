@@ -442,4 +442,3 @@ export function createNamingFeedController(options: {
     },
   };
 }
-export type NamingFeedController = ReturnType<typeof createNamingFeedController>;

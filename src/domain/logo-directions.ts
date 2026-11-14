@@ -18,7 +18,6 @@ import {
 export const fontPurposeSchema = z.enum(["render", "outline", "embed", "modify", "redistribute"]);
 export type FontPurpose = z.infer<typeof fontPurposeSchema>;
 export const fontPermissionSchema = z.enum(["allowed", "denied", "unknown"]);
-export type FontPermission = z.infer<typeof fontPermissionSchema>;
 const sourceUrl = z
   .string()
   .max(2048)
@@ -110,14 +109,12 @@ export const colorSpecificationSchema = bounded(
       "RGB and HEX must describe the same color",
     ),
 );
-export type ColorSpecification = z.infer<typeof colorSpecificationSchema>;
 export const identityDirectionBasisSchema = z.strictObject({
   id: uuid,
   ...scope,
   approvedLogoId: uuid,
   inputRevisions: logoInputRevisionsSchema,
 });
-export type IdentityDirectionBasis = z.infer<typeof identityDirectionBasisSchema>;
 const basis = identityDirectionBasisSchema.shape;
 const role = z.enum(["heading", "body", "accent"]);
 export const identityPaletteVersionSchema = bounded(
@@ -184,7 +181,6 @@ export const identityGraphicSpecSchema = z.discriminatedUnion("kind", [
     height: positive,
   }),
 ]);
-export type IdentityGraphicSpec = z.infer<typeof identityGraphicSpecSchema>;
 export const identityGraphicsVersionSchema = bounded(
   z.strictObject({ ...basis, elements: z.array(identityGraphicSpecSchema).max(100) }),
 );
@@ -198,7 +194,6 @@ export const identityDirectionVersionSchema = bounded(
     graphicsVersionId: uuid,
   }),
 );
-export type IdentityDirectionVersion = z.infer<typeof identityDirectionVersionSchema>;
 export const identityDirectionProductionResultSchema = bounded(
   z
     .strictObject({
@@ -246,7 +241,6 @@ export const identityDirectionProductionResultSchema = bounded(
     }),
   393_216,
 );
-export type IdentityDirectionProductionResult = z.infer<typeof identityDirectionProductionResultSchema>;
 /** Task 2 inventory alias: identical wire shape, no separate persisted batch DTO. */
 export const logoDirectionBatchSchema = identityDirectionProductionResultSchema;
 export const identityConsistencyResultSchema = bounded(
@@ -300,7 +294,6 @@ export const identityDirectionSelectionSchema = bounded(
   }),
   65_536,
 );
-export type IdentityDirectionSelection = z.infer<typeof identityDirectionSelectionSchema>;
 export const identityDirectionApprovalSchema = bounded(
   z.strictObject({
     id: uuid,
@@ -311,7 +304,6 @@ export const identityDirectionApprovalSchema = bounded(
     approvedAt: timestamp,
   }),
 );
-export type IdentityDirectionApproval = z.infer<typeof identityDirectionApprovalSchema>;
 export const fontTextCheckSchema = bounded(
   z.strictObject({
     typographyVersionId: uuid,

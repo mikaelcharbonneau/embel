@@ -165,10 +165,6 @@ export const catalogLogoFontSchema = z.strictObject({
   reservedFontNames: z.array(z.string().min(1).max(200)).max(20),
 });
 export type CatalogLogoFont = z.infer<typeof catalogLogoFontSchema>;
-export const CURATED_REFERENCE_UNAVAILABLE =
-  "The curated reference collection is unavailable until its source and display and processing rights have been verified.";
-export const UPLOADED_FONT_REVIEW_NOTICE =
-  "Your font and license are saved as a declaration. Display, outlines, embedding, modification and sharing remain unavailable until the license is reviewed.";
 
 export const logoInputRequestQuerySchema = z.strictObject({
   cursor: logoUuidSchema.optional(),

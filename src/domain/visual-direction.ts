@@ -87,7 +87,6 @@ export const reviewVisualDirectionSchema = z.strictObject({
   catalogVersion: z.literal(INSPIRATION_CATALOG_VERSION),
   guidance: visualDirectionGuidanceSchema,
 });
-export type ReviewVisualDirection = z.infer<typeof reviewVisualDirectionSchema>;
 export function visualDirectionReferences(inspiration: InspirationOverview) {
   return inspiration.choices
     .filter(hasInspirationChoice)

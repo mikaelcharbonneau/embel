@@ -274,15 +274,6 @@ export const purchasedDomainSchema = z
     (value) => value.order.registration === "confirmed" && value.order.confirmation !== null,
     "Library contains only registrar-confirmed Embel purchases",
   );
-export type PurchasedDomain = z.infer<typeof purchasedDomainSchema>;
-export type DomainLibrary =
-  { status: "unavailable" | "loading" | "error"; message?: string } | { status: "ready"; items: unknown[] };
-export type DomainBrandSource = {
-  type: "domain";
-  domain: string;
-  check: DomainCheck | null;
-  order: DomainOrder | null;
-};
 /** Public, locally mapped provider failures only; raw provider text is never displayed. */
 export class DomainLookupError extends Error {
   constructor(
