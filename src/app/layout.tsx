@@ -37,7 +37,11 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: "#F7F7F5" };
 
 // Instrument Sans is the display face (text-display, text-title-xl, text-title-lg); next/font self-hosts it.
-const instrumentSans = Instrument_Sans({ subsets: ["latin", "latin-ext"], variable: "--font-instrument-sans", display: "swap" });
+const instrumentSans = Instrument_Sans({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-instrument-sans",
+  display: "swap",
+});
 
 export default function RootLayout({ children, auth }: { children: React.ReactNode; auth: React.ReactNode }) {
   return (

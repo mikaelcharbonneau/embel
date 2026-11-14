@@ -21,7 +21,7 @@ vi.mock("@/components/workspace/account-session", () => ({
 }));
 vi.mock("@/components/workspace/prompt-recovery", () => ({ hasPromptRecovery: () => false }));
 vi.mock("@/components/ui/auth-artwork", () => ({ AuthArtwork: () => null }));
-vi.mock("@/components/ui/icon", () => ({ Icon: () => null }));
+vi.mock("@/components/ui/icon", () => ({ Icon: () => null, EmbelMark: () => null }));
 
 // Inert fixtures. A fake Turnstile API stands in for Cloudflare's script; no network is used.
 const email = "captcha-form@example.invalid",
