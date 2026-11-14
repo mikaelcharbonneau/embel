@@ -107,7 +107,7 @@ They stay the same across reseeds.
 | --- | --- | --- | --- |
 | `audit-fresh@example.test` | Free, 30 credits (granted on first visit) | Onboarding and empty states | No brands, no uploads, no history |
 | `audit-free@example.test` | Free, **0 credits left** | Every journey stage, plan limits | 8 brands (below). Any AI button shows the out-of-credits prompt; Plans offers upgrades |
-| `audit-pro@example.test` | **Pro**, test-mode subscription (`sub_auditPro0001`, active, renews in about 20 days), 112 credits | Paid account, finished work | 3 complete brands (below) |
+| `audit-pro@example.test` | **Pro**, test-mode subscription (`sub_auditPro0001`, active, renews in about 20 days), 112 credits | Paid account, finished work | 4 complete brands (below) |
 
 **audit-free brands**, one per stage (open them from Projects):
 
@@ -129,8 +129,9 @@ They stay the same across reseeds.
 | ★ Kestrel Analytics | B2B analytics; the chosen concept was refined once ("Concept 1 · Version 2") |
 | Maison Aurélie | French accents; wedding florist for an agency client; refined logo; placeholder images |
 | Bright Harbor Learning | Tutoring; placeholder images |
+| ★ Tidewild Hot Sauce | Fermented hot sauce from the Nova Scotia coast; the third Home example (approved November 14, 2026) |
 
-**Showcase brands (★): Orchard Lane Cider (audit-free) and Kestrel Analytics (audit-pro).** Their six
+**Showcase brands (★): Orchard Lane Cider (audit-free), Kestrel Analytics and Tidewild Hot Sauce (audit-pro).** Their six
 logo concepts, the Kestrel refinement and the three creative-direction boards are real images.
 
 They come from the real Embel image model (`gpt-image-2.6-sunburst`, the app's exact requests). The
