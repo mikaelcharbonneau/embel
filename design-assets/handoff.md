@@ -29,11 +29,11 @@ These change what the screens look like compared with the first round; the canva
 | Canvas page | Row | D- IDs |
 | --- | --- | --- |
 | 1 Logo and direction | Logo step (desktop side chat; 768 and 390 one column) | D-013, D-069 |
-| 1 Logo and direction | Creative direction step | D-013 (D-024 needs the owner) |
+| 1 Logo and direction | Creative direction step | D-013 (D-024 deferred by the owner) |
 | 2 Credits and plans | Out of credits, in place (Logo step, logo types in the reply box) | D-014, D-015 |
 | 2 Credits and plans | Account menu with plan and balance | D-015 |
 | 2 Credits and plans | Plans | D-031, with D-033, D-066, D-076 |
-| 2 Credits and plans | Settings, Usage: credit ledger | D-036 (needs the owner) |
+| 2 Credits and plans | Settings, Usage: credit ledger | D-036 declined by the owner: not built |
 | 3 Brand conversation | Research running, failed, done | D-016 |
 | 3 Brand conversation | A finished brand, folded (with Inspiration reopened, brand menu) | D-021, D-054, D-061 |
 | 3 Brand conversation | Audience, Positioning, Personality and Slogan (desktop side chat; added November 13) | Strategy and Voice steps; no dedicated D- ID |
@@ -58,8 +58,9 @@ Part B items in `Design_AUDIT.md` section 6 that are not named on any canvas row
 ## Left unresolved
 
 
-- **D-024** (the direction board shows a different logo from the chosen one) and **D-036** (Usage counts tokens, not credits) need the owner's decision; the canvas shows the proposed screens.
-- **IMG-007 / IMG-008:** the third Home example brand is a placeholder ("needs owner approval to generate"); the first two use the showcase brands.
+- **D-024 deferred** (owner, Nov 14): the direction board can show a different logo from the chosen one. It is a generation-engine issue, outside this redesign; implementation changes nothing about it.
+- **D-036 declined** (owner, Nov 14): no credit ledger. The Usage boards on canvas page 2 show a ledger that will not be built; implementation restyles today's Usage page with the design system and keeps the data it shows now.
+- **IMG-007 / IMG-008:** the owner approved a third showcase brand (Nov 14), made with one ordinary run of the product (6 logo concepts, 3 direction boards). Until it exists, the third Home example is a placeholder; the first two use the showcase brands.
 - **Audience, Positioning, Personality and Slogan** have desktop side-chat screens only; at 768 and 390 they follow the one-column conversation as in the current app.
 - **Name details checks:** only YouTube handles and the EU trademark register are checked live today; domain search across many extensions needs a bulk check from the domain provider, which also supplies the prices.
 
