@@ -5,6 +5,7 @@ import { BRAND_BOARD_FONTS, brandBoardFont } from "../../../src/domain/brand-boa
 import {
   BRAND_APPLICATIONS,
   brandCopy,
+  brandTemplateFamily,
   createBrandApplication,
   createFinalBrandBoard,
   drawBrandArtwork,
@@ -96,22 +97,20 @@ describe("real brand asset rendering", () => {
       filler = /Your (headline|tagline)|goes here|Add your message|READY TO MAKE YOUR OWN/u;
     const words = (art: BrandArtwork) =>
       art.nodes.flatMap((node) => (node.kind === "text" ? [node.text] : [])).join(" ");
-    for (const layout of ["editorial", "centered", "split"] as const) {
-      const f = brandAssetFixture({ layout }),
+    for (const graphic of ["rounded_shapes", "fine_lines"] as const) {
+      const f = brandAssetFixture({ graphic }),
         copy = brandCopy(f.snapshot, saved);
       for (const spec of BRAND_APPLICATIONS.slice(1)) {
         const text = words(createBrandApplication(f.snapshot, spec, copy));
         expect(text).not.toMatch(filler);
-        expect(text).toContain(snapshot.name);
-        if (spec.id.startsWith("post")) {
-          expect(text).toContain(saved.slogan);
-          expect(text).toContain(saved.positioning);
-        } else expect(text).toContain(saved.slogan);
+        // The logo carries the name; a template never sets it again beside the logo.
+        expect(text).not.toContain(snapshot.name);
+        expect(text).toContain(saved.slogan);
+        if (spec.id.startsWith("post")) expect(text).toContain(saved.positioning);
       }
+      // Nothing was saved, so nothing is written: the logo alone.
       for (const spec of BRAND_APPLICATIONS)
-        expect(words(createBrandApplication(f.snapshot, spec, brandCopy(f.snapshot)))).toBe(
-          spec.id === "profile" ? "" : f.snapshot.name,
-        );
+        expect(words(createBrandApplication(f.snapshot, spec, brandCopy(f.snapshot)))).toBe("");
     }
     expect(words(createFinalBrandBoard(snapshot, brandCopy(snapshot)))).not.toMatch(filler);
     expect(words(createFinalBrandBoard(snapshot, brandCopy(snapshot, saved)))).toContain(saved.slogan);
@@ -122,25 +121,29 @@ describe("real brand asset rendering", () => {
       message: null,
     });
   });
-  it("follows explicit selected layout and graphic treatments, producing distinct usable compositions", () => {
+  it("chooses a template family from the selected direction, producing distinct usable compositions", () => {
     const { fonts, images } = actualRenderInputs(),
-      hashes: string[] = [];
-    for (const [layout, graphic] of [
-      ["editorial", "rounded_shapes"],
-      ["centered", "fine_lines"],
-      ["split", "bold_blocks"],
-    ] as const) {
-      const { snapshot } = brandAssetFixture({ layout, graphic }),
-        canvas = createCanvas(1, 1);
+      hashes = new Map<string, string>();
+    const plain = brandAssetFixture({ graphic: "rounded_shapes" }).snapshot;
+    const cases = [
+      ["frames", plain],
+      ["lines", brandAssetFixture({ graphic: "fine_lines" }).snapshot],
+      // The direction's own words about its graphics choose the grid-and-line family too.
+      ["lines", { ...plain, graphicNotes: "A fine grid, flight-path lines and data points." }],
+      ["frames", brandAssetFixture({ graphic: "bold_blocks", layout: "split" }).snapshot],
+    ] as const;
+    for (const [family, snapshot] of cases) {
+      expect(brandTemplateFamily(snapshot)).toBe(family);
+      const canvas = createCanvas(1, 1);
       drawBrandArtwork(
         canvas as unknown as HTMLCanvasElement,
-        createBrandApplication(snapshot, BRAND_APPLICATIONS[1]),
+        createBrandApplication(snapshot, BRAND_APPLICATIONS[1], brandCopy(snapshot, saved)),
         images,
         fonts,
       );
-      hashes.push(hash(canvas.toBuffer("image/png")));
+      hashes.set(family, hash(canvas.toBuffer("image/png")));
     }
-    expect(new Set(hashes).size).toBe(3);
+    expect(new Set(hashes.values()).size).toBe(2);
   });
   it("preserves the whole rectangular source logo inside a circular-crop-safe profile region, without a light box around it", () => {
     const { snapshot } = brandAssetFixture(),
@@ -209,9 +212,11 @@ describe("real brand asset rendering", () => {
     const logo = fitted.nodes.find((node) => node.kind === "image")!;
     if (logo.kind !== "image") throw new Error("logo");
     expect(logo.source).toBe("logoReversed");
+    // Posts place the logo at the top left of its box.
+    expect(logo.anchor).toBe("start");
     const scale = Math.min(logo.width / 400, logo.height / 200),
-      left = logo.x + (logo.width - 400 * scale) / 2,
-      top = logo.y + (logo.height - 200 * scale) / 2;
+      left = logo.x,
+      top = logo.y;
     const pixel = (x: number, y: number) => [
       ...canvas.getContext("2d").getImageData(Math.round(left + x * scale), Math.round(top + y * scale), 1, 1).data,
     ];
@@ -301,7 +306,11 @@ describe("real brand asset rendering", () => {
       body: { ...f.snapshot.body, family: font.family, font },
     };
     const { fonts, images } = actualRenderInputs([font.family]);
-    for (const art of [createFinalBrandBoard(snapshot), createBrandApplication(snapshot, BRAND_APPLICATIONS[3])]) {
+    const slogan = "قهوة كل صباح";
+    for (const [art, expected] of [
+      [createFinalBrandBoard(snapshot), snapshot.name],
+      [createBrandApplication(snapshot, BRAND_APPLICATIONS[3], brandCopy(snapshot, { slogan })), slogan],
+    ] as const) {
       const canvas = createCanvas(1, 1),
         fitted = drawBrandArtwork(canvas as unknown as HTMLCanvasElement, art, images, fonts);
       expect(await sharp(canvas.toBuffer("image/png")).metadata()).toMatchObject({
@@ -310,9 +319,9 @@ describe("real brand asset rendering", () => {
       });
       const texts = fitted.nodes.filter((node) => node.kind === "text");
       expect(texts.every((node) => node.family === font.family)).toBe(true);
-      expect(texts.some((node) => node.text === snapshot.name)).toBe(true);
+      expect(texts.map((node) => node.text).join(" ")).toContain(expected);
       expect(new TextDecoder().decode(editableBrandSvg(fitted, images))).toContain(
-        'direction="rtl" unicode-bidi="isolate" text-anchor="middle"',
+        'direction="rtl" unicode-bidi="isolate" text-anchor="start"',
       );
     }
   });

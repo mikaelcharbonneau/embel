@@ -3,12 +3,15 @@ import { expect, test } from "@playwright/test";
 import { strFromU8, unzipSync } from "fflate";
 import sharp from "sharp";
 import { assetsUrl, createVisualJourneyFixture, directionsUrl } from "../fixtures/visual-identity-journey";
+import { guidedSlogan } from "../../src/domain/guided-interview";
+import { brandCopy, createFinalBrandBoard } from "../../src/features/brand-assets/model/artwork";
+import { createBrandAssetSnapshot } from "../../src/features/brand-assets/model/snapshot";
 
 for (const [name, family, direction] of [
   ["茶屋 Studio", "Noto Sans SC", "ltr"],
   ["مقهى Studio", "Noto Sans Arabic", "rtl"],
 ] as const) {
-  test(`multilingual brand pack preserves ${name} in real browser PNG and editable SVG`, async ({ page }, info) => {
+  test(`multilingual brand pack preserves ${name} in the real browser PNG`, async ({ page }, info) => {
     test.setTimeout(90_000);
     const font =
       family === "Noto Sans SC"
@@ -51,26 +54,33 @@ for (const [name, family, direction] of [
     await download.saveAs(info.outputPath("multilingual-brand-assets.zip"));
     expect(await sharp(files["brand-board.png"]!).metadata()).toMatchObject({ width: 1600, height: 2200 });
     expect(await sharp(files["social/banner-wide.png"]!).metadata()).toMatchObject({ width: 1500, height: 500 });
-    const template = strFromU8(files["social/banner-wide.svg"]!);
-    expect(template).toContain(`font-family="${family}"`);
-    expect(template).toContain(`direction="${direction}" unicode-bidi="isolate" text-anchor="start"`);
-    expect(template).toContain(`>${name}</text>`);
     expect(strFromU8(files["guides/brand-guide.html"]!)).toContain(font.url);
+    // Templates carry the logo, never the name a second time; the name is set in type on the board.
+    expect(strFromU8(files["social/banner-wide.svg"]!)).not.toContain(`>${name}</text>`);
 
-    // Compare the exported heading with independently drawn browser text using
-    // the exact bundled face. This catches wrong glyphs, direction and alignment.
+    // Compare the board's type sample, which shows the name in the heading face, with
+    // independently drawn browser text using the exact bundled face. This catches wrong
+    // glyphs, direction and alignment. The expected geometry comes from the same template.
+    const snapshot = createBrandAssetSnapshot({
+      system: f.systems[0]!,
+      sourceLogo: f.sourceLogo,
+      ownerId: f.systems[0]!.ownerId,
+      projectId: f.systems[0]!.projectId,
+    });
+    const context = f.project.context;
+    const typeSample = createFinalBrandBoard(
+      snapshot,
+      brandCopy(snapshot, { slogan: guidedSlogan(context), positioning: context.positioning || null }),
+    ).nodes.find((node) => node.kind === "text" && node.text === name);
+    if (typeSample?.kind !== "text") throw new Error("The board sets the name in its type sample.");
     const comparison = await page.evaluate(
-      async ({ png, fontFile, family, name, direction, svg }) => {
+      async ({ png, fontFile, family, name, direction, sample, background }) => {
         const face = new FontFace(family, await (await fetch(fontFile)).arrayBuffer(), {
           style: "normal",
           weight: "100 900",
         });
         await face.load();
         document.fonts.add(face);
-        const svgHost = document.createElement("div");
-        svgHost.style.cssText = "position:fixed;left:-10000px;top:0";
-        svgHost.innerHTML = svg;
-        document.body.append(svgHost);
         try {
           const image = new Image();
           image.src = `data:image/png;base64,${png}`;
@@ -84,19 +94,28 @@ for (const [name, family, direction] of [
           expected.width = 1600;
           expected.height = 2200;
           const expectedContext = expected.getContext("2d")!;
-          expectedContext.fillStyle = "#F7F1E3";
+          expectedContext.fillStyle = background;
           expectedContext.fillRect(0, 0, 1600, 2200);
-          expectedContext.font = `600 100px "${family}"`;
-          expectedContext.fillStyle = "#10241A";
+          expectedContext.font = `${sample.weight} ${sample.size}px "${family}"`;
+          expectedContext.fillStyle = sample.color;
           expectedContext.direction = direction;
-          expectedContext.textAlign = direction === "rtl" ? "right" : "left";
-          expectedContext.fillText(name, direction === "rtl" ? 1520 : 80, 186);
-          const actualPixels = actualContext.getImageData(80, 84, 1440, 145).data,
-            expectedPixels = expectedContext.getImageData(80, 84, 1440, 145).data;
+          expectedContext.textAlign = "start";
+          expectedContext.fillText(name, direction === "rtl" ? sample.x + sample.maxWidth : sample.x, sample.y);
+          const top = Math.round(sample.y - sample.size * 0.9),
+            height = Math.round(sample.size * 1.25);
+          const actualPixels = actualContext.getImageData(sample.x, top, sample.maxWidth, height).data,
+            expectedPixels = expectedContext.getImageData(sample.x, top, sample.maxWidth, height).data;
           let mismatches = 0,
-            ink = 0;
+            ink = 0,
+            left = Infinity,
+            right = -Infinity;
           for (let i = 0; i < actualPixels.length; i += 4) {
-            if (expectedPixels[i]! < 100) ink++;
+            if (expectedPixels[i]! < 100) {
+              ink++;
+              const x = (i / 4) % sample.maxWidth;
+              left = Math.min(left, x);
+              right = Math.max(right, x);
+            }
             if (
               actualPixels[i] !== expectedPixels[i] ||
               actualPixels[i + 1] !== expectedPixels[i + 1] ||
@@ -104,23 +123,8 @@ for (const [name, family, direction] of [
             )
               mismatches++;
           }
-          const svgName = [...svgHost.querySelectorAll("text")].find((node) => node.textContent === name)!;
-          const bounds = svgName.getBBox();
-          expectedContext.font = `600 ${svgName.getAttribute("font-size")}px "${family}"`;
-          return {
-            mismatches,
-            ink,
-            loaded: face.status,
-            svg: {
-              direction: getComputedStyle(svgName).direction,
-              width: svgName.getComputedTextLength(),
-              expectedWidth: expectedContext.measureText(name).width,
-              x: bounds.x,
-              right: bounds.x + bounds.width,
-            },
-          };
+          return { mismatches, ink, left, right, loaded: face.status };
         } finally {
-          svgHost.remove();
           document.fonts.delete(face);
         }
       },
@@ -130,18 +134,23 @@ for (const [name, family, direction] of [
         family,
         name,
         direction,
-        svg: template,
+        sample: {
+          x: typeSample.x,
+          y: typeSample.y,
+          size: typeSample.size,
+          maxWidth: typeSample.maxWidth,
+          weight: typeSample.weight,
+          color: typeSample.color,
+        },
+        background: snapshot.palette.background,
       },
     );
     expect(comparison.loaded).toBe("loaded");
     expect(comparison.ink).toBeGreaterThan(1000);
     expect(comparison.mismatches).toBe(0);
-    expect(comparison.svg.direction).toBe(direction);
-    expect(comparison.svg.width).toBeCloseTo(comparison.svg.expectedWidth, 0);
-    // Glyph overhangs may extend a few pixels beyond the advance-box anchor.
-    expect(
-      Math.abs((direction === "rtl" ? comparison.svg.right : comparison.svg.x) - (direction === "rtl" ? 1380 : 645)),
-    ).toBeLessThan(8);
+    // Left-to-right text starts at the column's left edge; right-to-left text ends at its right edge.
+    if (direction === "rtl") expect(comparison.right).toBeGreaterThan(typeSample.maxWidth - 12);
+    else expect(comparison.left).toBeLessThan(12);
     expect(f.admissions).toHaveLength(1);
     expect(f.selections).toHaveLength(1);
     expect(health.pageErrors).toEqual([]);
