@@ -4,7 +4,7 @@
   overflow: auto;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
-  padding: 24px;
+  padding: var(--space-6);
   color: var(--color-text);
   background: var(--color-bg-paper);
 }
@@ -15,19 +15,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin: -6px -10px 4px 0;
+  gap: var(--space-3);
+  margin: -6px -10px var(--space-1) 0;
 }
 .generation-activity-dialog h2 {
-  font-size: 20px;
+  font-size: var(--font-size-6);
   margin: 0;
 }
 .generation-activity-close {
   border-radius: 50%;
 }
 .generation-activity-dialog h3 {
-  font-size: 13px;
-  margin: 24px 0 8px;
+  font-size: var(--font-size-2);
+  margin: var(--space-6) 0 var(--space-2);
 }
 .generation-activity-dialog > p,
 .generation-activity-note {
@@ -35,8 +35,8 @@
   font-size: var(--font-size-2);
 }
 .generation-activity-error {
-  margin-top: 16px;
-  padding: 14px 16px;
+  margin-top: var(--space-4);
+  padding: 14px var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   font-size: var(--font-size-2);
@@ -53,11 +53,11 @@
 .generation-activity-list > li {
   position: relative;
   margin: 0 -12px;
-  padding: 12px;
+  padding: var(--space-3);
   border-radius: var(--radius-control);
 }
 .generation-activity-list > li + li {
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
 }
 .generation-activity-list > li:hover {
   background: var(--color-bg-canvas);
@@ -66,7 +66,7 @@
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 16px;
+  gap: var(--space-4);
   text-decoration: none;
 }
 .generation-activity-row::after {
@@ -84,7 +84,7 @@
 }
 .generation-activity-list strong {
   overflow-wrap: anywhere;
-  font-size: 14px;
+  font-size: var(--font-size-3);
   font-weight: 500;
 }
 .generation-activity-row > span {
@@ -95,10 +95,10 @@
 .generation-activity-list li > div {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   color: var(--color-text-muted);
-  font-size: 12px;
-  margin-top: 4px;
+  font-size: var(--font-size-1);
+  margin-top: var(--space-1);
 }
 .generation-activity-list progress {
   width: 100%;
@@ -108,7 +108,7 @@
 }
 .generation-activity-list p {
   font-size: var(--font-size-2);
-  margin: 6px 0 0;
+  margin: var(--space-1-5) 0 0;
 }
 .generation-activity-inline-link {
   position: relative;
@@ -119,13 +119,13 @@
 }
 @media (max-width: 600px) {
   .generation-activity-trigger {
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-left: var(--space-2);
+    padding-right: var(--space-2);
   }
   .generation-activity-dialog {
     padding: 18px;
   }
   .generation-activity-dialog h2 {
-    font-size: 16px;
+    font-size: var(--font-size-4);
   }
 }

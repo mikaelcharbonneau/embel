@@ -4,19 +4,19 @@
 }
 .page.auth-guided-page {
   max-width: 1088px;
-  padding: 100px 40px 40px;
+  padding: 100px var(--space-10) var(--space-10);
   margin: 0 auto;
 }
 .auth-guided .auth-card {
   width: 460px;
   max-width: 100%;
   margin: 0 auto;
-  padding: 32px;
+  padding: var(--space-8);
 }
 .auth-guided-heading {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 .auth-guided .auth-card h1 {
   font-size: 28px;
@@ -27,29 +27,29 @@
 }
 .auth-guided .auth-intro {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-size-3);
   line-height: 20px;
 }
 .auth-guided .auth-field {
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 20px;
 }
 .auth-guided .auth-field + .auth-field {
-  margin-top: 24px;
+  margin-top: var(--space-6);
 }
 .auth-guided .auth-field input {
   height: 44px;
   min-height: 44px;
-  padding: 10px 12px;
+  padding: 10px var(--space-3);
   border-color: var(--color-border);
   border-radius: var(--radius-control);
   line-height: 22px;
 }
 .auth-guided .auth-password-field input {
-  padding-right: 48px;
+  padding-right: var(--space-12);
 }
 .auth-guided .auth-field + .auth-password-field {
-  margin-top: 24px;
+  margin-top: var(--space-6);
 }
 .auth-guided .auth-field input::placeholder {
   color: var(--color-text-placeholder);
@@ -60,14 +60,14 @@
   height: 44px;
   min-height: 44px;
   justify-content: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: var(--space-2);
+  font-size: var(--font-size-3);
   line-height: 20px;
 }
 /* The switch between signing in and creating an account reads as a link. */
 .auth-guided .auth-mode-switch {
-  margin: 24px 0 0;
-  font-size: 13px;
+  margin: var(--space-6) 0 0;
+  font-size: var(--font-size-2);
   line-height: 20px;
   text-align: center;
   color: var(--color-text-muted);
@@ -84,27 +84,27 @@
   text-decoration-color: currentColor;
 }
 .auth-guided .auth-field-help {
-  margin: 8px 0 0;
-  font-size: 12px;
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-1);
   line-height: 18px;
   color: var(--color-text-muted);
 }
 .auth-guided .auth-confirm-password {
-  margin-top: 24px;
+  margin-top: var(--space-6);
 }
 .auth-confirmation-note {
-  margin-top: 20px;
-  font-size: 13px;
+  margin-top: var(--space-5);
+  font-size: var(--font-size-2);
   line-height: 21px;
   color: var(--color-text-muted);
 }
 .auth-confirmation-note p + p {
-  margin-top: 12px;
+  margin-top: var(--space-3);
 }
 .auth-resend-toggle {
   display: flex;
-  margin: 16px auto 0;
-  font-size: 13px;
+  margin: var(--space-4) auto 0;
+  font-size: var(--font-size-2);
   min-height: 36px;
   text-align: center;
 }
@@ -116,21 +116,21 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  margin-top: 24px;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
 }
 .auth-guided .auth-browser-link {
   margin: 0;
   padding: 0;
   min-height: 20px;
-  gap: 12px;
-  font-size: 14px;
+  gap: var(--space-3);
+  font-size: var(--font-size-3);
   line-height: 20px;
   color: var(--color-text);
 }
 .auth-guided .prompt-recovery-notice {
-  margin-top: 24px;
-  font-size: 13px;
+  margin-top: var(--space-6);
+  font-size: var(--font-size-2);
 }
 /* In the dialog, the dialog itself is the card. */
 .auth-overlay {
@@ -139,7 +139,7 @@
   max-width: none;
   max-height: calc(100svh - 32px);
   margin: auto;
-  padding: 16px 16px 28px;
+  padding: var(--space-4) var(--space-4) 28px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
   background: var(--color-bg-paper);
@@ -153,40 +153,40 @@
 }
 .auth-overlay-close {
   display: flex;
-  margin: 0 0 4px auto;
+  margin: 0 0 var(--space-1) auto;
   border-color: transparent;
   border-radius: var(--radius-pill);
 }
 .auth-overlay .auth-card {
   width: 100%;
-  padding: 0 20px;
+  padding: 0 var(--space-5);
   border: 0;
   border-radius: 0;
   background: transparent;
 }
 @media (max-width: 760px) {
   .page.auth-guided-page {
-    padding: 48px 20px 32px;
+    padding: var(--space-12) var(--space-5) var(--space-8);
   }
 }
 @media (max-width: 540px) {
   .page.auth-guided-page {
-    padding: 28px 16px;
+    padding: 28px var(--space-4);
   }
   .auth-guided .auth-card {
-    padding: 24px 20px;
+    padding: var(--space-6) var(--space-5);
   }
   .auth-guided .auth-field input {
-    font-size: 16px;
+    font-size: var(--font-size-4);
   }
   .auth-guided .auth-browser-link {
     min-height: 44px;
   }
   .auth-overlay {
-    padding: 12px 12px 24px;
+    padding: var(--space-3) var(--space-3) var(--space-6);
   }
   .auth-overlay .auth-card {
-    padding: 0 8px;
+    padding: 0 var(--space-2);
   }
 }
 @media (prefers-reduced-motion: reduce) {

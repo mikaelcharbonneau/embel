@@ -10,7 +10,7 @@
   line-height: 1.65;
 }
 .project-naming-notice {
-  padding: 14px 16px;
+  padding: 14px var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: 7px;
   background: var(--color-bg-paper);
@@ -22,7 +22,7 @@
   margin-top: 5px;
 }
 .project-naming-notice .text-link {
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 .project-naming-notice .button {
   margin-top: 10px;
@@ -31,17 +31,17 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-4);
   margin-bottom: 18px;
 }
 .project-naming-section-heading h2 {
-  font-size: 20px;
+  font-size: var(--font-size-6);
   letter-spacing: -0.4px;
 }
 .project-naming-section-heading p {
   font-size: var(--font-size-2);
   color: var(--color-text-muted);
-  margin-top: 6px;
+  margin-top: var(--space-1-5);
 }
 .project-naming-grid {
   display: grid;
@@ -53,7 +53,7 @@
   min-width: 0;
   background: var(--color-bg-paper);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-small);
   padding: 18px 17px 14px;
   scroll-margin-top: 24px;
 }
@@ -94,21 +94,21 @@
 .project-naming-card > p {
   font-size: var(--font-size-2);
   line-height: 1.65;
-  margin: 14px 0 12px;
+  margin: 14px 0 var(--space-3);
   color: var(--color-text-muted);
   overflow-wrap: anywhere;
 }
 .project-naming-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-1-5);
   margin-top: 10px;
 }
 .project-naming-badges span {
   background: var(--color-bg-sunken);
   color: var(--color-text-muted);
-  padding: 3px 6px;
-  border-radius: 4px;
+  padding: 3px var(--space-1-5);
+  border-radius: var(--radius-inset);
   font-size: var(--font-size-2);
 }
 .project-naming-badges .is-selected {
@@ -118,10 +118,10 @@
 .project-naming-card .project-naming-actions {
   margin-top: 17px;
   justify-content: space-between;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 .project-naming-card .button {
-  padding: 8px 10px;
+  padding: var(--space-2) 10px;
   font-size: var(--font-size-2);
   min-height: 44px;
 }
@@ -131,12 +131,12 @@
 .project-naming-card details {
   border-top: 1px solid var(--color-border);
   margin-top: 13px;
-  padding-top: 8px;
+  padding-top: var(--space-2);
   font-size: var(--font-size-2);
   color: var(--color-text-muted);
 }
 .project-naming-card summary {
-  padding: 4px 0;
+  padding: var(--space-1) 0;
   cursor: pointer;
 }
 .project-naming-card details p {
@@ -146,10 +146,10 @@
 }
 .project-naming-stale-choice {
   background: var(--color-bg-selected);
-  padding: 20px;
+  padding: var(--space-5);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  margin-bottom: 20px;
+  border-radius: var(--radius-small);
+  margin-bottom: var(--space-5);
 }
 .project-naming-stale-choice h2 {
   font-size: 17px;
@@ -159,7 +159,7 @@
   font-size: var(--font-size-2);
   color: var(--color-text-muted);
   line-height: 1.7;
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 .project-naming-stale-choice label {
   display: flex;
@@ -167,10 +167,10 @@
   align-items: flex-start;
   font-size: var(--font-size-2);
   line-height: 1.7;
-  margin: 16px 0;
+  margin: var(--space-4) 0;
 }
 .project-naming-stale-choice input {
-  margin-top: 4px;
+  margin-top: var(--space-1);
   accent-color: var(--color-text);
 }
 @media (max-width: 1150px) {
@@ -192,11 +192,11 @@
 
 .project-naming-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 20px 24px;
+  gap: var(--space-5) var(--space-6);
 }
 .project-naming-card {
   border-radius: 10px;
-  padding: 20px 18px 14px;
+  padding: var(--space-5) 18px 14px;
 }
 .project-naming-card.is-selected {
   border-color: var(--color-text);
@@ -225,13 +225,13 @@
 }
 .naming-approach-widgets small {
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 1.6;
 }
 .naming-approach-options {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .naming-approach-option {
   display: flex;
@@ -248,13 +248,13 @@
 }
 .naming-approach-option strong,
 .naming-directness strong {
-  font-size: 13px;
+  font-size: var(--font-size-2);
   font-weight: 500;
 }
 .naming-approach-option span,
 .naming-directness span {
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 1.5;
 }
 .naming-approach-option[aria-pressed="true"],
@@ -277,27 +277,27 @@
   margin: 0;
   min-width: 0;
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .naming-directness legend {
   font-size: 15px;
   font-weight: 500;
   line-height: 1.5;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 .naming-directness button {
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
   padding: 11px 13px;
   text-align: left;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-small);
   background: var(--color-bg-paper);
 }
 .naming-approach-widgets label {
   display: grid;
   gap: 7px;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 500;
   line-height: 1.5;
   min-width: 0;
@@ -313,14 +313,14 @@
   padding: 10px;
   min-height: 44px;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-2);
 }
 .naming-approach-widgets textarea {
   resize: vertical;
 }
 .naming-save-status {
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .naming-feed-card {
   min-width: 0;
@@ -335,8 +335,8 @@
   align-items: center;
   gap: 7px;
   min-height: 44px;
-  padding: 8px 5px;
-  font-size: 12px;
+  padding: var(--space-2) 5px;
+  font-size: var(--font-size-1);
   color: var(--color-text-muted);
 }
 .naming-steering-choice input {
@@ -344,18 +344,18 @@
 }
 .naming-feed-tail {
   min-height: 130px;
-  padding: 32px 12px;
+  padding: var(--space-8) var(--space-3);
   text-align: center;
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 1.7;
 }
 .naming-feed-tail button {
-  margin-top: 12px;
+  margin-top: var(--space-3);
 }
 @media (max-width: 760px) {
   .naming-approach-widgets input,
   .naming-approach-widgets textarea {
-    font-size: 16px;
+    font-size: var(--font-size-4);
   }
 }

@@ -1,11 +1,11 @@
 /* Plans page and the out-of-credits prompt. Neutral ink, rounded cards (November 6 redesign). */
 .plans-page.page {
   max-width: calc(var(--container-page) + var(--space-gutter) * 2);
-  padding: 40px var(--space-gutter) 48px;
+  padding: var(--space-10) var(--space-gutter) var(--space-12);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--space-5);
 }
 .plans-heading h1 {
   margin: 0;
@@ -15,7 +15,7 @@
   font-weight: 500;
 }
 .plans-heading p {
-  margin: 4px 0 0;
+  margin: var(--space-1) 0 0;
   color: var(--color-text-muted);
   font-size: var(--font-size-3);
   line-height: 20px;
@@ -24,8 +24,8 @@
   display: grid;
   grid-template-columns: auto auto 1fr;
   align-items: end;
-  gap: 8px 40px;
-  padding: 20px 24px;
+  gap: var(--space-2) var(--space-10);
+  padding: var(--space-5) var(--space-6);
   background: var(--color-bg-paper);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
@@ -33,7 +33,7 @@
 .plans-current > div {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-0-5);
 }
 .plans-current-label {
   color: var(--color-text-muted);
@@ -56,13 +56,13 @@
   padding: 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--space-4);
 }
 .plans-card {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 24px;
+  gap: var(--space-3);
+  padding: var(--space-6);
   background: var(--color-bg-paper);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
@@ -75,7 +75,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .plans-card h2 {
   margin: 0;
@@ -94,10 +94,10 @@
   margin: 0;
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 .plans-price strong {
-  font-size: 32px;
+  font-size: var(--font-size-8);
   line-height: 40px;
   font-weight: 500;
   letter-spacing: -0.5px;
@@ -110,7 +110,7 @@
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   font-size: var(--font-size-3);
   font-weight: 500;
 }
@@ -130,7 +130,7 @@
   margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .plans-actions .button {
   margin-top: 0;
@@ -147,7 +147,7 @@
 }
 .plans-notice {
   margin: 0;
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-control);
   background: var(--color-bg-sunken);
   font-size: var(--font-size-3);
@@ -166,7 +166,7 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 18px 20px;
+  padding: 18px var(--space-5);
   background: var(--color-bg-paper);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
@@ -177,7 +177,7 @@
   font-weight: 500;
 }
 .out-of-credits-copy p {
-  margin: 4px 0 0;
+  margin: var(--space-1) 0 0;
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
   line-height: 18px;
@@ -185,5 +185,5 @@
 .out-of-credits-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-2);
 }

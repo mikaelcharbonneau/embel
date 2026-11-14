@@ -4,7 +4,7 @@
   background-image: none;
 }
 .concept-project-workspace .workspace-account-avatar {
-  background: #f1f0ee;
+  background: var(--color-bg-sunken);
   border: 0;
 }
 .concept-project-workspace #main-content {
@@ -24,23 +24,23 @@
   background: var(--color-bg-canvas);
 }
 .project-read-notice {
-  padding: 12px 24px;
+  padding: var(--space-3) var(--space-6);
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--space-3);
   border-bottom: 1px solid var(--color-border);
-  font-size: 13px;
+  font-size: var(--font-size-2);
 }
 .project-access-state {
-  padding: 24px;
+  padding: var(--space-6);
 }
 .project-access-state h1 {
-  margin-bottom: 20px;
-  font-size: 24px;
+  margin-bottom: var(--space-5);
+  font-size: var(--font-size-7);
 }
 .project-access-state > a {
   display: inline-block;
-  margin-top: 20px;
+  margin-top: var(--space-5);
   text-decoration: underline;
 }
 .project-workbench {
@@ -53,21 +53,21 @@
   margin: 0;
 }
 .project-workbench-canvas {
-  padding: 24px;
+  padding: var(--space-6);
   flex: 1;
   min-width: 0;
   background: var(--color-bg-canvas);
 }
 .project-workbench :is(h1, .project-workbench-heading h2) {
-  font-size: 24px;
+  font-size: var(--font-size-7);
   font-weight: 500;
   line-height: 32px;
   letter-spacing: -0.5px;
 }
 .project-workbench .button {
   min-height: 34px;
-  font-size: 13px;
-  padding: 7px 12px;
+  font-size: var(--font-size-2);
+  padding: 7px var(--space-3);
   border-radius: 7px;
 }
 .project-workbench [hidden],
@@ -77,7 +77,7 @@
 .project-dock {
   width: 340px;
   flex: 0 0 340px;
-  background: #fff;
+  background: var(--color-bg-paper);
   border-left: 1px solid var(--color-border);
   min-width: 0;
 }
@@ -90,14 +90,14 @@
   display: flex;
   gap: 28px;
   align-items: stretch;
-  padding: 0 16px;
+  padding: 0 var(--space-4);
   border-bottom: 1px solid var(--color-border);
 }
 .project-dock-tabs button {
-  font-size: 13px;
+  font-size: var(--font-size-2);
   background: none;
   border: 0;
-  padding: 0 4px;
+  padding: 0 var(--space-1);
   color: var(--color-text-muted);
   position: relative;
 }
@@ -128,21 +128,21 @@
   transform: rotate(180deg);
 }
 .project-dock-content {
-  padding: 16px;
+  padding: var(--space-4);
 }
 .project-dock-heading {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 .project-dock-heading strong {
-  font-size: 13px;
+  font-size: var(--font-size-2);
   font-weight: 500;
 }
 .project-dock-heading p,
 .project-dock-chat p {
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 20px;
-  margin-top: 8px;
+  margin-top: var(--space-2);
   overflow-wrap: anywhere;
 }
 .project-strategy-workspace {
@@ -150,7 +150,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--color-bg-paper);
 }
 .project-strategy-columns {
   flex: 1;
@@ -167,7 +167,7 @@
   min-width: 0;
 }
 .project-strategy-workspace .conversation-scroll-area {
-  padding: 20px max(24px, calc((100% - 760px) / 2)) 24px;
+  padding: var(--space-5) max(var(--space-6), calc((100% - 760px) / 2)) var(--space-6);
   margin: 0;
   scrollbar-gutter: auto;
 }
@@ -182,38 +182,38 @@
 .project-conversation-marker > span:nth-child(2) {
   margin-left: auto;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .project-conversation-marker .text-link {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   min-height: 28px;
 }
 .project-details-disclosure {
-  margin-top: 12px;
+  margin-top: var(--space-3);
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .project-details-disclosure > summary {
   cursor: pointer;
 }
 .project-details-disclosure > .conversation-project-header {
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 .project-strategy-workspace .conversation-history {
   gap: 14px;
-  margin-top: 20px;
+  margin-top: var(--space-5);
 }
 .project-strategy-workspace .conversation-user-entry {
   max-width: 600px;
-  padding: 12px 16px;
-  background: #f1f0ee;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-sunken);
   border-radius: 10px;
 }
 .project-strategy-workspace .conversation-message-meta {
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .project-strategy-workspace .conversation-user-entry > p {
-  font-size: 14px;
+  font-size: var(--font-size-3);
   line-height: 22px;
 }
 .project-strategy-workspace .conversation-widget {
@@ -221,7 +221,7 @@
   border-radius: 10px;
 }
 .project-strategy-workspace .conversation-widget-heading h2 {
-  font-size: 16px;
+  font-size: var(--font-size-4);
   font-weight: 500;
   line-height: 24px;
   letter-spacing: 0;
@@ -239,26 +239,26 @@
 .project-strategy-workspace .conversation-widget-body .segment-card {
   padding: 14px;
   border-radius: 7px;
-  background: #fff;
+  background: var(--color-bg-paper);
 }
 .project-strategy-workspace .conversation-widget .form-actions .button {
   min-height: 36px;
-  font-size: 13px;
+  font-size: var(--font-size-2);
 }
 .project-strategy-workspace .conversation-compose-area {
-  padding: 12px max(24px, calc((100% - 760px) / 2));
+  padding: var(--space-3) max(var(--space-6), calc((100% - 760px) / 2));
   margin: 0;
-  background: #fff;
+  background: var(--color-bg-paper);
 }
 .project-strategy-workspace .conversation-composer {
-  padding: 12px 14px;
-  border-radius: 12px;
+  padding: var(--space-3) 14px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--color-border);
   box-shadow: none;
 }
 .project-strategy-workspace .conversation-composer textarea {
   min-height: 44px;
-  font-size: 14px;
+  font-size: var(--font-size-3);
   line-height: 22px;
 }
 .project-strategy-workspace .conversation-composer-footer {
@@ -273,59 +273,59 @@
   border-radius: 50%;
 }
 .project-strategy-workspace .account-edit-controls {
-  margin: 8px 0 14px;
+  margin: var(--space-2) 0 14px;
 }
 .project-strategy-workspace .account-actions {
-  padding: 10px 12px;
+  padding: 10px var(--space-3);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  font-size: 12px;
+  border-radius: var(--radius-small);
+  font-size: var(--font-size-1);
 }
 .project-strategy-workspace .account-actions .button {
   min-height: 34px;
-  padding: 6px 12px;
-  font-size: 13px;
+  padding: var(--space-1-5) var(--space-3);
+  font-size: var(--font-size-2);
 }
 .project-strategy-workspace .project-details-disclosure {
-  margin-top: 24px;
-  padding-top: 16px;
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
   border-top: 1px solid var(--color-border);
 }
 .project-strategy-workspace .project-continuity {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   border: 0;
   border-radius: 0;
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 20px;
 }
 .project-continuity-details > summary {
   cursor: pointer;
   width: fit-content;
-  padding-block: 4px;
+  padding-block: var(--space-1);
 }
 .project-continuity-details > summary > span {
-  margin-left: 12px;
-  font-size: 12px;
+  margin-left: var(--space-3);
+  font-size: var(--font-size-1);
 }
 .project-continuity-details dl {
   display: grid;
   gap: 14px;
-  margin: 12px 0 0;
+  margin: var(--space-3) 0 0;
 }
 .project-continuity-details dt {
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .project-continuity-details dd {
-  margin: 4px 0 0;
+  margin: var(--space-1) 0 0;
   color: var(--color-text);
   overflow-wrap: anywhere;
 }
 .project-strategy-workspace .project-continuity h2 {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 20px;
   font-weight: 500;
   color: var(--color-text);
@@ -333,7 +333,7 @@
 .project-strategy-workspace .project-continuity ul {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
   margin: 0;
 }
 .project-strategy-workspace .project-continuity li {
@@ -349,7 +349,7 @@
 }
 .project-strategy-workspace .project-continuity .button {
   justify-self: start;
-  font-size: 13px;
+  font-size: var(--font-size-2);
 }
 @media (max-width: 700px) {
   .project-strategy-workspace .project-continuity li .text-link {
@@ -359,7 +359,7 @@
 .project-live-brief {
   width: 344px;
   flex: 0 0 344px;
-  padding: 20px;
+  padding: var(--space-5);
   border-left: 1px solid var(--color-border);
   overflow: auto;
 }
@@ -369,11 +369,11 @@
   align-items: center;
 }
 .project-live-brief h2 {
-  font-size: 16px;
+  font-size: var(--font-size-4);
   font-weight: 500;
 }
 .project-live-brief > .small-badge {
-  margin-top: 20px;
+  margin-top: var(--space-5);
 }
 .project-live-brief dl {
   display: grid;
@@ -381,28 +381,28 @@
   margin: 22px 0;
 }
 .project-live-brief dt {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 500;
   color: var(--color-text-muted);
 }
 .project-live-brief dd {
-  margin: 8px 0 0;
-  font-size: 14px;
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-3);
   line-height: 22px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 .project-brief-widget {
-  margin-top: 20px;
+  margin-top: var(--space-5);
 }
 .project-brief-widget h2 {
-  font-size: 16px;
+  font-size: var(--font-size-4);
   font-weight: 500;
 }
 .project-brief-widget > p {
-  font-size: 13px;
+  font-size: var(--font-size-2);
   color: var(--color-text-muted);
-  margin: 8px 0 16px;
+  margin: var(--space-2) 0 var(--space-4);
 }
 .project-brief-widget .field-label {
   display: block;
@@ -419,20 +419,20 @@
   padding: 0;
 }
 .project-personality-traits legend {
-  font-size: 16px;
+  font-size: var(--font-size-4);
   font-weight: 500;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 .project-personality-traits > p {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 20px;
   color: var(--color-text-muted);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 .project-personality-traits > div {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--space-2);
 }
 .project-personality-traits label {
   padding: 14px;
@@ -444,25 +444,25 @@
   min-width: 0;
 }
 .project-personality-traits label:has(:checked) {
-  border-color: #191919;
+  border-color: var(--color-border-selected);
 }
 .project-personality-traits strong {
   display: block;
-  font-size: 13px;
+  font-size: var(--font-size-2);
   font-weight: 500;
 }
 .project-personality-traits small {
   display: block;
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 18px;
-  margin-top: 6px;
+  margin-top: var(--space-1-5);
 }
 .project-personality-advanced > summary {
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   cursor: pointer;
-  padding-block: 8px;
+  padding-block: var(--space-2);
 }
 .project-systems-workspace > .project-workbench-canvas {
   padding-top: 0;
@@ -479,29 +479,29 @@
   gap: 0;
 }
 .project-logo-creation .project-workbench-canvas > header {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 .project-logo-creation .project-dock :is(section, fieldset) {
   padding: 0;
-  margin: 0 0 20px;
+  margin: 0 0 var(--space-5);
   border: 0;
-  background: #fff;
+  background: var(--color-bg-paper);
 }
 .project-logo-creation .project-dock [class*="fields"] {
   grid-template-columns: 1fr;
   gap: 14px;
-  margin: 20px 0;
+  margin: var(--space-5) 0;
 }
 .project-logo-creation .project-dock :is(input, textarea) {
-  background: #fff;
+  background: var(--color-bg-paper);
   border-radius: 7px;
-  font-size: 13px;
+  font-size: var(--font-size-2);
 }
 .project-logo-creation .project-dock textarea {
   min-height: 70px;
 }
 .project-logo-creation .project-dock h2 {
-  font-size: 16px;
+  font-size: var(--font-size-4);
   font-weight: 500;
 }
 .project-logo-creation [class*="concepts"] {
@@ -509,7 +509,7 @@
   gap: 18px;
 }
 .project-logo-creation [class*="conceptCard"] {
-  background: #fff;
+  background: var(--color-bg-paper);
   border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 0 0 14px;
@@ -517,7 +517,7 @@
 }
 .project-logo-creation [class*="preview"] {
   aspect-ratio: 16 / 9;
-  background: #f1f0ee;
+  background: var(--color-bg-sunken);
 }
 .project-workspace :is(button, a, summary, input, textarea, select):focus-visible {
   outline: 2px solid var(--color-text);
@@ -526,7 +526,7 @@
 @media (max-width: 1150px) {
   .project-strategy-workspace .conversation-scroll-area,
   .project-strategy-workspace .conversation-compose-area {
-    padding-inline: 24px;
+    padding-inline: var(--space-6);
   }
 }
 @media (max-width: 900px) {
@@ -539,7 +539,7 @@
     width: 300px;
   }
   .project-workbench-canvas {
-    padding: 20px;
+    padding: var(--space-5);
   }
 }
 @media (max-width: 760px) {
@@ -554,7 +554,7 @@
     flex-direction: column;
   }
   .project-workbench-canvas {
-    padding: 20px 16px;
+    padding: var(--space-5) var(--space-4);
   }
   .project-dock,
   .project-live-brief {
@@ -569,7 +569,7 @@
   }
   .project-dock.is-collapsed .project-dock-tabs {
     justify-content: flex-end;
-    padding: 0 16px;
+    padding: 0 var(--space-4);
   }
   .project-strategy-workspace .conversation-page {
     min-height: 0;
@@ -583,10 +583,10 @@
     border: 0;
   }
   .project-strategy-workspace .conversation-scroll-area {
-    padding-inline: 16px;
+    padding-inline: var(--space-4);
   }
   .project-strategy-workspace .conversation-compose-area {
-    padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+    padding: var(--space-3) var(--space-4) max(var(--space-3), env(safe-area-inset-bottom));
   }
   .project-strategy-workspace .conversation-widget-heading {
     flex-wrap: wrap;
@@ -609,14 +609,14 @@
     max-width: 100%;
   }
   .project-conversation-marker {
-    gap: 8px;
+    gap: var(--space-2);
   }
   .project-conversation-marker .text-link {
     font-size: 11px;
   }
   .project-strategy-workspace .conversation-composer textarea,
   .project-workbench :is(input, textarea, select) {
-    font-size: 16px;
+    font-size: var(--font-size-4);
   }
   .project-strategy-workspace .conversation-composer .composer-send-icon {
     min-width: 44px;

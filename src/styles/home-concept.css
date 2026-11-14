@@ -17,7 +17,7 @@
 .concept-home .home-page {
   width: 100%;
   max-width: 1120px;
-  padding: 80px 32px 104px;
+  padding: 80px var(--space-8) 104px;
   margin: 0 auto;
 }
 .concept-home .home-page .home-intake {
@@ -29,12 +29,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 .concept-home .home-introduction h1 {
-  font-size: clamp(32px, 4vw, 44px);
+  font-size: clamp(var(--font-size-8), 4vw, var(--font-size-9));
   line-height: 1.1;
   font-weight: 500;
   letter-spacing: -0.03em;
@@ -62,13 +62,13 @@
   box-shadow: 0 16px 40px -16px rgb(25 25 25 / 20%);
 }
 .concept-home .home-composer.conversation-composer.has-error {
-  border-color: #b54b4b;
+  border-color: var(--color-border-danger);
 }
 .concept-home .home-composer.conversation-composer textarea {
   min-height: 96px;
   height: auto;
   max-height: none;
-  padding: 18px 20px 8px;
+  padding: 18px var(--space-5) var(--space-2);
   border: 0;
   border-radius: var(--radius-panel) var(--radius-panel) 0 0;
   background: transparent;
@@ -86,7 +86,7 @@
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
   padding: 0 10px 10px;
 }
 .concept-home .home-composer .conversation-composer-footer > .sr-only {
@@ -114,14 +114,14 @@
   opacity: 0.35;
 }
 .concept-home .home-composer > .form-error {
-  margin: 0 20px 18px;
+  margin: 0 var(--space-5) 18px;
 }
 .concept-home .home-composer.conversation-composer .home-input-controls--compact {
   display: flex;
   flex: 1 1 auto;
   width: auto;
   min-width: 0;
-  gap: 6px;
+  gap: var(--space-1-5);
   align-items: center;
 }
 .concept-home .home-input-controls--compact .home-files-popover {
@@ -148,7 +148,7 @@
   z-index: 40;
 }
 .concept-home .home-examples {
-  margin-top: 24px;
+  margin-top: var(--space-6);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -157,7 +157,7 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .concept-home .home-example-pills button {
   min-height: 40px;
@@ -166,7 +166,7 @@
   padding: 0 14px;
   background: var(--color-bg-paper);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 18px;
   font-weight: 400;
 }
@@ -181,25 +181,25 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 6px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-1-5);
 }
 .concept-home .home-recent-heading h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--font-size-4);
   line-height: 24px;
   font-weight: 500;
   letter-spacing: 0;
 }
 .concept-home .home-recent-heading .text-link {
-  font-size: 13px;
-  gap: 6px;
+  font-size: var(--font-size-2);
+  gap: var(--space-1-5);
   color: var(--color-text-muted);
 }
 .home-brand-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--space-4);
 }
 .home-brands-empty {
   min-height: 170px;
@@ -207,8 +207,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 24px;
+  gap: var(--space-2);
+  padding: var(--space-6);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   background: var(--color-bg-paper);
@@ -216,18 +216,18 @@
   color: var(--color-text-muted);
 }
 .home-brands-empty h3 {
-  font-size: 14px;
+  font-size: var(--font-size-3);
   font-weight: 500;
   color: var(--color-text);
 }
 .home-brands-empty p {
-  font-size: 13px;
+  font-size: var(--font-size-2);
 }
 .concept-home .home-intake .conversation-start-notice {
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 .concept-home .home-draft-actions {
-  margin-block: 12px;
+  margin-block: var(--space-3);
 }
 @media (max-width: 1000px) {
   .home-brand-grid {
@@ -236,10 +236,10 @@
 }
 @media (max-width: 760px) {
   .concept-home .home-page {
-    padding: 32px 24px 96px;
+    padding: var(--space-8) var(--space-6) var(--space-24);
   }
   .concept-home .home-introduction h1 {
-    font-size: 32px;
+    font-size: var(--font-size-8);
     line-height: 40px;
     letter-spacing: -1.2px;
   }
@@ -247,7 +247,7 @@
     max-width: 480px;
   }
   .concept-home .home-composer.conversation-composer textarea {
-    font-size: 18px;
+    font-size: var(--font-size-5);
     line-height: 28px;
   }
   .concept-home .home-input-controls--compact {
@@ -283,36 +283,36 @@
 }
 @media (max-width: 540px) {
   .concept-home .home-page {
-    padding: 28px 20px 96px;
+    padding: 28px var(--space-5) var(--space-24);
   }
   .concept-home .home-introduction {
-    gap: 12px;
-    margin-bottom: 24px;
+    gap: var(--space-3);
+    margin-bottom: var(--space-6);
   }
   .concept-home .home-introduction h1 {
     max-width: 330px;
   }
   .concept-home .home-introduction p {
-    font-size: 14px;
+    font-size: var(--font-size-3);
     line-height: 22px;
   }
   .concept-home .home-composer.conversation-composer textarea {
-    padding: 20px 16px 12px;
+    padding: var(--space-5) var(--space-4) var(--space-3);
     min-height: 112px;
   }
   .concept-home .home-composer.conversation-composer .conversation-composer-footer {
-    padding: 0 12px 12px;
-    gap: 4px;
+    padding: 0 var(--space-3) var(--space-3);
+    gap: var(--space-1);
   }
   .concept-home .home-composer.conversation-composer .home-input-controls--compact {
-    gap: 4px;
+    gap: var(--space-1);
   }
   .concept-home .home-input-controls--compact .home-files-popover > summary,
   .concept-home .home-input-controls--compact .home-voice-popover > summary {
     width: 32px;
   }
   .concept-home .home-recent-heading h2 {
-    font-size: 18px;
+    font-size: var(--font-size-5);
   }
   .home-brand-grid {
     grid-template-columns: minmax(0, 1fr);
@@ -332,7 +332,7 @@
 @media (max-width: 640px) {
   .concept-home .home-composer.conversation-composer .conversation-composer-footer {
     flex-wrap: wrap;
-    row-gap: 8px;
+    row-gap: var(--space-2);
   }
   .concept-home .home-composer.conversation-composer .home-input-controls--compact {
     display: contents;
@@ -367,5 +367,5 @@
 /* Secondary Home actions follow the rounder pill buttons. */
 .concept-home .home-draft-actions .button {
   border-radius: var(--radius-pill);
-  padding-inline: 16px;
+  padding-inline: var(--space-4);
 }

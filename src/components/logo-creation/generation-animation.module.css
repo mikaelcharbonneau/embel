@@ -26,8 +26,8 @@
   z-index: 1;
   padding: 9px 13px;
   border: 1px solid #e7e7e4;
-  border-radius: 20px;
+  border-radius: var(--radius-panel);
   background: #fffffff0;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 16px;
 }

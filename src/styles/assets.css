@@ -1,10 +1,10 @@
 /* Library (/assets): a gallery of saved brand files. Page layout is in assets-guided.css. */
 .assets-page {
-  padding-top: 32px;
+  padding-top: var(--space-8);
   padding-bottom: 56px;
 }
 .assets-heading {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 .assets-heading h1 {
   font-size: 28px;
@@ -19,7 +19,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 20px;
+  gap: var(--space-5);
   border-bottom: 1px solid var(--color-border);
 }
 .assets-tabs {
@@ -31,11 +31,11 @@
 .assets-tabs button {
   position: relative;
   min-height: 44px;
-  padding: 12px 0;
+  padding: var(--space-3) 0;
   border: 0;
   background: transparent;
   color: var(--color-text-muted);
-  font-size: 14px;
+  font-size: var(--font-size-3);
   font-weight: 500;
   line-height: 20px;
 }
@@ -56,7 +56,7 @@
   right: 0;
 }
 .assets-refresh {
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 .assets-muted {
   color: var(--color-text-muted);
@@ -66,7 +66,7 @@
 .assets-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--space-4);
   align-items: start;
 }
 .assets-card {
@@ -104,7 +104,7 @@
   height: 100%;
   width: 100%;
   object-fit: contain;
-  padding: 8px;
+  padding: var(--space-2);
 }
 .assets-file-placeholder {
   display: flex;
@@ -112,7 +112,7 @@
   align-items: center;
   gap: 7px;
   color: var(--color-text-muted);
-  padding: 20px;
+  padding: var(--space-5);
   text-align: center;
 }
 .assets-file-placeholder strong {
@@ -125,32 +125,32 @@
 }
 .assets-file-placeholder .text-link {
   font-size: var(--font-size-2);
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 .assets-card-body {
-  padding: 14px 16px 12px;
+  padding: 14px var(--space-4) var(--space-3);
 }
 .assets-card-title {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 .assets-card-title h2 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-size-3);
   font-weight: 500;
   line-height: 20px;
   overflow-wrap: anywhere;
 }
 .assets-card-title > span {
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .assets-brand {
   display: inline-block;
   max-width: 100%;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--color-text-muted);
   overflow-wrap: anywhere;
   line-height: 20px;
@@ -165,10 +165,10 @@
   min-height: 20px;
 }
 .assets-badges span {
-  padding: 2px 8px;
+  padding: var(--space-0-5) var(--space-2);
   background: var(--color-bg-sunken);
   border-radius: var(--radius-pill);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--color-text-muted);
 }
 .assets-retain {
@@ -190,11 +190,11 @@
 .assets-pagination {
   display: flex;
   justify-content: center;
-  margin-top: 24px;
+  margin-top: var(--space-6);
 }
 .assets-notice {
-  margin: 16px 0;
-  padding: 14px 16px;
+  margin: var(--space-4) 0;
+  padding: 14px var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   background: var(--color-bg-paper);
@@ -206,10 +206,10 @@
 }
 .assets-loading {
   min-height: 1.65em;
-  margin: 16px 0;
+  margin: var(--space-4) 0;
 }
 .assets-empty {
-  padding: 64px 24px;
+  padding: var(--space-16) var(--space-6);
   text-align: center;
   background: var(--color-bg-paper);
   border: 1px solid var(--color-border);
@@ -223,10 +223,10 @@
   border-radius: 50%;
   background: var(--color-bg-sunken);
   color: var(--color-text);
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 .assets-empty h2 {
-  font-size: 20px;
+  font-size: var(--font-size-6);
   font-weight: 500;
   letter-spacing: -0.3px;
 }
@@ -234,7 +234,7 @@
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
   max-width: 380px;
-  margin: 12px auto 22px;
+  margin: var(--space-3) auto 22px;
   line-height: 1.75;
 }
 
@@ -247,7 +247,7 @@
   height: 100dvh;
   max-height: 100dvh;
   margin: 0 0 0 auto;
-  padding: 28px 32px;
+  padding: 28px var(--space-8);
   border: 0;
   border-left: 1px solid var(--color-border);
   color: var(--color-text);
@@ -261,8 +261,8 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 20px;
-  margin-bottom: 20px;
+  gap: var(--space-5);
+  margin-bottom: var(--space-5);
 }
 .assets-detail > header > div {
   min-width: 0;
@@ -273,11 +273,11 @@
   overflow-wrap: anywhere;
 }
 .assets-detail h2 {
-  font-size: 20px;
+  font-size: var(--font-size-6);
   letter-spacing: -0.4px;
   line-height: 28px;
   overflow-wrap: anywhere;
-  margin-top: 6px;
+  margin-top: var(--space-1-5);
 }
 .assets-close {
   display: grid;
@@ -294,12 +294,12 @@
 }
 .assets-detail-summary {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   flex-wrap: wrap;
   justify-content: space-between;
   font-size: var(--font-size-2);
   color: var(--color-text-muted);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 .assets-detail-summary a {
   overflow-wrap: anywhere;
@@ -307,7 +307,7 @@
 .assets-detail-content {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 168px;
-  gap: 24px;
+  gap: var(--space-6);
 }
 .assets-detail-content > section {
   min-width: 0;
@@ -321,11 +321,11 @@
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 12px;
-  margin: 20px 0 8px;
+  gap: var(--space-3);
+  margin: var(--space-5) 0 var(--space-2);
 }
 .assets-version-title h3 {
-  font-size: 16px;
+  font-size: var(--font-size-4);
   letter-spacing: -0.2px;
 }
 .assets-version-title > span {
@@ -333,7 +333,7 @@
   color: var(--color-text-muted);
 }
 .assets-evidence {
-  margin: 20px 0;
+  margin: var(--space-5) 0;
   padding: 0;
   display: grid;
   gap: 11px;
@@ -342,7 +342,7 @@
 .assets-evidence > div {
   display: grid;
   grid-template-columns: 56px minmax(0, 1fr);
-  gap: 12px;
+  gap: var(--space-3);
 }
 .assets-evidence dt {
   color: var(--color-text-muted);
@@ -359,8 +359,8 @@
   background: var(--color-bg-sunken);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
-  padding: 12px;
-  margin: 20px 0;
+  padding: var(--space-3);
+  margin: var(--space-5) 0;
 }
 .assets-ack input {
   accent-color: var(--color-text);
@@ -371,7 +371,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 9px;
-  margin-top: 20px;
+  margin-top: var(--space-5);
 }
 .assets-footnote {
   margin-top: 14px;
@@ -394,7 +394,7 @@
 .assets-history ol {
   list-style: none;
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
   margin: 0 0 14px;
   padding: 0;
 }
@@ -403,7 +403,7 @@
   display: block;
   width: 100%;
   text-align: left;
-  padding: 12px;
+  padding: var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
 }
@@ -414,7 +414,7 @@
 .assets-history strong {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
   font-size: var(--font-size-2);
   font-weight: 500;
 }
@@ -425,9 +425,9 @@
 .assets-history small {
   display: block;
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 1.5;
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 @media (max-width: 1100px) {
   .assets-grid {
@@ -436,14 +436,14 @@
 }
 @media (max-width: 600px) {
   .assets-page {
-    padding-top: 24px;
+    padding-top: var(--space-6);
   }
   .assets-grid {
     grid-template-columns: minmax(0, 1fr);
   }
   .assets-detail {
     width: 100%;
-    padding: 22px 20px 36px;
+    padding: 22px var(--space-5) 36px;
     border: 0;
   }
   .assets-detail-content {
@@ -454,7 +454,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .assets-empty {
-    padding: 44px 20px;
+    padding: 44px var(--space-5);
   }
   .assets-detail-actions .button {
     flex: 1;

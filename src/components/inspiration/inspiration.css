@@ -3,7 +3,7 @@
   min-height: 100%;
   color: var(--color-text);
   background: var(--color-bg-canvas);
-  font-size: 13px;
+  font-size: var(--font-size-2);
 }
 /* One centered column for Embel's message, the filters, the gallery and Continue. */
 .inspiration-browse {
@@ -13,23 +13,23 @@
   width: 100%;
   max-width: calc(var(--container-page) + 2 * 24px);
   margin: 0 auto;
-  padding: 40px 24px 24px;
+  padding: var(--space-10) var(--space-6) var(--space-6);
 }
 .inspiration-browse .inspiration-message {
   max-width: none;
-  margin: 0 0 20px;
+  margin: 0 0 var(--space-5);
 }
 .inspiration-toolbar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(150px, 430px) minmax(0, 1fr);
-  gap: 20px;
+  gap: var(--space-5);
   align-items: center;
-  padding: 4px 0 20px;
+  padding: var(--space-1) 0 var(--space-5);
 }
 .inspiration-views {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: var(--space-5);
   min-height: 40px;
   justify-self: start;
   position: relative;
@@ -54,13 +54,13 @@
   background: var(--color-text);
 }
 .inspiration-views span {
-  padding-left: 6px;
+  padding-left: var(--space-1-5);
 }
 /* One segmented pill toggle for All, Identities and Logos. */
 .inspiration-categories {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-0-5);
   justify-self: end;
   padding: 3px;
   border: 1px solid var(--color-border);
@@ -69,12 +69,12 @@
 }
 .inspiration-categories button {
   min-height: 34px;
-  padding: 6px 14px;
+  padding: var(--space-1-5) 14px;
   border: 0;
   border-radius: var(--radius-pill);
   background: transparent;
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 18px;
   white-space: nowrap;
 }
@@ -127,27 +127,27 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-top: 24px;
-  padding: 8px 8px 8px 20px;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   background: var(--color-bg-paper);
   box-shadow: 0 12px 32px -16px rgb(25 25 25 / 35%);
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: var(--font-size-2);
 }
 .inspiration-continue {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-height: 44px;
-  padding: 0 18px 0 20px;
+  padding: 0 18px 0 var(--space-5);
   border-radius: var(--radius-pill);
   background: var(--color-text);
   color: var(--color-bg-paper);
-  font-size: 14px;
+  font-size: var(--font-size-3);
   font-weight: 500;
   text-decoration: none;
 }
@@ -161,7 +161,7 @@
   position: relative;
   display: grid;
   grid-template-columns: repeat(var(--inspiration-column-count, 1), minmax(0, 1fr));
-  gap: 20px 16px;
+  gap: var(--space-5) var(--space-4);
   align-items: start;
 }
 .inspiration-columns[data-positioned="true"] {
@@ -229,7 +229,7 @@
   border: 0;
   border-radius: var(--radius-pill);
   background: none;
-  color: #fff;
+  color: var(--color-text-inverse);
   box-shadow: none;
   transition:
     transform 120ms,
@@ -250,7 +250,7 @@
   color: var(--color-text);
 }
 .inspiration-heart[aria-pressed="true"] svg {
-  fill: #fff;
+  fill: var(--color-text-inverse);
   stroke-width: 1.5;
 }
 .inspiration-heart svg,
@@ -262,39 +262,39 @@
   flex-wrap: wrap;
   align-items: baseline;
   text-align: left;
-  gap: 0 6px;
-  padding: 8px 2px 0;
+  gap: 0 var(--space-1-5);
+  padding: var(--space-2) var(--space-0-5) 0;
   border: 0;
   background: none;
   width: 100%;
   color: var(--color-text);
 }
 .inspiration-caption strong {
-  font-size: 14px;
+  font-size: var(--font-size-3);
   line-height: 22px;
   font-weight: 500;
 }
 .inspiration-caption span {
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 22px;
   color: var(--color-text-muted);
 }
 .inspiration-caption span::before {
   content: "·";
-  margin-right: 6px;
+  margin-right: var(--space-1-5);
   color: var(--color-text-placeholder);
 }
 .inspiration-element-label {
-  margin: 4px 2px 0;
-  font-size: 12px;
+  margin: var(--space-1) var(--space-0-5) 0;
+  font-size: var(--font-size-1);
   line-height: 15px;
   color: var(--color-text);
 }
 .inspiration-saving,
 .inspiration-pending {
-  margin: 5px 2px 0;
+  margin: 5px var(--space-0-5) 0;
   padding: 0;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--color-text-muted);
 }
 .inspiration-pending {
@@ -303,12 +303,12 @@
   text-decoration: underline;
 }
 .inspiration-notice {
-  margin: 0 0 20px;
+  margin: 0 0 var(--space-5);
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   background: var(--color-bg-paper);
@@ -318,7 +318,7 @@
 .inspiration-recovery button,
 .inspiration-empty button {
   min-height: 36px;
-  padding: 6px 14px;
+  padding: var(--space-1-5) 14px;
   border: 1px solid var(--color-border);
   background: var(--color-bg-paper);
   border-radius: var(--radius-pill);
@@ -330,13 +330,13 @@
   justify-content: center;
   text-align: center;
   min-height: 360px;
-  padding: 40px 20px;
+  padding: var(--space-10) var(--space-5);
   color: var(--color-text-muted);
 }
 .inspiration-empty h2 {
-  margin: 16px 0 0;
+  margin: var(--space-4) 0 0;
   color: var(--color-text);
-  font-size: 20px;
+  font-size: var(--font-size-6);
   font-weight: 500;
 }
 .inspiration-empty p {
@@ -346,12 +346,12 @@
 .inspiration-footer {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   flex-wrap: wrap;
   justify-content: flex-end;
   margin: 28px 0 0;
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 20px;
 }
 .inspiration-footer > span {
@@ -416,7 +416,7 @@
   border-radius: 0;
 }
 .inspiration-detail-body {
-  padding: 24px;
+  padding: var(--space-6);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -425,28 +425,28 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   letter-spacing: 0.6px;
-  margin: -8px -8px 8px 0;
+  margin: -8px -8px var(--space-2) 0;
 }
 .inspiration-detail-body h2 {
   margin: 0;
-  font-size: 24px;
+  font-size: var(--font-size-7);
   line-height: 32px;
   font-weight: 500;
 }
 .inspiration-detail-body h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-size-3);
   line-height: 22px;
   font-weight: 500;
 }
 .inspiration-detail-body p {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 18px;
 }
 .inspiration-detail-body hr {
@@ -458,8 +458,8 @@
 .inspiration-overall {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
+  gap: var(--space-3);
+  padding: 10px var(--space-4);
   background: var(--color-bg-paper);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
@@ -473,11 +473,11 @@
 }
 .inspiration-detail-body .inspiration-detail-footer {
   margin-top: auto;
-  padding-top: 24px;
-  font-size: 12px;
+  padding-top: var(--space-6);
+  font-size: var(--font-size-1);
 }
 .inspiration-recovery {
-  padding: 12px;
+  padding: var(--space-3);
   background: var(--color-bg-warning-soft);
   border: 1px solid var(--color-border-warning-soft);
   border-radius: var(--radius-control);
@@ -485,15 +485,15 @@
 .inspiration-recovery div {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
   margin-top: 10px;
 }
 .inspiration-recovery button {
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .inspiration-image-error {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -515,21 +515,21 @@
 @media (max-width: 1100px) {
   .inspiration-toolbar {
     grid-template-columns: auto minmax(150px, 1fr) auto;
-    gap: 12px;
+    gap: var(--space-3);
   }
 }
 @media (max-width: 760px) {
   .inspiration-toolbar {
     grid-template-columns: 1fr auto;
-    padding: 4px 0 20px;
-    gap: 14px 12px;
+    padding: var(--space-1) 0 var(--space-5);
+    gap: 14px var(--space-3);
   }
   .inspiration-views {
-    padding-right: 16px;
+    padding-right: var(--space-4);
     gap: 14px;
   }
   .inspiration-categories button {
-    padding: 10px 12px;
+    padding: 10px var(--space-3);
   }
   .inspiration-search {
     grid-column: 1 / -1;
@@ -538,7 +538,7 @@
     height: 44px;
   }
   .inspiration-browse {
-    padding: 24px 16px 16px;
+    padding: var(--space-6) var(--space-4) var(--space-4);
   }
   .inspiration-heart {
     width: 44px;
@@ -558,7 +558,7 @@
     height: min(38dvh, 320px);
   }
   .inspiration-detail-body {
-    padding: 20px;
+    padding: var(--space-5);
   }
   .inspiration-detail-top {
     margin: 0;
@@ -593,31 +593,31 @@
   padding: 0;
 }
 .inspiration-in-conversation .inspiration-question {
-  margin: 4px 0 12px;
+  margin: var(--space-1) 0 var(--space-3);
 }
 .inspiration-in-conversation .inspiration-toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px 16px;
-  padding: 0 0 16px;
+  gap: var(--space-2) var(--space-4);
+  padding: 0 0 var(--space-4);
 }
 .inspiration-in-conversation .inspiration-search {
   order: 3;
   flex: 1 1 100%;
 }
 .inspiration-in-conversation .inspiration-footer {
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 .inspiration-continue-inline {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 16px;
-  font-size: 13px;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  font-size: var(--font-size-2);
   color: var(--color-text-muted);
 }
 button.inspiration-continue {
@@ -634,7 +634,7 @@ button.inspiration-continue {
   position: relative;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-3);
   align-items: start;
 }
 .inspiration-brands[data-positioned="true"] {
@@ -645,7 +645,7 @@ button.inspiration-continue {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: 8px;
+  padding: var(--space-2);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
   background: var(--color-bg-paper);
@@ -663,16 +663,16 @@ button.inspiration-continue {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   height: 36px;
-  margin-bottom: 8px;
-  padding-left: 6px;
+  margin-bottom: var(--space-2);
+  padding-left: var(--space-1-5);
 }
 .inspiration-brand-title {
   display: inline-flex;
   flex: 1;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 0;
   padding: 0;
   border: 0;
@@ -684,7 +684,7 @@ button.inspiration-continue {
 }
 .inspiration-brand-title strong {
   overflow: hidden;
-  font-size: 14px;
+  font-size: var(--font-size-3);
   line-height: 22px;
   font-weight: 500;
   white-space: nowrap;
@@ -693,7 +693,7 @@ button.inspiration-continue {
 .inspiration-brand-title span {
   flex: none;
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 22px;
   opacity: 0;
   transition: opacity 120ms;
@@ -705,7 +705,7 @@ button.inspiration-continue {
 .inspiration-brand-header > :is(.inspiration-saving, .inspiration-pending, .inspiration-availability) {
   flex: none;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   white-space: nowrap;
 }
 .inspiration-workspace .inspiration-heart.inspiration-brand-like {
@@ -715,11 +715,11 @@ button.inspiration-continue {
 .inspiration-brand-bento {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 .inspiration-brand-row {
   display: flex;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 .inspiration-brand-tile {
   position: relative;
@@ -751,17 +751,17 @@ button.inspiration-continue {
 .inspiration-brand-open .inspiration-image-error {
   position: absolute;
   inset: 0;
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .inspiration-tile-label {
   position: absolute;
   left: 6px;
   bottom: 6px;
-  padding: 2px 8px;
+  padding: var(--space-0-5) var(--space-2);
   border-radius: var(--radius-pill);
   background: rgb(255 255 255 / 92%);
   color: var(--color-text);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 18px;
   opacity: 0;
   transition: opacity 120ms;
@@ -795,13 +795,13 @@ button.inspiration-continue {
   align-items: center;
   justify-content: center;
   min-height: 40px;
-  margin: 20px auto 0;
+  margin: var(--space-5) auto 0;
   padding: 0 18px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   background: var(--color-bg-paper);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--font-size-2);
   cursor: pointer;
 }
 .inspiration-more:hover {
@@ -824,11 +824,11 @@ button.inspiration-continue {
   position: absolute;
   left: 16px;
   bottom: 16px;
-  padding: 4px 10px;
+  padding: var(--space-1) 10px;
   border-radius: var(--radius-pill);
   background: rgb(255 255 255 / 92%);
   color: var(--color-text);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 18px;
 }
 .inspiration-overlay-step {
@@ -859,7 +859,7 @@ button.inspiration-continue {
 .inspiration-overlay-parts {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1-5);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -867,21 +867,21 @@ button.inspiration-continue {
 .inspiration-overlay-parts li {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .inspiration-overlay-part {
   display: flex;
   flex: 1;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   min-width: 0;
-  padding: 4px;
+  padding: var(--space-1);
   border: 1px solid transparent;
   border-radius: var(--radius-control);
   background: none;
   color: var(--color-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-2);
   text-align: left;
   cursor: pointer;
 }
@@ -897,7 +897,7 @@ button.inspiration-continue {
   width: 72px;
   height: 48px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: var(--radius-small);
   background: var(--color-bg-sunken);
 }
 .inspiration-detail .inspiration-heart.inspiration-overlay-like {
@@ -927,11 +927,11 @@ button.inspiration-continue {
    saved images sit in a container just above that button, one heart each. */
 button.inspiration-footer-link {
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-2);
   cursor: pointer;
 }
 .inspiration-yours-slot {
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 .inspiration-brand.inspiration-yours {
   cursor: default;
@@ -945,13 +945,13 @@ button.inspiration-footer-link {
 }
 .inspiration-yours-count {
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 22px;
 }
 .inspiration-yours-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 8px;
+  gap: var(--space-2);
 }
 .inspiration-yours-tile {
   position: relative;
@@ -975,16 +975,16 @@ button.inspiration-footer-link {
 }
 .inspiration-yours-tile .identity-reference-placeholder {
   height: 100%;
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .inspiration-yours-tile:hover .inspiration-part-like,
 .inspiration-yours-tile:focus-within .inspiration-part-like {
   opacity: 1;
 }
 .inspiration-yours-status {
-  margin: 12px 0 0;
+  margin: var(--space-3) 0 0;
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 18px;
   text-align: right;
 }
@@ -992,8 +992,8 @@ button.inspiration-footer-link {
   text-align: left;
 }
 .inspiration-yours-limit {
-  margin: 8px 6px 2px;
+  margin: var(--space-2) var(--space-1-5) var(--space-0-5);
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 16px;
 }

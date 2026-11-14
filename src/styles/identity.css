@@ -7,7 +7,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
   margin-bottom: 18px;
 }
 .identity-section-heading h2 {
@@ -15,7 +15,7 @@
   letter-spacing: -0.6px;
 }
 .identity-section-heading h3 {
-  font-size: 20px;
+  font-size: var(--font-size-6);
   letter-spacing: -0.35px;
   overflow-wrap: anywhere;
 }
@@ -23,7 +23,7 @@
 .identity-section-heading > span {
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
-  margin-top: 6px;
+  margin-top: var(--space-1-5);
 }
 .identity-section-heading > button {
   flex-shrink: 0;
@@ -72,7 +72,7 @@
 .identity-notice,
 .identity-recovery {
   border: 1px solid var(--color-border);
-  padding: 14px 16px;
+  padding: 14px var(--space-4);
   background: var(--color-bg-paper);
   border-radius: var(--radius-control);
   font-size: var(--font-size-2);
@@ -87,20 +87,20 @@
   margin-top: 14px;
 }
 .identity-recovery > p + p {
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 .identity-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px 16px;
+  gap: 10px var(--space-4);
   margin-top: 15px;
 }
 .identity-freshness {
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
   line-height: 1.6;
-  margin: 10px 0 16px;
+  margin: 10px 0 var(--space-4);
 }
 .identity-freshness-stale {
   color: var(--color-text);
@@ -110,7 +110,7 @@
   background: var(--color-bg-paper);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 1.7;
   color: var(--color-text-muted);
 }
@@ -118,7 +118,7 @@
   background: var(--color-bg-paper);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
-  padding: 24px;
+  padding: var(--space-6);
   margin-bottom: 28px;
 }
 .identity-badge {
@@ -126,7 +126,7 @@
   color: var(--color-text);
   font-size: var(--font-size-2);
   border-radius: var(--radius-pill);
-  padding: 5px 8px;
+  padding: 5px var(--space-2);
   white-space: nowrap;
 }
 .identity-board {
@@ -155,12 +155,12 @@
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
   line-height: 1.6;
-  padding: 20px;
+  padding: var(--space-5);
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .identity-board-stale {
-  padding: 12px 0;
+  padding: var(--space-3) 0;
   color: var(--color-text);
   font-size: var(--font-size-2);
   line-height: 1.6;
@@ -174,10 +174,10 @@
   background: var(--color-bg-selected);
   padding: 15px;
   border-radius: var(--radius-control);
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 .identity-acknowledgment input {
-  margin-top: 4px;
+  margin-top: var(--space-1);
   accent-color: var(--color-text);
   flex-shrink: 0;
 }
@@ -187,7 +187,7 @@
 .identity-history-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--space-4);
   align-items: start;
 }
 .identity-history-card {
@@ -201,7 +201,7 @@
   border-radius: 0;
 }
 .identity-history-card .identity-board-stale {
-  padding: 12px 15px 0;
+  padding: var(--space-3) 15px 0;
 }
 .identity-history-content {
   padding: 15px;
@@ -211,7 +211,7 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .identity-card-heading h4 {
   font-size: 17px;
@@ -225,7 +225,7 @@
 }
 .identity-more {
   display: block;
-  margin: 20px auto;
+  margin: var(--space-5) auto;
 }
 .identity-components {
   display: grid;
@@ -240,7 +240,7 @@
 }
 .identity-components h4 {
   font-size: 15px;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 .identity-components p {
   font-size: var(--font-size-2);
@@ -249,7 +249,7 @@
   overflow-wrap: anywhere;
 }
 .identity-components p + p {
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 .identity-muted {
   color: var(--color-text-muted);
@@ -261,7 +261,7 @@
   padding: 0;
   margin: 0 0 15px;
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
 }
 .identity-swatches {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -287,12 +287,12 @@
 .identity-swatches code {
   display: block;
   color: var(--color-text-muted);
-  margin-top: 4px;
+  margin-top: var(--space-1);
   font-size: var(--font-size-2);
 }
 .identity-type-specification li {
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
   font-size: var(--font-size-2);
   overflow-wrap: anywhere;
 }
@@ -300,14 +300,14 @@
   color: var(--color-text-muted);
 }
 .identity-component-editor {
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 .identity-component-editor summary,
 .identity-preferences summary {
   cursor: pointer;
   padding: 9px 0;
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--font-size-2);
   font-weight: 500;
 }
 .identity-component-editor form {
@@ -340,8 +340,8 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
   padding: 9px 10px;
-  margin-top: 6px;
-  font-size: 13px;
+  margin-top: var(--space-1-5);
+  font-size: var(--font-size-2);
   font-weight: 400;
   line-height: 1.5;
 }
@@ -358,7 +358,7 @@
 .identity-type-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0 12px;
+  gap: 0 var(--space-3);
   padding-bottom: 14px;
   margin-bottom: 14px;
   border-bottom: 1px solid var(--color-border);
@@ -367,7 +367,7 @@
   justify-self: start;
 }
 .identity-component-editor fieldset > .text-link {
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 .identity-files {
   grid-column: 1 / -1;
@@ -379,13 +379,13 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 18px;
+  gap: var(--space-2) 18px;
   padding: 10px 0;
   border-bottom: 1px solid var(--color-border);
 }
 .identity-files li > div {
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
   flex: 1;
   min-width: 160px;
   font-size: var(--font-size-2);
@@ -462,18 +462,18 @@
 
 .identity-control-unavailable {
   color: var(--color-text-muted);
-  margin-top: 12px;
+  margin-top: var(--space-3);
 }
 .identity-control-unavailable + .identity-actions {
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
 .identity-history-grid {
-  gap: 24px;
+  gap: var(--space-6);
 }
 .identity-history-card {
   border-radius: var(--radius-card);
-  padding: 8px;
+  padding: var(--space-2);
 }
 .identity-history-card .identity-board-image {
   border-radius: var(--radius-control);

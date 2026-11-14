@@ -3,7 +3,7 @@
   align-items: flex-start;
   gap: 9px;
   padding: 13px 15px;
-  margin: -6px 0 20px;
+  margin: -6px 0 var(--space-5);
   border: 1px solid var(--color-border);
   border-radius: 7px;
   background: var(--color-bg-sunken);
@@ -12,7 +12,7 @@
   line-height: 1.65;
 }
 .strategy-provider-note > svg {
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
 }
 .strategy-provider-note strong {
   color: var(--color-text);
@@ -27,7 +27,7 @@
   min-height: 275px;
   border: 1px dashed #c9c8c3;
   border-radius: var(--radius-card);
-  padding: 28px 24px;
+  padding: 28px var(--space-6);
   text-align: center;
 }
 .strategy-empty h2 {
@@ -41,15 +41,15 @@
   line-height: 1.7;
 }
 .strategy-empty .button {
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 .strategy-review-notice {
   display: flex;
   align-items: flex-start;
   gap: 9px;
-  padding: 14px 16px;
+  padding: 14px var(--space-4);
   margin-bottom: 18px;
-  background: #fff8e9;
+  background: var(--color-bg-warning-soft);
   border: 1px solid #e6d7b3;
   border-radius: 7px;
   color: #71531f;
@@ -57,7 +57,7 @@
   line-height: 1.65;
 }
 .strategy-review-notice > svg {
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
 }
 .strategy-review-notice strong {
   display: block;
@@ -65,10 +65,10 @@
 }
 .strategy-review-notice span {
   display: block;
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
 }
 .personality-panel {
-  padding: 22px 24px 8px;
+  padding: 22px var(--space-6) var(--space-2);
   background: var(--color-bg-paper);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
@@ -77,10 +77,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 .personality-panel-heading h2 {
-  font-size: 14px;
+  font-size: var(--font-size-3);
   letter-spacing: 0;
 }
 .personality-scale-hint {
@@ -90,7 +90,7 @@
   line-height: 1.65;
 }
 .personality-dimensions {
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 .personality-dimension {
   padding: 18px 0 17px;
@@ -102,10 +102,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-4);
 }
 .personality-dimension-heading label {
-  font-size: 13px;
+  font-size: var(--font-size-2);
   font-weight: 500;
 }
 .personality-dimension-heading p {
@@ -117,11 +117,11 @@
   display: grid;
   place-items: center;
   min-width: 42px;
-  padding: 5px 8px;
+  padding: 5px var(--space-2);
   border-radius: 5px;
   background: var(--color-bg-selected);
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--font-size-2);
   font-variant-numeric: tabular-nums;
 }
 .personality-slider {
@@ -129,7 +129,7 @@
   appearance: none;
   width: 100%;
   height: 36px;
-  margin: 8px 0 0;
+  margin: var(--space-2) 0 0;
   padding: 0;
   background: transparent;
   cursor: pointer;
@@ -137,7 +137,7 @@
 }
 .personality-slider::-webkit-slider-runnable-track {
   height: 5px;
-  border-radius: 4px;
+  border-radius: var(--radius-inset);
   background: linear-gradient(to right, var(--color-accent) var(--emphasis), var(--color-bg-sunken) var(--emphasis));
 }
 .personality-slider::-webkit-slider-thumb {
@@ -151,12 +151,12 @@
 }
 .personality-slider::-moz-range-track {
   height: 5px;
-  border-radius: 4px;
+  border-radius: var(--radius-inset);
   background: var(--color-bg-sunken);
 }
 .personality-slider::-moz-range-progress {
   height: 5px;
-  border-radius: 4px;
+  border-radius: var(--radius-inset);
   background: var(--color-accent);
 }
 .personality-slider::-moz-range-thumb {
@@ -169,8 +169,8 @@
 .personality-range-labels {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
-  margin-top: 4px;
+  gap: var(--space-4);
+  margin-top: var(--space-1);
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
 }
@@ -178,9 +178,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
   margin-bottom: 18px;
-  padding: 16px;
+  padding: var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: 7px;
   background: var(--color-bg-paper);
@@ -190,7 +190,7 @@
   font-weight: 500;
 }
 .strategy-prerequisite p {
-  margin-top: 4px;
+  margin-top: var(--space-1);
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
   line-height: 1.65;
@@ -216,12 +216,12 @@
   opacity: 1;
 }
 .positioning-input[aria-invalid="true"] {
-  border-color: #b54b4b;
+  border-color: var(--color-border-danger);
 }
 .positioning-input-footer {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
   margin-top: 10px;
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
@@ -234,17 +234,17 @@
 
 @media (max-width: 540px) {
   .strategy-provider-note {
-    padding: 12px 13px;
+    padding: var(--space-3) 13px;
     font-size: var(--font-size-2);
   }
   .strategy-empty {
     padding: 25px 18px;
   }
   .personality-panel {
-    padding: 19px 16px 4px;
+    padding: 19px var(--space-4) var(--space-1);
   }
   .personality-panel-heading h2 {
-    font-size: 13px;
+    font-size: var(--font-size-2);
   }
   .personality-dimension {
     padding-block: 17px;
@@ -256,7 +256,7 @@
   .strategy-prerequisite {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: var(--space-3);
     padding: 14px;
   }
   .strategy-prerequisite .button {
@@ -265,7 +265,7 @@
   .positioning-input {
     min-height: 235px;
     padding: 11px;
-    font-size: 16px;
+    font-size: var(--font-size-4);
   }
   .positioning-input-footer {
     flex-wrap: wrap;

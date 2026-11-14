@@ -10,12 +10,12 @@
 }
 .auth-intro {
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 1.7;
   margin-top: 11px;
 }
 .auth-card form {
-  margin-top: 24px;
+  margin-top: var(--space-6);
 }
 .auth-field {
   display: block;
@@ -23,19 +23,19 @@
   font-weight: 500;
 }
 .auth-field + .auth-field {
-  margin-top: 20px;
+  margin-top: var(--space-5);
 }
 .auth-field input {
   display: block;
   width: 100%;
-  margin-top: 8px;
-  padding: 11px 12px;
+  margin-top: var(--space-2);
+  padding: 11px var(--space-3);
   min-height: 44px;
   color: var(--color-text);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
   background: var(--color-bg-paper);
-  font-size: 14px;
+  font-size: var(--font-size-3);
   font-weight: 400;
 }
 .auth-field input:disabled {
@@ -48,10 +48,10 @@
   position: relative;
 }
 .auth-field + .auth-password-field {
-  margin-top: 20px;
+  margin-top: var(--space-5);
 }
 .auth-password-field input {
-  padding-right: 48px;
+  padding-right: var(--space-12);
 }
 .auth-password-toggle {
   position: absolute;
@@ -85,10 +85,10 @@
 .auth-submit {
   width: 100%;
   justify-content: space-between;
-  margin-top: 24px;
+  margin-top: var(--space-6);
 }
 .auth-continue {
-  margin-top: 24px;
+  margin-top: var(--space-6);
 }
 .auth-progress {
   width: 13px;
@@ -102,7 +102,7 @@
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
   text-align: center;
-  margin-top: 12px;
+  margin-top: var(--space-3);
 }
 .auth-browser-link {
   display: flex;
@@ -114,7 +114,7 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  margin-top: 20px;
+  margin-top: var(--space-5);
   padding: 13px;
   background: var(--color-bg-canvas);
   border: 1px solid var(--color-border);
@@ -126,13 +126,13 @@
   line-height: 1.65;
 }
 .auth-unavailable svg {
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
 }
 .auth-session-action {
   color: var(--color-text);
 }
 .auth-session-notice {
-  padding: 12px 40px;
+  padding: var(--space-3) var(--space-10);
   background: var(--color-bg-warning-soft);
   border-bottom: 1px solid var(--color-border-warning-soft);
   color: var(--color-text-warning);
@@ -152,21 +152,21 @@
   background: #19191955;
 }
 .auth-signout-dialog h2 {
-  font-size: 20px;
+  font-size: var(--font-size-6);
   line-height: 1.4;
 }
 .auth-signout-dialog p {
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
   line-height: 1.75;
-  margin-top: 12px;
+  margin-top: var(--space-3);
 }
 .auth-dialog-actions {
   display: flex;
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 9px;
-  margin-top: 24px;
+  margin-top: var(--space-6);
 }
 @keyframes auth-spin {
   to {
@@ -175,15 +175,15 @@
 }
 @media (max-width: 760px) {
   .auth-session-notice {
-    padding: 12px 20px;
+    padding: var(--space-3) var(--space-5);
   }
 }
 @media (max-width: 540px) {
   .auth-card {
-    padding: 24px 21px;
+    padding: var(--space-6) 21px;
   }
   .auth-field input {
-    font-size: 16px;
+    font-size: var(--font-size-4);
   }
   .auth-account-access {
     gap: 10px;
@@ -201,11 +201,11 @@
 
 /* Cloudflare Turnstile (shown only when a site key is configured). */
 .auth-captcha {
-  margin-top: 20px;
+  margin-top: var(--space-5);
   min-height: 65px;
 }
 .auth-captcha + .auth-submit {
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 
 /* Delete account confirmation. */
@@ -213,7 +213,7 @@
   width: min(480px, calc(100vw - 40px));
 }
 .account-delete-field {
-  margin-top: 20px;
+  margin-top: var(--space-5);
 }
 .account-delete-field input {
   border-radius: var(--radius-control);

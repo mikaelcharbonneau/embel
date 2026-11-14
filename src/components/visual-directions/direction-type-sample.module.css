@@ -1,21 +1,21 @@
 .specimen {
   display: grid;
   align-content: start;
-  gap: 4px;
+  gap: var(--space-1);
   min-width: 0;
 }
 
 .caption,
 .note {
-  color: var(--color-text-muted, #696965);
-  font-size: 12px;
+  color: var(--color-text-muted, var(--color-text-muted));
+  font-size: var(--font-size-1);
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
 .sample {
   display: block;
-  color: var(--color-text, #191919);
+  color: var(--color-text, var(--color-text));
   font-size: 22px;
   line-height: 1.35;
   font-style: normal;

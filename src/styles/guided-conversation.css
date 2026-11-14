@@ -25,7 +25,7 @@
   overflow-y: auto;
   overscroll-behavior-y: contain;
   scrollbar-gutter: stable;
-  padding: 56px max(24px, calc((100% - var(--container-reading)) / 2)) 32px;
+  padding: 56px max(var(--space-6), calc((100% - var(--container-reading)) / 2)) var(--space-8);
   display: flex;
   flex-direction: column;
   gap: 28px;
@@ -38,8 +38,8 @@
   align-self: flex-end;
   max-width: min(600px, 88%);
   padding: 14px 18px;
-  border-radius: 12px;
-  background: var(--color-bg-sunken, #f1f0ee);
+  border-radius: var(--radius-control);
+  background: var(--color-bg-sunken, var(--color-bg-sunken));
 }
 .guided-user-message p {
   white-space: pre-wrap;
@@ -55,9 +55,9 @@
 .guided-assistant-identity {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   margin-bottom: 10px;
-  font-size: 13px;
+  font-size: var(--font-size-2);
   font-weight: 500;
 }
 .guided-assistant-identity img {
@@ -72,10 +72,10 @@
 }
 .guided-assistant-message .guided-choice-widget,
 .guided-assistant-message .guided-choice-answer {
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 .guided-assistant-question {
-  margin-top: 12px;
+  margin-top: var(--space-3);
   font-weight: 500;
 }
 .guided-floating-input {
@@ -83,7 +83,7 @@
 }
 /* The last message scrolls fully above the message box and its fade. */
 .guided-interview[data-composer="floating"] > .guided-interview-scroll {
-  padding-bottom: calc(var(--floating-composer-clearance, 96px) + 32px);
+  padding-bottom: calc(var(--floating-composer-clearance, var(--space-24)) + var(--space-8));
   scroll-padding-bottom: calc(var(--floating-composer-clearance, 96px) + 32px);
 }
 /* Strategy and Voice: each journey step is one section of the conversation,
@@ -110,24 +110,24 @@
   box-shadow: 0 2px 8px #1919190d;
 }
 .guided-conversation-error {
-  margin-bottom: 12px;
-  padding: 12px 14px;
-  border-radius: 8px;
+  margin-bottom: var(--space-3);
+  padding: var(--space-3) 14px;
+  border-radius: var(--radius-small);
   background: #fff5f3;
   color: var(--color-text-danger, #a52b2b);
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 20px;
 }
 .guided-conversation-error .text-link {
-  margin: 6px 16px 0 0;
-  font-size: 13px;
+  margin: var(--space-1-5) var(--space-4) 0 0;
+  font-size: var(--font-size-2);
   min-height: 32px;
 }
 .guided-thinking {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 13px;
+  gap: var(--space-3);
+  font-size: var(--font-size-2);
   color: var(--color-text-muted);
 }
 .guided-thinking > img {
@@ -135,7 +135,7 @@
 }
 .guided-thinking .text-link {
   margin-left: auto;
-  font-size: 13px;
+  font-size: var(--font-size-2);
 }
 .home-page:has(.guided-research-screen) .home-recent {
   display: none;
@@ -171,16 +171,16 @@
 }
 @media (max-width: 700px) {
   .guided-interview-scroll {
-    padding: 28px 16px 24px;
-    gap: 24px;
+    padding: 28px var(--space-4) var(--space-6);
+    gap: var(--space-6);
   }
   .guided-user-message {
     max-width: 94%;
-    padding: 12px 16px;
+    padding: var(--space-3) var(--space-4);
   }
   .guided-assistant-copy,
   .guided-user-message p {
-    font-size: 14px;
+    font-size: var(--font-size-3);
     line-height: 22px;
   }
 }
@@ -215,7 +215,7 @@
   max-width: none;
 }
 .guided-user-message.guided-brief-message {
-  padding-inline-end: 48px;
+  padding-inline-end: var(--space-12);
 }
 .guided-brief-turn > .guided-brief-editor {
   position: absolute;
