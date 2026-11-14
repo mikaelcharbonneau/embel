@@ -101,7 +101,7 @@ try {
     if (who === "audit-free")
       await check(who, "plans shows upgrade buttons", async () => {
         await page.goto("/plans");
-        await expect(page.getByRole("button", { name: /Upgrade to Pro/u })).toBeVisible({ timeout: 30_000 });
+        await expect(page.getByRole("button", { name: /Upgrade to Pro/u }).first()).toBeVisible({ timeout: 30_000 });
       });
     if (who === "audit-pro")
       await check(who, "plans shows Pro as current with manage/cancel", async () => {
