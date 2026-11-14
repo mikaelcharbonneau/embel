@@ -2,7 +2,9 @@
 
 import { useRef, useState } from "react";
 import { useAccountSession } from "./account-session";
-import { AccountAccess } from "./account-access";
+import { useSignOutFlow } from "./account-access";
+import { preparePromptForSignIn } from "./prompt-recovery";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { RecordedUsageSection } from "./recorded-usage";
 import { AccountProfileEditor } from "./account-profile-editor";
 import { AccountDataControls } from "./account-data-controls";
@@ -105,13 +107,16 @@ function AccountSettings() {
   );
 }
 
-/** Sign out (or Sign in) on this device. The controls and the unsaved-edits confirmation come from AccountAccess;
- * this section gives them the Settings layout. AccountAccess's round "Check account" button is hidden here: when the
- * account check fails, the Profile section says so with a labelled "Try again". */
+/** Sign out (or Sign in) on this device, with the unsaved-edits confirmation from `useSignOutFlow`. A failed
+ * sign-out stays here as "Retry sign-out". The account check has no visible control here: when it fails, the
+ * Profile section says so with a labelled "Try again". The hidden check button keeps the explicit check
+ * reachable for the recorded-usage browser test, as before. */
 function SessionSection() {
-  const { session, signingOut, signOutError } = useAccountSession();
+  const { session, refresh, signingIn, signingUp, signingOut, signOutError } = useAccountSession();
+  const { start, dialog } = useSignOutFlow();
   const signedIn =
     session.status === "ready" || session.status === "checking" || Boolean(signingOut) || Boolean(signOutError);
+  const signOutAvailable = session.status === "ready" || signingOut || Boolean(signOutError);
   return (
     <section className="e-section sg-session" aria-label={signedIn ? "Sign out" : "Sign in"}>
       <h2 className="e-section__title">{signedIn ? "Sign out" : "Sign in"}</h2>
@@ -121,7 +126,39 @@ function SessionSection() {
             ? "Sign out of Embel on this device. Your work stays saved in your account."
             : "Sign in to save your work and settings to your account."}
         </p>
-        <AccountAccess />
+        {signingIn ? (
+          <Button variant="secondary" disabled>
+            {signingUp ? "Creating account…" : "Signing in…"}
+          </Button>
+        ) : signOutAvailable ? (
+          <Button icon="log-out" variant="secondary" onClick={() => void start()} disabled={signingOut}>
+            {signingOut ? "Signing out…" : signOutError ? "Retry sign-out" : "Sign out"}
+          </Button>
+        ) : session.status === "checking" ? (
+          <span className="e-muted" role="status">
+            Checking account…
+          </span>
+        ) : (
+          <ButtonLink
+            variant="secondary"
+            href="/sign-in"
+            onClick={(event) => {
+              if (!preparePromptForSignIn()) event.preventDefault();
+            }}
+          >
+            Sign in
+          </ButtonLink>
+        )}
+        <button
+          type="button"
+          className="account-check"
+          hidden
+          onClick={refresh}
+          disabled={session.status === "checking" || signingIn || signingOut}
+        >
+          Check account
+        </button>
+        {dialog}
       </div>
     </section>
   );

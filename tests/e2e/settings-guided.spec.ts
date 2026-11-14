@@ -98,8 +98,8 @@ test("Account sign-out reuses browser sign-out and keeps a failed sign-out visib
     expect(route.request().postDataJSON()).toEqual({});
     return route.fulfill({ status, json: status === 200 ? { authenticated: false } : { error: "Synthetic failure" } });
   });
-  const controls = page.locator(".sg-content .auth-account-access");
-  await expect(controls.locator(".preview-badge")).toBeHidden();
+  const controls = page.locator(".sg-content .sg-session");
+  await expect(controls.locator('a[href="/settings"]')).toHaveCount(0);
   await controls.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Sign-out couldn't be confirmed" })).toBeVisible();
   await expect(controls.getByRole("button", { name: "Retry sign-out", exact: true })).toBeVisible();

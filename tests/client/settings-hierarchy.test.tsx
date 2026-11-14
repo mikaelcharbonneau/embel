@@ -20,7 +20,7 @@ const fixture = vi.hoisted(() => ({
   usageMount: vi.fn(),
   usageUnmount: vi.fn(),
   localAI: vi.fn(),
-  checkAccount: vi.fn(),
+  signOut: vi.fn(),
 }));
 vi.mock("@/components/workspace/account-session", () => ({
   useAccountSession: () => ({ session: fixture.session }),
@@ -33,7 +33,7 @@ vi.mock("@/components/workspace/account-profile-provider", () => ({
 // The plan card reads /api/billing; its own behavior is covered with the Plans page.
 vi.mock("@/components/billing/plan-credits-card", () => ({ PlanCreditsCard: () => null }));
 vi.mock("@/components/workspace/account-access", () => ({
-  AccountAccess: () => createElement("button", { type: "button", onClick: fixture.checkAccount }, "Sign out"),
+  useSignOutFlow: () => ({ start: fixture.signOut, dialog: null }),
 }));
 vi.mock("@/components/workspace/recorded-usage", () => ({
   RecordedUsageSection: ({ active }: { active: boolean }) => {
@@ -107,7 +107,7 @@ afterEach(async () => {
     fixture.discard,
     fixture.reload,
     fixture.keepEdits,
-    fixture.checkAccount,
+    fixture.signOut,
   ])
     expect(action).not.toHaveBeenCalled();
   await act(async () => root.unmount());
@@ -159,7 +159,7 @@ describe("Settings keeps only working options", () => {
     );
     const signOut = account.querySelector('[aria-label="Sign out"]')!;
     expect(signOut.querySelector("button")?.textContent).toBe("Sign out");
-    expect([...account.querySelectorAll("button")].map((button) => button.textContent)).toEqual([
+    expect([...account.querySelectorAll("button:not([hidden])")].map((button) => button.textContent)).toEqual([
       "Sign out",
       "Download",
       "Delete account",

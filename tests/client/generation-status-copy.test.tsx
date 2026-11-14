@@ -24,7 +24,7 @@ vi.mock("@/components/assets/use-asset-library", () => ({
 vi.mock("@/components/assets/asset-detail", () => ({ AssetDetailDialog: () => null }));
 vi.mock("@/components/assets/asset-preview", () => ({ AssetPreview: () => null }));
 vi.mock("@/components/workspace/account-profile-editor", () => ({ AccountProfileEditor: () => null }));
-vi.mock("@/components/workspace/account-access", () => ({ AccountAccess: () => null }));
+vi.mock("@/components/workspace/account-access", () => ({ useSignOutFlow: () => ({ start: vi.fn(), dialog: null }) }));
 vi.mock("@/components/workspace/recorded-usage", () => ({ RecordedUsageSection: () => null }));
 
 let root: Root, host: HTMLDivElement, fetcher: ReturnType<typeof vi.fn>;

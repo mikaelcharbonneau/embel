@@ -23,8 +23,6 @@ h3 { font-size: 15px; line-height: 1.4; font-weight: 500; letter-spacing: -.2px;
 .skip-link { position: fixed; z-index: 50; top: 8px; left: 8px; padding: var(--space-3) var(--space-4); background: var(--color-text); color: var(--color-bg-paper); border-radius: 6px; transform: translateY(-150%); }
 .skip-link:focus { transform: translateY(0); }
 .app-shell { min-height: 100svh; }
-.preview-badge { display: flex; align-items: center; gap: 7px; font-size: var(--font-size-2); color: var(--color-text-muted); background: var(--color-bg-sunken); border: 1px solid transparent; border-radius: 5px; padding: var(--space-1) var(--space-2); }
-.preview-badge:hover { border-color: #bab9b5; }
 .page { max-width: 1360px; padding: var(--space-6) var(--space-12) var(--space-12); margin: 0 auto; }
 .home-page { max-width: 1260px; padding-top: 36px; }
 .home-page .home-intake { margin-inline: 52px var(--space-8); }
@@ -154,8 +152,6 @@ h3 { font-size: 15px; line-height: 1.4; font-weight: 500; letter-spacing: -.2px;
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
 
-.topbar-account { display: flex; gap: 18px; align-items: center; }
-.account-check { font-size: var(--font-size-2); white-space: nowrap; }
 .account-notice { color: var(--color-text-muted); font-size: var(--font-size-2); line-height: 1.7; padding: 17px 0; }
 .account-notice p + p { margin-top: 9px; max-width: 570px; }
 /* Signed out, a page that needs an account invites the visitor in. */
@@ -178,9 +174,6 @@ h3 { font-size: 15px; line-height: 1.4; font-weight: 500; letter-spacing: -.2px;
 .account-project-links .field-hint { flex-basis: 100%; margin: 0; }
 .account-edit-controls .form-success a { text-decoration: underline; text-underline-offset: 3px; }
 @media (max-width: 540px) {
-  .topbar-account { gap: 10px; }
-  .topbar-account .preview-badge { font-size: var(--font-size-2); padding: 5px var(--space-1-5); }
-  .account-check { font-size: var(--font-size-2); }
   .account-copy-control { align-items: flex-start; flex-direction: column; gap: var(--space-3); padding: 14px; }
   .account-copy-control .button { align-self: flex-end; }
   .account-actions { gap: var(--space-3); align-items: flex-start; }
