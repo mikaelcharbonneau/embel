@@ -755,7 +755,7 @@ if (RECIPES) {
       await open(page, "audit-pro", `/brands/account/${brand("aurelie")}?view=strategy`);
       await page.getByRole("button", { name: "More concepts" }).first().click();
       await page
-        .getByText(/Creating your concept/u)
+        .getByRole("img", { name: /^Concept [1-6] is being drawn$/u })
         .first()
         .waitFor({ timeout: 60_000 });
       await loaded(page);

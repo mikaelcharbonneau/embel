@@ -156,9 +156,10 @@ test("a new brand goes from the first prompt to downloadable assets", async ({ p
     await explore.click();
     const concepts = page.getByRole("region", { name: "Logo concepts", exact: true });
     await expect(concepts.getByText(/6 of 6 concepts ready/u)).toBeVisible({ timeout: GENERATION });
-    await expect(concepts.getByRole("img", { name: "Image preview of saved logo concept" })).toHaveCount(6);
-    await concepts.getByRole("button", { name: "Select concept 1", exact: true }).click();
-    await expect(concepts.getByText(/Logo chosen/u)).toBeVisible();
+    // Artwork only (decision 4): each ready concept is one picture button, named after the concept.
+    await expect(concepts.getByRole("button", { name: /^Concept [1-6]$/u })).toHaveCount(6);
+    await concepts.getByRole("button", { name: "Concept 1", exact: true }).click();
+    await expect(concepts.getByRole("heading", { name: "Your logo", exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Continue", exact: true }).click();
   });
 
@@ -172,10 +173,11 @@ test("a new brand goes from the first prompt to downloadable assets", async ({ p
     ).toBeVisible({ timeout: GENERATION });
     await expect(step.getByRole("img", { name: /^Saved Identity board for /u })).toHaveCount(3);
     await expectNoCostEstimate(page);
-    const first = step.getByRole("radio", { name: /^Direction 1: /u });
+    // Each board has a real Choose button; the chosen one reads Chosen (pressed).
+    const first = step.getByRole("article", { name: /^Direction 1: /u }).getByRole("button", { name: /^Choose(n)?$/u });
     await expect(first).toBeEnabled({ timeout: GENERATION });
     await first.click();
-    await expect(first).toHaveAttribute("aria-checked", "true");
+    await expect(first).toHaveAttribute("aria-pressed", "true");
     await step.getByRole("link", { name: "Continue", exact: true }).click();
   });
 
