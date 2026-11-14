@@ -49,7 +49,7 @@ export type RevealOptions = {
   classes: { layer: string; svg: string; sketch: string; wire: string; head: string };
   /** ms for the build; the whole run is about duration × 1.06. */
   duration?: number;
-  /** Called when the stage changes and with a short status ("Sketch 42/108", "Screen 423 dots", "Colour 64%"). */
+  /** Called when the stage changes and with a short status ("Sketch 42/108", "Screen 423 dots", "Color 64%"). */
   onStage?: (stage: RevealStage, status: string) => void;
 };
 
@@ -637,7 +637,7 @@ export function revealImage(img: HTMLImageElement, options: RevealOptions): Reve
         stage === "resolve"
           ? "Resolving"
           : stage === "colour"
-            ? `Colour ${Math.round(cq * 100)}%`
+            ? `Color ${Math.round(cq * 100)}%`
             : stage === "screen"
               ? `Screen ${Math.min(k, dots.length)} dots`
               : `Sketch ${lines.filter((s) => p >= s.t0).length}/${lines.length}`;

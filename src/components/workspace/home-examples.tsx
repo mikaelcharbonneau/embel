@@ -8,17 +8,17 @@ const examples = [
   {
     file: "kestrel",
     name: "Kestrel Analytics",
-    alt: "Brand board for Kestrel Analytics, a B2B analytics platform: logo, colours and type made with Embel.",
+    alt: "Brand board for Kestrel Analytics, a B2B analytics platform: logo, colors and type made with Embel.",
   },
   {
     file: "orchard-lane",
     name: "Orchard Lane Cider",
-    alt: "Brand board for Orchard Lane Cider, a craft cider maker: logo, colours and type made with Embel.",
+    alt: "Brand board for Orchard Lane Cider, a craft cider maker: logo, colors and type made with Embel.",
   },
   {
     file: "tidewild",
     name: "Tidewild Hot Sauce",
-    alt: "Brand board for Tidewild Hot Sauce, a small-batch fermented hot sauce: logo, colours and type made with Embel.",
+    alt: "Brand board for Tidewild Hot Sauce, a small-batch fermented hot sauce: logo, colors and type made with Embel.",
   },
 ] as const;
 

@@ -7,7 +7,7 @@ import styles from "./logo-reveal.module.css";
 export type LogoReveal = {
   /** Classes for the tile's media frame while it reveals (`e-media--revealing`) or fades in (`e-media--reveal`). */
   className: string | undefined;
-  /** While revealing: the stage the status label names ("Sketch 42/108", "Screen 423 dots", "Colour 64%"). */
+  /** While revealing: the stage the status label names ("Sketch 42/108", "Screen 423 dots", "Color 64%"). */
   status: string | null;
   revealing: boolean;
   /** Seen drawing and not revealed yet: the tile keeps its drawing frame while the picture loads. */
