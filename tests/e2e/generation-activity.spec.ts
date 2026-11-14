@@ -135,8 +135,14 @@ async function fixtures(page: Page) {
     },
   };
 }
-const dialog = (page: Page) => page.getByRole("dialog", { name: "Generation activity", exact: true });
-const trigger = (page: Page) => page.getByRole("button", { name: "Activity", exact: true });
+const dialog = (page: Page) => page.getByRole("dialog", { name: "Activity", exact: true });
+// The account menu's row is a menu item; the stand-alone clock control is a button.
+const trigger = (page: Page) =>
+  page
+    .getByRole("menuitem", { name: "Activity", exact: true })
+    .or(page.getByRole("button", { name: "Activity", exact: true }));
+const nothingYet = "Nothing has run yet";
+const loadFailure = /Your activity couldn’t be (?:loaded|refreshed)/;
 async function openAccountMenu(page: Page) {
   const menu = page.locator(".workspace-account-menu");
   await expect(menu.locator("summary")).toBeVisible();
@@ -202,40 +208,43 @@ test("activity fixture: owned active and recent rows have truthful labels and pr
   await openPage(page);
   await openActivity(page);
   const panel = dialog(page),
-    active = panel.getByRole("region", { name: "Active generations" }),
-    recent = panel.getByRole("region", { name: "Recent generations" });
-  await expect(active.getByRole("link", { name: `${titles.naming} Naming`, exact: true })).toHaveAttribute(
+    active = panel.getByRole("region", { name: "Running and failed" }),
+    recent = panel.getByRole("region", { name: "Done" });
+  await expect(
+    panel.getByText("One thing is running and nothing failed. One result couldn’t be confirmed."),
+  ).toBeVisible();
+  await expect(active.getByRole("link", { name: `${titles.naming} · Names`, exact: true })).toHaveAttribute(
     "href",
     `/brands/account/${uuid(101)}/naming`,
   );
-  await expect(active.getByRole("link", { name: `${titles.review} Competitors`, exact: true })).toHaveAttribute(
+  await expect(active.getByRole("link", { name: `${titles.review} · Competitors`, exact: true })).toHaveAttribute(
     "href",
     `/brands/account/${uuid(102)}?view=strategy`,
   );
-  await expect(recent.getByRole("link", { name: `${titles.completed} Naming`, exact: true })).toHaveAttribute(
+  await expect(recent.getByRole("link", { name: `${titles.completed} · Names`, exact: true })).toHaveAttribute(
     "href",
     `/brands/account/${uuid(103)}/naming`,
   );
-  await expect(recent.getByRole("link", { name: `${titles.partial} Positioning`, exact: true })).toHaveAttribute(
+  await expect(recent.getByRole("link", { name: `${titles.partial} · Positioning`, exact: true })).toHaveAttribute(
     "href",
     `/brands/account/${uuid(104)}?view=strategy`,
   );
+  await expect(active.getByText("Running", { exact: true })).toBeVisible();
   await expect(active.getByText("Not confirmed", { exact: true })).toBeVisible();
   await expect(
     active.getByText("We couldn’t confirm this result. Open the project to continue.", { exact: true }),
   ).toBeVisible();
   await expect(recent.getByText("Partial results", { exact: true })).toBeVisible();
-  await expect(recent.getByText("Done", { exact: true })).toBeVisible();
   await expect(
-    panel.getByRole("progressbar", { name: `Naming progress for ${titles.naming}`, exact: true }),
-  ).toHaveAttribute("value", "37");
-  await expect(panel.getByText(/Open a project to see everything it made/)).toBeVisible();
+    recent.getByRole("listitem").filter({ hasText: titles.completed }).getByText("Done", { exact: true }),
+  ).toBeVisible();
+  await expect(panel.getByText(/Open a project to see everything made for it/)).toBeVisible();
   await expect(panel.getByRole("button")).toHaveCount(1);
   await expect(panel.getByRole("button", { name: "Close", exact: true })).toBeVisible();
 });
 
 for (const [title, operation, href] of [
-  [titles.naming, "Naming", `/brands/account/${uuid(101)}/naming`],
+  [titles.naming, "Names", `/brands/account/${uuid(101)}/naming`],
   [titles.review, "Competitors", `/brands/account/${uuid(102)}?view=strategy`],
 ] as const)
   test(`activity fixture: ${operation} link navigates and closes the panel without a mutation`, async ({ page }) => {
@@ -243,7 +252,7 @@ for (const [title, operation, href] of [
     await openPage(page);
     await openActivity(page);
     await dialog(page)
-      .getByRole("link", { name: `${title} ${operation}`, exact: true })
+      .getByRole("link", { name: `${title} · ${operation}`, exact: true })
       .click();
     await expect(page).toHaveURL(href);
     await expect(dialog(page)).not.toBeVisible();
@@ -255,13 +264,13 @@ test("activity fixture: first-read failure is unavailable until a successful exp
   state.payload = { error: { code: "integration_unavailable", message: "Synthetic private service detail" } };
   await openPage(page);
   await openActivity(page);
-  await expect(dialog(page).getByRole("alert")).toContainText(/Activity couldn’t be (?:loaded|refreshed)/);
-  await expect(dialog(page).getByText("Nothing generated yet.", { exact: true })).toHaveCount(0);
+  await expect(dialog(page).getByRole("alert")).toContainText(loadFailure);
+  await expect(dialog(page).getByText(nothingYet, { exact: true })).toHaveCount(0);
   await expect(page.getByText("Synthetic private service detail", { exact: true })).toHaveCount(0);
   state.status = 200;
   state.payload = emptyActivity();
   await dialog(page).getByRole("button", { name: "Try again", exact: true }).click();
-  await expect(dialog(page).getByText("Nothing generated yet.", { exact: true })).toBeVisible();
+  await expect(dialog(page).getByText(nothingYet, { exact: true })).toBeVisible();
   await expect(dialog(page).getByRole("alert")).toHaveCount(0);
   expect(state.activityRequests).toBe(2);
 });
@@ -280,7 +289,7 @@ test("activity fixture: a failed refresh labels retained rows as the last succes
   state.status = 200;
   state.payload = emptyActivity();
   await dialog(page).getByRole("button", { name: "Try again", exact: true }).click();
-  await expect(dialog(page).getByText("Nothing generated yet.", { exact: true })).toBeVisible();
+  await expect(dialog(page).getByText(nothingYet, { exact: true })).toBeVisible();
   await expect(dialog(page).getByText(titles.naming, { exact: true })).toHaveCount(0);
 });
 
@@ -294,7 +303,7 @@ for (const nextOwner of [otherOwnerId, null])
     await openActivity(page);
     try {
       await expect.poll(() => held.ready).toBe(true);
-      await expect(dialog(page).getByRole("status")).toHaveText("Loading your activity…");
+      await expect(dialog(page).getByRole("status", { name: "Loading your activity", exact: true })).toBeVisible();
       fixture.state.sessionOwner = nextOwner;
       fixture.state.payload = emptyActivity(nextOwner ?? ownerId);
       // Model an actual tab departure/return, not a duplicate focus event in
@@ -309,7 +318,7 @@ for (const nextOwner of [otherOwnerId, null])
         await expect(trigger(page)).toBeVisible();
         await expect(dialog(page)).not.toBeVisible();
         await openActivity(page);
-        await expect(dialog(page).getByText("Nothing generated yet.", { exact: true })).toBeVisible();
+        await expect(dialog(page).getByText(nothingYet, { exact: true })).toBeVisible();
       } else {
         await expect(trigger(page)).toHaveCount(0);
         await expect(page.getByRole("banner").getByLabel("Account menu", { exact: true })).toContainText("Sign in");
@@ -340,7 +349,7 @@ test("activity privacy fixture: malformed nested ownership cannot publish foreig
   state.payload = payload;
   await openPage(page);
   await openActivity(page);
-  await expect(dialog(page).getByRole("alert")).toContainText(/Activity couldn’t be (?:loaded|refreshed)/);
+  await expect(dialog(page).getByRole("alert")).toContainText(loadFailure);
   await expect(dialog(page).getByRole("link")).toHaveCount(0);
   await expect(page.getByText(titles.naming, { exact: true })).toHaveCount(0);
 });
@@ -373,11 +382,11 @@ test("activity fixture: closing a held request cannot overwrite a reopened panel
     await dialog(page).getByRole("button", { name: "Close", exact: true }).click();
     fixture.state.payload = emptyActivity();
     await openActivity(page);
-    await expect(dialog(page).getByText("Nothing generated yet.", { exact: true })).toBeVisible();
+    await expect(dialog(page).getByText(nothingYet, { exact: true })).toBeVisible();
     held.release();
     await expect.poll(() => held.settled).toBe(true);
     await settleRendering(page);
-    await expect(dialog(page).getByText("Nothing generated yet.", { exact: true })).toBeVisible();
+    await expect(dialog(page).getByText(nothingYet, { exact: true })).toBeVisible();
     await expect(page.getByText(titles.naming, { exact: true })).toHaveCount(0);
   } finally {
     held.release();
@@ -460,7 +469,7 @@ for (const initial of [true, false])
     else await page.clock.fastForward(3000);
     await expect.poll(() => held.ready).toBe(true);
     await page.clock.fastForward(15_001);
-    await expect(dialog(page).getByRole("alert")).toContainText(/Activity couldn’t be (?:loaded|refreshed)/);
+    await expect(dialog(page).getByRole("alert")).toContainText(loadFailure);
     if (!initial) await expect(dialog(page).getByText(titles.naming, { exact: true })).toBeVisible();
     await page.screenshot({
       path: test.info().outputPath("activity-timeout-recovery.png"),
@@ -469,7 +478,7 @@ for (const initial of [true, false])
     });
     state.payload = emptyActivity();
     await dialog(page).getByRole("button", { name: "Try again", exact: true }).click();
-    await expect(dialog(page).getByText("Nothing generated yet.", { exact: true })).toBeVisible();
+    await expect(dialog(page).getByText(nothingYet, { exact: true })).toBeVisible();
     held.release();
     await expect.poll(() => held.settled).toBe(true);
     await expect(dialog(page).getByText(titles.naming, { exact: true })).toHaveCount(0);

@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { jobActivityHref, jobOperationLabel } from "@/domain/job-activity";
+import { jobActionLabel, jobActivityHref } from "@/domain/job-activity";
 import { operationSchema } from "@/domain/providers";
 const projectId = "d0000000-0000-4000-8000-000000000001";
 it.each([
@@ -13,7 +13,7 @@ it.each([
   expect(jobActivityHref({ projectId, operation })).toBe(`/brands/account/${projectId}${suffix}`);
 });
 it("labels every supported operation", () => {
-  for (const operation of operationSchema.options) expect(jobOperationLabel(operation).length).toBeGreaterThan(0);
+  for (const operation of operationSchema.options) expect(jobActionLabel(operation).length).toBeGreaterThan(0);
 });
 it.each([
   "strategy.reformulate",

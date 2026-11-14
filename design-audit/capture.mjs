@@ -630,8 +630,12 @@ state("home", "account-menu-open-pro", "audit-pro", async (page) => {
 state("home", "generation-activity-dialog-pro", "audit-pro", async (page) => {
   await open(page, "audit-pro", "/");
   await page.getByLabel("Account menu").click();
-  await page.getByRole("button", { name: "Generation activity" }).click();
-  await page.getByRole("dialog", { name: "Generation activity" }).waitFor({ timeout: 15_000 });
+  await page
+    .getByRole("menuitem", { name: "Activity", exact: true })
+    .or(page.getByRole("button", { name: "Activity", exact: true }))
+    .first()
+    .click();
+  await page.getByRole("dialog", { name: "Activity", exact: true }).waitFor({ timeout: 15_000 });
   await loaded(page);
 });
 state("brand-conversation", "kestrel-change-name-open-pro", "audit-pro", async (page) => {

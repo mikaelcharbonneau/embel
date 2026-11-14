@@ -1,58 +1,76 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useId, useRef, useState } from "react";
+import { Button, IconButton, Spinner } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { Badge, EmptyState, LoadingRegion, Skeleton } from "@/components/ui/feedback";
 import { Icon } from "@/components/ui/icon";
-import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
-import { useEffect, useRef, useState } from "react";
+import { InlineMessage } from "@/components/ui/message";
 import {
-  jobActivityHref,
-  jobOperationLabel,
+  groupJobActivity,
+  jobActivityDetail,
   jobActivitySchema,
+  jobActivitySummary,
+  splitJobActivity,
   type JobActivity,
-  type JobActivityEntry,
+  type JobActivityGroup,
 } from "@/domain/job-activity";
 import { accountRequest, AccountRequestError } from "./account-api";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
-import { BrowserLocalDate } from "./browser-local-date";
+import styles from "./generation-activity.module.css";
 
-const statusLabels: Record<JobActivityEntry["state"], string> = {
-  queued: "Waiting to start",
-  running: "Working",
-  partial: "Partial results",
-  cancel_requested: "Stopping",
-  cancelled: "Stopped",
-  succeeded: "Done",
-  failed: "Failed",
-  needs_reconciliation: "Not confirmed",
-};
-
+/**
+ * The clock button that opens Activity. `labeled` draws it as a menu row with its name. The account menu may
+ * render ActivityDialog itself instead, so the dialog never lives inside a hidden menu.
+ */
 export function GenerationActivity({ labeled = false }: { labeled?: boolean }) {
   const { session } = useAccountSession();
+  const [open, setOpen] = useState(false);
   if (session.status !== "ready") return null;
   return (
-    <OwnedGenerationActivity key={`${session.userId}:${session.generation}`} account={session} labeled={labeled} />
+    <>
+      {labeled ? (
+        <button type="button" className="e-menu__item" aria-haspopup="dialog" onClick={() => setOpen(true)}>
+          <Icon name="clock" size="sm" />
+          Activity
+        </button>
+      ) : (
+        <IconButton icon="clock" label="Activity" aria-haspopup="dialog" onClick={() => setOpen(true)} />
+      )}
+      {open && <ActivityDialog onClose={() => setOpen(false)} />}
+    </>
   );
 }
 
-function OwnedGenerationActivity({ account, labeled }: { account: VerifiedAccount; labeled: boolean }) {
+const sessionKey = (session: ReturnType<typeof useAccountSession>["session"]) =>
+  session.status === "ready" ? `${session.userId}:${session.generation}` : null;
+
+/**
+ * The Activity dialog. Render it only while it is open; it loads and polls only while mounted. It belongs to the
+ * account that was verified when it opened: if that account signs out or changes, it closes itself.
+ */
+export function ActivityDialog({ onClose }: { onClose: () => void }) {
+  const { session } = useAccountSession();
+  const [openedFor] = useState(() => sessionKey(session));
+  const current = openedFor !== null && sessionKey(session) === openedFor;
+  const close = useRef(onClose);
+  useEffect(() => {
+    close.current = onClose;
+  });
+  useEffect(() => {
+    if (!current) close.current();
+  }, [current]);
+  if (!current || session.status !== "ready") return null;
+  return <OwnedActivityDialog account={session} onClose={onClose} />;
+}
+
+function OwnedActivityDialog({ account, onClose }: { account: VerifiedAccount; onClose: () => void }) {
   const { isCurrent, expire } = useAccountSession();
-  const dialog = useRef<HTMLDialogElement>(null);
-  const [open, setOpen] = useState(false);
-  const [snapshot, setSnapshot] = useState<JobActivity | null>(null);
+  const [snapshot, setSnapshot] = useState<{ activity: JobActivity; readAt: number } | null>(null);
   const [error, setError] = useState(false);
   const [retry, setRetry] = useState(0);
-  function showActivity() {
-    // Open synchronously so a queued close event from an earlier dismissal
-    // cannot overwrite this new intent before the state effect runs.
-    if (!dialog.current?.open) dialog.current?.showModal();
-    setOpen(true);
-  }
   useEffect(() => {
-    if (open && !dialog.current?.open) dialog.current?.showModal();
-    if (!open && dialog.current?.open) dialog.current.close();
-  }, [open]);
-  useEffect(() => {
-    if (!open) return;
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     async function refresh() {
@@ -68,7 +86,9 @@ function OwnedGenerationActivity({ account, labeled }: { account: VerifiedAccoun
           expire(account);
           return;
         }
-        setSnapshot(reply);
+        // Times read relative to this check; an identical reply keeps the current render.
+        const readAt = Date.now();
+        setSnapshot((previous) => (previous?.activity === reply ? previous : { activity: reply, readAt }));
         setError(false);
         active = reply.active.length > 0;
       } catch (cause) {
@@ -90,117 +110,145 @@ function OwnedGenerationActivity({ account, labeled }: { account: VerifiedAccoun
       controller.abort();
       clearTimeout(timer);
     };
-  }, [account, expire, isCurrent, open, retry]);
-  function list(rows: JobActivityEntry[]) {
-    // The whole row opens its project at the step the request belongs to.
-    return (
-      <ul className="generation-activity-list">
-        {rows.map((job) => (
-          <li key={job.id}>
-            <Link className="generation-activity-row" href={jobActivityHref(job)} onClick={() => setOpen(false)}>
-              <strong>{job.projectTitle}</strong>
-              <span>{jobOperationLabel(job.operation)}</span>
-            </Link>
-            <div>
-              <span>{statusLabels[job.state]}</span>
-              <BrowserLocalDate dateTime={job.createdAt} />
+  }, [account, expire, isCurrent, retry]);
+
+  const groups = snapshot ? groupJobActivity(snapshot.activity) : [];
+  const { attention, finished } = splitJobActivity(groups);
+  const tryAgain = (
+    <Button size="sm" icon="rotate-ccw" onClick={() => setRetry((value) => value + 1)}>
+      Try again
+    </Button>
+  );
+  return (
+    <Dialog title="Activity" onClose={onClose}>
+      {error && (
+        <InlineMessage tone="danger" actions={tryAgain}>
+          {snapshot
+            ? "Your activity couldn’t be refreshed. You’re seeing the last update."
+            : "Your activity couldn’t be loaded. Check your connection, then try again."}
+        </InlineMessage>
+      )}
+      {!snapshot && !error && <ActivitySkeleton />}
+      {snapshot && !groups.length && (
+        <EmptyState
+          icon="clock"
+          headingLevel={3}
+          title="Nothing has run yet"
+          text="When Embel is making names, logos or images for you, you can follow them here."
+        />
+      )}
+      {snapshot && groups.length > 0 && (
+        <>
+          <p>{jobActivitySummary(groups)}</p>
+          <ActivitySection title="Running and failed" groups={attention} now={snapshot.readAt} onClose={onClose} />
+          <ActivitySection title="Done" groups={finished} now={snapshot.readAt} onClose={onClose} />
+          <p className={styles.note}>This is your latest activity. Open a project to see everything made for it.</p>
+        </>
+      )}
+    </Dialog>
+  );
+}
+
+function ActivitySection({
+  title,
+  groups,
+  now,
+  onClose,
+}: {
+  title: string;
+  groups: JobActivityGroup[];
+  now: number;
+  onClose: () => void;
+}) {
+  const id = useId();
+  if (!groups.length) return null;
+  return (
+    <section className={styles.section} aria-labelledby={id}>
+      <h3 className={styles.heading} id={id}>
+        {title}
+      </h3>
+      <ul>
+        {groups.map((group) => (
+          <li key={group.id} className={styles.row}>
+            <div className={styles.main}>
+              {/* The title opens the project at the step this action belongs to. */}
+              <Link className={styles.title} href={group.href} onClick={onClose}>
+                <span>{group.projectTitle}</span> · {group.label}
+                <Icon name="arrow-right" size="sm" />
+              </Link>
+              <p className={styles.detail}>{jobActivityDetail(group, now)}</p>
             </div>
-            {job.state === "running" && (
-              <progress
-                value={job.progress}
-                max={100}
-                aria-label={`${jobOperationLabel(job.operation)} progress for ${job.projectTitle}`}
-              />
-            )}
-            {job.state === "needs_reconciliation" && (
-              <p>
-                We couldn’t confirm this result.{" "}
-                <Link
-                  className="generation-activity-inline-link"
-                  href={jobActivityHref(job)}
-                  onClick={() => setOpen(false)}
-                >
-                  Open the project to continue.
-                </Link>
-              </p>
-            )}
+            <GroupStatus status={group.status} />
           </li>
         ))}
       </ul>
-    );
+    </section>
+  );
+}
+
+/** Status is always an icon and a word. */
+function GroupStatus({ status }: { status: JobActivityGroup["status"] }) {
+  switch (status) {
+    case "failed":
+      return (
+        <Badge tone="danger" icon="circle-alert">
+          Failed
+        </Badge>
+      );
+    case "unconfirmed":
+      return (
+        <Badge tone="warning" icon="triangle-alert">
+          Not confirmed
+        </Badge>
+      );
+    case "running":
+    case "stopping":
+      return (
+        <span className={styles.status}>
+          <Spinner />
+          {status === "running" ? "Running" : "Stopping"}
+        </span>
+      );
+    case "partial":
+      return (
+        <span className={styles.status}>
+          <Icon name="triangle-alert" size="sm" />
+          Partial results
+        </span>
+      );
+    case "stopped":
+      return (
+        <span className={styles.status}>
+          <Icon name="square" size="sm" />
+          Stopped
+        </span>
+      );
+    case "done":
+      return (
+        <span className={styles.status}>
+          <Icon name="check" size="sm" />
+          Done
+        </span>
+      );
   }
+}
+
+/** Skeleton rows in the shape of the list, so nothing moves when it arrives. */
+function ActivitySkeleton() {
   return (
-    <>
-      <button
-        className="icon-button subtle generation-activity-trigger"
-        type="button"
-        aria-label={labeled ? undefined : "Activity"}
-        title={labeled ? undefined : "Activity"}
-        aria-haspopup="dialog"
-        onClick={showActivity}
-      >
-        <Icon name="clock" size={18} />
-        {labeled && <span>Generation activity</span>}
-      </button>
-      <dialog
-        className="generation-activity-dialog"
-        ref={dialog}
-        aria-labelledby="generation-activity-title"
-        onCancel={() => setOpen(false)}
-        onClose={(event) => {
-          if (!event.currentTarget.open) setOpen(false);
-        }}
-        onClick={(event) => {
-          if (isDialogBackdropClick(event)) setOpen(false);
-        }}
-      >
-        <header>
-          <h2 id="generation-activity-title">Generation activity</h2>
-          <button
-            className="icon-button subtle generation-activity-close"
-            type="button"
-            aria-label="Close"
-            title="Close"
-            onClick={() => setOpen(false)}
-          >
-            <Icon name="close" size={18} />
-          </button>
-        </header>
-        <p>Select a request to open its project. Closing this panel doesn’t stop work in progress.</p>
-        {error && (
-          <div role="alert" className="generation-activity-error">
-            <p>
-              {snapshot
-                ? "Activity couldn’t be refreshed. You’re seeing the last update."
-                : "Activity couldn’t be loaded."}
-            </p>
-            <button className="button secondary small" type="button" onClick={() => setRetry((value) => value + 1)}>
-              Try again
-            </button>
-          </div>
-        )}
-        {!snapshot && !error && <p role="status">Loading your activity…</p>}
-        {snapshot && (
-          <>
-            {snapshot.active.length > 0 && (
-              <section aria-label="Active generations">
-                <h3>In progress</h3>
-                {list(snapshot.active)}
-              </section>
-            )}
-            {snapshot.recent.length > 0 && (
-              <section aria-label="Recent generations">
-                <h3>Recent</h3>
-                {list(snapshot.recent)}
-              </section>
-            )}
-            {!snapshot.active.length && !snapshot.recent.length && <p>Nothing generated yet.</p>}
-            <p className="generation-activity-note">
-              Shows your most recent requests. Open a project to see everything it made.
-            </p>
-          </>
-        )}
-      </dialog>
-    </>
+    <LoadingRegion label="Loading your activity">
+      <Skeleton width={60} />
+      <ul>
+        {[0, 1, 2, 3].map((row) => (
+          <li key={row} className={styles.row}>
+            <span className={styles.skeletonMain}>
+              <Skeleton width={60} />
+              <Skeleton width={25} />
+            </span>
+            <Skeleton className={styles.skeletonStatus} />
+          </li>
+        ))}
+      </ul>
+    </LoadingRegion>
   );
 }
