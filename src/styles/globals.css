@@ -17,8 +17,6 @@ h1, h2, h3, p { margin: 0; }
 h1 { font-size: var(--font-size-7); line-height: 1.2; font-weight: 500; letter-spacing: -.7px; }
 h2 { font-size: var(--font-size-6); line-height: 1.3; font-weight: 500; letter-spacing: -.4px; }
 h3 { font-size: 15px; line-height: 1.4; font-weight: 500; letter-spacing: -.2px; }
-:focus-visible { outline: 2px solid var(--color-text); outline-offset: 4px; }
-input:focus-visible, textarea:focus-visible { outline-offset: 2px; }
 [tabindex="-1"]:focus { outline: none; }
 ::selection { color: var(--color-text); background: var(--color-selection); }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
@@ -72,7 +70,7 @@ input:focus-visible, textarea:focus-visible { outline-offset: 2px; }
 .empty-panel p { max-width: 470px; font-size: var(--font-size-2); color: var(--color-text-muted); }
 .empty-panel .button { margin-top: var(--space-2); }
 .field-label { display: block; font-size: var(--font-size-2); font-weight: 500; }
-.field-label input, .field-label textarea { display: block; width: 100%; padding: var(--space-3); background: var(--color-bg-paper); border: 1px solid var(--color-border); border-radius: var(--radius-control); font-size: var(--font-size-3); font-weight: 400; line-height: 1.55; margin-top: 9px; }
+.field-label input, .field-label textarea { display: block; width: 100%; padding: var(--space-3); background: var(--color-bg-paper); border: 1px solid var(--color-border-control); border-radius: var(--radius-control); font-size: var(--font-size-3); font-weight: 400; line-height: 1.55; margin-top: 9px; }
 .field-label textarea { min-height: 106px; }
 .field-label input::placeholder, .field-label textarea::placeholder { color: var(--color-text-placeholder); opacity: 1; }
 .field-label .short-textarea { min-height: 83px; }

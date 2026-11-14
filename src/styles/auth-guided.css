@@ -41,7 +41,7 @@
   height: 44px;
   min-height: 44px;
   padding: 10px var(--space-3);
-  border-color: var(--color-border);
+  border-color: var(--color-border-control);
   border-radius: var(--radius-control);
   line-height: 22px;
 }

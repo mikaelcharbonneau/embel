@@ -32,7 +32,7 @@
   padding: 11px var(--space-3);
   min-height: 44px;
   color: var(--color-text);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
   background: var(--color-bg-paper);
   font-size: var(--font-size-3);
