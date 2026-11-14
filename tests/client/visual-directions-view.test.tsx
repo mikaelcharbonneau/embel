@@ -292,6 +292,25 @@ describe("visual direction comparison", () => {
   });
 });
 
+describe("with the Workspace reply box", () => {
+  it("leaves progress to the chat and Try again to the chat after a set that could not be drawn", async () => {
+    await render(
+      props({
+        reply: "external",
+        cards: [card("A"), null, null],
+        generation: { status: "running", completed: 1, onGenerate: vi.fn(), onCheck: vi.fn(), onStop: vi.fn() },
+      }),
+    );
+    expect(host.textContent).not.toContain("Creating your directions.");
+    expect(button("Check progress")).toBeUndefined();
+    expect(button("Stop generation")).toBeUndefined();
+    expect(button("More directions")?.disabled).toBe(true);
+    await render(props({ reply: "external", generation: { status: "failed", completed: 0, onGenerate: vi.fn() } }));
+    expect(host.textContent).toContain("No directions yet");
+    expect(button("More directions")).toBeUndefined();
+  });
+});
+
 describe("a finished brand", () => {
   it("shows the chosen board large, marked as chosen, beside the chosen logo and its name", async () => {
     await act(async () =>

@@ -164,7 +164,8 @@ export function VisualDirectionsView({
             </p>
           </div>
           <div className={styles.actions}>
-            {progress && !finished && generation.onCheck && (
+            {/* With the reply box, progress is told in the chat; Check progress stays for an uncertain request. */}
+            {progress && !finished && generation.onCheck && (!external || generation.status === "uncertain") && (
               <Button variant="quiet" disabled={generation.busy} onClick={generation.onCheck}>
                 Check progress
               </Button>
@@ -174,33 +175,39 @@ export function VisualDirectionsView({
                 {generation.status === "stopping" ? "Stop requested" : "Stop generation"}
               </Button>
             )}
-            <Button
-              variant={comparing || finalAction || external ? "secondary" : "primary"}
-              disabled={!canGenerate}
-              aria-describedby={generation.disabledReason ? reasonId : undefined}
-              onClick={() => {
-                if (canGenerate) generation.onGenerate?.();
-              }}
-            >
-              {unresolved
-                ? generation.status === "stopping"
-                  ? "Stopping…"
-                  : generation.status === "uncertain"
-                    ? "Checking request…"
-                    : "Creating directions…"
-                : generation.busy
-                  ? "Please wait…"
-                  : generation.status === "idle"
-                    ? "Create three directions"
-                    : "More directions"}
-            </Button>
+            {/* After a set that could not be drawn, Try again in the chat is the one way to start again. */}
+            {!(external && !comparing && generation.status === "failed") && (
+              <Button
+                variant={comparing || finalAction || external ? "secondary" : "primary"}
+                disabled={!canGenerate}
+                aria-describedby={generation.disabledReason ? reasonId : undefined}
+                onClick={() => {
+                  if (canGenerate) generation.onGenerate?.();
+                }}
+              >
+                {unresolved && !external
+                  ? generation.status === "stopping"
+                    ? "Stopping…"
+                    : generation.status === "uncertain"
+                      ? "Checking request…"
+                      : "Creating directions…"
+                  : generation.busy
+                    ? "Please wait…"
+                    : generation.status === "idle"
+                      ? "Create three directions"
+                      : "More directions"}
+              </Button>
+            )}
           </div>
         </header>
-        <div className={styles.messages} role="status" aria-live="polite">
-          {selectionStatus && <span className="e-muted">{selectionStatus}</span>}
-          {progress && !finished && <span className="e-muted">{progress}</span>}
-          {generation.usageLabel && <span className="e-muted">{generation.usageLabel}</span>}
-        </div>
+        {/* With the reply box the chat says what is happening and the heading what is chosen. */}
+        {!external && (
+          <div className={styles.messages} role="status" aria-live="polite">
+            {selectionStatus && <span className="e-muted">{selectionStatus}</span>}
+            {progress && !finished && <span className="e-muted">{progress}</span>}
+            {generation.usageLabel && <span className="e-muted">{generation.usageLabel}</span>}
+          </div>
+        )}
         {generation.disabledReason && (
           <p id={reasonId} className="e-muted">
             {generation.disabledReason}
