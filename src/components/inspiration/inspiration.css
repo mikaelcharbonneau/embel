@@ -650,13 +650,11 @@ button.inspiration-continue {
   border-radius: var(--radius-panel);
   background: var(--color-bg-paper);
   cursor: pointer;
-  transition:
-    border-color 120ms,
-    box-shadow 120ms;
+  /* Hover changes the border only: an animated shadow repaints the whole card every frame (D-083). */
+  transition: border-color var(--duration-fast) ease;
 }
 .inspiration-brand:hover {
   border-color: var(--color-border-strong);
-  box-shadow: 0 10px 30px -18px rgb(25 25 25 / 35%);
 }
 .inspiration-brand-header {
   box-sizing: border-box;
