@@ -18,6 +18,9 @@ import { createLogoDraftMemory, LogoDraftMemoryProvider } from "@/components/ide
 
 import { createLogoInputSession } from "@/features/logo-inputs/client/session";
 import { createHomeInputSession } from "@/features/home-inputs/home-input-session";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/feedback";
+import { InlineMessage } from "@/components/ui/message";
 
 type Session =
   | { status: "checking" | "signed_out" | "unavailable" | "error"; generation: number }
@@ -523,21 +526,33 @@ export function AccountStatus({
             : invite
               ? signedOut
               : "Your account session could not be verified. Check your connection and try again.";
+  if (invite)
+    return (
+      <EmptyState
+        icon="lock"
+        title={signedOut.replace(/\.$/u, "")}
+        text="Your brands, logos and files are saved in your account."
+        action={<SignedOutActions placement="page" />}
+      />
+    );
   return (
-    <div className={invite ? "account-notice account-invite" : "account-notice"} role="status">
+    <InlineMessage
+      tone={signOutError || (session.status !== "checking" && !signingIn && !signingOut) ? "warning" : "neutral"}
+      actions={
+        canRetry ? (
+          <Button size="sm" onClick={checkAccount}>
+            Check account
+          </Button>
+        ) : undefined
+      }
+    >
       <p>{message}</p>
-      {invite && <SignedOutActions placement="page" />}
-      {canRetry && (
-        <button type="button" className="button secondary small" onClick={checkAccount}>
-          Check account
-        </button>
-      )}
       {retainedEdits && (
         <p>
           Unsaved account edits are held in this tab. Check your account after restoring the same session to recover
           them.
         </p>
       )}
-    </div>
+    </InlineMessage>
   );
 }

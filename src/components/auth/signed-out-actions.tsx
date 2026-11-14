@@ -12,16 +12,16 @@ export function SignedOutActions({ placement }: { placement: "nav" | "page" }) {
   };
   const nav = placement === "nav";
   return (
-    <div className={nav ? "app-nav" : "signed-out-actions"}>
+    <div className={nav ? "app-nav" : "e-cluster"}>
       <Link
-        className={nav ? "e-nav__item e-nav__item--keep-label" : "button primary"}
+        className={nav ? "e-nav__item e-nav__item--keep-label" : "e-button e-button--primary"}
         href="/sign-in"
         onClick={keepPrompt}
       >
         {nav ? <span className="e-nav__label">Sign in</span> : "Sign in"}
       </Link>
       <Link
-        className={nav ? "e-button e-button--primary e-button--sm e-nav__extra" : "button secondary"}
+        className={nav ? "e-button e-button--primary e-button--sm e-nav__extra" : "e-button e-button--secondary"}
         href="/sign-up"
         onClick={keepPrompt}
       >

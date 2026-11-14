@@ -22,8 +22,10 @@ import {
 } from "@/domain/project-handoff";
 import { AccountRequestError } from "./account-api";
 import { boundedAccountRequest } from "./bounded-account-request";
-import { AccountStatus, useAccountSession, type VerifiedAccount } from "./account-session";
-import { ProjectOpening } from "./project-page-state";
+import { useAccountSession, type VerifiedAccount } from "./account-session";
+import { ProjectAccountState, ProjectOpening } from "./project-page-state";
+import { Button } from "@/components/ui/button";
+import { InlineMessage } from "@/components/ui/message";
 import { accountDraftChanged, reconcileAccountWorkspace } from "./account-draft-memory";
 import { useProjectNextStep } from "./use-project-next-step";
 import { ProjectProgressContext, type ProjectProgress } from "./project-progress";
@@ -95,9 +97,12 @@ export function AccountProjectWorkspaceShell({ projectId, children }: { projectI
               <ProjectOpening />
             ) : (
               <>
-                <h1 className="e-sr">Your brand</h1>
-                <AccountStatus signedOut="Sign in to open this brand." />
-                <Link href="/brands">Back to Projects</Link>
+                <ProjectAccountState />
+                <p className="e-container">
+                  <Link className="e-link e-link--standalone" href="/brands">
+                    Back to Projects
+                  </Link>
+                </p>
               </>
             )}
           </div>
@@ -166,6 +171,8 @@ function OwnedProjectShell({
       .catch((error) => {
         if (!isCurrent(account) || controller.signal.aborted) return;
         if (error instanceof AccountRequestError && error.status === 401) expire(account);
+        // A brand that doesn't exist shows its own page error below; a notice strip above it would say it twice (D-030).
+        else if (error instanceof AccountRequestError && error.status === 404) setError(null);
         else setError("The saved project could not be verified. Your existing work is kept.");
       });
     return () => controller.abort();
@@ -215,12 +222,16 @@ function OwnedProjectShell({
   const notices = (
     <>
       {error && (
-        <div className="project-read-notice" role="alert">
+        <InlineMessage
+          tone="danger"
+          actions={
+            <Button size="sm" onClick={() => setAttempt((value) => value + 1)}>
+              Check saved project
+            </Button>
+          }
+        >
           {error}
-          <button type="button" className="text-link" onClick={() => setAttempt((value) => value + 1)}>
-            Check saved project
-          </button>
-        </div>
+        </InlineMessage>
       )}
       {current?.conflict && (
         <div className="project-read-notice" role="alert">

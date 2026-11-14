@@ -51,7 +51,7 @@ test("all public workspaces fit the viewport and retain visible page headings", 
             saveDraft: rect(".home-draft-actions button"),
             status: rect(".conversation-start-notice .field-hint"),
             trademarkInput: rect(".tm-editor input"),
-            accountNotice: rect(".account-notice"),
+            accountNotice: rect(":is(.e-message, .e-empty)"),
             signInCard: rect(".auth-card"),
           };
         }),
