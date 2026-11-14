@@ -1,23 +1,34 @@
 "use client";
 
 import Link from "next/link";
-import { type ReactNode, useSyncExternalStore } from "react";
-import { Icon } from "@/components/ui/icon";
+import { type ReactNode, useId, useSyncExternalStore } from "react";
+import { MediaFrame } from "@/components/ui/media-frame";
+import { Skeleton } from "@/components/ui/feedback";
+import { formatAccountDate } from "@/domain/account-profile";
+import { JOURNEY, projectJourneyMark } from "@/domain/journey";
+import { projectStrategyHref } from "@/domain/project-handoff";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { needsStrategyRecovery } from "./account-draft-memory";
-import { projectStrategyHref } from "@/domain/project-handoff";
+import { useAccountProfile } from "./account-profile-provider";
+import { formatBrowserDate } from "./browser-local-date";
 import type { LifecycleProject } from "./project-deletion-client";
 import { useProjectCardPreview } from "./use-project-card-preview";
 import styles from "./project-card.module.css";
 
-/** "Today", "Yesterday" or "Oct 31" (with the year when it differs). */
-export function shortDate(iso: string, now = new Date()) {
+/** "just now", "40 minutes ago", "3 hours ago", "yesterday", "4 days ago", then "Oct 31" (with the year when it
+ * differs). Null for a date that cannot be read. */
+export function relativeTime(iso: string, now = new Date()) {
   const date = new Date(iso);
-  if (!Number.isFinite(date.getTime())) return "Date unavailable";
+  if (!Number.isFinite(date.getTime())) return null;
+  const minutes = Math.max(0, Math.floor((now.getTime() - date.getTime()) / 60_000));
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
   const day = (value: Date) => new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
   const days = Math.round((day(now) - day(date)) / 86_400_000);
-  if (days === 0) return "Today";
-  if (days === 1) return "Yesterday";
+  if (days <= 1) return "yesterday";
+  if (days < 7) return `${days} days ago`;
   return date.toLocaleDateString("en", {
     month: "short",
     day: "numeric",
@@ -25,19 +36,51 @@ export function shortDate(iso: string, now = new Date()) {
   });
 }
 
-/** Neutral blocks with no words, used while a card or a whole list loads. */
+// One shared clock for every card, so relative times stay current without a timer per card.
+const minuteListeners = new Set<() => void>();
+let minuteTimer: ReturnType<typeof setInterval> | null = null;
+function subscribeMinute(listener: () => void) {
+  minuteListeners.add(listener);
+  minuteTimer ??= setInterval(() => minuteListeners.forEach((notify) => notify()), 30_000);
+  return () => {
+    minuteListeners.delete(listener);
+    if (!minuteListeners.size && minuteTimer) {
+      clearInterval(minuteTimer);
+      minuteTimer = null;
+    }
+  };
+}
+const currentMinute = () => Math.floor(Date.now() / 60_000);
+const noMinute = () => null;
+
+/** "Created 40 minutes ago", with the formatted date (in the account's date preferences) as its tooltip. */
+function RelativeDate({ prefix, dateTime }: { prefix: string; dateTime: string }) {
+  const minute = useSyncExternalStore(subscribeMinute, currentMinute, noMinute);
+  const preferences = useAccountProfile()?.workspace?.saved.values;
+  const valid = Number.isFinite(Date.parse(dateTime));
+  if (!valid) return <span className="e-card__meta">Date unavailable</span>;
+  const relative = minute === null ? null : relativeTime(dateTime, new Date(minute * 60_000));
+  const full = preferences ? formatAccountDate(dateTime, preferences) : formatBrowserDate(dateTime);
+  return (
+    <time className="e-card__meta" dateTime={dateTime} title={full}>
+      {prefix} {relative ?? full}
+    </time>
+  );
+}
+
+/** A placeholder in the card's exact shape, used while a card or a whole list loads. */
 function SkeletonContent() {
   return (
-    <div className={styles.skeleton} aria-hidden="true">
-      <div className={`${styles.preview} ${styles.block}`} />
-      <div className={styles.details}>
-        <div className={styles.row}>
-          <span className={`${styles.block} ${styles.lineTitle}`} />
-          <span className={`${styles.block} ${styles.lineDate}`} />
-        </div>
-        <span className={`${styles.block} ${styles.lineStep}`} />
+    <>
+      <div className="e-card__media" aria-hidden="true">
+        <Skeleton shape="block" className={styles.fill} />
       </div>
-    </div>
+      <div className="e-card__body" aria-hidden="true">
+        <Skeleton shape="title" width={60} />
+        <Skeleton shape="line" width={80} />
+        <Skeleton shape="line" width={25} />
+      </div>
+    </>
   );
 }
 
@@ -46,7 +89,7 @@ export function ProjectCardSkeletons({ count }: { count: number }) {
   return (
     <>
       {Array.from({ length: count }, (_, index) => (
-        <div key={index} className={`${styles.card} project-card-skeleton`}>
+        <div key={index} className="e-card project-card-skeleton">
           <SkeletonContent />
         </div>
       ))}
@@ -54,30 +97,65 @@ export function ProjectCardSkeletons({ count }: { count: number }) {
   );
 }
 
-function initial(title: string) {
-  return Array.from(title.trim())[0]?.toLocaleUpperCase() ?? "";
+/** The four steps of the brand at card size, with their sentence beside them. */
+function JourneyProgress({
+  id,
+  projectId,
+  href,
+  sentence,
+}: {
+  id: string;
+  projectId: string;
+  href: string | null;
+  sentence: string;
+}) {
+  const mark = href ? projectJourneyMark(projectId, href) : null;
+  const step = mark?.current ? JOURNEY.findIndex((item) => item.id === mark.current) : -1;
+  return (
+    <div className={styles.progress}>
+      {mark && (
+        <span
+          className="e-journey"
+          role="img"
+          aria-label={
+            step < 0
+              ? `All ${JOURNEY.length} steps complete`
+              : `Step ${step + 1} of ${JOURNEY.length}: ${JOURNEY[step]!.label}`
+          }
+        >
+          {mark.states.map((state, index) => (
+            <span key={JOURNEY[index]!.id} className="e-journey__step" data-state={state} />
+          ))}
+        </span>
+      )}
+      <span id={id} className={`e-card__next ${styles.sentence}`}>
+        {sentence}
+      </span>
+    </div>
+  );
 }
 
-/** Home and Projects share one card: the saved logo or a neutral preview, the
- * project's name and date, then its next step. `actions` may use the shown name. */
+/** Home and Projects share one card: the chosen logo (or the name set in type) on top, then the name, the options
+ * menu, the journey mark with the next step, and when the project was created. The whole card is one link, named by
+ * the project's name and described by its step sentence, that opens the project at its next step. `actions` may use
+ * the shown name. */
 export function ProjectCard({
   project,
   account,
   headingLevel = 2,
-  date,
   actions,
   deletionStatus,
 }: {
   project: LifecycleProject;
   account: VerifiedAccount;
   headingLevel?: 2 | 3;
-  date: string;
   actions: ReactNode | ((title: string) => ReactNode);
   deletionStatus?: ReactNode;
 }) {
   const deleted = project.deletion_state !== "active";
   const owned = project.owner_id === account.userId;
   const { drafts } = useAccountSession();
+  const sentenceId = useId();
   const recovering = useSyncExternalStore(
     drafts.subscribe,
     () => {
@@ -96,11 +174,17 @@ export function ProjectCard({
     true,
   );
   if (!current || !owned) return null;
-  const className = `${styles.card} ${headingLevel === 3 ? "home-brand-card" : "project-card"}${deleted ? " project-card--deleted" : ""}`;
-  // Show neutral blocks, not a placeholder name, until the saved project is read.
+  const hook = headingLevel === 3 ? "home-brand-card" : "project-card";
+  // Show the card's shape, not a placeholder name, until the saved project is read.
   if (reading && !preview)
     return (
-      <article ref={target} className={className} data-storage="account" data-project-id={project.id} aria-busy="true">
+      <article
+        ref={target}
+        className={`e-card ${hook}`}
+        data-storage="account"
+        data-project-id={project.id}
+        aria-busy="true"
+      >
         <SkeletonContent />
       </article>
     );
@@ -111,19 +195,17 @@ export function ProjectCard({
   const action = recovering
     ? { label: "Resume Strategy edits", href: projectStrategyHref(project.id) }
     : (preview?.action ?? { label: "Open project", href: `/brands/account/${project.id}` });
-  const label = deleted
-    ? null
-    : preview?.status === "unavailable"
-      ? "Preview unavailable"
-      : preview?.status === "ready"
-        ? "No logo yet"
-        : null;
+  // Only a verified next step draws the journey mark; the generic fallback says nothing about progress.
+  const progressHref = preview?.action?.href ?? null;
+  const ready = !recovering && progressHref !== null && projectJourneyMark(project.id, progressHref)?.current === null;
   const Heading = headingLevel === 3 ? "h3" : "h2";
   const menu = typeof actions === "function" ? actions(title) : actions;
-  const thumbnail = artworkPending ? (
-    <div className={`${styles.preview} ${styles.block}`} aria-hidden="true" />
+  const picture = artworkPending ? (
+    <div className="e-card__media" aria-hidden="true">
+      <Skeleton shape="block" className={styles.fill} />
+    </div>
   ) : preview?.url ? (
-    <div className={styles.preview} data-project-preview="selected-logo">
+    <div className={`e-card__media ${styles.logo}`} data-project-preview="selected-logo">
       {/* eslint-disable-next-line @next/next/no-img-element -- owner/hash-verified private object URL; no optimizer. */}
       <img
         src={preview.url}
@@ -131,43 +213,35 @@ export function ProjectCard({
         onError={() => rejectImage(preview.url!)}
       />
     </div>
-  ) : (
-    <div className={`${styles.preview} ${styles.placeholder}`} data-project-preview="placeholder">
-      {preview?.idea ? (
-        <p className={styles.idea}>{preview.idea}</p>
-      ) : (
-        <span className={styles.initial} aria-hidden="true">
-          {initial(title)}
-        </span>
-      )}
-      {label && <span className={styles.badge}>{label}</span>}
+  ) : preview?.status === "unavailable" ? (
+    <div className="e-card__media" data-project-preview="unavailable">
+      <MediaFrame state="failed" failedText="Preview unavailable" className={styles.fill} />
     </div>
-  );
-  const heading = (
-    <div className={styles.row}>
-      <Heading className={styles.title} title={title}>
+  ) : (
+    <div className="e-card__media" data-project-preview="placeholder">
+      <span className={styles.name} aria-hidden="true">
         {title}
-      </Heading>
-      {!deleted && (
-        <span className={styles.date} title={project.created_at}>
-          {date}
-        </span>
-      )}
+      </span>
     </div>
   );
 
   if (deleted)
     return (
-      <article ref={target} className={className} data-storage="account" data-project-id={project.id}>
-        <div className={styles.content}>
-          {thumbnail}
-          <div className={styles.details}>
-            {heading}
-            {deletionStatus}
-            <div className={`${styles.deletedFooter} project-footer`}>
-              <span title={project.deletion_requested_at ?? project.deleted_at ?? project.created_at}>{date}</span>
-              {menu}
-            </div>
+      <article
+        ref={target}
+        className={`e-card ${hook} project-card--deleted`}
+        data-storage="account"
+        data-project-id={project.id}
+      >
+        {picture}
+        <div className="e-card__body">
+          <Heading className="e-card__title e-card__title--two-line" title={title}>
+            {title}
+          </Heading>
+          {deletionStatus}
+          <div className={`${styles.footer} project-footer`}>
+            <RelativeDate prefix="Deleted" dateTime={project.deletion_requested_at ?? project.deleted_at ?? ""} />
+            {menu}
           </div>
         </div>
       </article>
@@ -175,26 +249,33 @@ export function ProjectCard({
   return (
     <article
       ref={target}
-      className={className}
+      className={`e-card e-card--interactive ${styles.card} ${hook}`}
       data-storage="account"
       data-project-id={project.id}
       aria-busy={artworkPending || stepPending || undefined}
     >
-      <Link className={styles.link} href={action.href} aria-label={`${action.label} · ${title}`}>
-        {thumbnail}
-        <div className={styles.details}>
-          {heading}
-          {stepPending ? (
-            <span className={`${styles.block} ${styles.lineStep}`} aria-hidden="true" />
-          ) : (
-            <span className={styles.next}>
-              {action.label}
-              <Icon name="arrow" size={14} />
-            </span>
-          )}
+      {picture}
+      <div className="e-card__body">
+        <div className={styles.row}>
+          <Heading className="e-card__title e-card__title--two-line" title={title}>
+            <Link className="e-card__link" href={action.href} aria-describedby={stepPending ? undefined : sentenceId}>
+              {title}
+            </Link>
+          </Heading>
+          {menu}
         </div>
-      </Link>
-      {menu}
+        {stepPending ? (
+          <Skeleton shape="line" width={80} className={styles.pendingStep} />
+        ) : (
+          <JourneyProgress
+            id={sentenceId}
+            projectId={project.id}
+            href={recovering ? null : progressHref}
+            sentence={ready ? "Brand kit ready" : action.label}
+          />
+        )}
+        <RelativeDate prefix="Created" dateTime={project.created_at} />
+      </div>
     </article>
   );
 }

@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
-import { Icon } from "@/components/ui/icon";
+import { useEffect, useRef, useState } from "react";
+import { Button, IconButton } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { Menu } from "@/components/ui/menu";
+import { InlineMessage } from "@/components/ui/message";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { useProjectDeletion, type LifecycleProject, type ProjectDeletionAction } from "./project-deletion-client";
 import "@/styles/project-card-actions.css";
 
+/** The card's options menu (Delete) for an active project, or its Restore button once deleted. Both confirm in a
+ * small dialog that stays open while the change runs and shows any failure with its recovery inside it. */
 export function ProjectCardActions({
   project,
   account,
@@ -21,19 +26,12 @@ export function ProjectCardActions({
   onReload: () => Promise<boolean>;
 }) {
   const { isCurrent } = useAccountSession();
-  const [menuOpen, setMenuOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshFailed, setRefreshFailed] = useState(false);
-  const root = useRef<HTMLDivElement>(null);
-  const trigger = useRef<HTMLButtonElement>(null);
-  const menuItem = useRef<HTMLButtonElement>(null);
-  const dialog = useRef<HTMLDialogElement>(null);
   const cancel = useRef<HTMLButtonElement>(null);
-  const dialogHeading = useRef<HTMLHeadingElement>(null);
   const active = useRef(false);
   const refreshLock = useRef(false);
-  const id = useId();
   const action: ProjectDeletionAction = project.deletion_state === "active" ? "delete" : "restore";
   // Notices about this change name the project the way its card did.
   const { change, check, pending, reconciling, failure, clearFailure } = useProjectDeletion(account, (saved, done) =>
@@ -47,31 +45,13 @@ export function ProjectCardActions({
       active.current = false;
     };
   }, []);
+  // The Dialog opens (and records the control to return focus to) first; then focus starts on Cancel.
   useEffect(() => {
-    if (!menuOpen) return;
-    menuItem.current?.focus();
-    const outside = (event: PointerEvent) => {
-      if (!root.current?.contains(event.target as Node)) setMenuOpen(false);
-    };
-    document.addEventListener("pointerdown", outside);
-    return () => document.removeEventListener("pointerdown", outside);
-  }, [menuOpen]);
-  useEffect(() => {
-    const element = dialog.current;
-    if (!dialogOpen || !element) return;
-    const returnFocus = trigger.current;
-    element.showModal();
-    if (cancel.current?.disabled) dialogHeading.current?.focus();
-    else cancel.current?.focus();
-    return () => {
-      element.close();
-      if (returnFocus?.isConnected) returnFocus.focus();
-    };
+    if (dialogOpen && !cancel.current?.disabled) cancel.current?.focus();
   }, [dialogOpen]);
 
   function openAction() {
     if (!isCurrent(account) || busy) return;
-    setMenuOpen(false);
     setDialogOpen(true);
     setRefreshFailed(false);
     if (action === "restore" && !failure) void change(project, action);
@@ -100,122 +80,87 @@ export function ProjectCardActions({
   }
 
   return (
-    <div
-      className={action === "delete" ? "project-card-actions" : "project-card-restore"}
-      ref={root}
-      onClick={(event) => event.stopPropagation()}
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setMenuOpen(false);
-      }}
-    >
+    <div className={action === "delete" ? "e-card__action" : undefined}>
       {action === "delete" ? (
-        <>
-          <button
-            ref={trigger}
-            type="button"
-            className="project-card-menu-trigger"
-            aria-label={`Project options for ${name}`}
-            aria-haspopup="menu"
-            aria-expanded={menuOpen}
-            aria-controls={menuOpen ? `${id}-menu` : undefined}
-            onClick={() => setMenuOpen((value) => !value)}
-            onKeyDown={(event) => {
-              if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-                event.preventDefault();
-                setMenuOpen(true);
-              }
-            }}
-          >
-            <Icon name="ellipsis" />
-          </button>
-          {menuOpen && (
-            <div
-              className="project-card-menu"
-              role="menu"
-              id={`${id}-menu`}
-              aria-label={`Actions for ${name}`}
+        <Menu
+          label={`Actions for ${name}`}
+          items={[{ kind: "action", label: "Delete", icon: "trash", danger: true, onSelect: openAction }]}
+          trigger={(props) => (
+            <IconButton
+              {...props}
+              icon="menu"
+              label={`Project options for ${name}`}
+              size="sm"
+              tooltip={false}
               onKeyDown={(event) => {
-                if (event.key === "Escape") {
+                if ((event.key === "ArrowDown" || event.key === "ArrowUp") && !props["aria-expanded"]) {
                   event.preventDefault();
-                  event.stopPropagation();
-                  setMenuOpen(false);
-                  trigger.current?.focus();
-                } else if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
-                  event.preventDefault();
-                  menuItem.current?.focus();
-                } else if (event.key === "Tab") {
-                  setMenuOpen(false);
-                  trigger.current?.focus();
+                  props.onClick();
                 }
               }}
-            >
-              <button ref={menuItem} type="button" role="menuitem" className="project-card-delete" onClick={openAction}>
-                <Icon name="trash" size={16} />
-                Delete
-              </button>
-            </div>
+            />
           )}
-        </>
+        />
       ) : (
-        <button ref={trigger} className="project-restore-button" type="button" onClick={openAction} disabled={pending}>
-          <Icon name="refresh" size={15} />
+        <Button size="sm" icon="refresh" onClick={openAction} disabled={pending}>
           {pending ? "Restoring…" : "Restore"}
-        </button>
+        </Button>
       )}
       {dialogOpen && (
-        <dialog
-          ref={dialog}
-          className="project-lifecycle-dialog"
-          aria-labelledby={`${id}-title`}
-          aria-describedby={`${id}-description`}
-          aria-busy={busy}
-          onCancel={(event) => {
-            event.preventDefault();
-            closeDialog();
-          }}
-          onClick={(event) => {
-            if (event.target !== event.currentTarget) return;
-            const bounds = event.currentTarget.getBoundingClientRect();
-            if (
-              event.clientX < bounds.left ||
-              event.clientX > bounds.right ||
-              event.clientY < bounds.top ||
-              event.clientY > bounds.bottom
-            )
-              closeDialog();
-          }}
-          onKeyDown={(event) => {
-            if (event.key !== "Tab") return;
-            const controls = Array.from(
-              event.currentTarget.querySelectorAll<HTMLElement>("a[href], button:not(:disabled)"),
-            ).filter((element) => element.tabIndex >= 0);
-            const first = controls[0],
-              last = controls.at(-1);
-            if (!first) {
-              event.preventDefault();
-              dialogHeading.current?.focus();
-            } else if (
-              event.shiftKey &&
-              (document.activeElement === first || document.activeElement === dialogHeading.current)
-            ) {
-              event.preventDefault();
-              last?.focus();
-            } else if (!event.shiftKey && document.activeElement === last) {
-              event.preventDefault();
-              first.focus();
-            }
-          }}
+        <Dialog
+          size="sm"
+          title={
+            <>
+              {action === "delete" ? "Delete" : "Restore"} “{name}”{action === "delete" ? "?" : ""}
+            </>
+          }
+          description={
+            action === "delete"
+              ? "It moves to Deleted projects, where you can restore it. Its assets and history are kept. Deleting requests cancellation of active work. Work already started may still finish or incur usage. Restoring won’t restart cancelled AI work."
+              : "This returns the project to Projects. Restoring won’t restart cancelled AI work."
+          }
+          busy={busy}
+          onClose={closeDialog}
+          footer={
+            <>
+              <Button ref={cancel} disabled={busy} onClick={closeDialog}>
+                {failure || action === "restore" ? "Close" : "Cancel"}
+              </Button>
+              {failure ? (
+                <Button
+                  disabled={busy}
+                  loading={refreshing}
+                  onClick={() => {
+                    if (failure.kind === "retry") void change(project, action);
+                    else if (failure.kind === "uncertain") void check(project, action);
+                    else void refresh();
+                  }}
+                >
+                  {refreshing
+                    ? "Refreshing…"
+                    : failure.kind === "retry"
+                      ? "Try again"
+                      : failure.kind === "uncertain"
+                        ? "Check status"
+                        : "Refresh projects"}
+                </Button>
+              ) : (
+                action === "delete" && (
+                  <Button
+                    variant="danger-filled"
+                    disabled={busy}
+                    loading={pending}
+                    onClick={() => void change(project, action)}
+                  >
+                    {pending ? (reconciling ? "Checking status…" : "Moving project…") : "Delete project"}
+                  </Button>
+                )
+              )}
+            </>
+          }
         >
-          <h2 id={`${id}-title`} ref={dialogHeading} tabIndex={-1}>
-            {action === "delete" ? "Delete" : "Restore"} “{name}”{action === "delete" ? "?" : ""}
-          </h2>
-          <p id={`${id}-description`}>
-            {action === "delete"
-              ? "This moves the project to Deleted projects and requests cancellation of active work. Work already started may still finish or incur usage. Its assets and history are kept. Restoring won’t restart cancelled AI work."
-              : "This returns the project to Projects. Restoring won’t restart cancelled AI work."}
-          </p>
           {pending && (
-            <p className="project-lifecycle-pending" role="status">
+            <p className="e-muted" role="status">
               {reconciling
                 ? "Checking project status…"
                 : action === "delete"
@@ -224,52 +169,12 @@ export function ProjectCardActions({
             </p>
           )}
           {failure && (
-            <div className="project-lifecycle-error" role="alert">
+            <InlineMessage tone="danger">
               <p>{failure.message}</p>
               {refreshFailed && <p>Projects could not be refreshed. Check your connection and try again.</p>}
-            </div>
+            </InlineMessage>
           )}
-          <div className="project-lifecycle-buttons">
-            <button ref={cancel} type="button" className="button secondary" disabled={busy} onClick={closeDialog}>
-              {failure || action === "restore" ? "Close" : "Cancel"}
-            </button>
-            {failure ? (
-              <button
-                type="button"
-                className="button secondary"
-                disabled={busy}
-                onClick={() => {
-                  if (failure.kind === "retry") void change(project, action);
-                  else if (failure.kind === "uncertain") void check(project, action);
-                  else void refresh();
-                }}
-              >
-                {refreshing
-                  ? "Refreshing…"
-                  : failure.kind === "retry"
-                    ? "Try again"
-                    : failure.kind === "uncertain"
-                      ? "Check status"
-                      : "Refresh projects"}
-              </button>
-            ) : (
-              action === "delete" && (
-                <button
-                  type="button"
-                  className="button project-delete-confirm"
-                  disabled={busy}
-                  onClick={() => void change(project, action)}
-                >
-                  {pending
-                    ? reconciling
-                      ? "Checking status…"
-                      : "Moving project…"
-                    : "Stop active work and delete project"}
-                </button>
-              )
-            )}
-          </div>
-        </dialog>
+        </Dialog>
       )}
     </div>
   );

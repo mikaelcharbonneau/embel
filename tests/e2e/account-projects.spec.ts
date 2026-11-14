@@ -1,4 +1,5 @@
 import { expectProjectCanvas } from "./project-canvas-contract";
+import { accountMenu, closeAccountMenu, openAccountMenu } from "./account-check";
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { accountProjectSchema, accountProjectSummarySchema, type AccountProject } from "../../src/domain/project-api";
 import { accountProjectDraft } from "../../src/components/workspace/project-draft-adapter";
@@ -191,8 +192,7 @@ function waitForAccountProject(page: Page, id = projectA) {
   );
 }
 async function openProjectDetails(page: Page) {
-  const menu = page.locator(".workspace-account-menu");
-  if ((await menu.getAttribute("open")) !== null) await menu.locator("summary").click();
+  await closeAccountMenu(page);
   const editor = page.getByRole("dialog", { name: "Edit current brief", exact: true });
   if (!(await editor.isVisible())) await page.getByRole("button", { name: "Edit brief", exact: true }).click();
   await expect(editor).toBeVisible();
@@ -218,9 +218,8 @@ async function openProjects(page: Page) {
 }
 async function checkAccount(page: Page) {
   await closeProjectDetails(page);
-  const menu = page.locator(".workspace-account-menu");
-  if ((await menu.getAttribute("open")) === null) await menu.locator("summary").click();
-  await page.getByRole("button", { name: "Check account", exact: true }).click();
+  await openAccountMenu(page);
+  await accountMenu(page).getByRole("menuitem", { name: "Check account", exact: true }).click();
 }
 async function expectLabel(page: Page, title: string) {
   const editor = await openProjectDetails(page);

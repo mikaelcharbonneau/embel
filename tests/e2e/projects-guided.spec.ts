@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { accountMenu, openAccountMenu } from "./account-check";
 
 // Read-only synthetic fixtures. Reference names are never seeded into application data.
 // Projects is account-only since 96ef9f1; browser drafts appear only through explicit recovery.
@@ -67,9 +68,8 @@ async function fixture(page: Page) {
   return state;
 }
 async function checkAccount(page: Page) {
-  const menu = page.locator(".workspace-account-menu");
-  if ((await menu.getAttribute("open")) === null) await menu.locator("summary").click();
-  await page.locator(".workspace-account-panel").getByRole("button", { name: "Check account", exact: true }).click();
+  await openAccountMenu(page);
+  await accountMenu(page).getByRole("menuitem", { name: "Check account", exact: true }).click();
 }
 
 test("Projects reference: populated geometry, native artwork and saved project continuation", async ({
@@ -89,8 +89,10 @@ test("Projects reference: populated geometry, native artwork and saved project c
   ).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("link", { name: "New project", exact: true })).toHaveAttribute("href", "/brands/new");
   await expect(page.locator(".project-card").first()).toContainText("Forma");
-  // Projects and Home share one compact card: name, short date and next step.
-  await expect(page.locator(".project-card").first()).toContainText(/Today|Yesterday/);
+  // Projects and Home share one card: name, next step and how long ago it was created.
+  await expect(page.locator(".project-card").first()).toContainText(
+    /Created (just now|\d+ (minutes?|hours?|days) ago|yesterday|[A-Z][a-z]{2} \d+)/,
+  );
   await expect(page.locator(".project-card").first()).not.toContainText("Complete brand");
   await expect(card(page, 1).getByRole("link")).toHaveAttribute("href", `/brands/account/${id(1)}`);
   if (info.project.name === "desktop") {

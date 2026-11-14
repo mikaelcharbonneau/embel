@@ -1,133 +1,4 @@
-.auth-card {
-  background: var(--color-bg-paper);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-panel);
-  padding: 30px;
-}
-.auth-card h1 {
-  font-size: 28px;
-  letter-spacing: -0.7px;
-}
-.auth-intro {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-2);
-  line-height: 1.7;
-  margin-top: 11px;
-}
-.auth-card form {
-  margin-top: var(--space-6);
-}
-.auth-field {
-  display: block;
-  font-size: var(--font-size-2);
-  font-weight: 500;
-}
-.auth-field + .auth-field {
-  margin-top: var(--space-5);
-}
-.auth-field input {
-  display: block;
-  width: 100%;
-  margin-top: var(--space-2);
-  padding: 11px var(--space-3);
-  min-height: 44px;
-  color: var(--color-text);
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-control);
-  background: var(--color-bg-paper);
-  font-size: var(--font-size-3);
-  font-weight: 400;
-}
-.auth-field input:disabled {
-  background: var(--color-bg-canvas);
-  color: var(--color-text-muted);
-}
-/* The show/hide toggle sits over the password input's right edge. The wrapper
-   also leaves room for a future "Forgot password?" link beside the label. */
-.auth-password-field {
-  position: relative;
-}
-.auth-field + .auth-password-field {
-  margin-top: var(--space-5);
-}
-.auth-password-field input {
-  padding-right: var(--space-12);
-}
-.auth-password-toggle {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: var(--color-text-muted);
-}
-.auth-password-toggle:hover:not(:disabled) {
-  color: var(--color-text);
-}
-.auth-password-toggle:focus-visible {
-  outline-offset: -6px;
-}
-/* .text-link centers its text in a 44px target; lift it so the words share the label's line. */
-.auth-forgot-link {
-  position: absolute;
-  top: -12px;
-  right: 0;
-  z-index: 1;
-  font-size: var(--font-size-2);
-  font-weight: 500;
-}
-.auth-submit {
-  width: 100%;
-  justify-content: space-between;
-  margin-top: var(--space-6);
-}
-.auth-continue {
-  margin-top: var(--space-6);
-}
-.auth-progress {
-  width: 13px;
-  height: 13px;
-  border: 1.5px solid #ffffff70;
-  border-top-color: var(--color-bg-paper);
-  border-radius: 50%;
-  animation: auth-spin 800ms linear infinite;
-}
-.auth-status {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-2);
-  text-align: center;
-  margin-top: var(--space-3);
-}
-.auth-browser-link {
-  display: flex;
-  width: fit-content;
-  margin: 19px auto 0;
-  font-size: var(--font-size-2);
-}
-.auth-unavailable {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-top: var(--space-5);
-  padding: 13px;
-  background: var(--color-bg-canvas);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-control);
-  color: var(--color-text-muted);
-}
-.auth-unavailable p {
-  font-size: var(--font-size-2);
-  line-height: 1.65;
-}
-.auth-unavailable :is(svg, .e-icon) {
-  margin-top: var(--space-0-5);
-}
+/* Account access: the session notice, sign-out and delete-account dialogs. The auth screens use auth-guided.css. */
 .auth-session-action {
   color: var(--color-text);
 }
@@ -168,23 +39,12 @@
   gap: 9px;
   margin-top: var(--space-6);
 }
-@keyframes auth-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 @media (max-width: 760px) {
   .auth-session-notice {
     padding: var(--space-3) var(--space-5);
   }
 }
 @media (max-width: 540px) {
-  .auth-card {
-    padding: var(--space-6) 21px;
-  }
-  .auth-field input {
-    font-size: var(--font-size-4);
-  }
   .auth-account-access {
     gap: 10px;
   }
@@ -198,16 +58,6 @@
     padding: 22px;
   }
 }
-
-/* Cloudflare Turnstile (shown only when a site key is configured). */
-.auth-captcha {
-  margin-top: var(--space-5);
-  min-height: 65px;
-}
-.auth-captcha + .auth-submit {
-  margin-top: var(--space-4);
-}
-
 /* Delete account confirmation. */
 .account-delete-dialog {
   width: min(480px, calc(100vw - 40px));

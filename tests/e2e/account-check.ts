@@ -21,15 +21,31 @@ export function watchNormalAppErrors(page: Page) {
   return { pageErrors, consoleErrors, expectedNetworkErrors };
 }
 
+/** The round account button in the navigation pill. */
+export const accountMenuButton = (page: Page) => page.locator("[data-account-menu-trigger]");
+
+/** The account menu next to that button. Its rows exist only while it is open. */
+export const accountMenu = (page: Page) => page.locator('[data-account-menu-trigger] + [role="menu"]');
+
+export async function openAccountMenu(page: Page) {
+  const button = accountMenuButton(page);
+  if ((await button.getAttribute("aria-expanded")) !== "true") await button.click();
+  await expect(button).toHaveAttribute("aria-expanded", "true");
+}
+
+export async function closeAccountMenu(page: Page) {
+  const button = accountMenuButton(page);
+  if ((await button.count()) && (await button.getAttribute("aria-expanded")) === "true") await button.click();
+}
+
 /** Normal app account verification, rather than a component-preview control. */
 export async function checkNormalAccount(page: Page) {
-  const menu = page.locator(".workspace-account-menu");
-  if ((await menu.getAttribute("open")) === null) await menu.locator("summary").click();
+  await openAccountMenu(page);
   const response = page.waitForResponse(
     (response) => new URL(response.url()).pathname === "/api/session" && response.request().method() === "GET",
   );
-  await menu.getByRole("button", { name: "Check account", exact: true }).click();
+  // Choosing the row closes the menu.
+  await accountMenu(page).getByRole("menuitem", { name: "Check account", exact: true }).click();
   expect((await response).status()).toBe(200);
-  await expect(menu.getByRole("button", { name: "Check account", exact: true })).toBeEnabled();
-  if ((await menu.getAttribute("open")) !== null) await menu.locator("summary").click();
+  await expect(accountMenuButton(page)).toHaveAttribute("aria-expanded", "false");
 }

@@ -3,10 +3,6 @@
   background: var(--color-bg-paper);
   background-image: none;
 }
-.concept-project-workspace .workspace-account-avatar {
-  background: var(--color-bg-sunken);
-  border: 0;
-}
 .concept-project-workspace #main-content {
   padding: 0;
   overflow: hidden;

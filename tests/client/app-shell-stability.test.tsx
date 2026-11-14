@@ -15,7 +15,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/components/naming/use-names-store", () => ({
   useNamesStore: () => ({ data: { ui: { tab: "assistant" } } }),
 }));
-vi.mock("@/components/workspace/generation-activity", () => ({ GenerationActivity: () => null }));
+vi.mock("@/components/workspace/generation-activity", () => ({ ActivityDialog: () => null }));
 
 const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 let host: HTMLDivElement, root: Root, account: ReturnType<typeof useAccountSession>;
@@ -61,9 +61,29 @@ async function until(assertion: () => void) {
   }
   throw error;
 }
-const accountLabel = () => host.querySelector<HTMLSpanElement>(".workspace-account-label")!;
+const trigger = () => host.querySelector<HTMLButtonElement>("[data-account-menu-trigger]")!;
+const menu = () => document.getElementById(trigger().getAttribute("aria-controls")!)!;
+const isOpen = () => trigger().getAttribute("aria-expanded") === "true";
+const rows = () => [...menu().querySelectorAll<HTMLElement>('[role="menuitem"]')];
+const summary = () => menu().querySelector<HTMLElement>(".e-menu__summary");
 const mainNav = () => host.querySelector<HTMLElement>('nav[aria-label="Main navigation"]')!;
 const navLinks = () => [...mainNav().querySelectorAll<HTMLAnchorElement>(":scope > ul > li > a")];
+const brandMark = () => mainNav().querySelector<HTMLElement>(".e-nav__brand .e-mark");
+const sessionCalls = () => fetcher.mock.calls.filter(([path]) => path === "/api/session");
+async function openMenu() {
+  if (!isOpen()) await act(async () => trigger().click());
+  expect(isOpen()).toBe(true);
+}
+async function press(target: Element, key: string) {
+  const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+  await act(async () => target.dispatchEvent(event));
+  return event;
+}
+async function pointerDown(target: Element) {
+  const event = new MouseEvent("pointerdown", { bubbles: true, cancelable: true });
+  await act(async () => target.dispatchEvent(event));
+  return event;
+}
 
 beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
@@ -79,6 +99,10 @@ beforeEach(() => {
   sessionRead = async () => Response.json({ user: { id: owner } });
   fetcher = vi.fn(async (path: string) => {
     if (path === "/api/session") return sessionRead();
+    if (path === "/api/billing")
+      return Response.json({
+        billing: { planId: "pro", balance: 112, periodEnd: "2026-12-01T00:00:00Z", subscription: null, plans: [] },
+      });
     if (path === "/api/account/profile")
       return profileRead
         ? profileRead()
@@ -105,13 +129,19 @@ afterEach(async () => {
 });
 
 describe("persistent workspace shell", () => {
-  it("keeps the floating navigation, logo and focus across route changes", async () => {
+  it("keeps the floating navigation, mark and focus across route changes", async () => {
     await render();
-    await until(() => expect(accountLabel().textContent).toBe("Private fixture name"));
+    await until(() => expect(trigger().textContent).toBe("PN"));
     const links = navLinks();
-    const logo = mainNav().querySelector("img"),
+    const mark = brandMark(),
       generation = account.session.generation;
+    expect(host.querySelector("header .e-nav")).not.toBeNull();
     expect(links.map((link) => link.textContent)).toEqual(["Home", "Projects", "Library"]);
+    links.forEach((link) => expect(link.classList).toContain("e-nav__item"));
+    // The mark is a CSS mask, not an image.
+    expect(mark).not.toBeNull();
+    expect(mark!.getAttribute("aria-hidden")).toBe("true");
+    expect(mainNav().querySelector("img")).toBeNull();
     expect(mainNav().querySelector("details")).toBeNull();
     links[1]!.focus();
     const routes = ["/brands", "/assets", "/settings", "/sign-in", "/sign-up", "/"];
@@ -125,162 +155,174 @@ describe("persistent workspace shell", () => {
           (href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`)) ? "page" : null,
         );
       });
-      expect(mainNav().querySelector("img")).toBe(logo);
+      expect(brandMark()).toBe(mark);
       expect(document.activeElement).toBe(links[1]);
       expect(account.session.generation).toBe(generation);
     }
     expect(host.querySelector('aside, .mobile-menu, [aria-label="Open navigation"]')).toBeNull();
-    expect(fetcher.mock.calls.filter(([path]) => path === "/api/session")).toHaveLength(1);
+    expect(sessionCalls()).toHaveLength(1);
   });
 
   it("becomes the project bar inside a project and keeps the same account menu", async () => {
     await render();
-    await until(() => expect(accountLabel().textContent).toBe("Private fixture name"));
-    const accountMenu = host.querySelector(".workspace-account-menu"),
+    await until(() => expect(trigger().textContent).toBe("PN"));
+    const button = trigger(),
+      panel = menu(),
       frame = host.querySelector("header");
     route.pathname = "/brands/account/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
     await render();
     expect(host.querySelector('nav[aria-label="Main navigation"]')).toBeNull();
     expect(host.querySelector("header")?.textContent).toContain("Loading project…");
-    expect(host.querySelector(".workspace-account-menu")).toBe(accountMenu);
+    expect(trigger()).toBe(button);
+    expect(menu()).toBe(panel);
     expect(host.querySelector("header")).toBe(frame);
     route.pathname = "/";
     await render();
     expect(mainNav()).not.toBeNull();
-    expect(host.querySelector(".workspace-account-menu")).toBe(accountMenu);
+    expect(trigger()).toBe(button);
+    expect(menu()).toBe(panel);
   });
 
   it("keeps the underlying page highlighted when an auth dialog opens over it", async () => {
     route.pathname = "/brands";
     await render(<div className="projects-page">Loading projects</div>);
-    const links = navLinks();
+    const links = navLinks(),
+      mark = brandMark();
     route.pathname = "/sign-in";
     route.auth = "(.)sign-in";
     route.background = ["brands"];
     await render(<div className="projects-page projects-empty">No projects</div>);
     navLinks().forEach((link, index) => expect(link).toBe(links[index]));
     expect(links[1]!.getAttribute("aria-current")).toBe("page");
-    expect(mainNav().querySelector("img")?.getAttribute("src")).toBe("/embel-mark.svg");
+    expect(brandMark()).toBe(mark);
+    expect(mainNav().querySelector(".e-nav__brand")?.getAttribute("href")).toBe("/");
   });
 
-  it("dismisses the account menu on an outside pointer without stealing the clicked control's focus or action", async () => {
-    const clicked = vi.fn();
-    await render(
-      <button type="button" data-outside onClick={clicked}>
-        Outside control
-      </button>,
-    );
-    await until(() => expect(account.session.status).toBe("ready"));
-    const menu = host.querySelector<HTMLDetailsElement>(".workspace-account-menu")!;
-    const summary = menu.querySelector("summary")!,
-      outside = host.querySelector<HTMLButtonElement>("[data-outside]")!;
-    const generation = account.session.generation;
-    await act(async () => summary.click());
-    expect(menu.open).toBe(true);
-    await act(async () => {
-      outside.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }));
-      outside.focus();
-      outside.click();
-    });
-    expect(menu.open).toBe(false);
-    expect(document.activeElement).toBe(outside);
-    expect(clicked).toHaveBeenCalledOnce();
-    expect(account.session.generation).toBe(generation);
-    expect(fetcher.mock.calls.filter(([path]) => path === "/api/session")).toHaveLength(1);
-  });
-
-  it("dismisses the account menu on Escape even after keyboard focus has left the details subtree", async () => {
+  it("closes the account menu on an outside press without passing that press through, then lets presses through again", async () => {
+    const pressed = vi.fn();
     await render(
       <button type="button" data-outside>
         Outside control
       </button>,
     );
-    const menu = host.querySelector<HTMLDetailsElement>(".workspace-account-menu")!;
-    const summary = menu.querySelector("summary")!,
-      outside = host.querySelector<HTMLButtonElement>("[data-outside]")!;
-    await act(async () => summary.click());
+    await until(() => expect(account.session.status).toBe("ready"));
+    const outside = host.querySelector<HTMLButtonElement>("[data-outside]")!;
+    outside.addEventListener("pointerdown", pressed);
+    const generation = account.session.generation;
+    await openMenu();
+    const closing = await pointerDown(outside);
+    expect(isOpen()).toBe(false);
+    expect(menu().hidden).toBe(true);
+    expect(closing.defaultPrevented).toBe(true);
+    expect(pressed).not.toHaveBeenCalled();
+    // The menu does not pull focus back to its button when closed by a press elsewhere.
     outside.focus();
-    await act(async () =>
-      outside.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })),
+    expect(document.activeElement).toBe(outside);
+    // Once closed, the next press reaches the control as usual.
+    const next = await pointerDown(outside);
+    expect(next.defaultPrevented).toBe(false);
+    expect(pressed).toHaveBeenCalledOnce();
+    expect(account.session.generation).toBe(generation);
+    expect(sessionCalls()).toHaveLength(1);
+  });
+
+  it("closes the account menu when keyboard focus leaves it, by Tab or by focus moving elsewhere", async () => {
+    await render(
+      <button type="button" data-outside>
+        Outside control
+      </button>,
     );
-    expect(menu.open).toBe(false);
-    expect(document.activeElement).toBe(summary);
+    await until(() => expect(trigger().textContent).toBe("PN"));
+    const outside = host.querySelector<HTMLButtonElement>("[data-outside]")!;
+    await openMenu();
+    expect(document.activeElement).toBe(rows()[0]);
+    await press(rows()[0]!, "Tab");
+    expect(isOpen()).toBe(false);
+    await openMenu();
+    await act(async () => outside.focus());
+    expect(isOpen()).toBe(false);
+    expect(document.activeElement).toBe(outside);
+    // Escape from inside returns focus to the menu button.
+    await openMenu();
+    await press(rows()[0]!, "Escape");
+    expect(isOpen()).toBe(false);
+    expect(document.activeElement).toBe(trigger());
   });
 
   it.each([false, true])(
     "dismisses the account menu on actual navigation without remounting it (intercepted: %s)",
     async (intercepted) => {
       await render();
-      const menu = host.querySelector<HTMLDetailsElement>(".workspace-account-menu")!;
-      await act(async () => menu.querySelector("summary")!.click());
+      await until(() => expect(trigger().textContent).toBe("PN"));
+      const button = trigger(),
+        panel = menu();
+      await openMenu();
       route.pathname = intercepted ? "/sign-in" : "/assets";
       if (intercepted) {
         route.auth = "(.)sign-in";
         route.background = [];
       }
       await render();
-      expect(host.querySelector(".workspace-account-menu")).toBe(menu);
-      expect(menu.open).toBe(false);
+      expect(trigger()).toBe(button);
+      expect(menu()).toBe(panel);
+      expect(isOpen()).toBe(false);
+      expect(rows()).toHaveLength(0);
     },
   );
 
-  it("leaves inside interactions and open nested dialogs in control of their own dismissal", async () => {
+  it("keeps the menu open for presses inside it and on its button, which toggles it closed", async () => {
     await render(
       <button type="button" data-outside>
         Outside control
       </button>,
     );
-    const menu = host.querySelector<HTMLDetailsElement>(".workspace-account-menu")!;
-    const summary = menu.querySelector("summary")!;
-    await act(async () => summary.click());
-    await act(async () =>
-      menu.querySelector(".workspace-account-panel")!.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true })),
-    );
-    expect(menu.open).toBe(true);
-    const modal = document.createElement("dialog"),
-      control = document.createElement("button");
-    modal.open = true;
-    modal.append(control);
-    menu.append(modal);
-    control.focus();
-    await act(async () =>
-      control.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })),
-    );
-    expect(menu.open).toBe(true);
-    expect(modal.open).toBe(true);
-    expect(document.activeElement).toBe(control);
-    await act(async () =>
-      host.querySelector("[data-outside]")!.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true })),
-    );
-    expect(menu.open).toBe(true);
-    modal.remove();
-    await act(async () =>
-      summary.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })),
-    );
-    expect(menu.open).toBe(false);
-    expect(document.activeElement).toBe(summary);
+    await until(() => expect(trigger().textContent).toBe("PN"));
+    await openMenu();
+    for (const inside of [summary()!, rows()[1]!, trigger()]) {
+      const event = await pointerDown(inside);
+      expect(event.defaultPrevented).toBe(false);
+      expect(isOpen()).toBe(true);
+    }
+    // An unrelated key inside the menu is left alone.
+    const other = await press(rows()[0]!, "a");
+    expect(other.defaultPrevented).toBe(false);
+    expect(isOpen()).toBe(true);
+    await act(async () => trigger().click());
+    expect(isOpen()).toBe(false);
+    expect(menu().hidden).toBe(true);
   });
 
   it("shows a neutral checking placeholder, not signed-out controls or a stale private identity", async () => {
     const initial = deferred<Response>();
     sessionRead = () => initial.promise;
     await render();
-    const label = accountLabel();
-    expect(label.getAttribute("aria-busy")).toBe("true");
-    expect(label.textContent).toBe("Checking account…");
+    const button = trigger();
+    expect(button.getAttribute("aria-busy")).toBe("true");
+    expect(button.getAttribute("aria-label")).toBe("Account menu, checking your account");
+    expect(button.textContent).toBe("");
+    await openMenu();
+    expect(summary()?.textContent).toBe("Checking your account…");
+    expect(rows()).toHaveLength(0);
     expect(host.textContent).not.toContain("Sign in");
     expect(host.textContent).not.toContain("Private fixture");
     expect(host.querySelector('header a[href="/sign-in"]')).toBeNull();
     await act(async () => initial.resolve(Response.json({ user: { id: owner } })));
-    await until(() => expect(label.textContent).toBe("Private fixture name"));
-    expect(accountLabel()).toBe(label);
+    await until(() => expect(button.textContent).toBe("PN"));
+    expect(trigger()).toBe(button);
+    expect(button.hasAttribute("aria-busy")).toBe(false);
+    expect(button.getAttribute("aria-label")).toBe("Account menu");
+    await until(() => expect(summary()?.textContent).toContain("fixture@example.invalid"));
 
     const recheck = deferred<Response>();
     sessionRead = () => recheck.promise;
     // Explicit verification fences private content; ordinary tab focus deliberately does not.
     await act(async () => account.refresh());
-    expect(accountLabel()).toBe(label);
-    expect(label.getAttribute("aria-busy")).toBe("true");
+    expect(trigger()).toBe(button);
+    expect(button.getAttribute("aria-busy")).toBe("true");
+    expect(button.textContent).toBe("");
+    await openMenu();
+    expect(summary()?.textContent).toBe("Checking your account…");
+    expect(host.textContent).not.toContain("fixture@example.invalid");
     expect(host.textContent).not.toContain("Private fixture");
     expect(host.textContent).not.toContain("Sign in");
     expect(host.querySelector('header a[href="/sign-in"]')).toBeNull();
@@ -288,21 +330,22 @@ describe("persistent workspace shell", () => {
     // Signed out, the pill offers the two ways in instead of an account menu.
     await until(() => expect(host.querySelector('header a[href="/sign-in"]')?.textContent).toBe("Sign in"));
     expect(host.querySelector('header a[href="/sign-up"]')?.textContent).toBe("Create account");
-    expect(host.querySelector(".workspace-account-menu")).toBeNull();
+    expect(host.querySelector("[data-account-menu-trigger]")).toBeNull();
     expect(host.textContent).not.toContain("Private fixture");
+    expect(host.textContent).not.toContain("fixture@example.invalid");
     // Every shell check asks for the ordinary signed-out answer.
-    const sessionCalls = fetcher.mock.calls.filter(([path]) => path === "/api/session");
-    expect(sessionCalls).toHaveLength(2);
-    for (const [, init] of sessionCalls)
+    expect(sessionCalls()).toHaveLength(2);
+    for (const [, init] of sessionCalls())
       expect((init as RequestInit).headers).toMatchObject({ "X-Embel-Session-State": "1" });
   });
 
-  it("shows the owner's initials, name and email, falling back to the email's first letter", async () => {
+  it("shows the owner's initials and email with the plan, falling back to the email's first letter", async () => {
     await render();
-    await until(() => expect(accountLabel().textContent).toBe("Private fixture name"));
-    expect(host.querySelector(".workspace-account-avatar")?.textContent).toBe("PN");
-    expect(host.querySelector(".workspace-account-identity strong")?.textContent).toBe("Private fixture name");
-    expect(host.querySelector(".workspace-account-identity span")?.textContent).toBe("fixture@example.invalid");
+    await until(() => expect(trigger().textContent).toBe("PN"));
+    await openMenu();
+    await until(() => expect(summary()?.textContent).toContain("112 credits left this month"));
+    expect(summary()!.firstElementChild?.textContent).toBe("fixture@example.invalid");
+    expect(summary()!.textContent).toContain("Pro");
     await act(async () => root.unmount());
     root = createRoot(host);
     profileRead = async () =>
@@ -316,26 +359,34 @@ describe("persistent workspace shell", () => {
         },
       });
     await render();
-    await until(() => expect(accountLabel().textContent).toBe("fixture@example.invalid"));
-    expect(host.querySelector(".workspace-account-avatar")?.textContent).toBe("F");
-    expect(host.querySelector(".workspace-account-identity strong")?.textContent).toBe("fixture@example.invalid");
-    expect(host.querySelector(".workspace-account-identity span")).toBeNull();
-    expect(host.querySelector(".workspace-account-panel")?.textContent).not.toMatch(/Refresh connection|Check account/);
+    await until(() => expect(trigger().textContent).toBe("F"));
+    await openMenu();
+    expect(summary()!.firstElementChild?.textContent).toBe("fixture@example.invalid");
+    expect(menu().textContent).not.toMatch(/Refresh connection|Check account/);
   });
 
-  it("keeps the same neutral label while the first verified profile loads", async () => {
+  it("keeps the same neutral button while the first verified profile loads", async () => {
     const profile = deferred<Response>();
     profileRead = () => profile.promise;
     await render();
     await until(() => expect(account.session.status).toBe("ready"));
-    const label = accountLabel();
-    expect(label.getAttribute("aria-busy")).toBe("true");
-    expect(label.textContent).toBe("Checking account…");
-    expect(label.textContent).not.toContain("My account");
+    const button = trigger();
+    expect(button.getAttribute("aria-busy")).toBe("true");
+    expect(button.getAttribute("aria-label")).toBe("Account menu, checking your account");
+    expect(button.textContent).toBe("");
+    await openMenu();
+    expect(summary()?.textContent).toBe("Checking your account…");
+    expect(menu().textContent).not.toContain("fixture@example.invalid");
+    // The session itself is verified, so its own account rows are already offered.
+    expect(rows().map((row) => row.textContent)).toEqual(["Settings", "Plans", "Activity", "Sign out"]);
     await act(async () => profile.resolve(new Response(null, { status: 503 })));
-    await until(() => expect(label.textContent).toBe("My account"));
-    expect(accountLabel()).toBe(label);
-    expect(label.getAttribute("aria-busy")).toBe("false");
+    await until(() => expect(button.hasAttribute("aria-busy")).toBe(false));
+    expect(trigger()).toBe(button);
+    expect(button.getAttribute("aria-label")).toBe("Account menu");
+    // No name or email to show: the generic account icon, never a guessed identity.
+    expect(button.textContent).toBe("");
+    expect(button.querySelector('[data-icon="user"]')).not.toBeNull();
+    expect(rows().map((row) => row.textContent)).toEqual(["Settings", "Plans", "Activity", "Sign out"]);
   });
 
   it.each([500, 503])(
@@ -343,8 +394,12 @@ describe("persistent workspace shell", () => {
     async (status) => {
       sessionRead = async () => new Response(null, { status });
       await render();
-      await until(() => expect(accountLabel().textContent).toBe("Account"));
-      expect(accountLabel().getAttribute("aria-busy")).toBe("false");
+      await until(() => expect(trigger().hasAttribute("aria-busy")).toBe(false));
+      expect(trigger().getAttribute("aria-label")).toBe("Account menu");
+      expect(host.querySelector('header a[href="/sign-up"]')).toBeNull();
+      await openMenu();
+      expect(summary()?.textContent).toContain("Your account couldn’t be checked.");
+      expect(rows().map((row) => row.textContent)).toEqual(["Check account", "Sign in"]);
       expect(host.textContent).not.toContain("Private fixture");
     },
   );
@@ -352,9 +407,10 @@ describe("persistent workspace shell", () => {
 
 it("reaches every destination from the pill without a separate mobile menu or Tools menu", async () => {
   await render();
-  await until(() => expect(accountLabel().textContent).toBe("Private fixture name"));
-  expect(host.querySelector(".workspace-account-avatar")?.textContent).toBe("PN");
+  await until(() => expect(trigger().textContent).toBe("PN"));
   expect(navLinks().map((link) => link.getAttribute("href"))).toEqual(["/", "/brands", "/assets"]);
   expect(mainNav().querySelector("details")).toBeNull();
-  expect(fetcher.mock.calls.filter(([path]) => path === "/api/session")).toHaveLength(1);
+  await openMenu();
+  expect(rows().map((row) => row.getAttribute("href"))).toEqual(["/settings", "/plans", null, null]);
+  expect(sessionCalls()).toHaveLength(1);
 });

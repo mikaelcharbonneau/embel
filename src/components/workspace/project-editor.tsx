@@ -536,9 +536,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
   const intake = (
     <div className="home-intake conversation-intake">
       <div className="home-introduction">
-        <h1>
-          Your next brand starts here<span>.</span>
-        </h1>
+        <h1 className="text-display">Your next brand starts here.</h1>
         <p>Describe the idea. Embel asks a few questions, then builds the name, logo and look with you.</p>
       </div>
       {resumedPrompt && !hiddenPrompt && (
@@ -687,6 +685,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
               <button
                 key={item.title}
                 type="button"
+                className="e-chip"
                 disabled={frozenInputs}
                 onClick={() => {
                   if (!canEditInputs()) return;

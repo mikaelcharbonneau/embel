@@ -139,19 +139,23 @@ for (const route of ["/brands", "/"])
     expect(await image.evaluate((element) => (element as HTMLImageElement).naturalWidth)).toBe(48);
     const fallback = page.locator(`[data-project-id="${rows[1]!.id}"]`);
     await fallback.scrollIntoViewIfNeeded();
-    await expect(fallback.getByText("No logo yet", { exact: true })).toBeVisible();
+    // No logo yet: the picture area sets the name in type, with no "No logo yet" label.
+    await expect(fallback.locator('[data-project-preview="placeholder"]')).toHaveText(rows[1]!.title);
+    await expect(fallback.getByText("No logo yet", { exact: true })).toHaveCount(0);
     const title = fallback.getByRole("heading");
     await expect(title).toHaveAttribute("title", rows[1]!.title);
+    // A long name takes at most two lines.
     const geometry = await title.evaluate((element) => ({
       height: element.getBoundingClientRect().height,
-      lineHeight: getComputedStyle(element).lineHeight,
+      lineHeight: Number.parseFloat(getComputedStyle(element).lineHeight),
     }));
-    expect(geometry.height).toBeLessThanOrEqual(40);
-    expect(geometry.lineHeight).toBe("20px");
+    expect(geometry.height).toBeLessThanOrEqual(geometry.lineHeight * 2 + 1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     const open = card.getByRole("link");
     await expect(open).toHaveAttribute("href", `/brands/account/${rows[0]!.id}/logo/directions`);
-    await expect(open.getByText("Explore creative directions", { exact: true })).toBeVisible();
+    await expect(open).toHaveAccessibleName(selectedName);
+    await expect(open).toHaveAccessibleDescription("Explore creative directions");
+    await expect(card.getByRole("img", { name: "Step 3 of 4: Identity" })).toBeVisible();
     await expect(fallback.getByRole("link")).toHaveAttribute(
       "href",
       `/brands/account/${rows[1]!.id}?view=strategy#strategy-brief`,
@@ -162,6 +166,7 @@ for (const route of ["/brands", "/"])
     await expect(options).toBeFocused();
     await options.click();
     await expect(card.getByRole("menu")).toBeVisible();
+    await expect(card.getByRole("menuitem", { name: "Delete", exact: true })).toBeFocused();
     await page.keyboard.press("Escape");
     await expect(options).toBeFocused();
     await expect(card.getByRole("menu")).toHaveCount(0);
