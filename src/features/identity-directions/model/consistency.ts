@@ -32,7 +32,7 @@ function luminance(hex: string): number {
 }
 
 /** WCAG sRGB contrast. Compare this value before rounding for presentation. */
-export function contrastRatio(foregroundHex: string, backgroundHex: string): number {
+function contrastRatio(foregroundHex: string, backgroundHex: string): number {
   const a = luminance(foregroundHex),
     b = luminance(backgroundHex);
   return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);

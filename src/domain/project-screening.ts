@@ -4,8 +4,8 @@ import { standaloneLookupResultSchema, type StandaloneLookupResult } from "./sta
 
 const uuid = z.uuid();
 const timestamp = z.iso.datetime({ offset: true });
-export const SCREENING_PAGE_SIZE = 20;
-export const screeningSourceSchema = z
+const SCREENING_PAGE_SIZE = 20;
+const screeningSourceSchema = z
   .string()
   .min(1)
   .max(2048)
@@ -23,7 +23,7 @@ export const screeningSourceSchema = z
       return false;
     }
   }, "Use an HTTPS source link without credentials.");
-export const screeningBasisSchema = z.strictObject({
+const screeningBasisSchema = z.strictObject({
   ownerId: uuid,
   projectId: uuid,
   selectionId: uuid,
@@ -124,7 +124,7 @@ export function screeningRecordFreshness(
     return "different_criteria";
   return "current_context_unverified";
 }
-export function screeningResultMatches(
+function screeningResultMatches(
   criteria: z.infer<typeof providerTargetSchema>,
   result: StandaloneLookupResult,
 ): boolean {

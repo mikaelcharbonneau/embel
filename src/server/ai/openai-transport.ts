@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import type { InputTokenCountParams } from "openai/resources/responses/input-tokens";
 
-export const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
+const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const MAX_RESPONSE_BYTES = 1_048_576;
 // /input_tokens accepts the prompt-bearing subset of a Responses create request.
 // Keep the SDK contract exhaustive so a dependency update prompts a review here.

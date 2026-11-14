@@ -3,7 +3,7 @@ import { checkBotId } from "botid/server";
 import { ApiError, logServerError } from "./errors";
 
 /** How long a route waits for BotID's verdict before letting the request through. */
-export const BOT_CHECK_TIMEOUT_MS = 3000;
+const BOT_CHECK_TIMEOUT_MS = 3000;
 
 /**
  * Blocks requests that Vercel BotID classifies as automated (403 `bot_detected`) before they

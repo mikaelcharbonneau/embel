@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 
 /** Parser/resource bound, not a documented maximum provider charge. */
-export const LOGO_IMAGE_TOKEN_COUNT_LIMIT = 1_000_000_000;
+const LOGO_IMAGE_TOKEN_COUNT_LIMIT = 1_000_000_000;
 const count = z.number().int().nonnegative().max(LOGO_IMAGE_TOKEN_COUNT_LIMIT);
 
 /** Preserve supplied billing evidence; never fill absent totals or modalities.

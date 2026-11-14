@@ -8,7 +8,7 @@ export const LOGO_SAVED_INPUTS_MAX_BYTES = 65_536;
  * these, within the four-image model input; Creative direction sends the logo
  * plus these. Inspiration allows liking at most this many of your own images. */
 export const LOGO_LIKED_UPLOAD_LIMIT = 3;
-export const logoUploadNoteStatusSchema = z.enum(["ready", "pending", "missing", "unavailable"]);
+const logoUploadNoteStatusSchema = z.enum(["ready", "pending", "missing", "unavailable"]);
 export type LogoUploadNoteStatus = z.infer<typeof logoUploadNoteStatusSchema>;
 export const DEFAULT_LOGO_CONCEPT_TYPES: LogoType[] = [
   "wordmark",

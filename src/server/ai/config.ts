@@ -10,15 +10,15 @@ import {
 // Model and policy settings of the generation engine's text requests. Official model and
 // pricing docs checked 2026-10-03. The engine's kinds and stop switch control access.
 export const OPENAI_STRATEGY_MODEL = "gpt-6.1-sol";
-export const STRATEGY_HANDLER_VERSION = "strategy-openai-v1";
-export const STRATEGY_PRICING_VERSION = "2026-10-03";
+const STRATEGY_HANDLER_VERSION = "strategy-openai-v1";
+const STRATEGY_PRICING_VERSION = "2026-10-03";
 export const MAX_INITIAL_INPUT_TOKENS = 32_768;
-export const GUIDED_STRATEGY_HANDLER_VERSION = "strategy-openai-guided-v1";
-export const GUIDED_STRATEGY_PRICING_VERSION = "2026-10-14";
-export const GUIDED_RESEARCH_MAX_INPUT_TOKENS = 3_150_000;
-export const GUIDED_RESEARCH_MAX_COST_MICROUSD = 15_892_880;
-export const LOCAL_STRATEGY_MODEL = "gpt-6-luna";
-export const LOCAL_STRATEGY_PRICING_VERSION = "2026-10-18";
+const GUIDED_STRATEGY_HANDLER_VERSION = "strategy-openai-guided-v1";
+const GUIDED_STRATEGY_PRICING_VERSION = "2026-10-14";
+const GUIDED_RESEARCH_MAX_INPUT_TOKENS = 3_150_000;
+const GUIDED_RESEARCH_MAX_COST_MICROUSD = 15_892_880;
+const LOCAL_STRATEGY_MODEL = "gpt-6-luna";
+const LOCAL_STRATEGY_PRICING_VERSION = "2026-10-18";
 /** Naming generation uses the same model as the Naming worker lane (policy version 2, low reasoning). */
 export const OPENAI_NAMING_MODEL = "gpt-6-luna";
 /** gpt-6-luna Standard prices in microdollars per million tokens, checked 2026-10-18:

@@ -13,7 +13,7 @@ import {
   type ProviderFetch,
 } from "./contracts";
 
-export const EUIPO_SOURCE = "https://dev.euipo.europa.eu/product/trademark-search_110/api/trademark-search";
+const EUIPO_SOURCE = "https://dev.euipo.europa.eu/product/trademark-search_110/api/trademark-search";
 const tokenSchema = z.object({
   access_token: z
     .string()
@@ -62,7 +62,7 @@ const pageSchema = z.strictObject({
   page: z.number().int().min(0).max(4),
 });
 /** Public Search 1.1.0; production only. Sandbox sample records must never become live evidence. */
-export function createEuipoSource(
+function createEuipoSource(
   config: { clientId: string; clientSecret: string },
   fetcher: ProviderFetch,
   clock: ProviderClock,

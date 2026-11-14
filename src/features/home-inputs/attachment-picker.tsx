@@ -3,7 +3,7 @@ import { ContextDetails } from "@/components/ui/context-details";
 import { useId, useState } from "react";
 import type { AttachmentPolicy, DraftAttachment } from "@/domain/attachments";
 import { validateAttachmentSelection, type HomeAttachmentAvailability } from "./attachment-draft";
-export type AttachmentPickerProps = {
+type AttachmentPickerProps = {
   files: readonly DraftAttachment[];
   policy: AttachmentPolicy | null;
   availability: HomeAttachmentAvailability;

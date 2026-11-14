@@ -24,7 +24,7 @@ const scopeSchema = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("identity"), ownerId: logoUuidSchema, projectId: logoUuidSchema }),
   z.strictObject({ kind: z.literal("home"), ownerId: logoUuidSchema }),
 ]);
-export type SupabasePrivateAssetScope = z.infer<typeof scopeSchema>;
+type SupabasePrivateAssetScope = z.infer<typeof scopeSchema>;
 /** Inject an already-authorized server transport. It must preserve URL, method,
  * body, headers, redirect:error and signal; it must not retry, follow redirects,
  * refresh into a different principal or fall back to privileged credentials.

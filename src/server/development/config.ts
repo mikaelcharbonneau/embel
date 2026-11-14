@@ -1,5 +1,5 @@
 /** Explicit local development opt-in. Never broadens a hosted runtime's targets. */
-export type DevelopmentConfiguration = Readonly<{ supabaseUrl: string; origin: string }>;
+type DevelopmentConfiguration = Readonly<{ supabaseUrl: string; origin: string }>;
 
 type Environment = Record<string, string | undefined>;
 

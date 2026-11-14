@@ -11,8 +11,8 @@ import {
 import { accountProjectSchema, accountProjectSummarySchema } from "./project-api";
 import { namingApproachSchema, namingPreferencesV2Schema } from "./naming-brain-preferences";
 import { namingChatCheckpointSchema } from "./naming-chat-checkpoint";
-export const NAMING_MAX_PAGE_SIZE = 100;
-export const NAMING_MAX_TRANSFORM_HISTORY = 32;
+const NAMING_MAX_PAGE_SIZE = 100;
+const NAMING_MAX_TRANSFORM_HISTORY = 32;
 const revisionSchema = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 const counterSchema = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const timestampSchema = z.iso.datetime({ offset: true });
@@ -126,7 +126,7 @@ export const namingStrategyBasisSchema = z
     }
   })
   .transform(freezeSnapshot);
-export type NamingStrategyBasis = z.infer<typeof namingStrategyBasisSchema>;
+type NamingStrategyBasis = z.infer<typeof namingStrategyBasisSchema>;
 
 /**
  * Exact v1 JSON projection. SQL derives this from owned saved context and compares
@@ -188,7 +188,7 @@ export const namingReadinessSchema = z
       .max(7),
   })
   .refine((value) => new Set(value.missing).size === value.missing.length, { message: "Missing steps must be unique" });
-export type NamingReadiness = z.infer<typeof namingReadinessSchema>;
+type NamingReadiness = z.infer<typeof namingReadinessSchema>;
 
 /** Saved account context only; local draft review bindings remain in the editor. */
 export function getNamingReadiness(context: ContextSnapshot, scope: ProjectScope): NamingReadiness {
@@ -210,7 +210,7 @@ export function nameIdentityKey(value: string): string {
     .replace(/[\p{P}\s]/gu, "")
     .normalize("NFC");
 }
-export const nameIdentityKeySchema = z
+const nameIdentityKeySchema = z
   .string()
   .max(320)
   .refine(
@@ -222,7 +222,7 @@ export const nameIdentityKeySchema = z
           .normalize("NFC") && !/[\p{Cc}\p{Zl}\p{Zp}\p{Bidi_Control}\p{Surrogate}]/u.test(value),
     { message: "Use a canonical name identity" },
   );
-export const generatedNameProposalSchema = z.strictObject({
+const generatedNameProposalSchema = z.strictObject({
   value: nameValueSchema,
   rationale: z.string().trim().min(1).max(2000),
   caution: z.string().trim().min(1).max(2000).optional(),
@@ -252,7 +252,7 @@ const generatedV2Fields = {
   providerItemId: z.string().min(1).max(300),
   generatedAt: timestampSchema,
 };
-export const generatedNamingOriginV2Schema = z.discriminatedUnion("protocol", [
+const generatedNamingOriginV2Schema = z.discriminatedUnion("protocol", [
   z.strictObject({
     ...generatedV2Fields,
     protocol: z.literal("openai_agents"),
@@ -270,10 +270,10 @@ export const generatedNamingOriginV2Schema = z.discriminatedUnion("protocol", [
     responseId: z.string().min(1).max(300),
   }),
 ]);
-export const generatedNamingOriginSchema = generatedNamingOriginV2Schema;
+const generatedNamingOriginSchema = generatedNamingOriginV2Schema;
 /** Future initial ideation has a distinct honest provenance contract. It is not
  * a researched/verified Naming brain artifact and cannot acquire such claims. */
-export const brainstormNamingOriginSchema = z.discriminatedUnion("version", [
+const brainstormNamingOriginSchema = z.discriminatedUnion("version", [
   z.strictObject({
     kind: z.literal("brainstorm"),
     version: z.literal(1),
@@ -304,19 +304,19 @@ export const brainstormNamingOriginSchema = z.discriminatedUnion("version", [
     generatedAt: timestampSchema,
   }),
 ]);
-export const importedNamingOriginSchema = z.strictObject({
+const importedNamingOriginSchema = z.strictObject({
   kind: z.literal("local_import"),
   ...rootFields,
   source: namingSourceSchema,
   capturedContext: contextSnapshotSchema,
 });
-export const namingRootOriginSchema = z.discriminatedUnion("kind", [
+const namingRootOriginSchema = z.discriminatedUnion("kind", [
   generatedNamingOriginSchema,
   brainstormNamingOriginSchema,
   importedNamingOriginSchema,
 ]);
-export type NamingRootOrigin = z.infer<typeof namingRootOriginSchema>;
-export const projectNameHistoryStepSchema = z.strictObject({
+type NamingRootOrigin = z.infer<typeof namingRootOriginSchema>;
+const projectNameHistoryStepSchema = z.strictObject({
   transformId: z.uuid(),
   projectId: z.uuid(),
   parentCandidateId: z.uuid(),
@@ -326,7 +326,7 @@ export const projectNameHistoryStepSchema = z.strictObject({
   createdAt: timestampSchema,
 });
 const historySchema = z.array(projectNameHistoryStepSchema).max(NAMING_MAX_TRANSFORM_HISTORY);
-export const projectNameOriginSchema = z.discriminatedUnion("kind", [
+const projectNameOriginSchema = z.discriminatedUnion("kind", [
   generatedNamingOriginSchema,
   brainstormNamingOriginSchema,
   importedNamingOriginSchema,
@@ -350,7 +350,7 @@ export const projectNameOriginSchema = z.discriminatedUnion("kind", [
     history: historySchema,
   }),
 ]);
-export type ProjectNameOrigin = z.infer<typeof projectNameOriginSchema>;
+type ProjectNameOrigin = z.infer<typeof projectNameOriginSchema>;
 
 function lineage(origin: ProjectNameOrigin): { root: NamingRootOrigin; history: z.infer<typeof historySchema> } {
   return origin.kind === "transform" || origin.kind === "account_copy"
@@ -359,7 +359,7 @@ function lineage(origin: ProjectNameOrigin): { root: NamingRootOrigin; history: 
 }
 
 /** Read-only provenance; passing this schema never proves ownership of references. */
-export const namingVerificationNoteSchema = z.strictObject({
+const namingVerificationNoteSchema = z.strictObject({
   claimKey: z.string().min(1).max(100),
   originalStatement: z.string().min(1).max(2000),
   status: z.enum(["supported", "corrected", "unresolved", "contradicted"]),
@@ -518,7 +518,7 @@ export const nameSelectionSchema = z
     path: ["previousSelectionId"],
   })
   .transform(freezeSnapshot);
-export const nameRetentionSchema = z
+const nameRetentionSchema = z
   .strictObject({
     ...ownershipFields,
     candidateId: z.uuid(),
@@ -532,7 +532,7 @@ export const nameRetentionSchema = z
       value.revision === 0 ? !value.favorite && !value.saved && value.updatedAt === null : value.updatedAt !== null,
     { message: "Revision zero denotes untouched retention only" },
   );
-export const namingListFilterSchema = z.enum(["all", "retained", "favorite", "saved"]);
+const namingListFilterSchema = z.enum(["all", "retained", "favorite", "saved"]);
 export const namingViewStateSchema = z.strictObject({
   pane: z.enum(["results", "screening", "workshop"]),
   conversationOpen: z.boolean(),
@@ -587,7 +587,7 @@ export const transformProjectNamesSchema = z
     message: "Exactly Blend requires a secondary owned candidate",
     path: ["secondaryCandidateId"],
   });
-export type TransformProjectNames = z.infer<typeof transformProjectNamesSchema>;
+type TransformProjectNames = z.infer<typeof transformProjectNamesSchema>;
 export const importProjectNameSchema = z.strictObject({
   expectedProjectRevision: revisionSchema,
   source: namingSourceSchema,
@@ -680,7 +680,7 @@ export const projectNameEntrySchema = z
     { message: "Retention must belong to this owned candidate" },
   );
 export type ProjectNameEntry = z.infer<typeof projectNameEntrySchema>;
-export const namingCursorSchema = z.strictObject({ createdAt: timestampSchema, id: z.uuid() });
+const namingCursorSchema = z.strictObject({ createdAt: timestampSchema, id: z.uuid() });
 export type NamingCursor = z.infer<typeof namingCursorSchema>;
 export const listProjectNamesSchema = z.strictObject({
   cursor: namingCursorSchema.optional(),
@@ -717,7 +717,7 @@ export const projectNamePageSchema = z
         message: "Continuation cursor must anchor the final returned row",
       });
   });
-export const accountNameEntrySchema = z
+const accountNameEntrySchema = z
   .strictObject({
     candidate: projectNameCandidateSchema,
     retention: nameRetentionSchema,

@@ -6,7 +6,7 @@ import { ApiError } from "@/server/http/errors";
 import { createLogoServices, type LogoServiceDependencies } from "./logo-services";
 import { sharedAccountHttpConfigured, resolveSharedLogoRequestServices } from "../shared-account/bootstrap";
 
-export type LogoRequestServiceDependencies = Omit<LogoServiceDependencies, "worker">;
+type LogoRequestServiceDependencies = Omit<LogoServiceDependencies, "worker">;
 export type LogoRequestServiceResolution = {
   ownerId: string;
   projectId: string;

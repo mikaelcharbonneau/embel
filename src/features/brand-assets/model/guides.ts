@@ -2,7 +2,7 @@ import { brandBoardFont } from "@/domain/brand-board-fonts";
 import type { BrandAssetSnapshot } from "./snapshot";
 const html = (value: string) =>
   value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
-export const textBytes = (text: string) => new TextEncoder().encode(text);
+const textBytes = (text: string) => new TextEncoder().encode(text);
 
 type TypeStyle = BrandAssetSnapshot["typography"][number];
 const STYLE_WORDS: readonly [RegExp, string][] = [
@@ -12,7 +12,7 @@ const STYLE_WORDS: readonly [RegExp, string][] = [
   [/body|text|copy|paragraph|read/iu, "body text"],
 ];
 /** Plain words for a saved type style, e.g. "guide_heading" → "headings". */
-export function plainTypeStyleName(snapshot: BrandAssetSnapshot, style: Pick<TypeStyle, "key" | "role">): string {
+function plainTypeStyleName(snapshot: BrandAssetSnapshot, style: Pick<TypeStyle, "key" | "role">): string {
   if (style.key === snapshot.design.headingStyleKey) return "headings";
   if (style.key === snapshot.design.bodyStyleKey) return "body text";
   return (

@@ -116,7 +116,7 @@ export const entrySchema = z
     }
   });
 export type HandleEntry = z.infer<typeof entrySchema>;
-export const bundleSchema = z
+const bundleSchema = z
   .object({
     id: text,
     title: text,
@@ -130,7 +130,7 @@ export const bundleSchema = z
     if (new Set(bundle.entries.map((entry) => entry.platform)).size !== bundle.entries.length)
       ctx.addIssue({ code: "custom", message: "Choose one handle per platform in a bundle." });
   });
-export type HandleBundle = z.infer<typeof bundleSchema>;
+type HandleBundle = z.infer<typeof bundleSchema>;
 const selectedImportsSchema = z
   .array(z.string().max(160))
   .max(30)
@@ -139,7 +139,7 @@ const selectedPlatformsSchema = z
   .array(platformSchema)
   .max(5)
   .refine((items) => new Set(items).size === items.length, "Platforms must be unique.");
-export const handleSearchOptionsSchema = z
+const handleSearchOptionsSchema = z
   .object({
     prefixes: z.string().max(200),
     suffixes: z.string().max(200),
@@ -149,7 +149,7 @@ export const handleSearchOptionsSchema = z
       .refine((items) => new Set(items).size === items.length, "Separators must be unique."),
   })
   .strict();
-export const savedHandleSearchSchema = z
+const savedHandleSearchSchema = z
   .object({
     id: z.uuid(),
     names: z.string().max(3000),
@@ -159,7 +159,7 @@ export const savedHandleSearchSchema = z
   })
   .strict();
 /** Authored input is retained even while a search is incomplete or locally invalid. */
-export const handlesSearchSchema = z
+const handlesSearchSchema = z
   .object({
     names: z.string().max(3000),
     nameDraft: z.string().max(3000),
@@ -186,7 +186,7 @@ export const workspaceSchema = z
   });
 export type HandlesState = z.infer<typeof workspaceSchema>;
 export const emptyHandlesState = (): HandlesState => ({ version: 1, bundles: [] });
-export type HandleStatus = "confirmed_available" | "taken" | "to_check";
+type HandleStatus = "confirmed_available" | "taken" | "to_check";
 export function handleStatus(entry: HandleEntry): HandleStatus {
   const latest = entry.evidence.at(-1);
   if (
@@ -289,7 +289,7 @@ export function updateBundleEntry(
 export function declareAccountCreated(entry: HandleEntry, url: string, declaredAt: string): HandleEntry {
   return entrySchema.parse({ ...entry, accountCreated: { declaredAt, url: url.trim() || null } });
 }
-export type LibraryFilter = "all" | "favorite" | "selected" | "account_created";
+type LibraryFilter = "all" | "favorite" | "selected" | "account_created";
 export function filterBundles(
   state: HandlesState,
   query = "",
@@ -318,5 +318,5 @@ export function filterBundles(
         )),
   );
 }
-export const groupKey = (bundle: HandleBundle) =>
+const groupKey = (bundle: HandleBundle) =>
   bundle.source.projectId ? `project:${bundle.source.projectId}` : `list:${bundle.list}`;

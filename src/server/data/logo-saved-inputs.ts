@@ -40,7 +40,7 @@ const OLD_CLOSING =
 const NOTES_CLOSING = "Color preferences and the liked brands above guide later identity work.";
 type LikedDesign = { choice: InspirationPreferences; design: InspirationDesign };
 /** A liked upload's note state; a ready note carries its text. */
-export type LikedUploadNote = { referenceId: string; status: LogoUploadNoteStatus; note?: LogoStyleNote };
+type LikedUploadNote = { referenceId: string; status: LogoUploadNoteStatus; note?: LogoStyleNote };
 
 /** Style notes for logo concepts, in like order and at most four likes: first
  * each liked upload's written note, then each liked brand logo's precomputed

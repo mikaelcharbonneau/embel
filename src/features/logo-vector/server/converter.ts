@@ -7,7 +7,7 @@ import { LogoVectorError } from "../model/errors";
 import { runIdentityRasterProcess, runLogoConceptGrayscaleProcess } from "../../../server/image-process/process";
 import { IMAGE_INPUT_LIMITS } from "../../../domain/logo-image-limits";
 
-export const LOGO_RASTER_LIMITS = Object.freeze({
+const LOGO_RASTER_LIMITS = Object.freeze({
   bytes: 33_554_432,
   pixels: 16_777_216,
   edge: 8192,
@@ -32,7 +32,7 @@ export function verifyLogoRasterSource(source: VerifiedAssetBytes): void {
   }
   assertIdentityRasterFormat(source.bytes, source.mimeType);
 }
-export function assertIdentityRasterFormat(bytes: Uint8Array, mimeType: string): void {
+function assertIdentityRasterFormat(bytes: Uint8Array, mimeType: string): void {
   if (!(bytes instanceof Uint8Array) || !bytes.length || bytes.byteLength > LOGO_RASTER_LIMITS.bytes)
     throw new LogoVectorError("limit_exceeded", "Raster input exceeds the 32 MiB conversion limit.");
   const png = bytes.length >= 8 && [137, 80, 78, 71, 13, 10, 26, 10].every((b, i) => bytes[i] === b);

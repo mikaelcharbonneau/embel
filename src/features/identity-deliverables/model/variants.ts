@@ -28,7 +28,7 @@ import {
   type LogoPaintedBounds,
 } from "../../logo-vector/model/geometry";
 
-export type ProposedLogoVariant = {
+type ProposedLogoVariant = {
   key: string;
   role: LogoVariant["role"];
   colorway: LogoVariant["colorway"];
@@ -38,15 +38,15 @@ export type ProposedLogoVariant = {
   | { applicability: { status: "applicable" }; document: LogoVectorDocument }
   | { applicability: { status: "not_applicable"; reason: "no_symbol" | "inseparable_artwork" }; document: null }
 );
-export type ProposedLogoVariantSet = {
+type ProposedLogoVariantSet = {
   approvedLogoId: string;
   directionApprovalId: string;
   items: ProposedLogoVariant[];
 };
-export type ReviewedLogoVariant = { variant: LogoVariant; review: LogoVariantReview; document: LogoVectorDocument };
-export type ProposedVariantPreview = { svg: Uint8Array; png: Uint8Array; renderHash: string };
+type ReviewedLogoVariant = { variant: LogoVariant; review: LogoVariantReview; document: LogoVectorDocument };
+type ProposedVariantPreview = { svg: Uint8Array; png: Uint8Array; renderHash: string };
 
-export class LogoVariantError extends Error {
+class LogoVariantError extends Error {
   constructor(
     public readonly code: "approval_required" | "review_required" | "preview_renderer_unavailable",
     message: string,

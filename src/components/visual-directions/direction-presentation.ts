@@ -1,6 +1,6 @@
 import type { IdentitySystemVersion, IdentityTypography } from "@/domain/project-identity";
 
-export type VisualDirectionDescription = {
+type VisualDirectionDescription = {
   id: string;
   title: string;
   summary: string;

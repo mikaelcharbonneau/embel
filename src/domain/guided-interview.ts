@@ -17,17 +17,9 @@ export { guidedInterviewStateSchema, guidedStageSchema, guidedTurnSchema };
 export type { GuidedInterviewState, GuidedStage, GuidedTurn };
 /** Strategy (competitors, audience, positioning), then Voice (personality, and
  * the optional slogan once a name is chosen). Naming runs between the two. */
-export const GUIDED_STAGES: readonly GuidedStage[] = [
-  "competitors",
-  "audience",
-  "positioning",
-  "personality",
-  "slogan",
-];
+const GUIDED_STAGES: readonly GuidedStage[] = ["competitors", "audience", "positioning", "personality", "slogan"];
 /** The saved intake step has a fixed vocabulary; the slogan step reuses personality. */
-export function guidedIntakeStep(
-  stage: GuidedStage | "complete",
-): "competitors" | "audience" | "positioning" | "personality" {
+function guidedIntakeStep(stage: GuidedStage | "complete"): "competitors" | "audience" | "positioning" | "personality" {
   return stage === "slogan" || stage === "complete" ? "personality" : stage;
 }
 
@@ -59,7 +51,7 @@ const optionFields = {
   recommended: z.boolean(),
   recommendationReason: z.string().trim().min(1).max(1000).nullable(),
 };
-export const guidedOptionSchema = z
+const guidedOptionSchema = z
   .discriminatedUnion("stage", [
     z.strictObject({ ...optionFields, stage: z.literal("competitors"), payload: unselectedCompetitor }),
     z.strictObject({ ...optionFields, stage: z.literal("audience"), payload: unselectedAudience }),
@@ -78,7 +70,7 @@ export function guidedSingleChoice(stage: GuidedStage): boolean {
   return stage === "positioning" || stage === "personality" || stage === "slogan";
 }
 export type GuidedOption = z.infer<typeof guidedOptionSchema>;
-export const guidedSelectionSchema = z
+const guidedSelectionSchema = z
   .discriminatedUnion("stage", [
     z.strictObject({ stage: z.literal("competitors"), competitors: z.array(unselectedCompetitor).max(20) }),
     z.strictObject({ stage: z.literal("audience"), audienceSegments: z.array(unselectedAudience).min(1).max(12) }),

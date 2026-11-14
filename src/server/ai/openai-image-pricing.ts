@@ -34,7 +34,7 @@ const bindingSchema = z.strictObject({
   serviceTier: z.literal(basis.serviceTier),
   rateVersion: z.literal(basis.rateVersion),
 });
-export type LogoImagePricingBinding = { model: string; api: string; serviceTier: string; rateVersion: string };
+type LogoImagePricingBinding = { model: string; api: string; serviceTier: string; rateVersion: string };
 const unknown: LogoBillingObservation = Object.freeze({ status: "unknown", confirmedMicrousd: null });
 
 /** Explicit injection into LogoImageConfiguration.priceUsage only. This does

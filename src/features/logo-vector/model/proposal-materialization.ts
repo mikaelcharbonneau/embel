@@ -3,7 +3,7 @@ import { logoExpectedHeadsSchema, logoManualCommandSchema } from "@/domain/logo-
 import { boundedLogoJson, logoUuidSchema } from "@/domain/logo-vector";
 
 /** Explicit zero-AI application. The client cannot supply an edit or producer evidence. */
-export const applyLogoVectorProposalInputSchema = boundedLogoJson(
+const applyLogoVectorProposalInputSchema = boundedLogoJson(
   z.strictObject({
     requestKey: logoUuidSchema,
     expected: logoExpectedHeadsSchema,
@@ -11,7 +11,7 @@ export const applyLogoVectorProposalInputSchema = boundedLogoJson(
     proposalId: logoUuidSchema,
   }),
 );
-export const applyLogoVectorProposalCommandSchema = boundedLogoJson(
+const applyLogoVectorProposalCommandSchema = boundedLogoJson(
   z.strictObject({ method: z.literal("applyLogoVectorProposal"), body: applyLogoVectorProposalInputSchema }),
 );
 /** Additive trusted boundary; historical manual/domain contracts stay readable unchanged. */

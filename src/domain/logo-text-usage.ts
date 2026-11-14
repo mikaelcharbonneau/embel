@@ -11,7 +11,7 @@ export const logoTextUsageSchema = z
     outputTokens: moneySchema,
   })
   .refine((u) => u.cachedInputTokens + u.cacheWriteInputTokens <= u.inputTokens, "Input token subcounts exceed total");
-export type LogoTextUsage = z.infer<typeof logoTextUsageSchema>;
+type LogoTextUsage = z.infer<typeof logoTextUsageSchema>;
 export function logoTextUsageCost(usage: LogoTextUsage): number {
   const u = logoTextUsageSchema.parse(usage);
   const total =

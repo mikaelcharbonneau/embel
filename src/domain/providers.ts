@@ -12,7 +12,7 @@ export type LogoImageModel = typeof IMAGE_MODEL | typeof CAPPED_LOGO_IMAGE_MODEL
  * is not applied, and the generation engine draws Logo images with IMAGE_MODEL instead.
  * Old-path readers accept either, so the old path keeps working until it is retired. */
 export const sharedImageModelSchema = z.enum([IMAGE_MODEL, CAPPED_LOGO_IMAGE_MODEL]);
-export const textOperationSchema = z.enum([
+const textOperationSchema = z.enum([
   "strategy.reformulate",
   "strategy.competitors",
   "strategy.audience",
@@ -22,7 +22,7 @@ export const textOperationSchema = z.enum([
   "naming.generate",
   "ideas.explore",
 ]);
-export type TextOperation = z.infer<typeof textOperationSchema>;
+type TextOperation = z.infer<typeof textOperationSchema>;
 export const operationSchema = z.enum([
   ...textOperationSchema.options,
   "identity.image",
@@ -36,7 +36,7 @@ export const operationSchema = z.enum([
   "identity.logo_vector_propose",
   "identity.logo_style_note",
 ]);
-export type Operation = z.infer<typeof operationSchema>;
+type Operation = z.infer<typeof operationSchema>;
 
 export const providerFailureSchema = z.discriminatedUnion("kind", [
   z.strictObject({
@@ -51,14 +51,14 @@ export const providerFailureSchema = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("not_dispatched"), message: z.string().max(1000), retrySafe: z.literal(true) }),
 ]);
 
-export type ModelRoutingConfiguration = {
+type ModelRoutingConfiguration = {
   paidCallsApproved: boolean;
   credentialsPresent: boolean;
   verifiedModelIds: readonly string[];
   textModels: Partial<Record<TextOperation, string>>;
 };
 
-export type ModelRoute =
+type ModelRoute =
   | { status: "ready"; provider: "openai"; model: string; liveValidated: false }
   | {
       status: "blocked";

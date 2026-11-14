@@ -129,7 +129,7 @@ const exportRejectionEnvelopeSchema = z.strictObject({
   error: z.strictObject({ code: z.literal("conflict"), message: z.string().max(1000) }),
   rejection: D.logoExportRejectionSchema,
 });
-export class AccountLogoExportAdmissionRejectedError extends AccountRequestError {
+class AccountLogoExportAdmissionRejectedError extends AccountRequestError {
   constructor(readonly rejection: D.LogoExportRejection) {
     super(409);
     this.name = "AccountLogoExportAdmissionRejectedError";

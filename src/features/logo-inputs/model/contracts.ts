@@ -9,7 +9,7 @@ import { logoHashSchema, logoUuidSchema } from "@/domain/logo-vector";
 
 export const LOGO_REFERENCE_UPLOAD_MAX_BYTES = 33_554_432;
 export const LOGO_FONT_UPLOAD_MAX_BYTES = 10_485_760;
-export const LOGO_LICENSE_MAX_BYTES = 262_144;
+const LOGO_LICENSE_MAX_BYTES = 262_144;
 export const LOGO_INPUT_METADATA_MAX_BYTES = 294_912;
 const jsonbText = (value: string) =>
   [...value].every((character) => {

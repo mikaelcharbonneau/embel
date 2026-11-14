@@ -30,7 +30,7 @@ export const logoStyleNoteSchema = z.strictObject({ symbol: noteText(600), lette
 export type LogoStyleNote = z.infer<typeof logoStyleNoteSchema>;
 
 /** Brief lines. The saved inspiration block of a logo brief starts with this heading. */
-export const LOGO_INSPIRATION_HEADING = /^Saved inspiration · catalog \S+ · selection (\d+):$/u;
+const LOGO_INSPIRATION_HEADING = /^Saved inspiration · catalog \S+ · selection (\d+):$/u;
 export const LIKED_LOGO_STYLE = "Liked logo style: ";
 export const LIKED_LETTERING = "Liked lettering: ";
 /** Closes a block written with style notes; its presence marks the block's format. */

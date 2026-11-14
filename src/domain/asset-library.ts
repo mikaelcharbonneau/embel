@@ -2,9 +2,9 @@ import { z } from "zod";
 import { assetFormatSchema } from "./assets";
 import { projectScopeSchema } from "./projects";
 
-export const ASSET_LIBRARY_DEFAULT_PAGE_SIZE = 40;
-export const ASSET_LIBRARY_MAX_PAGE_SIZE = 100;
-export const ASSET_LIBRARY_PREVIEW_COUNT = 4;
+const ASSET_LIBRARY_DEFAULT_PAGE_SIZE = 40;
+const ASSET_LIBRARY_MAX_PAGE_SIZE = 100;
+const ASSET_LIBRARY_PREVIEW_COUNT = 4;
 export const ASSET_LIBRARY_MUTATION_MAX_BYTES = 32_768;
 export const ASSET_MAX_FILE_BYTES = 52_428_800;
 const revision = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
@@ -30,10 +30,10 @@ const sameAsset = (
 const mimeBase = (value: string) => value.split(";", 1)[0]!.trim().toLowerCase();
 
 /** Authoritative purpose is never inferred from the arbitrary legacy kind label. */
-export const assetPurposeSchema = z.enum(["brand_asset", "reference_media", "legacy_unknown"]);
-export const assetLibraryTabSchema = z.enum(["my_selection", "all_generations"]);
+const assetPurposeSchema = z.enum(["brand_asset", "reference_media", "legacy_unknown"]);
+const assetLibraryTabSchema = z.enum(["my_selection", "all_generations"]);
 export const assetFileTypeSchema = z.enum([...assetFormatSchema.options, "other"]);
-export type AssetFileType = z.infer<typeof assetFileTypeSchema>;
+type AssetFileType = z.infer<typeof assetFileTypeSchema>;
 export function assetFormatFromMime(value: string): AssetFileType {
   const formats: Readonly<Record<string, AssetFileType>> = {
     "image/svg+xml": "svg",
@@ -52,8 +52,8 @@ export function assetFormatFromMime(value: string): AssetFileType {
 export const assetVersionReferenceSchema = z.strictObject({ ...assetScope, versionId: z.uuid(), contentHash: hash });
 export type AssetVersionReference = z.infer<typeof assetVersionReferenceSchema>;
 /** Existing rows have no trusted creation receipt, regardless of the shape of their raw JSON. */
-export const assetProvenanceSchema = z.strictObject({ status: z.literal("legacy_unverified") });
-export const assetFileStateSchema = z.enum(["metadata_only", "unverified", "verified", "missing_or_invalid"]);
+const assetProvenanceSchema = z.strictObject({ status: z.literal("legacy_unverified") });
+const assetFileStateSchema = z.enum(["metadata_only", "unverified", "verified", "missing_or_invalid"]);
 export const assetFileVerificationSchema = z.discriminatedUnion("status", [
   z.strictObject({
     status: z.literal("verified"),
@@ -64,7 +64,7 @@ export const assetFileVerificationSchema = z.discriminatedUnion("status", [
   }),
   z.strictObject({ status: z.literal("missing_or_invalid"), checkedAt: timestamp }),
 ]);
-export const assetFreshnessSchema = z
+const assetFreshnessSchema = z
   .strictObject({
     basis: z.literal("revision_only"),
     status: z.enum(["unknown", "stale"]),
@@ -91,7 +91,7 @@ export const assetFreshnessSchema = z
       });
   })
   .transform(freeze);
-export type AssetFreshness = z.infer<typeof assetFreshnessSchema>;
+type AssetFreshness = z.infer<typeof assetFreshnessSchema>;
 export function assetRevisionFreshness(inputRevision: number, currentProjectRevision: number): AssetFreshness {
   const changed = inputRevision !== currentProjectRevision;
   return assetFreshnessSchema.parse({
@@ -157,7 +157,7 @@ function sameVersion(a: AssetVersionDetail, b: AssetVersionDetail): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-export const assetSelectionReceiptSchema = z.discriminatedUnion("status", [
+const assetSelectionReceiptSchema = z.discriminatedUnion("status", [
   z.strictObject({ status: z.literal("legacy_unverified") }),
   z.strictObject({
     status: z.literal("recorded"),
@@ -166,7 +166,7 @@ export const assetSelectionReceiptSchema = z.discriminatedUnion("status", [
     previousSelectionId: z.uuid().nullable(),
   }),
 ]);
-export const assetSelectionSchema = z
+const assetSelectionSchema = z
   .strictObject({
     id: z.uuid(),
     ...assetScope,
@@ -236,7 +236,7 @@ export const assetProjectSummarySchema = z.strictObject({
 });
 export type AssetProjectSummary = z.infer<typeof assetProjectSummarySchema>;
 
-export const assetLibraryCursorSchema = z.strictObject({
+const assetLibraryCursorSchema = z.strictObject({
   createdAt: timestamp,
   assetId: z.uuid(),
   tab: assetLibraryTabSchema,
@@ -244,7 +244,7 @@ export const assetLibraryCursorSchema = z.strictObject({
   format: assetFileTypeSchema.nullable(),
 });
 export type AssetLibraryCursor = z.infer<typeof assetLibraryCursorSchema>;
-export const assetVersionCursorSchema = z.strictObject({
+const assetVersionCursorSchema = z.strictObject({
   createdAt: timestamp,
   versionId: z.uuid(),
   assetId: z.uuid(),
@@ -316,7 +316,7 @@ export const assetVersionPageSchema = z
         message: "Version continuation requires remaining history and must bind its last row, owned asset and format",
       });
   });
-export type AssetVersionPage = z.infer<typeof assetVersionPageSchema>;
+type AssetVersionPage = z.infer<typeof assetVersionPageSchema>;
 
 const metadataFields = { asset: assetRecordSchema, project: assetProjectSummarySchema };
 const detailFields = {

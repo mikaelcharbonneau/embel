@@ -17,7 +17,7 @@ import {
 
 export const fontPurposeSchema = z.enum(["render", "outline", "embed", "modify", "redistribute"]);
 export type FontPurpose = z.infer<typeof fontPurposeSchema>;
-export const fontPermissionSchema = z.enum(["allowed", "denied", "unknown"]);
+const fontPermissionSchema = z.enum(["allowed", "denied", "unknown"]);
 const sourceUrl = z
   .string()
   .max(2048)
@@ -162,7 +162,7 @@ export const identityTypographyVersionSchema = bounded(
 export type IdentityTypographyVersion = z.infer<typeof identityTypographyVersionSchema>;
 const positive = z.number().positive().max(16_384),
   coordinate = z.number().min(-1_000_000).max(1_000_000);
-export const identityGraphicSpecSchema = z.discriminatedUnion("kind", [
+const identityGraphicSpecSchema = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("dots"), paletteKey: key, radius: positive, spacing: positive }),
   z.strictObject({
     kind: z.literal("stripes"),
@@ -194,7 +194,7 @@ export const identityDirectionVersionSchema = bounded(
     graphicsVersionId: uuid,
   }),
 );
-export const identityDirectionProductionResultSchema = bounded(
+const identityDirectionProductionResultSchema = bounded(
   z
     .strictObject({
       directions: z.tuple([

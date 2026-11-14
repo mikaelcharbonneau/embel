@@ -131,7 +131,7 @@ function choicesSummary(value: NamingPreferencesV2) {
     .filter(Boolean)
     .join(" · ");
 }
-export function NamingRecoveryNotice({ memory, account }: { memory: NamingBrainMemory; account: NamingAccount }) {
+function NamingRecoveryNotice({ memory, account }: { memory: NamingBrainMemory; account: NamingAccount }) {
   const read = useCallback(() => memory.getRecovery(account), [memory, account]);
   const recovery = useSyncExternalStore(memory.subscribe, read, hidden);
   if (!recovery) return null;

@@ -4,7 +4,7 @@ import type { IdentityAssetWrite } from "../../../server/data/identity-asset-sto
 import { assertFileBytes, LOGO_MAX_FILE_BYTES, sha256, LogoFileError } from "./render-policy";
 import { runLogoProcess } from "./process";
 /** Bounded passive ZIP inspection, before inflating potentially untrusted members. */
-export function inspectLogoExportArchive(input: Uint8Array): Record<string, Uint8Array> {
+function inspectLogoExportArchive(input: Uint8Array): Record<string, Uint8Array> {
   assertFileBytes(input);
   // Both passes inspect the same private copy, including for Buffer/SAB callers.
   const bytes = new Uint8Array(input),

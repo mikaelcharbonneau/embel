@@ -11,10 +11,10 @@ import { Heart } from "./inspiration-brands";
 
 const ACCEPTED = "image/png,image/jpeg,image/webp";
 // Recorded as the reference's permission note: who added it and that nothing was verified.
-export const INSPIRATION_UPLOAD_NOTE =
+const INSPIRATION_UPLOAD_NOTE =
   "Added by the account owner from Inspiration as a private reference. No license was checked.";
 /** A readable title from the file name, since nothing is typed by hand. */
-export function referenceTitle(fileName: string) {
+function referenceTitle(fileName: string) {
   const title = fileName
     .replace(/\.[^.]+$/u, "")
     .replace(/[_-]+/gu, " ")

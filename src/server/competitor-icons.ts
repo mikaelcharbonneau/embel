@@ -11,7 +11,7 @@ import { isPublicAddress } from "./public-address";
  * contacts competitor sites. Every hop is HTTPS to a public address that is
  * resolved, checked and pinned before connecting; only small raster images are
  * accepted, identified by their bytes rather than the server's content type. */
-export const COMPETITOR_ICON_LIMITS = Object.freeze({
+const COMPETITOR_ICON_LIMITS = Object.freeze({
   pageBytes: 524_288,
   manifestBytes: 65_536,
   iconBytes: 262_144,
@@ -33,7 +33,7 @@ export type PinnedRequest = {
   signal: AbortSignal;
 };
 export type PinnedResponse = { status: number; location: string | null; contentType: string; bytes: Buffer };
-export type CompetitorIconDependencies = {
+type CompetitorIconDependencies = {
   resolveHost?: (hostname: string) => Promise<Address[]>;
   request?: (input: PinnedRequest) => Promise<PinnedResponse>;
 };

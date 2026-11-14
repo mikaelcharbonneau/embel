@@ -21,7 +21,7 @@ export type SharedHttpPrincipal = Readonly<{
   user: string;
   password: string;
 }>;
-export type SharedAccountHttpConfiguration = Readonly<{
+type SharedAccountHttpConfiguration = Readonly<{
   origin: string;
   publishableKey: string;
   identity?: SharedHttpPrincipal;

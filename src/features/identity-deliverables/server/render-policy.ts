@@ -5,19 +5,19 @@ import type { LogoVectorDocument } from "../../../domain/logo-vector";
 import { validateLogoVectorDocument } from "../../logo-vector/model/geometry";
 import { serializeLogoSvg } from "../../logo-vector/model/svg";
 
-export const LOGO_RENDER_POLICY = "fluid-logo-files-v1";
+const LOGO_RENDER_POLICY = "fluid-logo-files-v1";
 export const LOGO_PREVIEW_LONG_EDGE = 512;
 export const LOGO_RENDER_DEADLINE_MS = 60_000;
-export const LOGO_MAX_DECODED_PIXELS = 16_777_216;
+const LOGO_MAX_DECODED_PIXELS = 16_777_216;
 export const LOGO_MAX_FILE_BYTES = 52_428_800;
-export const LOGO_ENGINE_VERSIONS = Object.freeze({
+const LOGO_ENGINE_VERSIONS = Object.freeze({
   pdfkit: "0.20.2",
   resvg: "2.6.2",
   pdfjs: "6.2.108",
   sharp: "0.35.5",
 });
 export const sha256 = (bytes: Uint8Array | string) => createHash("sha256").update(bytes).digest("hex");
-export type VariantRenderBasis = Pick<LogoVariant, "role" | "colorway" | "clearSpace" | "minimumDigitalSize">;
+type VariantRenderBasis = Pick<LogoVariant, "role" | "colorway" | "clearSpace" | "minimumDigitalSize">;
 export class LogoFileError extends Error {
   constructor(
     public readonly code:

@@ -16,7 +16,7 @@ const sizes = {
   collapse: 16,
   chevron: 16,
 } as const;
-export type ProjectArtworkName = keyof typeof sizes;
+type ProjectArtworkName = keyof typeof sizes;
 export function ProjectArtwork({ name }: { name: ProjectArtworkName }) {
   // Original static Figma exports retain their native geometry.
   return (

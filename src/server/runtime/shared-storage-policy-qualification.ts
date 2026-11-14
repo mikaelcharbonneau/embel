@@ -5,7 +5,7 @@ export const sharedLegacyStorageHelperHash = "3a3607b99aaaddc0b5fc5922a327a65381
 
 /** Pure catalog qualification shared by fixed web and worker connections. No
  * configuration, credential, HTTP, driver construction or proof RPC imports. */
-export const sharedStoragePolicyQualificationSql = `WITH shared_storage_required(policy_name,helper_name,body_sha256,language_name,volatility,expression) AS (VALUES
+const sharedStoragePolicyQualificationSql = `WITH shared_storage_required(policy_name,helper_name,body_sha256,language_name,volatility,expression) AS (VALUES
  ('embel_shared_customer_storage_live','shared_http_customer_storage_live','${sharedCustomerStorageHelperHash}','plpgsql','v',
   $customer$((bucket_id <> 'fluid-assets'::text) OR ( SELECT fluid_private.shared_http_customer_storage_live() AS shared_http_customer_storage_live))$customer$),
  ('embel_shared_legacy_storage_registry_fence','shared_storage_legacy_registry_present','${sharedLegacyStorageHelperHash}','sql','s',

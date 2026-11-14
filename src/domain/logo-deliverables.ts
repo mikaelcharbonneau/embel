@@ -30,7 +30,7 @@ import {
   type LogoVectorRevision,
 } from "./logo-vector";
 
-export const verifiedFileObservationSchema = assetFileVerificationSchema.options[0];
+const verifiedFileObservationSchema = assetFileVerificationSchema.options[0];
 export type VerifiedFileObservation = z.infer<typeof verifiedFileObservationSchema>;
 export const identityAssetReceiptSchema = bounded(
   z
@@ -171,7 +171,7 @@ export const logoVariantSetSchema = bounded(
     ),
 );
 export type LogoVariantSet = z.infer<typeof logoVariantSetSchema>;
-export const resolvedLogoVariantSchema = z
+const resolvedLogoVariantSchema = z
   .strictObject({ variant: logoVariantSchema, document: logoVectorDocumentSchema.nullable() })
   .refine(
     (v) => (v.variant.applicability.status === "applicable") === (v.document !== null),
@@ -317,7 +317,7 @@ export const logoExportManifestSchema = bounded(
   131_072,
 );
 export type LogoExportManifest = z.infer<typeof logoExportManifestSchema>;
-export type LogoExportRequestSummary = {
+type LogoExportRequestSummary = {
   requestKey: string;
   input: LogoExportIntent;
   state: Exclude<LogoRequestState, { status: "not_found" }>;

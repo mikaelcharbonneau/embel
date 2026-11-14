@@ -8,7 +8,7 @@ import { fontTextCheckSchema, type FontTextCheck, type PermittedFont } from "@/d
 import { fontPurposeAllowed } from "../model/font-rights";
 import { fontCheckBinding } from "../model/font-check-binding";
 
-export const MAX_FONT_BYTES = 10_485_760;
+const MAX_FONT_BYTES = 10_485_760;
 const inspectionSchema = z.strictObject({
   family: z.string().min(1).max(200),
   postscriptName: z.string().min(1).max(200),
@@ -20,7 +20,7 @@ const inspectionSchema = z.strictObject({
   weight: z.number().int().min(1).max(1000),
   italic: z.boolean(),
 });
-export type FontInspection = z.infer<typeof inspectionSchema>;
+type FontInspection = z.infer<typeof inspectionSchema>;
 const inspector = `
 const { parentPort, workerData } = require('node:worker_threads');
 try {
@@ -95,7 +95,7 @@ export async function inspectFontBytes(
     inspections--;
   }
 }
-export type TypographySample = {
+type TypographySample = {
   typographyVersionId: string;
   styleKey: string;
   role: string;

@@ -54,7 +54,7 @@ const componentKeySchema = z.strictObject({
   baseSystemVersionId: id,
   component: z.enum(["colors", "typography"]),
 });
-export type IdentityDraftKey = z.infer<typeof preferenceKeySchema> | z.infer<typeof componentKeySchema>;
+type IdentityDraftKey = z.infer<typeof preferenceKeySchema> | z.infer<typeof componentKeySchema>;
 const refinementPendingSchema = z.strictObject({
   request: refineIdentityComponentSchema,
   basis: identityBasisSchema,
@@ -115,7 +115,7 @@ export function identityDraftChanged(draft: IdentityDraft): boolean {
         : identityTypographyForm(draft.baseline);
   return !same(baseline, draft.value);
 }
-export function identityDraftKey(input: IdentityDraftKey): IdentityDraftKey {
+function identityDraftKey(input: IdentityDraftKey): IdentityDraftKey {
   const scope = { ownerId: input.ownerId, projectId: input.projectId };
   return input.kind === "preferences"
     ? preferenceKeySchema.parse({ kind: input.kind, ...scope })

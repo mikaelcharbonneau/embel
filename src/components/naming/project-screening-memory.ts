@@ -1,7 +1,7 @@
 import type { ScreeningRecordInput } from "@/domain/project-screening";
 import type { HandlePlatform } from "@/features/handles-workspace/domain";
 
-export type ScreeningDraft = {
+type ScreeningDraft = {
   tool: "domains" | "handles" | "trademarks";
   domain: string;
   handle: string;

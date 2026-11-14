@@ -54,7 +54,7 @@ export const strategyJobPolicySchema = z
   });
 export type StrategyJobPolicy = z.infer<typeof strategyJobPolicySchema>;
 
-export const strategyUsageSchema = z
+const strategyUsageSchema = z
   .strictObject({
     inputTokens: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
     outputTokens: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
@@ -66,14 +66,14 @@ export const strategyUsageSchema = z
     message: "Cached and cache-write tokens must be part of input usage",
   });
 
-export const reformulationProposalSchema = z.strictObject({
+const reformulationProposalSchema = z.strictObject({
   message: z.string().trim().min(1).max(6000),
   activity: z.string().trim().max(2000),
   offering: z.string().trim().max(2000),
   knownAudience: z.string().trim().max(2000),
   questions: z.array(z.string().trim().min(1).max(1000)).max(8),
 });
-export const competitorsProposalSchema = z
+const competitorsProposalSchema = z
   .strictObject({
     message: z.string().trim().min(1).max(6000),
     competitors: z.array(competitorSchema).max(20),
@@ -92,7 +92,7 @@ export const competitorsProposalSchema = z
     });
   });
 
-export const audienceProposalSchema = z
+const audienceProposalSchema = z
   .strictObject({
     message: z.string().trim().min(1).max(6000),
     segments: z.array(audienceSegmentSchema).min(1).max(12),
@@ -110,15 +110,15 @@ export const audienceProposalSchema = z
       ids.add(segment.id);
     });
   });
-export const personalityProposalSchema = z.strictObject({
+const personalityProposalSchema = z.strictObject({
   message: z.string().trim().min(1).max(6000),
   personality: personalitySchema,
 });
-export const positioningProposalSchema = z.strictObject({
+const positioningProposalSchema = z.strictObject({
   message: z.string().trim().min(1).max(6000),
   positioning: z.string().trim().min(1).max(5000),
 });
-export const sloganProposalSchema = z.strictObject({
+const sloganProposalSchema = z.strictObject({
   message: z.string().trim().min(1).max(6000),
   slogans: z.array(z.string().trim().min(1).max(120)).min(1).max(12),
 });
@@ -287,7 +287,7 @@ export const strategyJobSummarySchema = z
     "Uncapped summaries require the exact policy identity",
   );
 /** Server-owned proof of the exact immutable result accepted into a revision. */
-export const strategyJobApplicationSchema = z
+const strategyJobApplicationSchema = z
   .strictObject({
     jobId: z.uuid(),
     stepKey: z.string().min(1).max(200),

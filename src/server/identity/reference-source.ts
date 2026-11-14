@@ -3,7 +3,7 @@ import type { IdentityReferenceQuery, ReferenceSourceResult } from "@/domain/ide
 import type { AuthenticatedContext } from "../auth/context";
 
 /** The DAL first verifies the owned project. A configured source then establishes real owned media and attribution. */
-export interface ReferenceSource {
+interface ReferenceSource {
   list(auth: AuthenticatedContext, projectId: string, query: IdentityReferenceQuery): Promise<ReferenceSourceResult>;
 }
 

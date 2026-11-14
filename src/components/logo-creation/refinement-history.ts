@@ -2,7 +2,7 @@ import type { LogoRasterRefinement } from "../../domain/logo-jobs";
 import type { AccountLogoClient } from "../identity/account-logo-client";
 import { AccountRequestError } from "../workspace/account-api";
 
-export type LogoRefinementHistoryItem = { record: LogoRasterRefinement; verified: boolean; error: string | null };
+type LogoRefinementHistoryItem = { record: LogoRasterRefinement; verified: boolean; error: string | null };
 export type LogoRefinementHistoryState = {
   items: LogoRefinementHistoryItem[];
   nextCursor: string | null;
