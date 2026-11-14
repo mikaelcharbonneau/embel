@@ -44,7 +44,7 @@ import {
   type DomainTweaks,
 } from "@/features/domain-workspace/name-search";
 import { checkedTime, providerLabels, rememberedDomainChecks } from "./use-live-checks";
-import { WorkAreaLayer } from "./work-area-layer";
+import { WorkAreaLayer } from "@/components/workspace/work-area-layer";
 import styles from "./name-details.module.css";
 
 const PAGE = 12;
