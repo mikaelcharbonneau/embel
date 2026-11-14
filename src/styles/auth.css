@@ -207,17 +207,3 @@
 .auth-captcha + .auth-submit {
   margin-top: var(--space-4);
 }
-
-/* Delete account confirmation. */
-.account-delete-dialog {
-  width: min(480px, calc(100vw - 40px));
-}
-.account-delete-field {
-  margin-top: var(--space-5);
-}
-.account-delete-field input {
-  border-radius: var(--radius-control);
-}
-.auth-signout-dialog p.account-delete-error {
-  color: var(--color-text-danger);
-}

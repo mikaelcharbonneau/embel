@@ -1,10 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
-import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
+import { useEffect, useId, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { InlineMessage } from "@/components/ui/message";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
-import "@/styles/auth.css";
+import { useAccountProfile } from "./account-profile-provider";
 
 type ErrorBody = { error?: { code?: unknown } };
 async function errorCode(response: Response): Promise<string | null> {
@@ -28,6 +30,8 @@ const deletionMessages: Record<string, string> = {
   deletion_incomplete: "Deletion didn't finish. Some of your data may already be deleted. Try again to finish it.",
   unauthenticated: "Your session has ended. Sign in again to delete your account.",
 };
+/** The same comparison the server makes; the server still checks it. */
+const sameEmail = (typed: string, email: string) => typed.trim().toLowerCase() === email.trim().toLowerCase();
 
 /** Settings → Account: download a copy of everything, or delete the account. */
 export function AccountDataControls() {
@@ -76,43 +80,41 @@ function AccountData({ account }: { account: VerifiedAccount }) {
   }
 
   return (
-    <section className="sg-card sg-rows-card sg-account-data" aria-labelledby="account-data-title">
-      <header>
-        <h2 id="account-data-title">Your data</h2>
-        <p>Take a copy of your work, or remove your account.</p>
-      </header>
-      <div className="sg-card-body">
-        <div className="sg-row">
-          <div className="sg-row-copy">
-            <strong>Download my data</strong>
-            <p>
+    <section className="e-section" aria-labelledby="account-data-title">
+      <div className="e-section__head">
+        <h2 className="e-section__title" id="account-data-title">
+          Your data
+        </h2>
+        <p className="e-section__hint">Take a copy of your work, or remove your account.</p>
+      </div>
+      <div>
+        <div className="e-setting-row">
+          <div className="e-setting-row__text">
+            <p className="e-setting-row__title">Download my data</p>
+            <p className="e-section__hint">
               A ZIP with your profile, projects, Strategy, Voice and Identity work, and the files you generated or
               uploaded.
             </p>
             {exportError && (
-              <p className="sg-account-data-error" role="alert">
+              <InlineMessage tone="danger" form="field">
                 {exportError}
-              </p>
+              </InlineMessage>
             )}
           </div>
-          <button
-            type="button"
-            className="button secondary small"
-            onClick={() => void download()}
-            disabled={exporting}
-            aria-busy={exporting}
-          >
+          <Button icon="download" loading={exporting} onClick={() => void download()}>
             {exporting ? "Preparing…" : "Download"}
-          </button>
+          </Button>
         </div>
-        <div className="sg-row">
-          <div className="sg-row-copy">
-            <strong>Delete account</strong>
-            <p>Permanently delete your account, projects and files. This can’t be undone.</p>
+        <div className="e-setting-row">
+          <div className="e-setting-row__text">
+            <p className="e-setting-row__title">Delete account</p>
+            <p className="e-section__hint">
+              Permanently delete your account, projects and files. This can’t be undone.
+            </p>
           </div>
-          <button type="button" className="button danger small" onClick={() => setConfirming(true)}>
+          <Button variant="danger" onClick={() => setConfirming(true)}>
             Delete account
-          </button>
+          </Button>
         </div>
       </div>
       {confirming && <DeleteAccountDialog account={account} onClose={() => setConfirming(false)} />}
@@ -122,35 +124,26 @@ function AccountData({ account }: { account: VerifiedAccount }) {
 
 function DeleteAccountDialog({ account, onClose }: { account: VerifiedAccount; onClose: () => void }) {
   const { signOut } = useAccountSession();
+  const profile = useAccountProfile();
   const router = useRouter();
-  const dialog = useRef<HTMLDialogElement>(null);
-  const input = useRef<HTMLInputElement>(null);
   const [email, setEmail] = useState("");
   const [state, setState] = useState<{ status: "idle" | "deleting" | "deleted"; error: string | null }>({
     status: "idle",
     error: null,
   });
-  const ids = { title: useId(), description: useId(), field: useId(), error: useId() };
+  const ids = { form: useId(), cancel: useId(), field: useId(), note: useId(), error: useId() };
   const deleting = state.status === "deleting";
+  // The account's own email, when this owner's profile is loaded; otherwise the server alone compares.
+  const saved = profile?.workspace?.saved;
+  const accountEmail = saved && saved.ownerId === account.userId ? saved.email : null;
+  const matches = accountEmail ? sameEmail(email, accountEmail) : Boolean(email.trim());
 
-  useEffect(() => {
-    const node = dialog.current;
-    if (node && !node.open) {
-      node.showModal();
-      input.current?.focus();
-    }
-    return () => {
-      if (node?.open) node.close();
-    };
-  }, []);
-
-  function close() {
-    if (!deleting && state.status !== "deleted") onClose();
-  }
+  // Focus starts on Cancel (after the dialog has opened and placed its own focus).
+  useEffect(() => document.getElementById(ids.cancel)?.focus(), [ids.cancel]);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (deleting || !email.trim()) return;
+    if (deleting || !email.trim() || !matches) return;
     setState({ status: "deleting", error: null });
     try {
       const response = await fetch("/api/account/deletion", {
@@ -183,77 +176,76 @@ function DeleteAccountDialog({ account, onClose }: { account: VerifiedAccount; o
     }
   }
 
+  if (state.status === "deleted")
+    return (
+      <Dialog size="sm" title="Account deleted" onClose={() => undefined} busy>
+        <p role="status">Your account and data were deleted. Signing you out…</p>
+      </Dialog>
+    );
   return (
-    <dialog
-      ref={dialog}
-      className="auth-signout-dialog account-delete-dialog"
-      aria-labelledby={ids.title}
-      aria-describedby={ids.description}
-      onCancel={(event) => {
-        event.preventDefault();
-        close();
-      }}
-      onClick={(event) => {
-        if (isDialogBackdropClick(event)) close();
-      }}
+    <Dialog
+      size="sm"
+      title="Delete your account?"
+      onClose={onClose}
+      busy={deleting}
+      footer={
+        <>
+          <Button id={ids.cancel} onClick={onClose} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form={ids.form}
+            variant="danger-filled"
+            loading={deleting}
+            disabled={!deleting && !matches}
+          >
+            {deleting ? "Deleting…" : "Delete account"}
+          </Button>
+        </>
+      }
     >
-      <form onSubmit={(event) => void submit(event)}>
-        <h2 id={ids.title}>{state.status === "deleted" ? "Account deleted" : "Delete your account?"}</h2>
-        {state.status === "deleted" ? (
-          <p id={ids.description} role="status">
-            Your account and data were deleted. Signing you out…
+      <form id={ids.form} className="e-stack" onSubmit={(event) => void submit(event)}>
+        <p>
+          Your account, every project, and every file you made or uploaded will be deleted for good. This can’t be
+          undone.
+        </p>
+        <p>
+          Any work in progress is stopped. A record of the credits you used is kept for our accounts, without your name
+          or your work.
+        </p>
+        <div className="e-field">
+          <label className="e-field__label" htmlFor={ids.field}>
+            Type your email to confirm
+          </label>
+          <div className="e-input">
+            <input
+              id={ids.field}
+              type="email"
+              autoComplete="off"
+              spellCheck={false}
+              value={email}
+              disabled={deleting}
+              aria-invalid={state.error ? true : undefined}
+              aria-describedby={[ids.note, state.error && ids.error].filter(Boolean).join(" ")}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                if (state.error) setState({ status: "idle", error: null });
+              }}
+            />
+          </div>
+          <p className="e-field__hint" id={ids.note}>
+            {accountEmail
+              ? `Your email is ${accountEmail}. The Delete account button turns on when it matches.`
+              : "Type the email you sign in with."}
           </p>
-        ) : (
-          <>
-            <div id={ids.description}>
-              <p>
-                This permanently deletes your account, every project, your Strategy, Voice and Identity work, and all
-                generated and uploaded files. It can’t be undone.
-              </p>
-              <p>
-                Any generation still running is stopped. Credit and usage amounts are kept for accounting without your
-                name or content.
-              </p>
-            </div>
-            <label className="field-label account-delete-field" htmlFor={ids.field}>
-              Type your email to confirm
-              <input
-                ref={input}
-                id={ids.field}
-                type="email"
-                autoComplete="off"
-                spellCheck={false}
-                value={email}
-                disabled={deleting}
-                aria-invalid={state.error ? true : undefined}
-                aria-describedby={state.error ? ids.error : undefined}
-                onChange={(event) => {
-                  setEmail(event.target.value);
-                  if (state.error) setState({ status: "idle", error: null });
-                }}
-              />
-            </label>
-            {state.error && (
-              <p id={ids.error} className="account-delete-error" role="alert">
-                {state.error}
-              </p>
-            )}
-            <div className="auth-dialog-actions">
-              <button type="button" className="button secondary small" onClick={close} disabled={deleting}>
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="button danger small"
-                disabled={deleting || !email.trim()}
-                aria-busy={deleting}
-              >
-                {deleting ? "Deleting…" : "Delete account"}
-              </button>
-            </div>
-          </>
+        </div>
+        {state.error && (
+          <InlineMessage id={ids.error} tone="danger">
+            {state.error}
+          </InlineMessage>
         )}
       </form>
-    </dialog>
+    </Dialog>
   );
 }
