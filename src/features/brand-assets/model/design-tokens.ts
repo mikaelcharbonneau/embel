@@ -27,7 +27,8 @@ const ROLE_USE: Record<keyof BrandAssetSnapshot["palette"], string> = {
 };
 
 /** A text color on `background` with at least 4.5:1 contrast, preferring the
- * palette's own roles; otherwise the palette color with the most contrast. */
+ * palette's own roles. When no palette color passes, dark or light text,
+ * whichever has more contrast, so the preview never demonstrates a failing pair. */
 export function readableBrandColor(
   snapshot: BrandAssetSnapshot,
   background: string,
@@ -42,7 +43,7 @@ export function readableBrandColor(
   ];
   return (
     choices.find((hex) => contrast(hex, background) >= 4.5) ??
-    choices.reduce((best, hex) => (contrast(hex, background) > contrast(best, background) ? hex : best))
+    (contrast("#FFFFFF", background) >= contrast("#000000", background) ? "#FFFFFF" : "#000000")
   );
 }
 
@@ -86,11 +87,21 @@ const cssName = (value: string) =>
     .replace(/^-|-$/gu, "") || "color";
 
 export function designTokensCss(tokens: DesignTokens): string {
+  // A palette color whose key is also a role name ("primary") is written once, not once as a color and again as
+  // its role.
+  const colorLines = [
+    ...tokens.colors.map((color) => [cssName(color.key), color.hex] as const),
+    ...Object.entries(tokens.roles).map(([role, hex]) => [role, hex] as const),
+  ];
+  const written = new Set<string>();
   const lines = [
     `/* ${tokens.brand} design tokens, from the chosen direction. */`,
     ":root {",
-    ...tokens.colors.map((color) => `  --color-${cssName(color.key)}: ${color.hex};`),
-    ...Object.entries(tokens.roles).map(([role, hex]) => `  --color-${role}: ${hex};`),
+    ...colorLines.flatMap(([name, hex]) => {
+      if (written.has(name)) return [];
+      written.add(name);
+      return [`  --color-${name}: ${hex};`];
+    }),
     `  --font-heading: "${tokens.fonts.heading.family}", system-ui, sans-serif;`,
     `  --font-body: "${tokens.fonts.body.family}", system-ui, sans-serif;`,
     `  --font-weight-heading: ${tokens.fonts.heading.weight};`,

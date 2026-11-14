@@ -2,7 +2,7 @@
 
 The user renamed the product from **Fluid** to **Embel** on 2026-10-13 and explicitly confirmed that spelling. Use Embel for the app, account and settings copy, accessibility labels, page titles, assistant identity, new downloads and generated PDF creator/producer metadata. The private npm package is `embel-platform`.
 
-The approved symbol is unchanged. `/embel-mark.svg` contains the exact original approved SVG bytes; `/fluid-mark.svg` remains available for existing links. Neither this rename nor the app title introduces a new design reference.
+The approved symbol is unchanged. The exact original approved SVG bytes, with their embedded provenance record (SHA-256 `d35a02f13f469a0c2a72b5bcfb826d3313c643cc687dda72a62ff1a0b7e261ac`), are kept at `design-assets/brand/embel-mark-original.svg`. The app serves a clean copy of the same eight paths without the 18.6 KB record (design audit D-043, November 14, 2026): `/embel-mark.svg`, the favicon `src/app/icon.svg`, and `/fluid-mark.svg`, which remains available for existing links. Neither this rename nor the app title introduces a new design reference.
 
 ## Compatibility
 

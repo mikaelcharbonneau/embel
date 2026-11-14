@@ -221,6 +221,7 @@ function DeleteAccountDialog({ account, onClose }: { account: VerifiedAccount; o
           <div className="e-input">
             <input
               id={ids.field}
+              name="confirm-email"
               type="email"
               autoComplete="off"
               spellCheck={false}

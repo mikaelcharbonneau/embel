@@ -7,14 +7,10 @@ import { useAccountSession } from "@/components/workspace/account-session";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { InlineMessage } from "@/components/ui/message";
 import { Skeleton } from "@/components/ui/feedback";
+import { creditsRenewDate } from "@/components/workspace/credits-message";
 
 /** The day the monthly credits renew, as the rest of the app words it. */
-function renewalDate(periodEnd: string) {
-  const date = new Date(periodEnd);
-  return Number.isNaN(date.getTime())
-    ? null
-    : date.toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
-}
+const renewalDate = creditsRenewDate;
 
 /** Settings: the account's plan and the credits left this month, with the way to the Plans page. Credits only,
  * never money. */

@@ -177,6 +177,8 @@ function ProjectsLibrary({ account, state }: { account: VerifiedAccount; state: 
             label={deleted ? "Search deleted projects" : "Search projects"}
             hideLabel
             type="search"
+            name="search"
+            autoComplete="off"
             placeholder={deleted ? "Search deleted projects" : "Search projects"}
             value={query}
             onChange={(event) => setQuery(event.target.value)}

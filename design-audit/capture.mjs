@@ -329,7 +329,7 @@ for (const [route, slug, text] of [
   ["/assets", "library", "Sign in to see your library"],
   ["/plans", "plans", "to see your plan and credits."],
   ["/settings", "settings", "Sign in to edit your profile and preferences."],
-  [`/brands/account/${MISSING_PROJECT}`, "project-workspace", "Sign in to see and save your work."],
+  [`/brands/account/${MISSING_PROJECT}`, "project-workspace", "Sign in to open this brand"],
 ])
   state(slug, "signed-out", null, async (page) => {
     await open(page, null, route);
@@ -586,7 +586,7 @@ state("brand-recover", "owner-no-unsaved-project-pro", "audit-pro", async (page)
 state("project-workspace", "missing-project-pro", "audit-pro", async (page) => {
   await page.goto(`/brands/account/${MISSING_PROJECT}`, { waitUntil: "domcontentloaded" });
   await page
-    .getByText(/not available to this account|could not be checked/u)
+    .getByText(/We couldn’t open this brand|not available to this account|could not be checked/u)
     .first()
     .waitFor({ timeout: 30_000 });
   await loaded(page);

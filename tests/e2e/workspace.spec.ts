@@ -102,12 +102,12 @@ test("keyboard navigation and signed-out pages are usable", async ({ page }) => 
   );
   await page.goto("/assets");
   await expect(page.getByRole("heading", { level: 1, name: "Library", exact: true })).toBeVisible();
-  await expect(page.locator("main .account-notice")).toContainText(
+  await expect(page.locator("main :is(.e-message, .e-empty)")).toContainText(
     /No verified account session|Account saving is unavailable/,
   );
   await expect(page.getByRole("region", { name: "Account asset library" })).toHaveCount(0);
   await page.goto("/brands/does-not-exist");
   // Unknown device drafts open recovery, which reveals nothing until an account is verified (96ef9f1).
   await expect(page.getByRole("heading", { level: 1, name: "Recover an unsaved project", exact: true })).toBeVisible();
-  await expect(page.locator("main .account-notice")).toContainText("No verified account session");
+  await expect(page.locator("main :is(.e-message, .e-empty)")).toContainText("No verified account session");
 });

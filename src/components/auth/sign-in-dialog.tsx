@@ -19,7 +19,11 @@ export function SignInDialog({
     if (!element) return;
     const previous = document.activeElement;
     element.showModal();
-    element.querySelector<HTMLButtonElement>(".auth-overlay__close")?.focus();
+    // Focus starts in the first field (Email); Close only while the form cannot be used yet.
+    (
+      element.querySelector<HTMLInputElement>("form input:not([type=hidden]):not(:disabled)") ??
+      element.querySelector<HTMLButtonElement>(".auth-overlay__close")
+    )?.focus();
     return () => {
       element.close();
       // Route effects can close the account menu while the overlay closes.

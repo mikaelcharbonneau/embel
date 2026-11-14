@@ -264,7 +264,12 @@ export function ProjectCard({
       <div className="e-card__body">
         <div className={styles.row}>
           <Heading className="e-card__title e-card__title--two-line" title={title}>
-            <Link className="e-card__link" href={action.href} aria-describedby={stepPending ? undefined : sentenceId}>
+            <Link
+              className="e-card__link"
+              href={action.href}
+              aria-describedby={stepPending ? undefined : sentenceId}
+              translate="no"
+            >
               {title}
             </Link>
           </Heading>

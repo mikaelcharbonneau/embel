@@ -21,6 +21,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/feedback";
 import { Icon } from "@/components/ui/icon";
 import { InlineMessage } from "@/components/ui/message";
+import { creditsRenewDate } from "@/components/workspace/credits-message";
 import { accountRequest, AccountRequestError } from "@/components/workspace/account-api";
 import { useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import "@/styles/plans.css";
@@ -39,13 +40,7 @@ const RECOMMENDED: PlanId = "pro";
 
 /** Renewal dates read like the out-of-credits message in a step ("December 1", in UTC), so both show the same
  * day for the same credit period. */
-function renewalDate(value: string | null | undefined) {
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? null
-    : date.toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
-}
+const renewalDate = creditsRenewDate;
 
 const credits = (value: number) => Math.max(value, 0).toLocaleString("en-US");
 

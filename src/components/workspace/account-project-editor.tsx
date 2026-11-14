@@ -11,7 +11,10 @@ import {
 import type { ContextSnapshot } from "@/domain/projects";
 import { accountErrorMessage, AccountRequestError } from "./account-api";
 import { boundedAccountRequest } from "./bounded-account-request";
-import { AccountStatus, useAccountSession } from "./account-session";
+import { useAccountSession } from "./account-session";
+import { ProjectAccountState, ProjectOpening, ProjectUnavailable } from "./project-page-state";
+import { ButtonLink } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/feedback";
 import { accountProjectDraft, draftContext, draftValidationMessage } from "./project-draft-adapter";
 import { copyToLocalDraft, draftTitle, type LocalDraft } from "./local-drafts";
 import { type DraftPatch } from "./project-editor";
@@ -91,50 +94,27 @@ export function AccountProjectEditor({ projectId, navigation }: { projectId: str
     return (
       <>
         {navigation}
-        <div className="page">
-          <h1>Account project</h1>
-          {content}
-        </div>
+        {content}
       </>
     );
   }
   if (!validId) return <UnavailableProject />;
-  if (session.status !== "ready")
-    return projectStatus(
-      <>
-        <AccountStatus retainedEdits={dirty} />
-        <Link href="/brands" className="text-link">
-          Back to brands
-        </Link>
-      </>,
-    );
+  if (session.status !== "ready") return projectStatus(<ProjectAccountState retainedEdits={dirty} />);
   if (loadError?.generation === session.generation)
     return projectStatus(
-      <>
-        <p className="form-error" role="alert">
-          {loadError.text}
-        </p>
-        {dirty && workspace?.ownerId === session.userId && (
-          <p className="account-notice">
-            Unsaved account edits remain in this tab. Retry loading this project to recover them.
-          </p>
-        )}
-        <div className="account-recovery-actions">
-          <button
-            className="button secondary small"
-            type="button"
-            onClick={() => {
-              setLoadError(null);
-              setReadAttempt((attempt) => attempt + 1);
-            }}
-          >
-            Retry loading project
-          </button>
-          <Link href="/brands" className="text-link">
-            Back to brands
-          </Link>
-        </div>
-      </>,
+      <ProjectUnavailable
+        projectId={projectId}
+        reason={loadError.text}
+        note={
+          dirty && workspace?.ownerId === session.userId
+            ? "Unsaved account edits remain in this tab. Try again to recover them."
+            : undefined
+        }
+        onRetry={() => {
+          setLoadError(null);
+          setReadAttempt((attempt) => attempt + 1);
+        }}
+      />,
     );
   const current =
     workspace?.ownerId === session.userId &&
@@ -142,15 +122,7 @@ export function AccountProjectEditor({ projectId, navigation }: { projectId: str
     workspace.saved.id === projectId
       ? workspace
       : null;
-  if (!current)
-    return projectStatus(
-      <>
-        <p className="quiet-empty">Loading your account project…</p>
-        <Link href="/brands" className="text-link">
-          Back to brands
-        </Link>
-      </>,
-    );
+  if (!current) return projectStatus(<ProjectOpening />);
   const account = session;
   const active = current;
   const busy = operation?.generation === account.generation && operation.projectId === projectId && operation.busy;
@@ -653,14 +625,15 @@ function AccountDraftAutosave({
 
 function UnavailableProject() {
   return (
-    <div className="page">
-      <div className="empty-panel">
-        <h1>Account project not found</h1>
-        <p>Check the account project link and try again.</p>
-        <Link href="/brands" className="button primary">
-          Back to brands
-        </Link>
-      </div>
+    <div className="page e-container e-page" role="alert">
+      <EmptyState
+        danger
+        icon="triangle-alert"
+        headingLevel={1}
+        title="This brand link doesn’t work"
+        text="Check the link, or open the brand from Projects."
+        action={<ButtonLink href="/brands">Back to Projects</ButtonLink>}
+      />
     </div>
   );
 }

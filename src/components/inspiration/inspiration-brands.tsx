@@ -68,22 +68,32 @@ function LikeButton({
   );
 }
 const partLabel = (part: InspirationPart) => inspirationPartLabels[part].toLowerCase();
-const wholeLabel = (brand: InspirationBrand, liked: boolean) =>
-  `${liked ? "Unlike" : "Like"} the whole ${brand.brand} brand`;
-const partLikeLabel = (brand: InspirationBrand, part: InspirationPart, liked: boolean) =>
-  `${liked ? "Unlike" : "Like"} ${brand.brand} ${partLabel(part)}`;
+// A heart's name stays "Like …"; whether it is liked is its pressed state, so it is never "Unlike …, pressed".
+const wholeLabel = (brand: InspirationBrand) => `Like the whole ${brand.brand} brand`;
+const partLikeLabel = (brand: InspirationBrand, part: InspirationPart) => `Like ${brand.brand} ${partLabel(part)}`;
 
 // Reference artwork served as is from public/inspiration/brands.
 function BrandImage({
   image,
   size,
   eager = false,
+  inButton = false,
 }: {
   image: InspirationPartImage;
   size: "small" | "large";
   eager?: boolean;
+  /** Drawn inside the tile's open button: a failed image shows no Retry of its own (no button inside a button);
+   * opening the brand loads it again in the large view, which has Retry. */
+  inButton?: boolean;
 }) {
   const [failed, setFailed] = useState(false);
+  if (failed && inButton)
+    return (
+      <span className="inspiration-image-error">
+        <Icon name="assets" />
+        <span>Image unavailable</span>
+      </span>
+    );
   if (failed)
     return (
       <span className="inspiration-image-error">
@@ -149,7 +159,7 @@ export function BrandCard({
         <LikeButton
           className="inspiration-heart inspiration-brand-like"
           liked={choice.ensemble}
-          label={wholeLabel(brand, choice.ensemble)}
+          label={wholeLabel(brand)}
           disabled={likes.disabled}
           onToggle={() => likes.onChange(toggleWhole(choice))}
         />
@@ -176,7 +186,7 @@ export function BrandCard({
                     aria-label={`Open ${brand.brand}: ${partLabel(image.part)}`}
                     onClick={() => onOpen(image.part)}
                   >
-                    <BrandImage image={image} size="small" />
+                    <BrandImage image={image} size="small" inButton />
                   </button>
                   <span className="inspiration-tile-label" aria-hidden="true">
                     {inspirationPartLabels[image.part]}
@@ -184,7 +194,7 @@ export function BrandCard({
                   <LikeButton
                     className="inspiration-heart inspiration-part-like"
                     liked={liked}
-                    label={partLikeLabel(brand, image.part, liked)}
+                    label={partLikeLabel(brand, image.part)}
                     disabled={likes.disabled}
                     onToggle={() => likes.onChange(togglePart(choice, image.part))}
                   />
@@ -220,11 +230,11 @@ export function PartCard({
           aria-label={`Open ${brand.brand}: ${partLabel(image.part)}`}
           onClick={onOpen}
         >
-          <BrandImage image={image} size="small" />
+          <BrandImage image={image} size="small" inButton />
         </button>
         <LikeButton
           liked={liked}
-          label={partLikeLabel(brand, image.part, liked)}
+          label={partLikeLabel(brand, image.part)}
           disabled={likes.disabled}
           onToggle={() => likes.onChange(togglePart(likes.choice, image.part))}
         />
@@ -290,7 +300,7 @@ export function BrandOverlay({
       <div className="inspiration-detail-layout">
         <figure className="inspiration-detail-art inspiration-overlay-art">
           <BrandImage key={image.part} image={image} size="large" eager />
-          <figcaption>
+          <figcaption aria-live="polite" aria-atomic="true">
             {inspirationPartLabels[image.part]} · {index + 1} of {brand.parts.length}
           </figcaption>
           <button
@@ -331,7 +341,7 @@ export function BrandOverlay({
             className="inspiration-overall"
             type="button"
             aria-pressed={choice.ensemble}
-            aria-label={wholeLabel(brand, choice.ensemble)}
+            aria-label={wholeLabel(brand)}
             disabled={likes.disabled}
             onClick={() => likes.onChange(toggleWhole(choice))}
           >
@@ -358,7 +368,7 @@ export function BrandOverlay({
                   <LikeButton
                     className="inspiration-heart inspiration-overlay-like"
                     liked={liked}
-                    label={partLikeLabel(brand, item.part, liked)}
+                    label={partLikeLabel(brand, item.part)}
                     disabled={likes.disabled}
                     onToggle={() => likes.onChange(togglePart(choice, item.part))}
                   />

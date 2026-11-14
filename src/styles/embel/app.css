@@ -11,8 +11,19 @@
   min-width: 0;
 }
 
+/* Taps on controls act at once: no double-tap zoom delay. */
+:where(a[href], button, summary, label, input, select, textarea, [role="button"], [role="tab"], [role="menuitem"]) {
+  touch-action: manipulation;
+}
+
 /* Search fields bring their own clear button; hide the browser's so there is only one. */
 .e-input > input[type="search"]::-webkit-search-cancel-button {
   display: none;
   -webkit-appearance: none;
+}
+
+/* A single action centred under an empty state. */
+.app-center {
+  display: flex;
+  justify-content: center;
 }

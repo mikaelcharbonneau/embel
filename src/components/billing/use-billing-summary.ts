@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { billingSummaryResponseSchema, PLAN_CATALOG, type BillingSummary, type PlanId } from "@/domain/billing";
 import { accountRequest } from "@/components/workspace/account-api";
 import { useAccountSession } from "@/components/workspace/account-session";
+import { creditsRenewDate } from "@/components/workspace/credits-message";
 
 export type BillingState =
   { status: "signed_out" | "loading" | "failed"; summary: null } | { status: "ready"; summary: BillingSummary };
@@ -36,8 +37,7 @@ export const planName = (summary: BillingSummary) => PLAN_CATALOG[summary.planId
 
 export const creditsLeft = (summary: BillingSummary) => Math.max(summary.balance, 0);
 
-/** "December 1": when the next monthly credits arrive, in the person's own calendar. */
+/** "December 1": when the next monthly credits arrive, the same day Plans and the out-of-credits message name. */
 export function nextCreditsDate(summary: BillingSummary) {
-  const date = new Date(summary.periodEnd);
-  return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+  return creditsRenewDate(summary.periodEnd);
 }

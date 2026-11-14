@@ -812,6 +812,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: A live region tells a screen reader to read out whatever changes inside it. The user may be flooded, or the screen reader may give up and announce nothing, including the messages that matter ("6 of 6 concepts ready").
 - Suggested direction: Limit the log to the message transcript, or drop it and rely on the small status regions that already sit next to each widget.
 - Where in the code: `AccountGuidedInterview` in `src/components/workspace/account-guided-interview.tsx:1198-1206`.
+- Status: **Done** (commit 72c566b4 on branch `ui/execution-fixes`). The Workspace redesign already limited the live log to the chat: the work area, gallery, logo grid and boards are outside it. The log now announces additions only (`aria-relevant="additions"`), so a status inside it (thinking, progress) is read once, by that status. Verified by a unit test (`tests/client/workspace-layout.test.tsx`). Not yet heard in a screen reader: the lead checks it in the running app.
 - Evidence: `a11y/keyboard.json`
 - Systemic? Yes: every brand page.
 
@@ -824,6 +825,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: A zoomed or small-screen user sees ticks with no words, and a screen-reader user hears "comma complete, link" twice.
 - Suggested direction: Hide the labels visually only (the app's `.sr-only` pattern) or give the links an `aria-label`. Whether ticks alone are enough for sighted users is part of D-054.
 - Where in the code: Step label rule in `src/components/journey/journey.module.css:382-385`; `ProjectCapsule` in `src/components/journey/project-capsule.tsx`.
+- Status: **Done** by the project bar redesign: below 1024 px (and beside the side chat up to 1279 px) the four steps collapse into one menu button that names the current step ("Identity · 3 of 4"); its items carry full names ("Strategy, complete"). No step label is hidden with `display: none` any more (`StepsMenu` in `src/components/journey/project-capsule.tsx`). Verified in code.
 - Evidence: `a11y/brand-conversation__kestrel-complete-pro__390.json`, `a11y/reflow/brand-conversation__kestrel-complete-pro__zoom200.png`
 - Systemic? Yes: every brand page.
 
@@ -837,6 +839,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Keep focus on the pressed control while it works (mark it busy with `aria-disabled` and ignore repeat presses; do not use `disabled`). When a step changes, move focus to the heading of the new step. After an error, move focus to the message or the first field to fix (the password field after a failed sign-in). Every dialog and menu returns focus to the control that opened it; if that control is gone, to the notice that explains what happened. Open the sign-in overlay with focus in Email.
 - Where in the code: `SignInForm` (`<fieldset disabled>`) in `src/components/auth/sign-in-form.tsx:257`; `PlansWorkspace` in `src/components/billing/plans-workspace.tsx:323-342`; `AccountProfileEditor` in `src/components/workspace/account-profile-editor.tsx:157`; `AccountDataControls` in `src/components/workspace/account-data-controls.tsx:136-145`; good model: `ProjectCardActions` in `src/components/workspace/project-card-actions.tsx:62-68`.
 - Fixed by: D-006 (Button; DS-010); D-037 (disabled and busy states; DS-022); D-046 (Dialog, Drawer and Menu; DS-013)
+- Status: **Done.** Buttons keep focus while busy (`Button` `loading` sets `aria-disabled`), dialogs return focus to their opener (`Dialog`), Settings saves on its own, and the conversation moves on with Send, which keeps focus. Commit 0a6c59fd on branch `ui/execution-fixes`: the sign-in overlay opens in Email (Close only while the form is unavailable), and after a rejected email and password focus moves to the password field. Verified by unit tests (`dialog-backdrop`, `auth-field-errors`); `tests/e2e/auth-overlay.spec.ts` now expects Email focused. The lead repeats the keyboard walk in the running app.
 - Evidence: `a11y/keyboard.json`, `annotated/A-kbd-sign-in-error.png`, `annotated/A-kbd-change-name.png`, `annotated/A-kbd-settings-offline-error.png`
 - Systemic? Yes. Good counter-example: the sign-up password mismatch moves focus to the confirm field.
 
@@ -849,6 +852,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: A step has three states and shows only the true one: loading (a skeleton of the step's shape, no instructions), empty (instructions), ready (the work). No validation message appears until the saved inputs have loaded. "Request in progress…" and "Not ready yet." are cleared when the request ends.
 - Where in the code: `LogoCreationWorkspace` in `src/components/logo-creation/logo-creation-workspace.tsx`; `VisualDirectionsView` in `src/components/visual-directions/visual-directions-view.tsx`; hook in `src/components/logo-creation/use-logo-engine.ts`.
 - Fixed by: D-009 (Skeleton, Media frame and waiting patterns; DS-015)
+- Status: **Done** by the Logo and Creative direction rebuild (PR 265: loading tiles and "Loading saved concepts…", no instructions before saved inputs load) and commit fd208fc5 on branch `ui/execution-fixes` ("Not ready yet." no longer stays beside the button after a refusal; the warning with Try again says it once). Verified by a unit test (`journey-components`). The lead watches the first three seconds of opening Kestrel and of Continue from Inspiration in the running app.
 - Evidence: `annotated/M-014.png`, `annotated/A-kbd-logo-step-preparing.png`, `motion/walk-brand-1440.txt`, `motion/walk-extra.txt`, `motion/walk-extra2.txt`
 - Systemic? Yes: both steps, every brand.
 
@@ -860,6 +864,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: These buttons spend the customer's credits or try to save them. An unchanged screen after a paid click, or after "Stop", raises the question "did that work?" at the moment trust matters most.
 - Suggested direction: Show the placeholders in the same frame as the click. After Stop or Cancel, change the visible state at once (placeholders show "Stopping…", the bar stops sweeping). Ask the server once immediately after any action instead of waiting out the interval.
 - Where in the code: Polling intervals in `src/components/logo-creation/use-logo-engine.ts:12`, `src/components/workspace/use-strategy-jobs.ts:41`, `src/components/naming/naming-feed-controller.ts:23-25`.
+- Status: **Done** in code: the Logo engine asks the server again straight after a start or a stop (`refresh` in `use-logo-engine.ts`) and a stop shows "Stopping…" at once; research shows "Cancelling research…" and the bar's stopping state. The lead confirms the timing in the running app (placeholders appear with the start response, not on the click itself).
 - Evidence: `annotated/M-016.png`, `motion/walk-live.txt`
 - Systemic? Yes: research, names, logos and directions share the same polling pattern.
 
@@ -873,6 +878,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Land once. Reserve the final size of the project bar, gallery cards, logo grid and direction boards before their content arrives, remove the timed re-jumps, give every image its dimensions, keep the pill in step with what is on screen, use plain skeletons with no "private" wording, and never let another brand's gallery image be the first large thing painted. What a reopened brand shows first is decided in D-021. Do not add smooth scrolling over these distances; after a step jump, a brief highlight of the section heading is enough.
 - Where in the code: Timed re-jumps in `AccountGuidedInterview`, `src/components/workspace/account-guided-interview.tsx:101-108`; `src/components/workspace/use-conversation-follow.ts`.
 - Fixed by: D-009 (Skeleton, Media frame and waiting patterns; DS-015); D-021 (folding finished steps)
+- Status: **Done** by the Workspace redesign: the timed re-jumps are gone, the chat and the work area scroll on their own, and images sit in Media frames that reserve their size. The "private" wording on loading boards is gone (commit 9523a84a on branch `ui/execution-fixes`). The lead measures CLS and the landing position on opening Kestrel (production build).
 - Evidence: `annotated/M-013.png`, `annotated/M-013-390.png`, `annotated/E-052.png`, `annotated/E-052-390-lands-mid-gallery.png`, `annotated/E-052-checking-private-preview.png`, `traces/brand-conversation__kestrel__desktop__load.json.gz`, `traces/brand-conversation__kestrel__mobile-slow4g-cpu4x__load.json.gz`
 - Systemic? Yes: every brand from the Inspiration step onward.
 
@@ -886,6 +892,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Serve small previews made on the server at the sizes each slot needs (listed in `04_image_needs.md`), and the full file only when it is opened or downloaded. Give gallery images long-lived cache headers and fingerprinted names. Let the browser keep private previews for the session. Combine or defer the CSS the first screen does not need. Load the first row eagerly and the rest lazily. Give each Library card its own alt text ("[Brand board / Logo concept / Direction board] for [brand name]").
 - Where in the code: Library cards in `AssetsWorkspace` (`src/components/assets/assets-workspace.tsx`); private preview loading used by `ConceptGrid`, `VisualDirectionsView` and `ProjectCard`; gallery files under `public/inspiration/brands/`.
 - Needs the owner: Previews made on the server change how images are served, which is a behaviour change outside "change the look, not what the app does". It needs the owner's go-ahead before implementation.
+- Status: **Needs the owner** (unchanged): previews made on the server change how images are served. Library cards already have their own alt text (Library rebuild, PR 263).
 - Evidence: `assets/assets.md`, `assets/assets.json`, `screens/library__kept-assets-pro__1440.png`, `traces/brand-conversation__kestrel__mobile-slow4g-cpu4x__load.json.gz`
 - Systemic? Yes.
 
@@ -897,6 +904,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: This is the typography sample on the screen where the person chooses their brand's typography. A broken word reads as a broken product.
 - Suggested direction: Give the type sample the full card width (Palette above Typography), never break inside a word, and scale the sample to fit long names.
 - Where in the code: `VisualDirectionsView` in `src/components/visual-directions/visual-directions-view.tsx`, styles in `src/components/visual-directions/visual-directions-view.module.css`.
+- Status: **Done** (commit bcb29750 on branch `ui/execution-fixes`): Palette sits above Typography, and the type sample breaks only between words and shrinks until its longest word fits the card. Verified by a unit test (`direction-type-sample`). The lead checks the Kestrel, Mosswood and Bright Harbor cards at 1440.
 - Evidence: `screens/brand-conversation__kestrel-complete-showcase-pro__1440.png`, `screens/brand-conversation__mosswood-directions-generated-free__1440.png`, `screens/brand-conversation__logos-failed-brightharbor-pro__1440.png`
 - Systemic? Yes: all direction cards.
 
@@ -908,6 +916,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: It exposes plumbing on the first screen and makes the product sound unreliable before the first click. Heuristic: match between the system and the real world.
 - Suggested direction: Signed out, show one short line at most ("You'll sign in before we start. Your idea is kept."). Show an availability message only when AI really is unavailable, in plain words, with one Retry button. Reserve the space so the chips do not move.
 - Where in the code: `AccountStrategyStart` in `src/components/workspace/account-strategy-start.tsx:470-494`.
+- Status: **Done** by the Home rebuild (PR 261): no sign-in note or "Check AI availability" link under the prompt. The lead checks the prompt-filled state at 1440.
 - Evidence: `screens/home__signed-out-prompt-filled__1440.png`, `screens/home__signed-out-prompt-filled__390.png`
 - Systemic? Yes: system vocabulary in customer copy also appears in D-030, D-016 and D-080.
 
@@ -920,6 +929,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Use the positive and warning Inline message. Success: "Email confirmed. Sign in to start your first brand." Failure: one sentence on what happened, one on what to do, and a real secondary button, "Send a new confirmation email".
 - Where in the code: `SignInForm` in `src/components/auth/sign-in-form.tsx`; forgot-password page in `src/app/forgot-password/page.tsx`.
 - Fixed by: D-008 (Inline message and Toast; DS-012)
+- Status: **Done** (commit ae0722a5 on branch `ui/execution-fixes`): "Email confirmed. Sign in to start your first brand."; a failed link gets two sentences and a secondary button, "Send a new confirmation email"; "Send another link" is a real button. Verified by unit tests (`account-creation`).
 - Evidence: `screens/sign-in__email-confirmed-notice__1440.png`, `screens/sign-in__email-confirmation-failed-notice__1440.png`, `screens/forgot-password__sent__1440.png`
 - Systemic? Yes: status messages styled as secondary text recur across the app.
 
@@ -932,6 +942,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: One quiet line under the Create account button ("By creating an account you agree to the Terms and Privacy Policy"), and the same two links plus "Help" in the account menu and at the foot of Plans. Once help exists it must sit in the same place on every page (WCAG 3.2.6 Consistent Help).
 - Where in the code: Sign-up form in `src/app/sign-up/page.tsx`; account menu in `FloatingNav` (`src/components/journey/floating-nav.tsx`); `PlansWorkspace` in `src/components/billing/plans-workspace.tsx`.
 - Needs the owner: The Terms, Privacy and Help documents are not in this repository. The owner supplies them, or their addresses, before the links can be added.
+- Status: **Needs the owner** (unchanged): the Terms, Privacy and Help documents or their addresses.
 - Evidence: `screens/sign-up__default__1440.png`, `screens/home__signed-out-sign-up-overlay__390.png`, `screens/plans__signed-out__1440.png`, `screens/home__account-menu-open-pro__1440.png`
 - Systemic? Yes: sign-up, Plans and the account menu.
 
@@ -945,6 +956,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Render the page's final structure at once, with skeletons the exact size of the brand board and each file tile, and replace them in place. Show headings, descriptions and download buttons in a waiting state before the images are built. Keep status text in a slot that never changes height. One quiet confirmation when everything is ready.
 - Where in the code: `AssetsJourney` in `src/features/brand-assets/components/assets-journey.tsx`.
 - Fixed by: D-009 (Skeleton, Media frame and waiting patterns; DS-015)
+- Status: **Done** by the Assets rebuild (PR 268: skeletons in the final shape, status in toasts). The lead measures CLS on Kestrel's Assets page (production build).
 - Evidence: `annotated/M-019.png`, `screens/brand-assets__kestrel-preparing-pro__1440.png`, `traces/brand-assets__kestrel__desktop__load.json.gz`, `traces/brand-assets__kestrel__mobile-slow4g-cpu4x__load.json.gz`
 - Systemic? Every complete brand; one page.
 
@@ -957,6 +969,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: One centred card in the page-error pattern: "We couldn't open this brand. Your work is saved. Check your connection and try again." with "Try again" and "Back to Projects". The pill shows the normal navigation.
 - Where in the code: Project page in `src/app/brands/account/[projectId]/page.tsx`; fallback editor `AccountProjectEditor` in `src/components/workspace/account-project-editor.tsx`.
 - Fixed by: D-008 (Inline message and Toast; DS-012)
+- Status: **Done** (commit e818ae02 on branch `ui/execution-fixes`): a brand that can't be opened shows one page error in the Empty state layout ("We couldn't open this brand", the reason, Try again, Back to Projects) and the pill returns to the app's navigation; an invalid link gets the same layout. Verified by unit tests (`account-project-request-recovery`, `app-shell-stability`). **Open:** when the API fails, the layout's strip "The saved project could not be verified…" with "Check saved project" (`AccountProjectWorkspaceShell`) can still show above the page error; its wording is held by tests and it keeps an open editor usable. The lead checks the API-500 capture.
 - Evidence: `screens/project-workspace__error-api-500-pro__1440.png`, `screens/project-workspace__missing-project-pro__1440.png`, `screens/project-workspace__error-api-500-pro__390.png`
 - Systemic? Yes: the same "could not be confirmed / verified / checked" wording appears in Settings and on Home.
 
@@ -969,6 +982,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: "Delete "Orchard Lane Cider"? It moves to Deleted projects. You can restore it any time." Buttons: "Delete project" and "Cancel". Add one sentence only when work is running ("Logo concepts in progress will be stopped. Credits already used are not returned.").
 - Where in the code: `ProjectCardActions` in `src/components/workspace/project-card-actions.tsx`; styles in `src/styles/project-card-actions.css`.
 - Fixed by: D-046 (Dialog, Drawer and Menu; DS-013)
+- Status: **Done** (commit 69759b82 on branch `ui/execution-fixes`): "It moves to Deleted projects with its files and history. You can restore it any time." plus one plain sentence about work still running. The card can't tell whether work is running, so that sentence is always there.
 - Evidence: `screens/projects__delete-dialog-free__1440.png`, `screens/projects__delete-dialog-free__390.png`
 - Systemic? Yes: the dialog and the Deleted projects subtitle.
 
@@ -982,6 +996,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Stack the plans in one column below the compact breakpoint, current plan first, with full-width buttons. This much is required by WCAG whatever the redesign decides; the look of the stacked cards is designed with D-031.
 - Where in the code: `.plans-grid` in `src/styles/plans.css:53-60`; `PlansWorkspace` in `src/components/billing/plans-workspace.tsx`.
 - Fixed by: D-052 (breakpoints and page widths; DS-009)
+- Status: **Done** by the Plans rebuild (PR 267): the plan grid wraps to one column at narrow widths. Not re-captured at 390 and 320 px (desktop scope).
 - Evidence: `screens/plans__free-0-credits-upgrade-free__390.png`, `screens/plans__pro-current-pro__390.png`, `a11y/reflow/plans__pro-current-pro__320.png`, `a11y/reflow/plans__pro-current-pro__zoom200.png`
 - Systemic? No: one page.
 
@@ -994,7 +1009,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Do not call the page's close handler from the unmount cleanup. Verify on a production build. Then review the detail view, and rebuild it on the system's Drawer.
 - Where in the code: `AssetDetailDialog` in `src/components/assets/asset-detail.tsx:46-54`; strict mode in `next.config.ts:107`.
 - Fixed by: D-046 (Dialog, Drawer and Menu; DS-013)
-- Status: A fix was merged to `main` on 2026-11-12, after the passes ran (PR 255 in mikaelcharbonneau/embel, "Keep the Library detail dialog open in development"). This audit has not verified it. Pass 1 rated the finding P0; pass 2 measured a development-only cause and rated it P1; it is merged at P1 (see "Conflicts resolved").
+- Status: **Done.** PR 255 stopped the dialog closing itself in development; the Library rebuild (PR 263) put the detail view on the system's Dialog. The lead verifies opening and downloading on a production build.
 - Evidence: `annotated/E-050.png`, `annotated/M-012.png`, `motion/walk-shell-signed-in.txt`
 - Systemic? No.
 
@@ -1008,6 +1023,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: Hover and error states look slightly different on every screen, and the owner's "no magenta" decision is not fully applied.
 - Suggested direction: Replace by the map in `05_design_system.md` section 5.2. No design decision is needed.
 - Where in the code: `.form-error` in `src/styles/globals.css:90`; `.segment-card.is-selected` (`#cbacc5`) in `src/styles/conversation.css:366`; `.guided-conversation-error` in `src/styles/guided-conversation.css:112`; `.strategy-review-notice` in `src/styles/strategy.css:46`; second text colour `#3a3a37` in `src/styles/journey-conversation.css:134`.
+- Status: **Done** (commit 3887818d on branch `ui/execution-fixes`) by the map in section 5.2, including the last magenta value (`#cbacc5`). `tools/ds-drift.mjs`, rerun into a temporary folder, finds no hex color outside the design-system bundle; the shadow colors went with D-051.
 - Evidence: `design-system/drift.md`
 - Systemic? Yes: 26 of 41 stylesheets.
 
@@ -1020,6 +1036,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Give both icons a tooltip and an accessible name that says the outcome ("Add reference images", "Dictate"). Use the standard focus ring. Give the disabled send button the system's disabled look, and make it truly disabled when it cannot send.
 - Where in the code: `FloatingComposer` in `src/components/workspace/floating-composer.tsx`; Home composer styles in `src/styles/home-concept.css:60-63`.
 - Fixed by: D-005 (focus ring; DS-014); D-047 (form controls; DS-021); D-037 (disabled and busy states; DS-022)
+- Status: **Done** by the Home rebuild: the "+" and microphone have names and tooltips ("Add files or images", "Voice input"), the system's focus ring and disabled look.
 - Evidence: `screens/home__signed-out__1440.png`, `screens/home__signed-out-prompt-focus__1440.png`, `screens/home__keyboard-focus-nav__1440.png`
 - Systemic? Yes: the reply box on every project conversation.
 
@@ -1032,6 +1049,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Name the stage ("Reading competitor sites") and say in one fixed sentence how long it usually takes. No counters or percentages: the work has no known length. Shorten the placeholder at narrow widths so it fits on one line.
 - Where in the code: `GuidedThinking` and the research progress card; `FloatingComposer`.
 - Fixed by: D-009 (Skeleton, Media frame and waiting patterns; DS-015)
+- Status: **Done** for desktop by the Workspace: the chat names the stage ("Researching your competitors and the pages they were found on.") with the progress bar. No "usually takes" sentence: the app has no measured duration to state. The 390 px placeholder clip is **Skipped: phone-only**.
 - Evidence: `screens/home__research-in-progress-pro__1440.png`, `screens/home__research-in-progress-pro__390.png`
 - Systemic? Yes: the placeholder clip affects every project page at 390.
 
@@ -1044,6 +1062,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: Titles and headings are how screen-reader users, and anyone with several tabs, find their place.
 - Suggested direction: Title brand pages "[Brand name] · [Step] · Embel". One top-level heading per page, the brand name; steps as second-level headings. Fix the 404 title.
 - Where in the code: `src/app/brands/account/[projectId]/page.tsx:9`; `src/components/logo-creation/logo-creation-workspace.tsx:1008`; `src/components/visual-directions/visual-directions-view.tsx:124`; `src/app/not-found.tsx`.
+- Status: **Done** (commit 6d6c6990 on branch `ui/execution-fixes`): the tab reads "[Brand] · [Step] · Embel"; the conversation has one top-level heading, the brand's name, with Logo and Creative direction as second-level headings; the 404 title was already right. Verified by a unit test (`app-shell-stability`). Not changed: the reply box's region names ("Strategy composer", "Naming composer"), which tests and browser specs use to tell the two apart. The lead runs Lighthouse's heading checks.
 - Evidence: `lighthouse/brand-conversation__quill-logos-generated-free__desktop/report.html`, `lighthouse/summary.md`
 - Systemic? Yes: every brand page.
 
@@ -1055,6 +1074,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: The one image on every page is the slowest to arrive, and bookmarks, Android home screens and older browsers get no sharp icon.
 - Suggested direction: Serve one clean copy of 2 KB or less, loaded eagerly, and delete the duplicates; keep the original file with its record in source control, since removing the record removes its proof of origin. Add the missing icon sizes (32, 192 and 512 px, and a 512 px version with the mark inside the central 80% for round masks, 15 KB each at most) and a manifest.
 - Where in the code: `AppMark` in `src/components/ui/app-mark.tsx`; `src/app/icon.svg`; `src/app/apple-icon.tsx`; `public/embel-mark.svg`; `public/fluid-mark.svg`.
+- Status: **Done in part** (commit 6cac4c65 on branch `ui/execution-fixes`): one clean 1 KB copy of the mark (`/embel-mark.svg`, the favicon and the `/fluid-mark.svg` alias), loaded eagerly; the original with its provenance record is kept at `design-assets/brand/embel-mark-original.svg`. **Open:** the 32, 192 and 512 px PNGs, the maskable icon and the manifest (generated routes to check in the running app). `docs/embel-branding.md` keeps `/fluid-mark.svg` "for existing links"; the owner can confirm it may go.
 - Evidence: `assets/assets.md`
 - Systemic? Yes: every page.
 
@@ -1066,6 +1086,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: The owner's November 6 direction is "rounder corners"; the leftovers contradict it on the same screen.
 - Suggested direction: The six-step scale and the nested-corner rule in `05_design_system.md` section 3d; map in section 5.4. Whether buttons are pills is decision 4 and does not block this.
 - Where in the code: `.icon-button`, `.small-badge`, `.preview-badge` in `src/styles/globals.css:30, 48, 52`; `.menu` in `src/components/journey/journey.module.css:93`; `.project-card-menu` in `src/styles/project-card-actions.css:31`.
+- Status: **Done** (commit 081c0fd8 on branch `ui/execution-fixes`) by the map in section 5.4. No pixel radius is left outside the design-system bundle except 50% circles and two nested-corner `calc()` values.
 - Evidence: `design-system/drift.md`
 - Systemic? Yes.
 
@@ -1077,6 +1098,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: Surfaces that are the same kind of thing float at visibly different heights; a dialog on one page feels heavier than on the next.
 - Suggested direction: Four shadow levels, one backdrop without blur, and the layer scale in `05_design_system.md` section 3d; map in section 5.5.
 - Where in the code: `src/components/journey/journey.module.css:21, 108`; `src/styles/home-concept.css:57`; `.auth-signout-dialog` in `src/styles/auth.css:142-151`; `src/components/visual-directions/visual-directions-view.module.css:422`; `src/components/naming/naming-inspect.module.css:21`.
+- Status: **Done** (commit c3ed4652 on branch `ui/execution-fixes`): shadow-raised, shadow-overlay and shadow-modal, the one scrim without blur, and the z tokens. One small legibility shadow under the round Continue control over artwork remains (no token of its size).
 - Evidence: `design-system/drift.md`
 - Systemic? Yes.
 
@@ -1089,6 +1111,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Three named ranges, two containers (792 and 1,056 px) and the grid in `05_design_system.md` section 3d. Keep the gallery's container queries, which are the cleanest responsive code in the app. Plans and the project bar need layout work beyond the replacement (D-033, D-054).
 - Where in the code: `src/styles/tokens.css:43-46`; `.page` in `src/styles/globals.css:32-38` (other lines removed in PR #258); gallery container queries in `src/components/inspiration/inspiration.css:174-189`.
 - Screen findings this fixes: D-033 (E-025, A-014); D-054 (E-053, A-015)
+- Status: **To do, not done in this pass:** about 30 breakpoints remain in the older stylesheets. Moving the desktop ones (1190 and 1050 px) onto the three ranges changes layouts between 1024 and 1279 px and needs capture checks; the narrower ones are phone-only work.
 - Evidence: `design-system/drift.md`, `screens/plans__pro-current-pro__390.png`
 - Systemic? Yes.
 
@@ -1100,7 +1123,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: Dead styles make every later change riskier and inflate every measurement in the audit.
 - Suggested direction: Delete after checking each one (a class name assembled while the app runs would not be detected). Organise styles by component once the component layer exists. The code cleanup planned before implementation should take these out first.
 - Where in the code: `src/styles/globals.css`, `src/styles/project-naming.css`, `src/styles/project-workspace.css`; full list in `design-audit/evidence/design-system/components.json`.
-- Status: **Done** (PR 258 in mikaelcharbonneau/embel, "Remove unused style rules found by the design audit"). Re-run on November 14, 2026: `tools/ds-components.mjs` finds 1,061 class selectors and 5 not mentioned in code. Three are built from template strings and are in use (`project-stage-strategy` twice, `guided-choice-widget-positioning`); `identity-reference-tags` and `project-workbench-heading` are left for the design-system rewrite, which replaces those stylesheets. The 35 `!important` declarations are also handled there.
+- Status: **Done** (PR 258; then commits a0d019a9 and ab4a19bd on branch `ui/execution-fixes`). Rerun on November 14, 2026 into a temporary folder: 1,080 class selectors; outside the design-system bundle only template-built names (`project-stage-strategy`, `e-skeleton--circle`) and `identity-reference-tags` (used by a browser spec) are unmentioned. The blanket reduced-motion rule and its three `!important` are gone; five `!important` remain as guards (`[hidden]` and inline-height overrides).
 - Evidence: `design-system/components.md`, `design-system/components.json`
 - Systemic? Yes.
 
@@ -1113,6 +1136,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: While the account is unknown, render a neutral frame: the pill at its signed-in width with placeholders, the page heading, and a skeleton of the content. Show signed-out content only once the check has said so. The server already knows whether a session cookie exists.
 - Where in the code: `AccountSessionProvider` in `src/components/workspace/account-session.tsx`; `FloatingNav` in `src/components/journey/floating-nav.tsx`; `AppShell` in `src/components/workspace/app-shell.tsx`.
 - Fixed by: D-009 (Skeleton, Media frame and waiting patterns; DS-015)
+- Status: **Done** (commits e818ae02, 015edeeb and b4bb62c5 on branch `ui/execution-fixes`): while the account is checked, brand pages and their layout show a neutral skeleton frame instead of "Project workspace" or "Account project" with "Checking your account…"; Projects, Library, Plans and Settings already waited on skeletons, and the pill's account button keeps its signed-in size while checking. Verified by unit tests (`app-shell-stability`, `project-workspace-progress`, `account-project-entry`). The lead walks full loads of `/brands`, `/settings`, `/plans` and a brand at 1440.
 - Evidence: `annotated/M-008.png`, `screens/sign-in__error-wrong-password__1440.png`, `motion/walk-shell-signed-in.txt`
 - Systemic? Yes: every signed-in page.
 
@@ -1125,6 +1149,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: One noun for the object, used in navigation, headings, buttons and dialogs. One word per thing, taken from the journey's own vocabulary. One heading style without full stops. Rewrite the empty state for the single journey: "No brands yet. Describe an idea and Embel builds the name, logo and look with you."
 - Where in the code: `ProjectsWorkspace` in `src/components/workspace/projects-workspace.tsx`; `AssetsWorkspace`; `ProjectCapsule`; `GenerationActivity`.
 - Needs the owner: Pass 1 suggests "Brands" as the noun; the navigation says "Projects" today. Renaming a navigation item is the owner's call. Until the owner decides, keep "Projects" for the list and call the thing being made a "brand", consistently.
+- Status: **Needs the owner** (unchanged) for the noun. Headings without full stops and the rewritten empty state came with the Projects and Library rebuild (PR 263).
 - Evidence: `screens/projects__eight-brands-free__1440.png`, `screens/projects__empty-fresh__1440.png`, `screens/projects__signed-out__1440.png`, `screens/library__kept-assets-pro__1440.png`
 - Systemic? Yes: all list pages, dialogs and the project pill.
 
@@ -1137,6 +1162,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: The control just pressed, or the next one the person was aiming for, moves away.
 - Suggested direction: Give every status line a reserved place that exists before the message does (a fixed-height slot), or show it over the content (the Toast). Never insert a message above the thing that was clicked.
 - Fixed by: D-008 (Inline message and Toast; DS-012)
+- Status: **Done in part**: the rebuilt screens use Inline message slots and toasts, and Creative direction no longer inserts "Saving your choice…" under each board (commit b184371f on branch `ui/execution-fixes`). **Open:** Projects' "moved to Deleted projects" notice is still inserted above the list; it carries the live stop status of that project's work. The lead measures the shift when deleting a project.
 - Evidence: `annotated/M-007.png`, `motion/walk-live2.txt`, `motion/walk-brand-1440.txt`, `motion/walk-brand-390.txt`
 - Systemic? Yes.
 
@@ -1149,6 +1175,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Mark the card as chosen at once (the ring and the tick appear with the click, easing in over 160 ms), save in the background, and revert with a message only if saving fails. Keep the "Saving…" text out of the layout (D-057).
 - Where in the code: `ConceptGrid` in `src/components/logo-creation/concept-grid.tsx`; `VisualDirectionsView` in `src/components/visual-directions/visual-directions-view.tsx`.
 - Fixed by: D-007 (Choice card; DS-011)
+- Status: **Done** (commit b184371f on branch `ui/execution-fixes`): the clicked concept or board shows as chosen at once and goes back if saving fails. Verified by a unit test for the direction rule; the Logo path is checked in the running app by the lead.
 - Evidence: `annotated/M-015.png`, `motion/walk-live.json`
 - Systemic? Yes: both selection screens.
 
@@ -1160,6 +1187,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: Alignment between neighbouring elements is off by one to three pixels throughout, which is exactly what reads as "not quite precise".
 - Suggested direction: The 14-step scale and the rounding rule in `05_design_system.md` sections 3d and 5.4. Re-check layouts with `capture.mjs` after the replacement.
 - Where in the code: `.draft-card`, `.form-panel`, `.segment-card`, `.settings-panel` in `src/styles/globals.css:85, 100` (other lines removed in PR #258).
+- Status: **Done** (commit 53de31b1 on branch `ui/execution-fixes`): about 350 off-scale values rounded onto the scale by the rule in section 5.4 (on-scale values were already tokens). Left as they are: negative offsets, values inside `calc()`/`min()`/`max()`/`env()`, and the floating reply box's fixed rows. The lead re-checks layouts with `capture.mjs`.
 - Evidence: `design-system/drift.md`
 - Systemic? Yes: 36 of 41 stylesheets.
 
@@ -1172,6 +1200,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: One message per card ("Drawing…", then the image, or "Couldn't draw this one"), one line for the whole set, the same tile size in every state (a soft pulse while drawing, a still tile when a concept could not be drawn), and a plain reason with whether credits were returned.
 - Where in the code: `ConceptGrid` in `src/components/logo-creation/concept-grid.tsx`; `src/components/logo-creation/generation-animation.tsx`.
 - Fixed by: D-009 (Skeleton, Media frame and waiting patterns; DS-015)
+- Status: **Done** by the Logo rebuild: one message per tile ("Concept 3 couldn't be drawn."), the same frame in every state, one line for the set. Not shown: whether a failed tile's credits came back, which the tile's data doesn't carry.
 - Evidence: `screens/brand-conversation__logos-drawing-aurelie-pro__1440.png`, `screens/brand-conversation__logos-failed-brightharbor-pro__1440.png`, `screens/brand-conversation__tidewater-logos-partly-failed-free__1440.png`
 - Systemic? Yes: creative-direction boards use the same pattern.
 
@@ -1184,6 +1213,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Trim and centre the logo with even padding. Remove the duplicated lines. Rewrite the README as a short, friendly "What's in this kit". Say on the Assets page, not only in the README, that the logos are images, not vectors. Never present a raster file as a vector.
 - Where in the code: Export builders under `src/features/brand-assets/`; token export shown by `AssetsJourney`.
 - Needs the owner: A larger logo export (pass 1 suggests 4,096 px; pass 1b calls it a product decision) cannot be made honestly from a 1024 px image. It would need the logo to be generated at a larger size, which is the owner's product decision and outside this redesign.
+- Status: **Done in part** (commits de0321b1 and 8d5d31b2 on branch `ui/execution-fixes`): `design-tokens.css` writes each color variable once, and the README is a short "What's in this kit" that says the logos are PNG images, not vectors. **Open:** trimming and centring the logo PNGs (an image change in the export builder, to check on real exports) and saying on the Assets page that the logos are images. **Needs the owner:** a larger logo export.
 - Evidence: `exports/rendered/kestrel__logo--logo-transparent.png.png`, `exports/rendered/kestrel__README.txt.png`, `design-audit/evidence/exports/kestrel/kit/design-system/design-tokens.css`
 - Systemic? Yes: every brand.
 
@@ -1195,6 +1225,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: The wrong name is a visible slip in the product's best moment.
 - Suggested direction: Use the brand's real name.
 - Where in the code: `BrandOverlay` in `src/components/inspiration/inspiration-brands.tsx`.
+- Status: **Done** (commit 2d7f4188 on branch `ui/execution-fixes`): the footer names the brand by its chosen name. Verified by a unit test (`inspiration-dom-stability`).
 - Evidence: `annotated/E-054.png`
 - Systemic? "Untitled brand" also appears for named brands on the legacy identity page (D-077).
 
@@ -1208,6 +1239,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Give the dialog its final size from the start (the boards are square; reserve a square) and fade the image in over 200 ms.
 - Where in the code: Larger-view dialog in `VisualDirectionsView`; `src/components/visual-directions/visual-directions-view.module.css:422`.
 - Fixed by: D-009 (Skeleton, Media frame and waiting patterns; DS-015); D-046 (Dialog, Drawer and Menu; DS-013)
+- Status: **Done** (commit 9523a84a on branch `ui/execution-fixes`): the larger view reserves the board's square from the first frame and fades it in; loading boards show no words. Verified by a unit test (`private-preview-stability`); the lead measures the shift in the running app.
 - Evidence: `annotated/M-018.png`, `motion/walk-brand-1440.txt`
 - Systemic? Probably: the same private-preview loader is used for other images.
 
@@ -1219,6 +1251,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: A setting that only some screens respect looks broken, and Plans is where the renewal date matters most.
 - Suggested direction: One shared date formatter that takes the account's preference, used everywhere, including the tooltip.
 - Where in the code: Good model `BrowserLocalDate` in `src/components/workspace/browser-local-date.tsx:20-24`; `shortDate` in `src/components/workspace/project-card.tsx:21, 152, 168`; `dateLabel` in `src/components/workspace/projects-workspace.tsx:39-45`; `formatDate` in `src/components/billing/plans-workspace.tsx:26`; `creditsMessage` in `src/components/workspace/credits-message.ts:7`.
+- Status: **Done in part** (commit ccbdeb8b on branch `ui/execution-fixes`): one renewal-date function for the account menu, Plans, Settings and every credits message, so they name the same day. Verified by a unit test (`credits-renew-date`). **Open:** Library and Activity dates still use fixed English formats instead of the account's preferences.
 - Evidence: `screens/plans__free-0-credits-upgrade-free__1440.png`, `screens/brand-conversation__out-of-credits-prompt-free__1440.png`
 - Systemic? Four functions.
 
@@ -1231,6 +1264,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Add each board's credit line to the data and show it in the large view. Note in `docs/` where the permission records are kept. The boards themselves do not need to change for this.
 - Where in the code: `src/domain/inspiration-brands.json`; `BrandOverlay` in `src/components/inspiration/inspiration-brands.tsx`; `docs/inspiration-brand-boards.md`.
 - Needs the owner: The credit wording comes from the permission records, which only the owner holds.
+- Status: **Needs the owner** (unchanged): the credit wording comes from the permission records.
 - Evidence: `annotated/E-054.png`
 - Systemic? 56 gallery brands.
 
@@ -1244,6 +1278,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Inline messages under each field in the app's own error style, shown when the field loses focus and on submit ("Use at least 12 characters", "The two passwords don't match"). Mark the field as invalid and link the message to it. Keep what was typed where security allows (at least the first password on a mismatch). Move focus to the field to fix.
 - Where in the code: `SignInForm` in `src/components/auth/sign-in-form.tsx:95-107, 371-375`.
 - Fixed by: D-047 (form controls; DS-021); D-008 (Inline message and Toast; DS-012)
+- Status: **Done** by the account screens rebuild: the app's own messages under each field, fields marked invalid and linked, focus on the field to fix, no browser bubble. **Not changed:** passwords are still emptied after a mismatch; tests in `account-creation` and `sign-in-transient-password` hold that as deliberate credential handling, so keeping the first password is the owner's call.
 - Evidence: `screens/sign-up__validation-password-mismatch__1440.png`, `screens/sign-in__error-wrong-password__1440.png`, `screens/forgot-password__error-rate-limited__1440.png`, `annotated/A-kbd-sign-up-mismatch.png`, `annotated/A-kbd-sign-in-error.png`
 - Systemic? Three forms.
 
@@ -1256,6 +1291,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Keep the last result in memory and show it at once on return, refreshing quietly in the background. Clear the search without a request. Reserve the skeleton for a first load. Fade thumbnails in over 200 ms. Do not animate the route change itself.
 - Where in the code: `HomeWorkspace`, `ProjectsWorkspace`, `AssetsWorkspace`, `ProjectCard`. Plan: `design-audit/animation-plans/005-content-arrives-without-popping.md`.
 - Fixed by: D-009 (Skeleton, Media frame and waiting patterns; DS-015)
+- Status: **Done** (PR 263, commit 7defd4fd: lists already read show at once and refresh quietly).
 - Evidence: `annotated/M-009.png`, `motion/walk-shell-signed-in.txt`
 - Systemic? Yes: all three lists.
 
@@ -1269,6 +1305,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Where in the code: `PlansWorkspace` in `src/components/billing/plans-workspace.tsx`; `.plans-notice` in `src/styles/plans.css:145-156`.
 - Fixed by: D-008 (Inline message and Toast; DS-012); D-006 (Button; DS-010)
 - Needs the owner: Pass 1 also proposes rewriting the footer ("Payments are processed by Stripe through Link…") in two short sentences and adding "Downgrade to Free" on the Free card. The footer is billing and legal text, which the implementation rules leave to the owner, and a downgrade button is a new action. Neither is done without the owner's say.
+- Status: **Done** by the Plans rebuild (one Manage plan button, Cancel plan as a quiet action, one notice component). **Needs the owner** (unchanged): the payment footer wording and a Downgrade to Free action.
 - Evidence: `screens/plans__pro-current-pro__1440.png`, `screens/plans__upgrade-unavailable-free__1440.png`, `screens/plans__return-checkout-success-fresh__1440.png`
 - Systemic? Yes: notice styles differ across pages.
 
@@ -1281,7 +1318,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: A customer who lands on either sees a different, rougher product.
 - Suggested direction: Retire the identity page (redirect it to the Inspiration step, like its sibling routes), and give the recover page the standard Empty state.
 - Where in the code: `src/app/brands/account/[projectId]/identity/page.tsx`; link "Saved references and systems" in `AccountProjectEditor`, `src/components/workspace/account-project-editor.tsx` (lines removed in PR #258); `.identity-reference-indicators`; `src/app/brands/[projectId]/page.tsx`.
-- Status: **Identity half done** (PR 258 in mikaelcharbonneau/embel, "Retire the old Identity page and redirect it to Inspiration"): `/brands/account/<id>/identity` now redirects to the Inspiration step and the "Saved references and systems" link is gone. **Open:** the recover page `/brands/<id>` still needs the standard Empty state (D-038).
+- Status: **Done.** PR 258 retired the identity route; PR 263 gave the recover page the standard Empty state (commit 1947b02e); commit ab4a19bd on branch `ui/execution-fixes` deletes the retired Identity editor's components and styles.
 - Fixed by: D-038 (Empty state; DS-016)
 - Needs the owner: Settled; the owner approved retiring the route in the code cleanup.
 - Evidence: `screens/brand-identity__kestrel-pro__1440.png`, `screens/brand-recover__owner-no-unsaved-project-pro__1440.png`, `screens/recover-project__signed-out-none-available__1440.png`
@@ -1295,6 +1332,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: The page where a customer enters a card should look like Embel.
 - Suggested direction: Set the existing mark as a square icon (512 × 512 PNG, 50 KB at most) in Stripe's branding settings, after checking Stripe's size rules.
 - Needs the owner: This is a setting in the owner's Stripe Dashboard, not code. Only the owner can do it and check it.
+- Status: **Needs the owner** (unchanged): a Stripe Dashboard setting.
 - Evidence: `design-audit/04_image_needs.md`
 - Systemic? No.
 
@@ -1306,6 +1344,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: Leftover files that include other companies' logos are a liability with no benefit.
 - Suggested direction: Delete after one check that no component builds these paths by name. Remove the old catalogue together with its data file, after handling the two code files that still import it.
 - Where in the code: `public/handles/`, `public/names/`, `public/logo-concepts/`, `public/fluid-mark.svg`, `public/settings/`; `public/inspiration/*.jpg`, `public/inspiration/*-logo-study.png`, `src/domain/inspiration-catalog.json`.
+- Status: **Done in part**: the handles, names, settings and shell sets were already gone; `fluid-mark.svg` is a clean alias (D-043) and `public/naming/heart.svg` is deleted (commit b40cb00d on branch `ui/execution-fixes`). **Open:** the old inspiration catalogue (30 images and its data file) stays, because saved likes still resolve through it on the server; removing it is a data change.
 - Evidence: `assets/assets.md`
 - Systemic? No.
 
@@ -1320,6 +1359,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Drop the meta line and the intro on folded answers. One verb for changing an answer ("Change"). One Continue button style. Make the whole card the click target, with the control on the left. Fix the sentence ("Here are the competitors we found.").
 - Where in the code: `AccountGuidedInterview` in `src/components/workspace/account-guided-interview.tsx`; `src/styles/guided-conversation.css`.
 - Fixed by: D-007 (Choice card; DS-011); D-006 (Button; DS-010)
+- Status: **Done.** The Workspace redesign removed the meta lines, the Continue arrows and the "competitors research found" sentence; commit ba642012 on branch `ui/execution-fixes` makes Change the one verb ("Change answer", "Change inspiration") with accessible names that start with the visible words.
 - Evidence: `screens/brand-conversation__spokesmith-research-done-free__1440.png`, `screens/brand-conversation__northernlights-voice-done-long-name-free__1440.png`, `screens/brand-conversation__kestrel-complete-showcase-pro__1440.png`
 - Systemic? Yes: all steps, and the Assets page.
 
@@ -1332,6 +1372,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: Smoothness is what lets good motion register at all, and a fast laptop hides nearly every such problem.
 - Suggested direction: Pulse one wrapper per card. Keep hover changes to border and background. Fade overlays with opacity only, never the blur. Never update the reply box variable on every scroll frame. Before launch, record the logo-drawing screen and the finished brand page on a mid-range phone.
 - Where in the code: `src/components/workspace/project-card.module.css:151-155`; `src/components/inspiration/inspiration.css:653-660`; `src/components/workspace/floating-composer.tsx:98-101`.
+- Status: **Done in part** (commit 008ad6a5 on branch `ui/execution-fixes`): the gallery card's hover changes its border only; no dialog backdrop blurs; the side-chat reply box doesn't write its height on resize. **Open:** skeleton pieces still pulse one by one (a design-system change). Not tested on a real phone.
 - Evidence: `motion/walk-live.json`
 - Systemic? No.
 
@@ -1345,6 +1386,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: A minimum target token and the two control sizes in `05_design_system.md` sections 3d and 3f; a minimum box for standalone links; lay out "Forgot password?" so its box does not overlap the field.
 - Where in the code: `.button`, `.icon-button`, `.text-link` in `src/styles/globals.css:35-52`.
 - Screen findings merged into this item: A-021
+- Status: **Done** by the design system (44 px controls, `link-target-min` for standalone links) and the account screens rebuild. The lead checks that "Forgot password?" no longer overlaps the password field.
 - Evidence: `a11y/sign-in__default__1440.json`, `design-system/drift.md`
 - Systemic? Yes (text links).
 
@@ -1357,6 +1399,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: One shared source for the primitive values that the app, the emails and the export templates all read. The published Claude Design system becomes the documentation, and `/design-sync` keeps the code in step with it.
 - Where in the code: `src/app/global-error.tsx`; `supabase/templates/confirmation.html`; `supabase/templates/recovery.html`.
 - Screen findings this fixes: D-022 (E-042, E-047, IMG-022, IMG-023, IMG-024, IMG-025); D-023 (E-044, E-046, IMG-026); D-087 (E-049, IMG-028); D-095 (E-016, IMG-009)
+- Status: **Done in part**: the crash screen uses the system's primitives and now the mark (commit a5c8a695 on branch `ui/execution-fixes`). **Open:** one shared source of primitive values for the emails and the exported guide.
 - Evidence: `emails/confirmation__600.png`, `exports/rendered/kestrel__guides--brand-guide.html.png`
 - Systemic? Yes.
 
@@ -1369,6 +1412,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: One alignment per card (left), one primary button width, drop "Return to Home" from the overlay, and hide the pill's account buttons on account pages.
 - Where in the code: `src/styles/auth.css`; `SignInDialog` in `src/components/auth/sign-in-dialog.tsx`.
 - Fixed by: D-006 (Button; DS-010)
+- Status: **Done** (commit 5d15fd8a on branch `ui/execution-fixes`): the pill drops Sign in and Create account on the account pages; the cards were already left-aligned with one button width, and the overlay has no "Return to Home". Verified by a unit test (`app-shell-stability`).
 - Evidence: `screens/sign-in__default__1440.png`, `screens/reset-password__error-link-expired__1440.png`, `screens/reset-password__saved__1440.png`, `screens/home__signed-out-sign-in-overlay__1440.png`
 - Systemic? No.
 
@@ -1381,6 +1425,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Add the mark beside the name as a hosted PNG (28 and 56 px, 3 KB at most, alt text "Embel"; many mail programs do not show SVG), an "or paste this link" line, the expiry time and a help address. The emails were not checked for accessibility; that is worth 30 minutes before launch.
 - Where in the code: `supabase/templates/confirmation.html`; `supabase/templates/recovery.html`.
 - Fixed by: D-085 (shared values for emails and exports; DS-024)
+- Status: **Done in part** (commit 44807e8c on branch `ui/execution-fixes`): both emails print the link under the button, and the reset email says the link works once and expires after a short time. **Open:** the mark as a hosted PNG and a help address (D-028). The hosted project's templates are set in its dashboard by the release lead.
 - Evidence: `emails/confirmation__600.png`, `emails/confirmation__390.png`, `emails/recovery__600.png`, `emails/recovery__390.png`
 - Systemic? No.
 
@@ -1393,6 +1438,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: People who use voice control say what they see; names that start with the visible text work best.
 - Suggested direction: Drop the hidden label and let the visible text be the name, or start the label with the brand name.
 - Where in the code: `ProjectCard` in `src/components/workspace/project-card.tsx:183`.
+- Status: **Done** by the Projects rebuild: the card's link is named by its visible title.
 - Evidence: `lighthouse/projects__eight-brands-free__desktop/report.html`
 - Systemic? Every project card.
 
@@ -1405,6 +1451,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: A screen-reader user hears a contradiction.
 - Suggested direction: A fixed label ("Like X") with the pressed state, as the show-password button already does.
 - Where in the code: `src/components/inspiration/inspiration-brands.tsx:61-74`; `src/components/naming/naming-inspect.tsx:85-86`; `src/components/assets/assets-workspace.tsx:315-336`.
+- Status: **Done** (commit d8ebd41d on branch `ui/execution-fixes`): gallery and reference hearts keep the name "Like …" with the pressed state; Library's Like and Save already did.
 - Evidence: `a11y/keyboard.json`
 - Systemic? Three components.
 
@@ -1417,6 +1464,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: The customer copies these pairings into their own site. Embel should not demonstrate a pairing that fails.
 - Suggested direction: When the preview puts text on a brand colour, pick dark or light text by calculated contrast, whichever passes. Consider showing the ratio next to each recommended pairing in the guidelines.
 - Where in the code: Design system preview in `AssetsJourney`, `src/features/brand-assets/components/assets-journey.tsx`.
+- Status: **Done** (commit 9f129118 on branch `ui/execution-fixes`): text on a brand color falls back to dark or light text when no palette color reaches 4.5:1. Verified by a unit test (`design-tokens`).
 - Evidence: `a11y/brand-assets__orchardlane-ready-free__1440.json`, `screens/brand-assets__orchardlane-ready-free__1440.png`
 - Systemic? Yes, for any generated palette.
 
@@ -1430,6 +1478,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Answer "no icon" without an error status, or decide on the server and send no request. Always fall back to the competitor's initial.
 - Where in the code: `CompetitorLogo` in `src/components/workspace/competitor-logo.tsx`; route `GET /api/projects/<id>/competitor-icon`.
 - Needs the owner: Changing what the route answers is a small API change, which the implementation rules leave to the owner.
+- Status: **Needs the owner** (unchanged): the competitor-icon route's answer is an API change.
 - Evidence: `lighthouse/brand-conversation__spokesmith-research-done-free__desktop/report.html`
 - Systemic? Every brand page.
 
@@ -1442,6 +1491,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: Invalid structure is read unpredictably by assistive technology.
 - Suggested direction: Put the retry control beside the open button. Use a real table or a description list. Generate ids with `useId()`.
 - Where in the code: `BrandImage` in `src/components/inspiration/inspiration-brands.tsx:92-100, 173-180`; `src/features/brand-assets/components/assets-journey.tsx:470-475`; `AccountAccess` in `src/components/workspace/account-access.tsx:122-133`.
+- Status: **Done** (commit ed4c15e5 on branch `ui/execution-fixes`): no button inside a gallery tile's open button; the color tokens list and the sign-out ids were already rebuilt. Verified by a unit test (`inspiration-dom-stability`).
 - Evidence: `a11y/keyboard.json`
 - Systemic? No.
 
@@ -1454,6 +1504,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Names and `autocomplete` on every field; status lines instead of values; a caption on the table; example placeholders.
 - Where in the code: `AccountProfileEditor` in `src/components/workspace/account-profile-editor.tsx:61-72`; `RecordedUsage` in `src/components/workspace/recorded-usage.tsx:220-234`; `PlansWorkspace` in `src/components/billing/plans-workspace.tsx:313-318`; `ConceptGrid` in `src/components/logo-creation/concept-grid.tsx:469-479`.
 - Fixed by: D-047 (form controls; DS-021); D-037 (disabled and busy states; DS-022)
+- Status: **Done in part** (commit 4088ebe4 on branch `ui/execution-fixes`): the reply boxes, brief fields, search boxes and delete-account confirmation have a name and `autocomplete="off"`; Settings shows status lines, and the Usage table has a caption. **Open:** example placeholders.
 - Evidence: `screens/settings__signed-out__1440.png`
 - Systemic? No.
 
@@ -1465,6 +1516,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: Each is small; together they are the difference between finished and nearly finished.
 - Suggested direction: Fix each: curly apostrophes, `text-wrap: balance` on headings, `translate="no"` on names, `touch-action: manipulation` on controls, remove the dead rule, announce the counter.
 - Where in the code: `.brief-composer` in `src/styles/globals.css` (lines removed in PR #258); image counter in `src/components/inspiration/inspiration-brands.tsx:283-313`.
+- Status: **Done in part** (commit d7d5c929 on branch `ui/execution-fixes`): `touch-action: manipulation` on controls, `translate="no"` on brand names, the image counter announced; headings balance and `.brief-composer` was removed earlier. **Open:** straight apostrophes in about 40 strings, matched verbatim by tests and specs.
 - Evidence: `screens/sign-in__error-wrong-password__1440.png`
 - Systemic? Yes, in small ways.
 
@@ -1477,6 +1529,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Offer "Go to Projects" as well when signed in. Style the crash screens with the page-error pattern (the same type and button as the 404). Put the existing mark at 32 px above the heading; no illustration and no "lost" joke art.
 - Where in the code: `src/app/not-found.tsx`; `src/app/error.tsx`; `src/app/global-error.tsx`; `src/app/brands/account/[projectId]/error.tsx`.
 - Fixed by: D-008 (Inline message and Toast; DS-012); D-085 (shared values for emails and exports; DS-024)
+- Status: **Done** (commit a5c8a695 on branch `ui/execution-fixes`): the 404 and route error screens use the page-error layout; signed in, the 404 offers Go to Projects. Verified by a unit test (`not-found`).
 - Evidence: `screens/not-found__default__1440.png`, `screens/not-found__default__390.png`
 - Systemic? No.
 
@@ -1489,6 +1542,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Send signed-out visitors to the sign-in overlay and return them to the page afterwards, or centre a single card in the Empty state style.
 - Where in the code: `ProjectsWorkspace`, `AssetsWorkspace`, `SettingsWorkspace` in `src/components/workspace/settings-workspace.tsx`.
 - Fixed by: D-038 (Empty state; DS-016)
+- Status: **Done** by the Projects, Library and Settings rebuilds (signed-out Empty states and a sign-in invitation instead of disabled forms).
 - Evidence: `screens/projects__signed-out__1440.png`, `screens/library__signed-out__1440.png`, `screens/settings__signed-out__1440.png`
 - Systemic? Yes: Projects, Library, Settings, the Plans footer and the project page.
 
@@ -1501,6 +1555,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Mirror them in the address.
 - Where in the code: `SettingsWorkspace` in `src/components/workspace/settings-workspace.tsx:20`; `AssetsWorkspace` in `src/components/assets/assets-workspace.tsx:65, 116`; `ProjectsWorkspace` in `src/components/workspace/projects-workspace.tsx:78-79`.
 - Needs the owner: This adds address parameters, a small behaviour change. A comment in Settings suggests that always opening on Account is deliberate; confirm with the owner before changing that one.
+- Status: **Needs the owner** (unchanged): address parameters, and whether Settings should open on the last tab.
 - Evidence: `screens/settings__usage-pro__1440.png`
 - Systemic? No.
 

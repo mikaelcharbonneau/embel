@@ -51,7 +51,9 @@ export function ProjectBarContent({
       </Link>
       {projectControl ??
         (projectName ? (
-          <span className={styles.projectName}>{projectName}</span>
+          <span className={styles.projectName} translate="no">
+            {projectName}
+          </span>
         ) : (
           <span className={styles.projectName} role="status">
             Loading project…
@@ -203,7 +205,9 @@ export function ProjectMenu({ projectName }: { projectName: string }) {
         className={`${styles.projectName} ${styles.projectSummary}`}
         aria-label={`Project: ${projectName}. Switch project`}
       >
-        <span className={styles.projectTitle}>{projectName}</span>
+        <span className={styles.projectTitle} translate="no">
+          {projectName}
+        </span>
         <Icon name="chevron" size={12} style={{ transform: "rotate(90deg)" }} />
       </summary>
       <ul className={styles.menu}>

@@ -19,7 +19,7 @@
 }
 .transcript.transcript {
   padding: var(--space-6) var(--space-4);
-  gap: 22px;
+  gap: var(--space-6);
   overscroll-behavior: contain;
   scrollbar-width: thin;
 }
@@ -32,7 +32,7 @@
   line-height: 20px;
 }
 .context p {
-  padding-top: 10px;
+  padding-top: var(--space-3);
   overflow-wrap: anywhere;
 }
 .active {
@@ -44,19 +44,19 @@
   font-weight: 500;
   line-height: 26px;
   letter-spacing: -0.2px;
-  margin-bottom: 14px;
+  margin-bottom: var(--space-4);
 }
 .active :global(.guided-choice-widget) {
   border: 0;
   padding: 0;
-  gap: 14px;
+  gap: var(--space-3);
 }
 .active :global(.naming-approach-options) {
   grid-template-columns: 1fr;
   gap: var(--space-2);
 }
 .active :global(.naming-approach-option) {
-  padding: var(--space-3) 14px;
+  padding: var(--space-3) var(--space-4);
   gap: var(--space-1);
   min-height: 80px;
   border-radius: var(--radius-small);
@@ -93,7 +93,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  margin-top: 18px;
+  margin-top: var(--space-5);
 }
 .save {
   display: inline-flex;
@@ -122,13 +122,13 @@
   gap: var(--space-2);
   padding: var(--space-3);
   background: var(--color-bg-sunken);
-  border-radius: 10px;
+  border-radius: var(--radius-small);
 }
 .guidance > div {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2);
   font-size: var(--font-size-2);
 }
 .guidance strong {
@@ -142,7 +142,7 @@
   align-items: center;
   gap: var(--space-2);
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: var(--space-3);
   color: var(--color-text-muted);
   font-size: var(--font-size-1);
   line-height: 18px;
@@ -162,7 +162,7 @@
 .manualName {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: var(--space-2);
   align-items: end;
   margin-bottom: var(--space-5);
 }
@@ -176,7 +176,7 @@
   width: 100%;
   min-width: 0;
   min-height: 44px;
-  padding: 10px var(--space-3);
+  padding: var(--space-3) var(--space-3);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-small);
   background: var(--color-bg-paper);
@@ -203,7 +203,7 @@
   flex-shrink: 0;
 }
 .questionCard {
-  padding: 18px;
+  padding: var(--space-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   background: var(--color-bg-paper);
@@ -226,7 +226,7 @@
 }
 @media (max-width: 700px) {
   .questionCard {
-    padding: 14px;
+    padding: var(--space-4);
   }
   .inlineTurn :global(.naming-approach-options) {
     grid-template-columns: 1fr;
@@ -260,11 +260,11 @@
   display: block;
   width: 100%;
   min-height: 76px;
-  margin-top: 7px;
-  padding: 10px var(--space-3);
+  margin-top: var(--space-2);
+  padding: var(--space-3) var(--space-3);
   resize: vertical;
   border: 1px solid var(--color-border-control);
-  border-radius: 7px;
+  border-radius: var(--radius-small);
   color: var(--color-text);
   background: var(--color-bg-paper);
   font: inherit;

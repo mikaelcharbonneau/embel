@@ -89,8 +89,16 @@ describe("project workspace retains account and saved-state safety without proje
       vi.stubGlobal("fetch", fetch);
       await render(<input aria-label="Private retained editor" defaultValue="Private local input" />);
       expectNoProjectBars();
-      expect(host.querySelector(".project-access-state")?.textContent).toContain("Account status fixture");
-      expect(host.querySelector('a[href="/brands"]')?.textContent).toBe("Back to Projects");
+      if (status === "checking") {
+        // A neutral frame while the account is checked: no signed-out notice, no instructions.
+        expect(
+          host.querySelector('.project-access-state [role="status"][aria-label="Opening your brand"]'),
+        ).not.toBeNull();
+        expect(host.querySelector(".project-access-state")?.textContent).not.toContain("Account status fixture");
+      } else {
+        expect(host.querySelector(".project-access-state")?.textContent).toContain("Account status fixture");
+        expect(host.querySelector('a[href="/brands"]')?.textContent).toBe("Back to Projects");
+      }
       expect(host.textContent).not.toContain("Owned fixture");
       expect(host.querySelector("input")).toBeNull();
       expect(drafts.get(projectId)?.saved.title).toBe("Owned fixture");

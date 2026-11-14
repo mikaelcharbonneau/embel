@@ -163,9 +163,10 @@ describe("project card contextual actions", () => {
     await render();
     await openDelete();
     expect(host.querySelector("dialog")?.open).toBe(true);
-    expect(host.textContent).toContain("Its assets and history are kept");
-    expect(host.textContent).toContain("requests cancellation of active work");
-    expect(host.textContent).toContain("Work already started may still finish or incur usage");
+    expect(host.textContent).toContain("It moves to Deleted projects with its files and history");
+    expect(host.textContent).toContain("You can restore it any time");
+    expect(host.textContent).toContain("that work is asked to stop");
+    expect(host.textContent).toContain("work already started may still finish and use credits");
     expect(host.textContent).not.toContain("This stops any active work");
     expect(document.activeElement).toBe(button("Cancel"));
     await click("Cancel");

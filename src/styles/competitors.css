@@ -1,11 +1,11 @@
 .competitor-research-note {
   display: flex;
   align-items: flex-start;
-  gap: 9px;
-  padding: 13px 15px;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-4);
   margin: -6px 0 var(--space-5);
   border: 1px solid var(--color-border);
-  border-radius: 7px;
+  border-radius: var(--radius-small);
   color: var(--color-text-muted);
   background: var(--color-bg-sunken);
   font-size: var(--font-size-2);
@@ -22,42 +22,42 @@
   min-height: 230px;
 }
 .competitor-list {
-  gap: 18px;
+  gap: var(--space-4);
 }
 .competitor-input {
   display: block;
   width: 100%;
   padding: var(--space-3);
-  margin-top: 9px;
-  border: 1px solid #d8d7d3;
-  border-radius: 6px;
+  margin-top: var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-small);
   background: var(--color-bg-paper);
   font-size: var(--font-size-3);
   line-height: 1.55;
 }
 .competitor-input::placeholder {
-  color: #82817b;
+  color: var(--color-text-muted);
   opacity: 1;
 }
 .competitor-input[aria-invalid="true"] {
   border-color: var(--color-border-danger);
 }
 .competitor-field {
-  margin-top: 18px;
+  margin-top: var(--space-5);
 }
 .competitor-relevance {
   min-height: 92px;
 }
 .competitor-field-error {
   margin-top: var(--space-1-5);
-  color: #a02929;
+  color: var(--color-text-danger);
   font-size: var(--font-size-2);
 }
 .competitor-none {
   margin-top: var(--space-5);
-  padding: 14px var(--space-4);
+  padding: var(--space-4) var(--space-4);
   border: 1px solid var(--color-border);
-  border-radius: 7px;
+  border-radius: var(--radius-small);
   background: var(--color-bg-paper);
 }
 .competitor-none .target-toggle {
@@ -71,7 +71,7 @@
   margin-top: var(--space-0-5);
 }
 .competitor-none > p {
-  margin: var(--space-0-5) 0 0 23px;
+  margin: var(--space-0-5) 0 0 var(--space-6);
   font-size: var(--font-size-2);
   color: var(--color-text-muted);
 }
@@ -90,15 +90,15 @@
 }
 @media (max-width: 540px) {
   .competitor-input {
-    padding: 10px;
+    padding: var(--space-3);
     font-size: var(--font-size-4);
   }
   .competitor-research-note {
-    padding: var(--space-3) 13px;
+    padding: var(--space-3) var(--space-4);
     font-size: var(--font-size-2);
   }
   .competitor-none {
-    padding: var(--space-3) 14px;
+    padding: var(--space-3) var(--space-4);
   }
   .competitor-card .target-toggle {
     min-height: 44px;

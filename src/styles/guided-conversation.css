@@ -25,7 +25,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin-bottom: 10px;
+  margin-bottom: var(--space-3);
   font-size: var(--font-size-2);
   font-weight: 500;
 }
@@ -46,10 +46,10 @@
    spaced like the messages inside it. */
 .guided-conversation-error {
   margin-bottom: var(--space-3);
-  padding: var(--space-3) 14px;
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-small);
-  background: #fff5f3;
-  color: var(--color-text-danger, #a52b2b);
+  background: var(--color-bg-danger-soft);
+  color: var(--color-text-danger);
   font-size: var(--font-size-2);
   line-height: 20px;
 }
@@ -95,10 +95,10 @@
     opacity: 1;
   }
 }
+/* Reduced motion: the entrance fades without moving; the thinking pulse (opacity only) stays as feedback. */
 @media (prefers-reduced-motion: reduce) {
-  .flow-enter,
-  .guided-thinking > .e-mark {
-    animation: none;
+  .flow-enter {
+    animation-name: e-fade;
   }
 }
 @media (max-width: 700px) {
@@ -134,7 +134,7 @@
   width: 40px;
   height: 40px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-small);
   background: transparent;
   color: var(--color-text-muted);
 }

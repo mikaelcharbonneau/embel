@@ -242,6 +242,7 @@ describe("generic account project entry", () => {
     await render();
     await act(async () => pending.resolve(json(logo())));
     expect(replace).not.toHaveBeenCalled();
-    expect(host.textContent).toContain("Checking account");
+    // While the account is checked again, the neutral frame: no private work, no signed-out notice (D-055).
+    expect(host.querySelector('[role="status"][aria-label="Opening your brand"]')).not.toBeNull();
   });
 });

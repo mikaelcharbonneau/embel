@@ -221,7 +221,7 @@ describe("Logo step inside the Identity conversation", () => {
     // Inspiration folds into the chat, and can be reopened from there.
     const folded = identity()!.querySelector("details")!;
     expect(folded.querySelector("summary")!.textContent).toContain("2 liked");
-    await act(async () => buttonNamed("Edit inspiration")!.click());
+    await act(async () => buttonNamed("Change inspiration")!.click());
     expect(work()!.querySelector("[data-inspiration]")).not.toBeNull();
     expect(send()!.getAttribute("aria-label")).toBe("Continue to Logo");
     expect(scrollTo).not.toHaveBeenCalled();

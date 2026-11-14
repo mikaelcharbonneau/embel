@@ -163,7 +163,7 @@ it("keeps an explicitly reopened answer open through later run polls and same-ow
   await render(f.memory);
   expect(heading()).toBe("Your naming direction");
   const edit = host.querySelector<HTMLButtonElement>(
-    '[aria-label="Edit answer: Any length limits or text to include or avoid?"]',
+    '[aria-label="Change answer: Any length limits or text to include or avoid?"]',
   )!;
   await act(async () => edit.click());
   await act(async () => f.load());

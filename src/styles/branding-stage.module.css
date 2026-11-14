@@ -15,7 +15,7 @@
   min-width: 0;
   max-width: var(--branding-max-width);
   margin: 0 auto;
-  padding: 28px var(--branding-gutter) var(--space-10);
+  padding: var(--space-8) var(--branding-gutter) var(--space-10);
   overflow-wrap: anywhere;
 }
 
@@ -40,23 +40,12 @@
   font-weight: 500;
   letter-spacing: -0.02em;
 }
-.frame :is(h3, h4),
-.frame .subheading {
+.frame :is(h3, h4) {
   margin: 0;
   font-size: var(--branding-subheading-size);
   line-height: 1.4;
   font-weight: 500;
   letter-spacing: -0.01em;
-}
-.frame .eyebrow {
-  color: var(--color-text-muted, var(--color-text-muted));
-  font-weight: 400;
-  line-height: 1.5;
-  letter-spacing: normal;
-}
-.frame .eyebrow {
-  margin: 0 0 var(--space-1-5);
-  font-size: var(--font-size-1);
 }
 
 .frame button,

@@ -175,9 +175,11 @@ export function SignInForm({
       router.refresh();
     } else if (result.reason === "failed") {
       if (signingUp) setErrors({ form: signUpErrorMessage(result.error) });
-      else if (result.error instanceof SignInRequestError && [401, 413, 422].includes(result.error.status))
+      else if (result.error instanceof SignInRequestError && [401, 413, 422].includes(result.error.status)) {
         setErrors({ password: signInErrorMessage(result.error), credentials: true });
-      else setErrors({ form: signInErrorMessage(result.error) });
+        // The person fixes the password next; the message under it is read with the field.
+        passwordInput.current?.focus();
+      } else setErrors({ form: signInErrorMessage(result.error) });
     }
   }
 
@@ -248,16 +250,13 @@ export function SignInForm({
     >
       {confirmation === "failed" && (
         <InlineMessage tone="warning">
-          We couldn&apos;t complete this email link. Open the newest email link in the browser where you requested it.
-          If your email is already confirmed, sign in below. You can also request another confirmation email or reset
-          your password.
+          We couldn&apos;t confirm your email with this link. Open the newest email link in the browser where you signed
+          up, or send a new confirmation email below. If your email is already confirmed, sign in.
         </InlineMessage>
       )}
       {confirmation === "complete" && (
         <InlineMessage tone="positive">
-          {signedIn
-            ? "Your email is confirmed."
-            : "Your confirmation link was processed. Check your account or sign in to continue."}
+          {signedIn ? "Your email is confirmed." : "Email confirmed. Sign in to start your first brand."}
         </InlineMessage>
       )}
       {signedIn ? (
@@ -394,9 +393,9 @@ export function SignInForm({
             </form>
           )}
           {(confirming || confirmation === "failed") && !resend && (
-            <button
-              type="button"
-              className="e-link auth-card__action"
+            <Button
+              variant="secondary"
+              block
               disabled={disabled}
               onClick={() => {
                 clearPasswords();
@@ -404,8 +403,8 @@ export function SignInForm({
                 setResend(true);
               }}
             >
-              Request another confirmation email
-            </button>
+              Send a new confirmation email
+            </Button>
           )}
           {resend && (
             <form

@@ -42,7 +42,7 @@
 :is(.project-workspace, .guided-interview-opening) .guided-assistant-label {
   grid-column: 2;
   padding-top: var(--space-1-5);
-  margin-bottom: 10px;
+  margin-bottom: var(--space-3);
   font-size: var(--font-size-1);
   line-height: 18px;
   font-weight: 400;
@@ -55,7 +55,7 @@
 
 /* The current question: no outer box, one card per choice. */
 :is(.project-workspace, .guided-interview-opening) .guided-assistant-message .guided-choice-widget {
-  margin-top: 14px;
+  margin-top: var(--space-4);
   padding: 0;
   border: 0;
   background: transparent;
@@ -67,12 +67,12 @@
   margin-top: var(--space-1);
   align-items: center;
   flex-wrap: wrap;
-  padding: 14px 14px 14px var(--space-4);
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-4);
   border-radius: var(--radius-card);
-  background: rgb(255 255 255 / 75%);
+  background: var(--chip-on-artwork-bg);
 }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-answer-copy {
-  gap: 10px;
+  gap: var(--space-2);
 }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-answer ul {
   display: flex;
@@ -90,7 +90,7 @@
 }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-answer > .button {
   min-height: 40px;
-  padding: 0 14px;
+  padding: 0 var(--space-4);
   border-radius: var(--radius-pill);
 }
 
@@ -109,15 +109,15 @@
 .concept-project-workspace .workspace-main:has(.project-stage-strategy),
 .concept-project-workspace .workspace-main:has(.logo-conversation-message) {
   background-color: var(--color-bg-canvas);
-  background-image: radial-gradient(#dad9d4 1px, transparent 1px);
-  background-size: 22px 22px;
+  background-image: var(--pattern-dot-grid);
+  background-size: var(--pattern-dot-size) var(--pattern-dot-size);
 }
 
 /* The brief's edit button sits inside the bubble, below the "You" label. */
 /* Secondary actions inside the conversation are pills too. */
 :is(.project-workspace, .guided-interview-opening) .guided-assistant-message .button.secondary {
   min-height: 40px;
-  padding: 0 14px;
+  padding: 0 var(--space-4);
   border-radius: var(--radius-pill);
 }
 
@@ -133,7 +133,7 @@
   height: 40px;
   overflow: hidden;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-small);
   background: var(--color-bg-paper);
   color: var(--color-text-muted);
   font-size: var(--font-size-4);
@@ -179,7 +179,7 @@
 
 /* Voice · Slogan (optional): a live preview, the lines as compact cards, your own line, skip. */
 .guided-slogan-widget {
-  margin: 14px 0 0;
+  margin: var(--space-4) 0 0;
   padding: 0;
   border: 0;
   min-width: 0;
@@ -201,7 +201,7 @@
 .guided-interview .naming-approach-options .naming-approach-option,
 .guided-interview .naming-directness button {
   position: relative;
-  padding: var(--space-3) 14px var(--space-3) 42px;
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-10);
   border-radius: var(--radius-control);
   min-height: 64px;
   background: var(--color-bg-paper);
@@ -216,7 +216,7 @@
   height: 18px;
   box-sizing: border-box;
   border: 1.5px solid var(--color-border-strong);
-  border-radius: 5px;
+  border-radius: var(--radius-inset);
   background: var(--color-bg-paper) center / 12px 12px no-repeat;
 }
 .guided-interview .naming-directness button::before {
@@ -243,34 +243,9 @@
 }
 /* Answered naming questions sit under Embel's avatar, like the Strategy answers. */
 .guided-naming-messages > .guided-choice-answer {
-  margin-left: 44px;
+  margin-left: var(--space-12);
   border-radius: var(--radius-card);
-  background: rgb(255 255 255 / 75%);
-}
-/* All / Saved filter above the names. */
-.naming-filter {
-  display: inline-flex;
-  gap: var(--space-1);
-  margin-top: 10px;
-  padding: 3px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-paper);
-}
-.naming-filter button {
-  min-height: 32px;
-  padding: 0 var(--space-3);
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--color-text-muted);
-  font: inherit;
-  font-size: var(--font-size-2);
-  cursor: pointer;
-}
-.naming-filter button[aria-pressed="true"] {
-  background: var(--color-text);
-  color: var(--color-bg-paper);
+  background: var(--chip-on-artwork-bg);
 }
 /* Answered Naming choices folded into one line (design: summary pills). */
 .guided-summary-pill {
@@ -281,11 +256,11 @@
   gap: var(--space-2);
   max-width: calc(100% - 44px);
   min-height: 40px;
-  margin: 0 0 var(--space-1) 44px;
-  padding: 0 14px 0 var(--space-1-5);
+  margin: 0 0 var(--space-1) var(--space-12);
+  padding: 0 var(--space-4) 0 var(--space-1-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
-  background: rgb(255 255 255 / 80%);
+  background: var(--chip-on-artwork-bg);
   color: var(--color-text);
   font: inherit;
   font-size: var(--font-size-2);
@@ -351,7 +326,7 @@
 }
 :is(.project-logo-creation, .identity-conversation-message) .guided-assistant-label {
   padding-top: var(--space-1-5);
-  margin-bottom: 10px;
+  margin-bottom: var(--space-3);
   font-size: var(--font-size-1);
   line-height: 18px;
   color: var(--color-text-muted);
@@ -365,7 +340,7 @@
 .workspace-main .project-logo-creation:has(.logo-conversation-message) {
   width: min(840px, 100%);
   margin: 0 auto;
-  padding: var(--space-10) var(--space-6) 120px;
+  padding: var(--space-10) var(--space-6) var(--space-24);
   box-sizing: border-box;
 }
 .project-logo-creation:has(.logo-conversation-message) [class*="primaryButton"] {
@@ -380,8 +355,8 @@
 }
 .concept-project-workspace .workspace-main:has(.identity-conversation-message) {
   background-color: var(--color-bg-canvas);
-  background-image: radial-gradient(#dad9d4 1px, transparent 1px);
-  background-size: 22px 22px;
+  background-image: var(--pattern-dot-grid);
+  background-size: var(--pattern-dot-size) var(--pattern-dot-size);
 }
 
 /* Phase 5 · Identity · Inspiration: Embel's message above the gallery; Continue
@@ -391,7 +366,7 @@
   margin: var(--space-2) auto var(--space-4);
 }
 .inspiration-question {
-  margin: 14px 0 0;
+  margin: var(--space-4) 0 0;
   font-size: 17px;
   font-weight: 500;
   letter-spacing: -0.01em;
@@ -399,7 +374,7 @@
 .inspiration-continue-row {
   position: sticky;
   bottom: 16px;
-  z-index: 5;
+  z-index: var(--z-sticky);
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -414,19 +389,19 @@
   align-items: center;
   gap: var(--space-2);
   min-height: 44px;
-  padding: 0 18px 0 var(--space-5);
+  padding: 0 var(--space-5) 0 var(--space-5);
   border-radius: var(--radius-pill);
   background: var(--color-text);
   color: var(--color-bg-paper);
   text-decoration: none;
   font-size: var(--font-size-3);
   font-weight: 500;
-  box-shadow: 0 12px 28px -14px rgb(25 25 25 / 45%);
+  box-shadow: var(--shadow-raised);
 }
 .concept-project-workspace .workspace-main:has(.inspiration-message) {
   background-color: var(--color-bg-canvas);
-  background-image: radial-gradient(#dad9d4 1px, transparent 1px);
-  background-size: 22px 22px;
+  background-image: var(--pattern-dot-grid);
+  background-size: var(--pattern-dot-size) var(--pattern-dot-size);
 }
 .identity-chosen-logo {
   width: 56px;

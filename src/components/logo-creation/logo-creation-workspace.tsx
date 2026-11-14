@@ -181,6 +181,8 @@ function OwnedLogoCreation({
     error: string | null;
   }>({ selected: null, workspaceRevision: null, busy: false, error: null });
   const selecting = useRef(false);
+  // The concept being chosen right now: its card shows as chosen from the click, and goes back if saving fails.
+  const [choosing, setChoosing] = useState<LogoRasterSource | null>(null);
   const [confirmReload, setConfirmReload] = useState(false);
   const [saveReadout, setSaveReadout] = useState<{ key: string; message: string } | null>(null);
   const [savedInputs, setSavedInputs] = useState<LogoSavedInputState>({ status: "idle" });
@@ -710,6 +712,7 @@ function OwnedLogoCreation({
       const current = () =>
         !controller.signal.aborted && isCurrent(account) && isAccountLogoClientCurrent(client, account, projectId);
       setSelectionState((previous) => ({ ...previous, busy: true, error: null }));
+      setChoosing(source ?? null);
       try {
         const input = {
           client,
@@ -751,6 +754,7 @@ function OwnedLogoCreation({
       } finally {
         selecting.current = false;
         if (requestRead.current === controller) requestRead.current = null;
+        setChoosing(null);
         if (current()) setSelectionState((previous) => ({ ...previous, busy: false }));
       }
     },
@@ -1321,19 +1325,21 @@ function OwnedLogoCreation({
   ) : inChat ? null : (
     <LogoTypesSummary value={logoTypes} disabled={!canChangeTypes} onChange={() => setChangingTypes(true)} />
   );
+  // In the project conversation the brand's name is the page's heading and the step is a second-level heading.
+  const StepHeading = onContinue ? "h2" : "h1";
   return (
     <div className={`project-logo-creation ${styles.conceptsScreen}`} aria-label="Logo creation workspace">
       {chatStatus}
       <div className={styles.stepStack}>
         {external ? (
           <>
-            <h1 className="sr-only">Logo</h1>
+            <StepHeading className="sr-only">Logo</StepHeading>
             {typesQuestion}
           </>
         ) : (
           <div className="guided-assistant-message logo-conversation-message" aria-label="Embel">
             <EmbelIdentity label={journeyPartLabel("identity", "Logo")} />
-            <h1 className="sr-only">Logo</h1>
+            <StepHeading className="sr-only">Logo</StepHeading>
             <p className="guided-assistant-copy">
               {activeBatch
                 ? `Here are six concepts for ${brandName}. Pick the one you like most. To change it, tell me what to adjust below.`
@@ -1403,7 +1409,7 @@ function OwnedLogoCreation({
             actions={gridActions}
             notice={gridNotice}
             versions={cardVersions}
-            selectedVersion={selectedLogo}
+            selectedVersion={choosing ?? selectedLogo}
             selectionAt={workspace.stagePayloads?.concepts?.createdAt}
             viewedVersions={viewedVersions}
             onSelectVersion={canChoose ? (source) => void selectCandidate(source) : undefined}

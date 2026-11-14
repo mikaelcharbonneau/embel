@@ -2,7 +2,7 @@
    editing screens keep their layouts while the shared design is rolled out. */
 .concept-home .home-bottom-fade {
   position: absolute;
-  z-index: 10;
+  z-index: var(--z-sticky);
   left: 0;
   right: 0;
   bottom: 0;
@@ -11,8 +11,8 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   background: linear-gradient(transparent, var(--color-bg-canvas));
-  mask-image: linear-gradient(transparent, #000);
-  -webkit-mask-image: linear-gradient(transparent, #000);
+  mask-image: linear-gradient(transparent, black);
+  -webkit-mask-image: linear-gradient(transparent, black);
 }
 .concept-home .home-page {
   width: 100%;
@@ -49,8 +49,8 @@
   overflow: visible;
 }
 .concept-home .home-composer.conversation-composer:focus-within {
-  border-color: #aaa9a5;
-  box-shadow: 0 16px 40px -16px rgb(25 25 25 / 20%);
+  border-color: var(--color-border-control);
+  box-shadow: var(--shadow-raised);
 }
 .concept-home .home-composer.conversation-composer.has-error {
   border-color: var(--color-border-danger);
@@ -59,7 +59,7 @@
   min-height: 96px;
   height: auto;
   max-height: none;
-  padding: 18px var(--space-5) var(--space-2);
+  padding: var(--space-5) var(--space-5) var(--space-2);
   border: 0;
   border-radius: var(--radius-panel) var(--radius-panel) 0 0;
   background: transparent;
@@ -78,7 +78,7 @@
   flex-wrap: nowrap;
   align-items: center;
   gap: var(--space-1-5);
-  padding: 0 10px 10px;
+  padding: 0 var(--space-3) var(--space-3);
 }
 .concept-home .home-composer .conversation-composer-footer > .sr-only {
   position: absolute;
@@ -105,7 +105,7 @@
   opacity: 0.35;
 }
 .concept-home .home-composer > .form-error {
-  margin: 0 var(--space-5) 18px;
+  margin: 0 var(--space-5) var(--space-5);
 }
 .concept-home .home-composer.conversation-composer .home-input-controls--compact {
   display: flex;
@@ -136,7 +136,7 @@
   margin-left: auto;
 }
 .concept-home .home-input-popover-panel {
-  z-index: 40;
+  z-index: var(--z-popover);
 }
 .concept-home .home-examples {
   margin-top: var(--space-6);
@@ -205,7 +205,7 @@
 }
 @media (max-width: 540px) {
   .concept-home .home-page {
-    padding: 28px var(--space-5) var(--space-24);
+    padding: var(--space-8) var(--space-5) var(--space-24);
   }
   .concept-home .home-introduction {
     gap: var(--space-3);

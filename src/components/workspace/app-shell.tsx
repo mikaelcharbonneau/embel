@@ -7,7 +7,7 @@ import { Menu, type MenuItem } from "@/components/ui/menu";
 import { ToastProvider } from "@/components/ui/toast";
 import { MainNavContent, NavFrame, type NavItem } from "@/components/journey/floating-nav";
 import { ProjectBarContent, ProjectMenu } from "@/components/journey/project-capsule";
-import { ProjectHeaderContext, type ProjectHeader } from "@/components/journey/project-header";
+import { ProjectHeaderContext, projectDocumentTitle, type ProjectHeader } from "@/components/journey/project-header";
 import { AccountSessionProvider, useAccountSession } from "./account-session";
 import { AccountProfileProvider, useAccountProfile } from "./account-profile-provider";
 import { AccountAccessNotice, useSignOutFlow } from "./account-access";
@@ -16,6 +16,8 @@ import { preparePromptForSignIn } from "./prompt-recovery";
 import { creditsLeft, nextCreditsDate, planName, useBillingSummary } from "@/components/billing/use-billing-summary";
 import { SignedOutActions } from "@/components/auth/signed-out-actions";
 import { OutOfCreditsPrompt } from "@/components/billing/out-of-credits-prompt";
+
+const ACCOUNT_PAGES = ["/sign-in", "/sign-up", "/forgot-password", "/reset-password"];
 
 // Library is the existing /assets page under the redesign's name.
 const primary: NavItem[] = [
@@ -58,14 +60,20 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const usesBottomFade = isHome;
   const accountProjectId = /^\/brands\/account\/([0-9a-f-]{36})(?:\/|$)/i.exec(pathname)?.[1]?.toLowerCase();
   // Until the project page reports its header, show the bar in its loading state
-  // rather than flashing the global navigation.
+  // rather than flashing the global navigation. A project that can't be opened gets the app's navigation back.
   const header =
     accountProjectId && session.status === "ready"
       ? projectHeader?.projectId === accountProjectId
-        ? projectHeader
+        ? projectHeader.unavailable
+          ? null
+          : projectHeader
         : { projectId: accountProjectId, projectName: "", steps: [], saveState: null }
       : null;
-  const account = <WorkspaceAccount pathname={currentPathname} />;
+  // On the account pages themselves the pill doesn't repeat "Sign in" and "Create account" (the card offers both).
+  const accountPage = !intercepted && ACCOUNT_PAGES.includes(currentPathname);
+  const account = <WorkspaceAccount pathname={currentPathname} accountPage={accountPage} />;
+  const documentTitle = header ? projectDocumentTitle(header) : null;
+  useBrandDocumentTitle(documentTitle);
   // Page classes scope each route's existing layout rules.
   const pageClass = projectWorkspace
     ? "concept-project-workspace"
@@ -127,20 +135,37 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Names the tab after the brand and its step while a brand page is open. The route's own title can be written again
+ * after this runs (metadata streams in), so a change to <head> puts the brand's title back; leaving the brand restores
+ * the route's title. */
+function useBrandDocumentTitle(title: string | null) {
+  useEffect(() => {
+    if (!title) return;
+    const previous = document.title;
+    const apply = () => {
+      if (document.title !== title) document.title = title;
+    };
+    apply();
+    const observer = typeof MutationObserver === "undefined" ? null : new MutationObserver(apply);
+    observer?.observe(document.head, { subtree: true, childList: true, characterData: true });
+    return () => {
+      observer?.disconnect();
+      if (document.title === title) document.title = previous;
+    };
+  }, [title]);
+}
+
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   return parts.length ? (parts[0]![0]! + (parts.length > 1 ? parts.at(-1)![0]! : "")).toUpperCase() : null;
 }
 
-/** Signed out, the pill offers the two ways in. Otherwise it holds the account
- * menu, which also covers checking, signing in and sign-out recovery. */
-function WorkspaceAccount({ pathname }: { pathname: string }) {
+/** Signed out, the pill offers the two ways in (except on the account pages, whose card already does). Otherwise it
+ * holds the account menu, which also covers checking, signing in and sign-out recovery. */
+function WorkspaceAccount({ pathname, accountPage }: { pathname: string; accountPage: boolean }) {
   const { session } = useAccountSession();
-  return session.status === "signed_out" ? (
-    <SignedOutActions placement="nav" />
-  ) : (
-    <WorkspaceAccountMenu pathname={pathname} />
-  );
+  if (session.status === "signed_out") return accountPage ? null : <SignedOutActions placement="nav" />;
+  return <WorkspaceAccountMenu pathname={pathname} />;
 }
 
 function WorkspaceAccountMenu({ pathname }: { pathname: string }) {

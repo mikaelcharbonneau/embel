@@ -232,7 +232,7 @@ async function expectNoProjectBars(page: Page) {
 }
 
 // The page-level account notice; the account menu repeats the same text in its own identity row.
-const accountNotice = (page: Page) => page.getByRole("main").locator(".account-notice");
+const accountNotice = (page: Page) => page.getByRole("main").locator(":is(.e-message, .e-empty)");
 // The saved logo and its directions render only for the verified owner.
 const ownedDirections = (page: Page) => page.getByRole("region", { name: "Chosen logo", exact: true });
 

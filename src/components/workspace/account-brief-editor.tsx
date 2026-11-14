@@ -89,6 +89,8 @@ export function AccountBriefEditor({
           <label className="field-label">
             Project label
             <input
+              name="title"
+              autoComplete="off"
               value={workspace.draft.title}
               maxLength={160}
               readOnly={readOnly}
@@ -98,6 +100,8 @@ export function AccountBriefEditor({
           <label className="field-label">
             Brief description
             <textarea
+              name="description"
+              autoComplete="off"
               value={workspace.draft.description}
               maxLength={12000}
               readOnly={readOnly}
@@ -122,6 +126,8 @@ export function AccountBriefEditor({
             <label className="field-label" key={field}>
               {label}
               <input
+                name={field}
+                autoComplete="off"
                 value={workspace.draft[field]}
                 maxLength={2000}
                 readOnly={readOnly}

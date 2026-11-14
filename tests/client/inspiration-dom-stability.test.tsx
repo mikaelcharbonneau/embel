@@ -180,7 +180,7 @@ describe("Inspiration brands", () => {
       },
     };
     await render();
-    await act(async () => button(`Unlike ${first!.brand} colors`).click());
+    await act(async () => button(`Like ${first!.brand} colors`).click());
     expect(controller.save).toHaveBeenLastCalledWith(first!.id, { ensemble: true, elements: ["images"] });
     // Clicking a heart never opens the brand.
     expect(host.querySelector("dialog")).toBeNull();
@@ -313,7 +313,44 @@ describe("Brand bento", () => {
   });
 });
 
+describe("Failed gallery images", () => {
+  it("never put a Retry button inside a tile's open button; the large view keeps Retry", async () => {
+    await render("conversation");
+    const tileImages = [...host.querySelectorAll<HTMLImageElement>(".inspiration-brand-open img")];
+    await act(async () => tileImages[0]!.dispatchEvent(new Event("error")));
+    expect(host.querySelector(".inspiration-brand-open .inspiration-image-error")?.textContent).toBe(
+      "Image unavailable",
+    );
+    expect(host.querySelector("button button")).toBeNull();
+    const opener = host.querySelector<HTMLButtonElement>(".inspiration-brand-open")!;
+    await act(async () => opener.click());
+    const large = host.querySelector<HTMLImageElement>("dialog .inspiration-overlay-art img")!;
+    await act(async () => large.dispatchEvent(new Event("error")));
+    expect(
+      [...host.querySelectorAll<HTMLButtonElement>("dialog button")].some((item) => item.textContent === "Retry image"),
+    ).toBe(true);
+    expect(host.querySelector("button button")).toBeNull();
+  });
+});
+
 describe("Brand overlay", () => {
+  it("says the choices stay with the brand by its real name, not the project's working title", async () => {
+    await act(async () =>
+      root.render(
+        <InspirationView
+          controller={controller}
+          projectId={projectId}
+          variant="workspace"
+          brandName="Kestrel Analytics"
+        />,
+      ),
+    );
+    await act(async () => button(`Open ${first!.brand}: typefaces`).click());
+    const footer = host.querySelector(".inspiration-detail-footer")!;
+    expect(footer.textContent).toBe("Your choices stay with Kestrel Analytics. Change them anytime.");
+    expect(footer.textContent).not.toContain("Local fixture");
+  });
+
   it("opens from a brand container at the clicked image, steps through all five and saves likes from inside", async () => {
     await render();
     const trigger = button(`Open ${first!.brand}: typefaces`);
@@ -325,6 +362,9 @@ describe("Brand overlay", () => {
     const large = () => dialog.querySelector<HTMLImageElement>(".inspiration-overlay-art img")!;
     expect(large().getAttribute("src")).toBe(first!.parts[2]!.image);
     expect(dialog.querySelector("figcaption")?.textContent).toBe("Typefaces · 3 of 5");
+    // The counter is announced when the image changes, once, as a whole.
+    expect(dialog.querySelector("figcaption")?.getAttribute("aria-live")).toBe("polite");
+    expect(dialog.querySelector("figcaption")?.getAttribute("aria-atomic")).toBe("true");
     await act(async () => button("Next image").click());
     expect(large().getAttribute("src")).toBe(first!.parts[3]!.image);
     await act(async () => dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })));

@@ -62,14 +62,14 @@
   align-items: center;
   gap: var(--space-0-5);
   justify-self: end;
-  padding: 3px;
+  padding: var(--space-1);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   background: var(--color-bg-paper);
 }
 .inspiration-categories button {
   min-height: 34px;
-  padding: var(--space-1-5) 14px;
+  padding: var(--space-1-5) var(--space-4);
   border: 0;
   border-radius: var(--radius-pill);
   background: transparent;
@@ -93,8 +93,8 @@
   height: 40px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 14px;
+  gap: var(--space-2);
+  padding: 0 var(--space-4);
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-pill);
   background: var(--color-bg-paper);
@@ -123,7 +123,7 @@
 .inspiration-browse .inspiration-continue-bar {
   position: sticky;
   bottom: 16px;
-  z-index: 5;
+  z-index: var(--z-sticky);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -133,7 +133,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   background: var(--color-bg-paper);
-  box-shadow: 0 12px 32px -16px rgb(25 25 25 / 35%);
+  box-shadow: var(--shadow-raised);
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
 }
@@ -143,7 +143,7 @@
   justify-content: center;
   gap: var(--space-2);
   min-height: 44px;
-  padding: 0 18px 0 var(--space-5);
+  padding: 0 var(--space-5) 0 var(--space-5);
   border-radius: var(--radius-pill);
   background: var(--color-text);
   color: var(--color-bg-paper);
@@ -292,7 +292,7 @@
 }
 .inspiration-saving,
 .inspiration-pending {
-  margin: 5px var(--space-0-5) 0;
+  margin: var(--space-1-5) var(--space-0-5) 0;
   padding: 0;
   font-size: var(--font-size-1);
   color: var(--color-text-muted);
@@ -318,7 +318,7 @@
 .inspiration-recovery button,
 .inspiration-empty button {
   min-height: 36px;
-  padding: var(--space-1-5) 14px;
+  padding: var(--space-1-5) var(--space-4);
   border: 1px solid var(--color-border);
   background: var(--color-bg-paper);
   border-radius: var(--radius-pill);
@@ -349,7 +349,7 @@
   gap: var(--space-3);
   flex-wrap: wrap;
   justify-content: flex-end;
-  margin: 28px 0 0;
+  margin: var(--space-8) 0 0;
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
   line-height: 20px;
@@ -361,7 +361,7 @@
   display: inline-flex;
   align-items: center;
   min-height: 36px;
-  padding: 0 14px;
+  padding: 0 var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   background: var(--color-bg-paper);
@@ -392,10 +392,10 @@
   border-radius: var(--radius-panel);
   color: var(--color-text);
   background: var(--color-bg-paper);
-  box-shadow: 0 24px 100px rgb(0 0 0 / 20%);
+  box-shadow: var(--shadow-modal);
 }
 .inspiration-detail::backdrop {
-  background: rgb(25 25 25 / 40%);
+  background: var(--color-bg-scrim);
 }
 .inspiration-detail-layout {
   display: grid;
@@ -419,7 +419,7 @@
   padding: var(--space-6);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-3);
 }
 .inspiration-detail-top {
   display: flex;
@@ -459,7 +459,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: 10px var(--space-4);
+  padding: var(--space-3) var(--space-4);
   background: var(--color-bg-paper);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
@@ -486,7 +486,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  margin-top: 10px;
+  margin-top: var(--space-3);
 }
 .inspiration-recovery button {
   font-size: var(--font-size-1);
@@ -522,14 +522,14 @@
   .inspiration-toolbar {
     grid-template-columns: 1fr auto;
     padding: var(--space-1) 0 var(--space-5);
-    gap: 14px var(--space-3);
+    gap: var(--space-3) var(--space-3);
   }
   .inspiration-views {
     padding-right: var(--space-4);
-    gap: 14px;
+    gap: var(--space-3);
   }
   .inspiration-categories button {
-    padding: 10px var(--space-3);
+    padding: var(--space-3) var(--space-3);
   }
   .inspiration-search {
     grid-column: 1 / -1;
@@ -552,7 +552,7 @@
     grid-template-columns: 1fr;
   }
   .inspiration-detail-art {
-    padding-top: 44px;
+    padding-top: var(--space-12);
   }
   .inspiration-detail-art > img {
     height: min(38dvh, 320px);
@@ -576,7 +576,7 @@
   }
   .inspiration-footer {
     justify-content: flex-start;
-    gap: 14px;
+    gap: var(--space-3);
   }
 }
 
@@ -650,13 +650,11 @@ button.inspiration-continue {
   border-radius: var(--radius-panel);
   background: var(--color-bg-paper);
   cursor: pointer;
-  transition:
-    border-color 120ms,
-    box-shadow 120ms;
+  /* Hover changes the border only: an animated shadow repaints the whole card every frame (D-083). */
+  transition: border-color var(--duration-fast) ease;
 }
 .inspiration-brand:hover {
   border-color: var(--color-border-strong);
-  box-shadow: 0 10px 30px -18px rgb(25 25 25 / 35%);
 }
 .inspiration-brand-header {
   box-sizing: border-box;
@@ -748,6 +746,13 @@ button.inspiration-continue {
 .inspiration-brand-tile:hover .inspiration-brand-open img {
   transform: scale(1.03);
 }
+/* Reduced motion: hover keeps its color and opacity feedback without growing. */
+@media (prefers-reduced-motion: reduce) {
+  .inspiration-heart:hover:not(:disabled),
+  .inspiration-brand-tile:hover .inspiration-brand-open img {
+    transform: none;
+  }
+}
 .inspiration-brand-open .inspiration-image-error {
   position: absolute;
   inset: 0;
@@ -759,7 +764,7 @@ button.inspiration-continue {
   bottom: 6px;
   padding: var(--space-0-5) var(--space-2);
   border-radius: var(--radius-pill);
-  background: rgb(255 255 255 / 92%);
+  background: var(--chip-on-artwork-bg);
   color: var(--color-text);
   font-size: var(--font-size-1);
   line-height: 18px;
@@ -796,7 +801,7 @@ button.inspiration-continue {
   justify-content: center;
   min-height: 40px;
   margin: var(--space-5) auto 0;
-  padding: 0 18px;
+  padding: 0 var(--space-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   background: var(--color-bg-paper);
@@ -824,9 +829,9 @@ button.inspiration-continue {
   position: absolute;
   left: 16px;
   bottom: 16px;
-  padding: var(--space-1) 10px;
+  padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-pill);
-  background: rgb(255 255 255 / 92%);
+  background: var(--chip-on-artwork-bg);
   color: var(--color-text);
   font-size: var(--font-size-1);
   line-height: 18px;
@@ -842,7 +847,7 @@ button.inspiration-continue {
   padding: 0;
   border: 1px solid rgb(25 25 25 / 8%);
   border-radius: 50%;
-  background: rgb(255 255 255 / 94%);
+  background: var(--chip-on-artwork-bg);
   color: var(--color-text);
   box-shadow: 0 1px 4px rgb(25 25 25 / 22%);
   cursor: pointer;

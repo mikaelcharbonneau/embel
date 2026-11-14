@@ -2,7 +2,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DirectionTypeSample } from "@/components/visual-directions/direction-type-sample";
+import { DirectionTypeSample, longestWordLength } from "@/components/visual-directions/direction-type-sample";
 
 class TestFace {
   static instances: TestFace[] = [];
@@ -55,6 +55,13 @@ async function render(family: string, brandName: string, weight = 600, style = "
 }
 
 describe("saved direction type specimen", () => {
+  it("measures the longest word of a brand name in characters", () => {
+    expect(longestWordLength("Kestrel Analytics")).toBe(9);
+    expect(longestWordLength("  Bright   Harbor Learning ")).toBe(8);
+    expect(longestWordLength("Mosswood")).toBe(8);
+    expect(longestWordLength("")).toBe(1);
+  });
+
   it("shows a mixed-script name in the saved variable font and weight only after the face is loaded", async () => {
     const brandName = "سَنا Studio";
     await render("Noto Sans Arabic", brandName);
@@ -70,6 +77,8 @@ describe("saved direction type specimen", () => {
     expect(sample.dir).toBe("rtl");
     expect(sample.style.fontFamily).toBe(face!.family);
     expect(sample.style.fontWeight).toBe("600");
+    // The size follows the longest word, so the name only breaks between words.
+    expect(sample.style.getPropertyValue("--sample-longest-word")).toBe("6");
     await act(async () => root.render(null));
     expect(faces.size).toBe(0);
   });

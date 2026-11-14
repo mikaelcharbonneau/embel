@@ -78,7 +78,7 @@ describe("inline account verification recovery", () => {
     expect(retry()).toBeUndefined();
     expect(host.querySelector('a[href="/sign-in"]')).toBeNull();
     await resolveRead(0, Response.json({ user: { id: owner } }));
-    expect(host.querySelector(".account-notice")).toBeNull();
+    expect(host.querySelector(".e-message, .e-empty")).toBeNull();
     expect(host.textContent).toBe(`Private content for ${owner}`);
   });
 
@@ -107,7 +107,7 @@ describe("inline account verification recovery", () => {
       await act(async () => retry()!.click());
       expect(reads).toHaveLength(3);
       await resolveRead(2, Response.json({ user: { id: owner } }));
-      expect(host.querySelector(".account-notice")).toBeNull();
+      expect(host.querySelector(".e-message, .e-empty")).toBeNull();
     },
   );
 
@@ -116,9 +116,10 @@ describe("inline account verification recovery", () => {
     ["a 401", () => new Response(null, { status: 401 })],
   ])("invites a visitor in after %s, distinct from retryable service errors", async (_, response) => {
     await resolveRead(0, response());
-    expect(host.querySelector(".account-invite > p")?.textContent).toBe("Sign in to see and save your work.");
-    expect(host.querySelector('a.button[href="/sign-in"]')?.textContent).toBe("Sign in");
-    expect(host.querySelector('a.button[href="/sign-up"]')?.textContent).toBe("Create account");
+    // The invitation is the standard empty state: what to do, why, and the two ways in.
+    expect(host.querySelector(".e-empty .e-empty__title")?.textContent).toBe("Sign in to see and save your work");
+    expect(host.querySelector('a.e-button[href="/sign-in"]')?.textContent).toBe("Sign in");
+    expect(host.querySelector('a.e-button[href="/sign-up"]')?.textContent).toBe("Create account");
     expect(host.textContent).not.toMatch(/verified account session/i);
     expect(retry()).toBeUndefined();
     expect(reads).toHaveLength(1);

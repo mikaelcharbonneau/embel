@@ -507,7 +507,7 @@ test("account fixture: an account switch fences a late save and never exposes or
   await expect(page.getByText("Account A secret pending edit", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Keep a recovery copy", exact: true })).toHaveCount(0);
   expect(await browserData(page)).toBeNull();
-  await page.getByRole("link", { name: "Back to brands", exact: true }).click();
+  await page.getByRole("link", { name: "Back to Projects", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Project options for Private account B fixture", exact: true }),
   ).toBeVisible();
@@ -698,7 +698,7 @@ for (const status of [404, 503]) {
     await expect(page.getByText("Unsaved account edits remain in this tab.", { exact: false })).toBeVisible();
     failing = false;
     state.patchStatus = 200;
-    await page.getByRole("button", { name: "Retry loading project", exact: true }).click();
+    await page.getByRole("button", { name: "Try again", exact: true }).click();
     await expectLabel(page, "Private unsaved revalidation fixture");
     await save(page, 2);
     expect(await browserData(page)).toBeNull();

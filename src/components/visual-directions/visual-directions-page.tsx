@@ -43,6 +43,12 @@ import {
   type VisualDirectionGeneration,
 } from "./visual-directions-view";
 
+/** Chosen from the click (D-058): while a choice saves, the board being chosen shows as chosen and the saved one does
+ * not; if saving fails, `choosing` clears and the saved choice shows again. */
+export function shownAsChosen(choosing: string | null, savedId: string | undefined, id: string) {
+  return choosing ? choosing === id : savedId === id;
+}
+
 export function VisualDirectionsPage({
   projectId,
   variant = "page",
@@ -348,17 +354,16 @@ function OwnedVisualDirections({
           onUrl={selectedSystem?.id === system.id ? (url) => setChosenBoard({ id: system.id, url }) : undefined}
         />
       ),
-      selected: selectedSystem?.id === system.id,
+      selected: shownAsChosen(choosing, selectedSystem?.id, system.id),
       stale,
       pending: choosing === system.id,
       disabledReason: stale
         ? "This board uses earlier inputs. Generate a new set with your current logo."
         : logoPending
           ? "Wait for your logo changes to save."
-          : choosing
-            ? "Saving your choice…"
-            : (identity.selectionBlockedReason ?? undefined),
-      onChoose: () => void choose(system),
+          : (identity.selectionBlockedReason ?? undefined),
+      // While a choice saves, the other boards wait without a note inserted under each of them (D-057).
+      onChoose: choosing ? undefined : () => void choose(system),
     };
   }) as [VisualDirectionCard | null, VisualDirectionCard | null, VisualDirectionCard | null];
   const earlierSets = [

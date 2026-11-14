@@ -106,7 +106,12 @@ describe("complete brand asset archive", () => {
         expect(svg).toContain('font-family="Fraunces"');
       }
     }
-    expect(new TextDecoder().decode(entries["README.txt"])).not.toContain("placeholder");
+    const readme = new TextDecoder().decode(entries["README.txt"]);
+    expect(readme).not.toContain("placeholder");
+    // A short "What's in this kit" that says plainly the logos are images, not vectors (D-063).
+    expect(readme).toContain("What's in this kit");
+    expect(readme).toContain("The logos are PNG images, not vector files.");
+    expect(readme).not.toContain("vector logo masters");
     expect(new TextDecoder().decode(entries["guides/brand-guide.html"])).toContain(
       "https://fonts.google.com/specimen/Fraunces",
     );

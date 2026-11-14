@@ -217,7 +217,7 @@ it("resends without storing or resubmitting a password and recovers an expired l
   await render("sign-in", true, "failed");
   expect(host.textContent).toContain("newest email link");
   const requestEmail = [...host.querySelectorAll("button")].find(
-    (button) => button.textContent === "Request another confirmation email",
+    (button) => button.textContent === "Send a new confirmation email",
   )!;
   await act(async () => requestEmail.click());
   const form = host.querySelector<HTMLFormElement>('form[aria-label="Resend confirmation"]')!;

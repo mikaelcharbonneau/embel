@@ -203,6 +203,8 @@ function OwnedAssetLibrary({ account }: { account: VerifiedAccount }) {
             label="Search your library"
             hideLabel
             type="search"
+            name="search"
+            autoComplete="off"
             placeholder="Search your library"
             maxLength={120}
             value={search}

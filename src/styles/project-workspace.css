@@ -40,28 +40,7 @@
   margin-top: var(--space-5);
   text-decoration: underline;
 }
-.project-workbench {
-  display: flex;
-  align-items: stretch;
-  padding: 0;
-  max-width: none;
-  min-height: 100%;
-  width: 100%;
-  margin: 0;
-}
-.project-workbench-canvas {
-  padding: var(--space-6);
-  flex: 1;
-  min-width: 0;
-  background: var(--color-bg-canvas);
-}
-.project-workbench .button {
-  min-height: 34px;
-  font-size: var(--font-size-2);
-  padding: 7px var(--space-3);
-  border-radius: 7px;
-}
-.project-workbench [hidden],
+
 .project-strategy-workspace [hidden] {
   display: none !important;
 }
@@ -79,7 +58,7 @@
 .project-dock-tabs {
   height: 48px;
   display: flex;
-  gap: 28px;
+  gap: var(--space-8);
   align-items: stretch;
   padding: 0 var(--space-4);
   border-bottom: 1px solid var(--color-border);
@@ -161,7 +140,7 @@
 }
 .project-conversation-marker {
   display: flex;
-  gap: 14px;
+  gap: var(--space-3);
   align-items: center;
   min-height: 28px;
   font-size: 11px;
@@ -188,14 +167,14 @@
   margin-top: var(--space-4);
 }
 .project-strategy-workspace .conversation-history {
-  gap: 14px;
+  gap: var(--space-3);
   margin-top: var(--space-5);
 }
 .project-strategy-workspace .conversation-user-entry {
   max-width: 600px;
   padding: var(--space-3) var(--space-4);
   background: var(--color-bg-sunken);
-  border-radius: 10px;
+  border-radius: var(--radius-small);
 }
 .project-strategy-workspace .conversation-message-meta {
   font-size: var(--font-size-1);
@@ -205,8 +184,8 @@
   line-height: 22px;
 }
 .project-strategy-workspace .conversation-widget {
-  padding: 18px;
-  border-radius: 10px;
+  padding: var(--space-5);
+  border-radius: var(--radius-small);
 }
 .project-strategy-workspace .conversation-widget-heading h2 {
   font-size: var(--font-size-4);
@@ -222,11 +201,11 @@
   height: 28px;
 }
 .project-strategy-workspace .conversation-widget-body {
-  margin-top: 14px;
+  margin-top: var(--space-4);
 }
 .project-strategy-workspace .conversation-widget-body .segment-card {
-  padding: 14px;
-  border-radius: 7px;
+  padding: var(--space-4);
+  border-radius: var(--radius-small);
   background: var(--color-bg-paper);
 }
 .project-strategy-workspace .conversation-widget .form-actions .button {
@@ -239,7 +218,7 @@
   background: var(--color-bg-paper);
 }
 .project-strategy-workspace .conversation-composer {
-  padding: var(--space-3) 14px;
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-control);
   border: 1px solid var(--color-border-control);
   box-shadow: none;
@@ -251,20 +230,20 @@
 }
 .project-strategy-workspace .conversation-composer-footer {
   min-height: 32px;
-  margin-top: 10px;
+  margin-top: var(--space-3);
 }
 .project-strategy-workspace .conversation-composer .composer-send-icon {
   width: 30px;
   height: 30px;
   min-height: 30px;
-  padding: 7px;
+  padding: var(--space-2);
   border-radius: 50%;
 }
 .project-strategy-workspace .account-edit-controls {
-  margin: var(--space-2) 0 14px;
+  margin: var(--space-2) 0 var(--space-4);
 }
 .project-strategy-workspace .account-actions {
-  padding: 10px var(--space-3);
+  padding: var(--space-3) var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-small);
   font-size: var(--font-size-1);
@@ -300,7 +279,7 @@
 }
 .project-continuity-details dl {
   display: grid;
-  gap: 14px;
+  gap: var(--space-3);
   margin: var(--space-3) 0 0;
 }
 .project-continuity-details dt {
@@ -330,9 +309,9 @@
 }
 .project-strategy-workspace .project-continuity li .text-link {
   min-height: 36px;
-  padding: 7px 10px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--color-border);
-  border-radius: 7px;
+  border-radius: var(--radius-small);
   text-decoration: none;
 }
 .project-strategy-workspace .project-continuity .button {
@@ -365,8 +344,8 @@
 }
 .project-live-brief dl {
   display: grid;
-  gap: 22px;
-  margin: 22px 0;
+  gap: var(--space-6);
+  margin: var(--space-6) 0;
 }
 .project-live-brief dt {
   font-size: var(--font-size-1);
@@ -394,16 +373,16 @@
 }
 .project-brief-widget .field-label {
   display: block;
-  margin: 14px 0;
+  margin: var(--space-4) 0;
 }
 .project-brief-widget input {
   width: 100%;
   min-height: 44px;
-  border-radius: 10px;
+  border-radius: var(--radius-small);
 }
 .project-personality-traits {
   border: 0;
-  margin: 0 0 18px;
+  margin: 0 0 var(--space-5);
   padding: 0;
 }
 .project-personality-traits legend {
@@ -423,12 +402,12 @@
   gap: var(--space-2);
 }
 .project-personality-traits label {
-  padding: 14px;
+  padding: var(--space-4);
   border: 1px solid var(--color-border);
-  border-radius: 7px;
+  border-radius: var(--radius-small);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2);
   min-width: 0;
 }
 .project-personality-traits label:has(:checked) {
@@ -452,23 +431,7 @@
   cursor: pointer;
   padding-block: var(--space-2);
 }
-.project-systems-workspace > .project-workbench-canvas {
-  padding-top: 0;
-}
-.project-systems-workspace > .project-dock {
-  margin-top: -20px;
-}
-.project-systems-workspace .project-dock .identity-preferences {
-  border: 0;
-  padding: 0;
-}
-.project-systems-workspace.project-workbench {
-  display: flex;
-  gap: 0;
-}
-.project-logo-creation .project-workbench-canvas > header {
-  margin-bottom: var(--space-5);
-}
+
 .project-logo-creation .project-dock :is(section, fieldset) {
   padding: 0;
   margin: 0 0 var(--space-5);
@@ -477,12 +440,12 @@
 }
 .project-logo-creation .project-dock [class*="fields"] {
   grid-template-columns: 1fr;
-  gap: 14px;
+  gap: var(--space-3);
   margin: var(--space-5) 0;
 }
 .project-logo-creation .project-dock :is(input, textarea) {
   background: var(--color-bg-paper);
-  border-radius: 7px;
+  border-radius: var(--radius-small);
   font-size: var(--font-size-2);
 }
 .project-logo-creation .project-dock textarea {
@@ -494,13 +457,13 @@
 }
 .project-logo-creation [class*="concepts"] {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: var(--space-4);
 }
 .project-logo-creation [class*="conceptCard"] {
   background: var(--color-bg-paper);
   border: 1px solid var(--color-border);
-  border-radius: 10px;
-  padding: 0 0 14px;
+  border-radius: var(--radius-small);
+  padding: 0 0 var(--space-4);
   overflow: hidden;
 }
 .project-logo-creation [class*="preview"] {
@@ -526,24 +489,15 @@
     flex-basis: 300px;
     width: 300px;
   }
-  .project-workbench-canvas {
-    padding: var(--space-5);
-  }
 }
 @media (max-width: 760px) {
-  .project-systems-workspace > .project-dock {
-    margin-top: 0;
-  }
   .project-workspace-content {
     overflow: hidden auto;
   }
-  .project-workbench,
   .project-strategy-columns {
     flex-direction: column;
   }
-  .project-workbench-canvas {
-    padding: var(--space-5) var(--space-4);
-  }
+
   .project-dock,
   .project-live-brief {
     width: 100%;
@@ -582,9 +536,6 @@
   .project-strategy-workspace .conversation-widget-heading > .text-link {
     margin-left: auto;
   }
-  .project-workbench :is(button, .button, summary) {
-    min-height: 44px;
-  }
 }
 @media (max-width: 540px) {
   .project-personality-traits > div {
@@ -602,8 +553,7 @@
   .project-conversation-marker .text-link {
     font-size: 11px;
   }
-  .project-strategy-workspace .conversation-composer textarea,
-  .project-workbench :is(input, textarea, select) {
+  .project-strategy-workspace .conversation-composer textarea {
     font-size: var(--font-size-4);
   }
   .project-strategy-workspace .conversation-composer .composer-send-icon {
@@ -611,6 +561,6 @@
     width: 44px;
     height: 44px;
     min-height: 44px;
-    padding: 14px;
+    padding: var(--space-4);
   }
 }

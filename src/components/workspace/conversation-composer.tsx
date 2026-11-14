@@ -86,6 +86,8 @@ export function ConversationComposer({
       <textarea
         ref={inputRef}
         id={id}
+        name="message"
+        autoComplete="off"
         value={value}
         readOnly={readOnly}
         maxLength={12000}

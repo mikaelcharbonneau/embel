@@ -1019,21 +1019,21 @@ export function AccountGuidedInterview({
       <FoldedPart
         label="Competitors"
         answers={competitorNames}
-        editName={`Edit your answer: ${questionOf("competitors")}`}
+        editName={`Change answer: ${questionOf("competitors")}`}
         disabled={editDisabled}
         onEdit={() => void revisit("competitors", turnOf("competitors")?.userMessageId ?? null)}
       />
       <FoldedPart
         label="Audience"
         answers={audienceAnswer ? answerLabels(audienceAnswer) : []}
-        editName={`Edit your answer: ${questionOf("audience")}`}
+        editName={`Change answer: ${questionOf("audience")}`}
         disabled={editDisabled}
         onEdit={() => void revisit("audience", turnOf("audience")?.userMessageId ?? null)}
       />
       <FoldedPart
         label="Positioning"
         answers={answerLabels(positioningAnswer)}
-        editName={`Edit your answer: ${questionOf("positioning")}`}
+        editName={`Change answer: ${questionOf("positioning")}`}
         disabled={editDisabled}
         onEdit={() => void revisit("positioning", turnOf("positioning")?.userMessageId ?? null)}
       />
@@ -1044,7 +1044,7 @@ export function AccountGuidedInterview({
         <FoldedAnswer
           label="Competitors"
           answers={[{ text: `${competitorNames.length} kept` }]}
-          editName={`Edit your answer: ${questionOf("competitors")}`}
+          editName={`Change answer: ${questionOf("competitors")}`}
           onEdit={() => void revisit("competitors", turnOf("competitors")?.userMessageId ?? null)}
           editDisabled={editDisabled}
         >
@@ -1055,7 +1055,7 @@ export function AccountGuidedInterview({
         <FoldedAnswer
           label="Audience"
           answers={answerLabels(audienceAnswer).map((text) => ({ text }))}
-          editName={`Edit your answer: ${questionOf("audience")}`}
+          editName={`Change answer: ${questionOf("audience")}`}
           onEdit={() => void revisit("audience", turnOf("audience")?.userMessageId ?? null)}
           editDisabled={editDisabled}
         />
@@ -1083,7 +1083,7 @@ export function AccountGuidedInterview({
         <FoldedPart
           label="Personality"
           answers={answerLabels(personalityAnswer)}
-          editName={`Edit your answer: ${questionOf("personality")}`}
+          editName={`Change answer: ${questionOf("personality")}`}
           disabled={editDisabled}
           onEdit={() => void revisit("personality", turnOf("personality")?.userMessageId ?? null)}
         />
@@ -1098,7 +1098,7 @@ export function AccountGuidedInterview({
       <FoldedPart
         label="Slogan"
         answers={sloganAnswer?.customText ? [sloganAnswer.customText] : []}
-        editName={`Edit your answer: ${questionOf("slogan")}`}
+        editName={`Change answer: ${questionOf("slogan")}`}
         disabled={editDisabled}
         onEdit={() => void revisit("slogan", turnOf("slogan")?.userMessageId ?? null)}
       />
@@ -1109,7 +1109,7 @@ export function AccountGuidedInterview({
         <FoldedAnswer
           label="Personality"
           answers={answerLabels(personalityAnswer).map((text) => ({ text }))}
-          editName={`Edit your answer: ${questionOf("personality")}`}
+          editName={`Change answer: ${questionOf("personality")}`}
           onEdit={() => void revisit("personality", turnOf("personality")?.userMessageId ?? null)}
           editDisabled={editDisabled}
         />
@@ -1139,7 +1139,7 @@ export function AccountGuidedInterview({
           answers={
             likes === null ? [{ text: "Your likes", icon: "heart" }] : [{ text: `${likes} liked`, icon: "heart" }]
           }
-          editLabel="Edit inspiration"
+          editLabel="Change inspiration"
           onEdit={() => setReopened("inspiration")}
         />
       )}
@@ -1517,7 +1517,13 @@ export function AccountGuidedInterview({
     ) : view === "slogan" ? (
       sloganWork
     ) : view === "inspiration" ? (
-      <InspirationWorkspace projectId={saved.id} variant="workspace" continueHidden onLikes={setLikes} />
+      <InspirationWorkspace
+        projectId={saved.id}
+        variant="workspace"
+        continueHidden
+        onLikes={setLikes}
+        brandName={brandName}
+      />
     ) : view === "logo" ? (
       <div id="journey-logo" className="conversation-slot" tabIndex={-1}>
         <LogoCreationWorkspace
@@ -1650,6 +1656,9 @@ export function AccountGuidedInterview({
 
   return (
     <div ref={root} className="guided-interview" data-composer={hasComposer ? "workspace" : undefined}>
+      <h1 className="e-sr" translate="no">
+        {brandName}
+      </h1>
       <WorkspaceSlotContext.Provider value={slots}>
         <WorkspaceReplyRegistry.Provider value={replyRegistry.register}>
           <Workspace

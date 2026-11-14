@@ -83,7 +83,7 @@ export function ReferencePreview({
       ) : (
         <div className="identity-reference-placeholder">
           <Icon name="assets" size={28} />
-          <span>{failed ? "Reference preview unavailable" : "Loading private reference…"}</span>
+          <span>{failed ? "Reference preview unavailable" : "Loading reference…"}</span>
           {failed && (
             <button
               type="button"

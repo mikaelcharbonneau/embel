@@ -2,7 +2,7 @@
 
 .navWrap {
   position: relative;
-  z-index: 30;
+  z-index: var(--z-nav);
   flex: 0 0 auto;
   display: flex;
   justify-content: center;
@@ -28,21 +28,10 @@
   min-height: 56px;
   box-sizing: border-box;
   padding: 0 var(--space-1-5) 0 var(--space-2);
-  background: rgb(255 255 255 / 92%);
+  background: var(--chip-on-artwork-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
-  box-shadow: 0 12px 32px -16px rgb(25 25 25 / 28%);
-}
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  padding: 0 var(--space-2) 0 10px;
-  border-radius: var(--radius-pill);
-  color: var(--color-text);
-  font-size: 15px;
-  font-weight: 600;
+  box-shadow: var(--shadow-raised);
 }
 .brandIcon {
   display: grid;
@@ -58,42 +47,6 @@
   margin: 0 var(--space-1);
   background: var(--color-border);
 }
-.mainNav {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1-5);
-  min-width: 0;
-}
-.navList {
-  display: flex;
-  align-items: center;
-  gap: var(--space-0-5);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.navLink {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  min-height: 40px;
-  padding: 0 var(--space-4);
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: #3a3a37;
-  font-size: var(--font-size-2);
-  white-space: nowrap;
-  cursor: pointer;
-}
-.navLink:hover {
-  background: var(--color-bg-sunken);
-}
-.navLink[aria-current="page"] {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  font-weight: 500;
-}
 .tools {
   position: relative;
 }
@@ -105,7 +58,7 @@
 }
 .menu {
   position: absolute;
-  z-index: 40;
+  z-index: var(--z-popover);
   top: calc(100% + 8px);
   left: 0;
   display: flex;
@@ -117,16 +70,16 @@
   list-style: none;
   background: var(--color-bg-paper);
   border: 1px solid var(--color-border);
-  border-radius: 14px;
-  box-shadow: 0 16px 40px -16px rgb(25 25 25 / 30%);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-overlay);
 }
 .menu a {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   min-height: 44px;
-  padding: 0 10px;
-  border-radius: 10px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-small);
   color: var(--color-text);
   font-size: var(--font-size-3);
 }
@@ -147,7 +100,7 @@
   display: inline-flex;
   align-items: center;
   min-height: 40px;
-  padding: 0 10px 0 var(--space-1);
+  padding: 0 var(--space-3) 0 var(--space-1);
   font-size: var(--font-size-3);
   font-weight: 500;
   white-space: nowrap;
@@ -183,90 +136,7 @@
   color: var(--color-text-positive);
 }
 .save[data-state="error"] {
-  color: #8f4242;
-}
-
-.pillButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1-5);
-  min-height: 40px;
-  padding: 0 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-paper);
-  color: var(--color-text);
-  font-size: var(--font-size-2);
-  cursor: pointer;
-}
-.pillButton:hover:not(:disabled) {
-  background: var(--color-bg-sunken);
-}
-
-.progress {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 18px;
-  background: var(--color-bg-paper);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  box-shadow: 0 12px 32px -18px rgb(25 25 25 / 22%);
-}
-.progressTitle {
-  margin: 0;
-  font-size: var(--font-size-4);
-  font-weight: 500;
-}
-.progressText {
-  margin: 0;
-  font-size: var(--font-size-3);
-  color: var(--color-text-muted);
-}
-/* Indeterminate: a soft light sweeps calmly across the whole bar, so it never
-   reads as an amount of progress. */
-.bar {
-  position: relative;
-  height: 4px;
-  overflow: hidden;
-  border-radius: var(--radius-pill);
-  background: var(--color-border);
-}
-.bar > span {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 50%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, transparent, var(--color-accent) 50%, transparent);
-  animation: journey-bar 2.4s ease-in-out infinite;
-}
-.progressActions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-3);
-}
-.progressNote {
-  margin: 0 auto 0 0;
-  font-size: var(--font-size-2);
-  color: var(--color-text-muted);
-}
-@keyframes journey-bar {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(200%);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .bar > span {
-    width: 100%;
-    background: var(--color-border-strong);
-    animation: none;
-  }
+  color: var(--color-text-danger);
 }
 
 @media (max-width: 900px) {
@@ -291,35 +161,6 @@
 @media (max-width: 600px) {
   .navWrap {
     padding: var(--space-2) var(--space-2) 0;
-  }
-  .navCapsule {
-    position: relative;
-    width: 100%;
-    min-height: 52px;
-    gap: var(--space-0-5);
-    padding: var(--space-1);
-    border-radius: 26px;
-  }
-  .navCapsule .sep {
-    display: none;
-  }
-  .navCapsule .brand {
-    padding: 0 var(--space-1-5);
-  }
-  .navCapsule .brand > span {
-    display: none;
-  }
-  .mainNav {
-    flex: 1 1 auto;
-    gap: var(--space-0-5);
-  }
-  .mainNav .navList {
-    flex: 1 1 auto;
-    flex-wrap: wrap;
-    row-gap: var(--space-0-5);
-  }
-  .navLink {
-    padding: 0 9px;
   }
   .tools {
     position: static;
