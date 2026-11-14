@@ -65,8 +65,11 @@ const HIDE_CHROME = `
 /** Thrown when a page that must be signed in shows the signed-out screen. Stops the whole run. */
 class LoginWall extends Error {}
 
+/** The round account button in the navigation pill (labelled "Account menu", or "Account menu, checking your account"). */
+const accountButton = (page) => page.locator("[data-account-menu-trigger]").first();
+
 async function signedIn(page) {
-  return page.getByLabel("Account menu").first().isVisible();
+  return accountButton(page).isVisible();
 }
 
 /** Opens a path and checks the account really is signed in (fails loudly otherwise). */
@@ -78,7 +81,7 @@ async function open(page, account, route, { idle = true } = {}) {
 }
 
 async function requireSignedIn(page, account, route) {
-  const menu = page.getByLabel("Account menu").first();
+  const menu = accountButton(page);
   const wall = page.getByText(/Sign in to (see|save|choose|edit)/u).first();
   const result = await Promise.race([
     menu.waitFor({ state: "visible", timeout: 30_000 }).then(() => "ok"),
@@ -103,7 +106,7 @@ async function loaded(page, { extra = 400 } = {}) {
   await page
     .waitForFunction(
       () =>
-        !/(^|\n)\s*(Loading (your )?(projects|project|library|saved preview|assets|account|activity)|Preparing…|Checking account…)/u.test(
+        !/(^|\n)\s*(Loading (your )?(projects|project|library|saved preview|assets|account|activity)|Preparing…|Checking (your )?(account|plan)…)/u.test(
           document.body.innerText,
         ),
       null,
@@ -392,7 +395,7 @@ for (const [query, name] of [
 // ---- audit-free: 0 credits, eight brands ----------------------------------
 state("home", "recent-brands-free", "audit-free", async (page) => {
   await open(page, "audit-free", "/");
-  await page.getByRole("heading", { name: "Pick up where you left off" }).waitFor({ timeout: 30_000 });
+  await page.getByRole("heading", { name: "Recent projects" }).waitFor({ timeout: 30_000 });
   await loaded(page);
 });
 state("projects", "eight-brands-free", "audit-free", async (page) => {
@@ -511,7 +514,7 @@ const STAGES = [
 for (const [key, account, label, who] of STAGES) {
   state("brand-conversation", `${key}-${label}-${who}`, account, async (page) => {
     await open(page, account, `/brands/account/${brand(key)}?view=strategy`);
-    await page.getByLabel("Account menu").first().waitFor();
+    await accountButton(page).waitFor();
     await page.waitForTimeout(2500);
     await loaded(page, { extra: 1200 });
   });
@@ -569,7 +572,7 @@ state("project-workspace", "loading-pro", "audit-pro", async (page) => {
 // ---- audit-pro: paid account ---------------------------------------------------
 state("home", "recent-brands-pro", "audit-pro", async (page) => {
   await open(page, "audit-pro", "/");
-  await page.getByRole("heading", { name: "Pick up where you left off" }).waitFor({ timeout: 30_000 });
+  await page.getByRole("heading", { name: "Recent projects" }).waitFor({ timeout: 30_000 });
   await loaded(page);
 });
 state("projects", "three-brands-pro", "audit-pro", async (page) => {
@@ -623,18 +626,15 @@ state("settings", "usage-pro", "audit-pro", async (page) => {
 });
 state("home", "account-menu-open-pro", "audit-pro", async (page) => {
   await open(page, "audit-pro", "/");
-  await page.getByLabel("Account menu").click();
+  await accountButton(page).click();
+  await page.getByRole("menuitem", { name: "Settings", exact: true }).waitFor();
   await loaded(page);
 });
 
 state("home", "generation-activity-dialog-pro", "audit-pro", async (page) => {
   await open(page, "audit-pro", "/");
-  await page.getByLabel("Account menu").click();
-  await page
-    .getByRole("menuitem", { name: "Activity", exact: true })
-    .or(page.getByRole("button", { name: "Activity", exact: true }))
-    .first()
-    .click();
+  await accountButton(page).click();
+  await page.getByRole("menuitem", { name: "Activity", exact: true }).click();
   await page.getByRole("dialog", { name: "Activity", exact: true }).waitFor({ timeout: 15_000 });
   await loaded(page);
 });

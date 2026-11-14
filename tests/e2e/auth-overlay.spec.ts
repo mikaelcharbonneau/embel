@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { accountMenu, accountMenuButton } from "./account-check";
 
 // Synthetic same-origin responses only. No provider authentication or account creation.
 async function signedOut(page: Page) {
@@ -17,7 +18,7 @@ async function openOverlay(page: Page) {
     "href",
     "/sign-up",
   );
-  await expect(page.locator(".workspace-account-menu")).toHaveCount(0);
+  await expect(accountMenuButton(page)).toHaveCount(0);
   await trigger.click();
   const dialog = page.getByRole("dialog", { name: "Sign in to Embel", exact: true });
   await expect(dialog).toBeVisible();
@@ -156,13 +157,12 @@ test("auth overlay: pending dismissal retains the global cookie-mutation fence a
   await expect(dialog).toHaveCount(0);
   expect(await detachedPassword?.evaluate((element) => (element as HTMLInputElement).value)).toBe("");
   await expect(page).toHaveURL(/\/settings$/);
-  const accountSummary = page.locator(".workspace-account-menu > summary");
-  await expect(accountSummary).toBeVisible();
-  await expect(accountSummary).toBeFocused();
-  await accountSummary.click();
-  await expect(
-    page.locator(".workspace-account-menu").getByRole("button", { name: "Signing in…", exact: true }),
-  ).toBeDisabled();
+  const accountButton = accountMenuButton(page);
+  await expect(accountButton).toBeVisible();
+  await expect(accountButton).toBeFocused();
+  await accountButton.click();
+  await expect(accountMenu(page).getByRole("status")).toHaveText("Signing in…");
+  await expect(accountMenu(page).getByRole("menuitem")).toHaveCount(0);
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   expect(sessionReads).toBe(before);
   const storage = await page.evaluate(() =>
@@ -171,9 +171,7 @@ test("auth overlay: pending dismissal retains the global cookie-mutation fence a
   expect(storage).not.toContain("overlay@example.invalid");
   expect(storage).not.toContain("inert overlay fixture");
   release();
-  await expect(
-    page.locator(".workspace-account-menu").getByRole("button", { name: "Sign out", exact: true }),
-  ).toBeVisible();
+  await expect(accountMenu(page).getByRole("menuitem", { name: "Sign out", exact: true })).toBeVisible();
   await expect(page).toHaveURL(/\/settings$/);
   expect(submissions).toBe(1);
 });

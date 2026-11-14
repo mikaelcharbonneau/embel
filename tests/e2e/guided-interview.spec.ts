@@ -14,6 +14,7 @@ import {
 import { projectNamingOverviewSchema } from "../../src/domain/naming-jobs";
 import { namingGenerationFeedSchema } from "../../src/domain/naming-generation";
 import { captureUiEvidence } from "./ui-evidence";
+import { accountMenu, openAccountMenu } from "./account-check";
 import { emptyLogoWorkspace } from "../fixtures/empty-logo-workspace";
 
 // The body the retired Strategy enqueue route took. The app now starts Strategy runs through
@@ -1687,9 +1688,9 @@ test("guided interview: committed answer with a lost save acknowledgement reconc
   expect(state.project.current_revision).toBe(2);
   expect(state.patches).toHaveLength(1);
   expect(state.enqueues).toHaveLength(0);
-  await page.locator(".workspace-account-menu > summary").click();
-  await page.getByRole("button", { name: "Check account", exact: true }).click();
-  await page.locator(".workspace-account-menu > summary").click();
+  await openAccountMenu(page);
+  // Choosing the row closes the menu.
+  await accountMenu(page).getByRole("menuitem", { name: "Check account", exact: true }).click();
   await expectRequest(state, 1, "strategy.reformulate");
   await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toHaveValue("");
   await expect(page.getByRole("button", { name: "Retry save", exact: true })).toHaveCount(0);
