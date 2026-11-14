@@ -278,7 +278,7 @@
   height: 36px;
   flex-shrink: 0;
   border: 1px solid var(--color-border);
-  border-radius: 5px;
+  border-radius: var(--radius-inset);
 }
 .identity-swatches li div {
   overflow-wrap: anywhere;

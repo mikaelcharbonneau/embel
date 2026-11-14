@@ -5,7 +5,7 @@
   padding: 13px 15px;
   margin: -6px 0 var(--space-5);
   border: 1px solid var(--color-border);
-  border-radius: 7px;
+  border-radius: var(--radius-small);
   color: var(--color-text-muted);
   background: var(--color-bg-sunken);
   font-size: var(--font-size-2);
@@ -30,7 +30,7 @@
   padding: var(--space-3);
   margin-top: 9px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 6px;
+  border-radius: var(--radius-small);
   background: var(--color-bg-paper);
   font-size: var(--font-size-3);
   line-height: 1.55;
@@ -57,7 +57,7 @@
   margin-top: var(--space-5);
   padding: 14px var(--space-4);
   border: 1px solid var(--color-border);
-  border-radius: 7px;
+  border-radius: var(--radius-small);
   background: var(--color-bg-paper);
 }
 .competitor-none .target-toggle {

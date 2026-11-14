@@ -122,7 +122,7 @@
   gap: var(--space-2);
   padding: var(--space-3);
   background: var(--color-bg-sunken);
-  border-radius: 10px;
+  border-radius: var(--radius-small);
 }
 .guidance > div {
   display: flex;
@@ -264,7 +264,7 @@
   padding: 10px var(--space-3);
   resize: vertical;
   border: 1px solid var(--color-border-control);
-  border-radius: 7px;
+  border-radius: var(--radius-small);
   color: var(--color-text);
   background: var(--color-bg-paper);
   font: inherit;

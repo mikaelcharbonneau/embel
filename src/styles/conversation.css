@@ -152,7 +152,7 @@
   min-width: 90px;
   padding: 5px var(--space-2);
   border: 1px solid var(--color-border-control);
-  border-radius: 5px;
+  border-radius: var(--radius-inset);
   background: var(--color-bg-paper);
   font-size: 15px;
 }
@@ -209,7 +209,7 @@
   padding: var(--space-4);
   margin: var(--space-2) 0 0;
   border: 1px solid var(--color-border);
-  border-radius: 7px;
+  border-radius: var(--radius-small);
   background: var(--color-bg-paper);
 }
 .conversation-saved-details dt {
@@ -243,7 +243,7 @@
   max-width: 88%;
   padding: var(--space-4) 18px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-control) var(--radius-control) 3px var(--radius-control);
+  border-radius: var(--radius-control) var(--radius-control) var(--radius-inset) var(--radius-control);
   background: var(--color-bg-selected);
 }
 .conversation-message-meta {
@@ -275,7 +275,7 @@
   padding: 15px 18px;
   border-left: 2px solid var(--color-border);
   background: var(--color-bg-paper);
-  border-radius: 0 7px 7px 0;
+  border-radius: 0 var(--radius-small) var(--radius-small) 0;
 }
 .conversation-entry-label {
   display: block;
@@ -302,7 +302,7 @@
   min-width: 0;
   padding: var(--space-5);
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-small);
   background: var(--color-bg-paper);
 }
 .conversation-widget-heading {
@@ -317,7 +317,7 @@
   width: 25px;
   height: 25px;
   flex: 0 0 25px;
-  border-radius: 6px;
+  border-radius: var(--radius-small);
   background: var(--color-accent);
   color: var(--color-on-accent);
   font-size: var(--font-size-5);
@@ -371,7 +371,7 @@
 }
 .conversation-widget-body .competitor-none {
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-small);
   background: var(--color-bg-sunken);
   padding: var(--space-3);
 }
@@ -431,7 +431,7 @@
   gap: var(--space-5);
   padding: 17px;
   border: 1px solid var(--color-border);
-  border-radius: 7px;
+  border-radius: var(--radius-small);
   background: var(--color-bg-canvas);
   font-size: var(--font-size-2);
   color: var(--color-text-muted);
@@ -606,7 +606,7 @@
 @media (max-width: 540px) {
   .conversation-composer {
     padding: var(--space-3);
-    border-radius: 9px;
+    border-radius: var(--radius-small);
   }
   .conversation-composer textarea {
     font-size: var(--font-size-4);
@@ -730,7 +730,7 @@
 .conversation-user-entry {
   border: 0;
   background: var(--color-bg-sunken);
-  border-radius: 10px;
+  border-radius: var(--radius-small);
 }
 .conversation-message-meta > span {
   color: var(--color-text-muted);

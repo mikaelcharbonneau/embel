@@ -59,7 +59,7 @@
   min-height: 34px;
   font-size: var(--font-size-2);
   padding: 7px var(--space-3);
-  border-radius: 7px;
+  border-radius: var(--radius-small);
 }
 .project-workbench [hidden],
 .project-strategy-workspace [hidden] {
@@ -195,7 +195,7 @@
   max-width: 600px;
   padding: var(--space-3) var(--space-4);
   background: var(--color-bg-sunken);
-  border-radius: 10px;
+  border-radius: var(--radius-small);
 }
 .project-strategy-workspace .conversation-message-meta {
   font-size: var(--font-size-1);
@@ -206,7 +206,7 @@
 }
 .project-strategy-workspace .conversation-widget {
   padding: 18px;
-  border-radius: 10px;
+  border-radius: var(--radius-small);
 }
 .project-strategy-workspace .conversation-widget-heading h2 {
   font-size: var(--font-size-4);
@@ -226,7 +226,7 @@
 }
 .project-strategy-workspace .conversation-widget-body .segment-card {
   padding: 14px;
-  border-radius: 7px;
+  border-radius: var(--radius-small);
   background: var(--color-bg-paper);
 }
 .project-strategy-workspace .conversation-widget .form-actions .button {
@@ -332,7 +332,7 @@
   min-height: 36px;
   padding: 7px 10px;
   border: 1px solid var(--color-border);
-  border-radius: 7px;
+  border-radius: var(--radius-small);
   text-decoration: none;
 }
 .project-strategy-workspace .project-continuity .button {
@@ -399,7 +399,7 @@
 .project-brief-widget input {
   width: 100%;
   min-height: 44px;
-  border-radius: 10px;
+  border-radius: var(--radius-small);
 }
 .project-personality-traits {
   border: 0;
@@ -425,7 +425,7 @@
 .project-personality-traits label {
   padding: 14px;
   border: 1px solid var(--color-border);
-  border-radius: 7px;
+  border-radius: var(--radius-small);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -482,7 +482,7 @@
 }
 .project-logo-creation .project-dock :is(input, textarea) {
   background: var(--color-bg-paper);
-  border-radius: 7px;
+  border-radius: var(--radius-small);
   font-size: var(--font-size-2);
 }
 .project-logo-creation .project-dock textarea {
@@ -499,7 +499,7 @@
 .project-logo-creation [class*="conceptCard"] {
   background: var(--color-bg-paper);
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-small);
   padding: 0 0 14px;
   overflow: hidden;
 }

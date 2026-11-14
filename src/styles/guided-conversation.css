@@ -134,7 +134,7 @@
   width: 40px;
   height: 40px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-small);
   background: transparent;
   color: var(--color-text-muted);
 }
