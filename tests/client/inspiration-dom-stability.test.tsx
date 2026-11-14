@@ -362,6 +362,9 @@ describe("Brand overlay", () => {
     const large = () => dialog.querySelector<HTMLImageElement>(".inspiration-overlay-art img")!;
     expect(large().getAttribute("src")).toBe(first!.parts[2]!.image);
     expect(dialog.querySelector("figcaption")?.textContent).toBe("Typefaces · 3 of 5");
+    // The counter is announced when the image changes, once, as a whole.
+    expect(dialog.querySelector("figcaption")?.getAttribute("aria-live")).toBe("polite");
+    expect(dialog.querySelector("figcaption")?.getAttribute("aria-atomic")).toBe("true");
     await act(async () => button("Next image").click());
     expect(large().getAttribute("src")).toBe(first!.parts[3]!.image);
     await act(async () => dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })));

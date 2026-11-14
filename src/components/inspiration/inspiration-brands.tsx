@@ -300,7 +300,7 @@ export function BrandOverlay({
       <div className="inspiration-detail-layout">
         <figure className="inspiration-detail-art inspiration-overlay-art">
           <BrandImage key={image.part} image={image} size="large" eager />
-          <figcaption>
+          <figcaption aria-live="polite" aria-atomic="true">
             {inspirationPartLabels[image.part]} · {index + 1} of {brand.parts.length}
           </figcaption>
           <button
