@@ -23,6 +23,7 @@ import {
 import { AccountRequestError } from "./account-api";
 import { boundedAccountRequest } from "./bounded-account-request";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "./account-session";
+import { ProjectOpening } from "./project-page-state";
 import { accountDraftChanged, reconcileAccountWorkspace } from "./account-draft-memory";
 import { useProjectNextStep } from "./use-project-next-step";
 import { ProjectProgressContext, type ProjectProgress } from "./project-progress";
@@ -84,13 +85,21 @@ export function AccountProjectWorkspaceShell({ projectId, children }: { projectI
     );
   if (session.status !== "ready") {
     const { stage } = projectRoute(projectId, pathname);
+    // While the account is checked, a neutral frame: never the signed-out notice a returning person would read as
+    // "sign in again" (D-055). Once the check answers, the account notice and the way back.
     return (
       <section className={`project-workspace project-stage-${stage}`}>
         <div className="project-workspace-content">
           <div className="project-access-state">
-            <h1>Project workspace</h1>
-            <AccountStatus />
-            <Link href="/brands">Back to Projects</Link>
+            {session.status === "checking" ? (
+              <ProjectOpening />
+            ) : (
+              <>
+                <h1 className="e-sr">Your brand</h1>
+                <AccountStatus signedOut="Sign in to open this brand." />
+                <Link href="/brands">Back to Projects</Link>
+              </>
+            )}
           </div>
         </div>
       </section>
