@@ -1,0 +1,16 @@
+{
+  "route": "/v1/images/edits",
+  "usage": {
+    "input_tokens": 2722,
+    "input_tokens_details": {
+      "image_tokens": 2126,
+      "text_tokens": 596
+    },
+    "output_tokens": 1449,
+    "output_tokens_details": {
+      "image_tokens": 1449,
+      "text_tokens": 0
+    },
+    "total_tokens": 4171
+  }
+}
