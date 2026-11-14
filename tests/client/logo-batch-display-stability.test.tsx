@@ -54,7 +54,9 @@ async function until(check: () => void) {
 }
 const grid = () => host.querySelector('[aria-label="Logo concepts"]')!;
 const image = () => grid()?.querySelector('img[src^="blob:"]') ?? null;
-const select = () => grid()?.querySelector<HTMLElement>('[role="button"][aria-label="Select concept 1"]') ?? null;
+// The whole picture chooses a concept (decision 4); while a choice cannot be saved its button is off.
+const select = () => grid()?.querySelector<HTMLButtonElement>('button[aria-label="Concept 1"]') ?? null;
+const selectable = () => select()?.disabled === false;
 const action = (label: string) => grid().querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
 // Refining now starts from the one refine box below the gallery, with its own request gating.
 const actions = ["More concepts", "Retry 1 failed concept"];
@@ -121,7 +123,7 @@ describe("same-batch display across selection revisions", () => {
       await mount(f.workspace.projectId, fetcher);
       await instruction();
       await until(() => {
-        expect(select()).not.toBeNull();
+        expect(selectable()).toBe(true);
         for (const label of actions) expect(action(label).disabled, label).toBe(false);
       });
       const before = image()!,
@@ -135,7 +137,7 @@ describe("same-batch display across selection revisions", () => {
         expect(before.getAttribute("src")).toBe(url);
         expect(URL.revokeObjectURL).not.toHaveBeenCalledWith(url);
         expect(grid().querySelectorAll("ol > li")).toHaveLength(6);
-        expect(select()).toBeNull();
+        expect(selectable()).toBe(false);
         for (const label of actions) expect(action(label).disabled, label).toBe(true);
         await act(async () => {
           for (const label of actions) action(label).click();
@@ -144,17 +146,17 @@ describe("same-batch display across selection revisions", () => {
         await act(async () => release!());
         if (outcome === "succeeds")
           await until(() => {
-            expect(select()).not.toBeNull();
+            expect(selectable()).toBe(true);
             for (const label of actions) expect(action(label).disabled, label).toBe(false);
           });
         else {
           await until(() => expect(grid().textContent).toContain("Saved concept details unavailable"));
-          expect(select()).toBeNull();
+          expect(selectable()).toBe(false);
           for (const label of actions) expect(action(label).disabled, label).toBe(true);
         }
         expect(image()).toBe(before);
         expect(URL.revokeObjectURL).not.toHaveBeenCalledWith(url);
-        expect(grid().textContent).toContain("Logo chosen");
+        expect(grid().textContent).toContain("Your logo");
         expect(f.selections).toHaveLength(1);
         expect(f.admissions).toEqual([]);
       } finally {
