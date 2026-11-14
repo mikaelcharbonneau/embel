@@ -20,7 +20,7 @@ Notes for implementation.
 - **Faces and personal data.** The crops show only the logo band, palette, type and supporting graphics. They show no face and no invented personal details (the Kestrel board's face and business card are in its lower half). The share image shows the left 62% and the top 61% of the Kestrel board.
 - **Names.** Kestrel Analytics, Orchard Lane Cider and Tidewild Hot Sauce are invented names. Check each against real companies before public use.
 - **D-024.** A direction board can show a different logo from the chosen one (owner, Nov 14: deferred). The boards are used as generated.
-- **Third example.** The third Home example is Tidewild Hot Sauce (made with one ordinary run, 6 logo concepts and 3 direction boards, owner-approved Nov 14). `handoff.md` still calls it a placeholder; that is out of date.
+- **Third example.** The third Home example is Tidewild Hot Sauce (made with one ordinary run, 6 logo concepts and 3 direction boards, owner-approved Nov 14). `handoff.md` records it as done.
 
 ## 2. Slots covered in code (no static file)
 
@@ -29,23 +29,23 @@ Notes for implementation.
 | IMG-004 | Lucide icon set through `.e-icon[data-icon="<name>"]`; see section 3 | One library, one line weight |
 | IMG-006 | `.e-canvas--dots` (tokens `--pattern-dot-grid`, `--pattern-dot-size`, `--pattern-dot-color`) | CSS only |
 | IMG-010 | `.e-empty` with `.e-empty__visual` holding one `.e-icon` | One treatment for every empty state |
-| IMG-018 | `.e-media` with `.e-media--inset` | 1:1 tile, logo inset 12%. `.e-media--inset` is **not** in the generator sources in the repo (see the note below) |
-| IMG-019 | `.e-media--drawing` (dotted frame, corner handles, mono labels, halftone sweep) and `.e-media--revealing` with `.e-media__canvas` (the reveal); canvas board "Logo · Drawing (loading)" | Not in the generator sources in the repo (see the note below). The reveal script is described in section 4 |
+| IMG-018 | `.e-media` with `.e-media--inset` | 1:1 tile, logo inset 12%. Confirmed in the published `bundle.css` (see the note below) |
+| IMG-019 | `.e-media--drawing` (dotted frame, corner handles, mono labels, halftone sweep) and `.e-media--revealing` with `.e-media__canvas` (the reveal); canvas board "Logo · Drawing (loading)" | Confirmed in the published `bundle.css` (see the note below). The reveal script is described in section 4 |
 | IMG-022 | Canvas page 5 (Delivery), row "Brand image templates, two families" | Brand board, 1600 × 2200 |
 | IMG-023 | Canvas page 5, same row | Profile image, 1024 × 1024 |
 | IMG-024 | Canvas page 5, same row | Post templates, 1080 × 1080 and 1080 × 1350 |
 | IMG-025 | Canvas page 5, same row | Banners, 1500 × 500 and 1584 × 396 |
 
-**Note on class names.** `design-assets/design-system/` was missing from the repository when this was produced, so none of the names could be checked against the published system (version 1794600671-f81e) or its `bundle.css`. In the generator sources (`design-audit/design-system-build/bundle.css.src`) I confirmed `.e-media`, `.e-media--thumb`, `.e-media--contain`, `.e-canvas--dots` and `.e-empty`. I did not find `.e-media--inset`, `.e-media--drawing`, `.e-media--revealing` or `.e-media__canvas` there; they come from the Prompt 7 brief and `handoff.md`. Confirm them against the published `bundle.css` before implementation.
+**Note on class names** (checked November 14 against the design system copy in `design-assets/design-system/`, version 1794614133-df61). Every class named in this section exists in its `components/bundle.css`: `.e-media`, `.e-media--inset`, `.e-media--drawing`, `.e-media--revealing`, `.e-media__canvas`, `.e-media__handles`, `.e-media__label`, `.e-media__status`, `.e-canvas--dots` and `.e-empty`. (When this pass first ran, the copy was not yet in the repository, so it checked only the older generator sources in `design-audit/design-system-build/`, which predate the drawing and inset classes.)
 
 Slots with no change from `04_image_needs.md` and nothing produced here: IMG-001, 002, 005, 009, 013, 014, 015, 016, 017, 027, 028, 029 (kept, removed or execution fixes). IMG-011, 012, 020, 021, 026 are the person's own output served as previews in implementation (sizes in the "Update after the redesign" section of `04_image_needs.md`).
 
 ## 3. Icons (Lucide)
 
 - **Library and licence.** Lucide, ISC licence, `lucide-static` 0.460.0 (the version pinned by the design-system generator). 24 px grid, 1.5 stroke, drawn as CSS masks so they take the text colour.
-- **Set.** The set is the 55-name `ICONS` list in `design-audit/design-system-build/build.py`, because the built `bundle.css` was not in the repository: house, folder, library, images, image, image-off, plus, minus, search, arrow-right, arrow-left, arrow-up, arrow-down, arrow-up-down, chevron-down, chevron-right, chevron-left, chevron-up, check, x, ellipsis, trash-2, pencil, refresh-cw, rotate-ccw, undo-2, mic, heart, eye, eye-off, download, copy, maximize-2, external-link, info, triangle-alert, circle-alert, circle-check, lock, wifi-off, square, settings, log-out, user, clock, sliders-horizontal, layers, palette, type, file-text, link, credit-card, upload, columns-2, zap.
-- **Check.** All 31 icon names used by the design-system's own validation screens are in the set. In the approved screens I looked at (name details, logo step with chat hidden, Activity, brand menu, Assets, Home), every icon is in the set except the **chat toggle**: **`panel-left`** (Show chat) and **`panel-left-close`** (hide chat in the panel header). Both exist in Lucide 0.460.0 and need adding to `ICONS`. The "Running" spinner is CSS (`.e-spinner`), not an icon.
-- **Limit of this check.** The approved screens are PNG renders, and the canvas source was not read. About 10 of the 213 images were looked at, so other missing icons are possible. A full check needs the canvas's icon names or the published `bundle.css`.
+- **Set.** The 57 icon names defined in `design-assets/design-system/components/bundle.css` (the published system, November 14): arrow-down, arrow-left, arrow-right, arrow-up, arrow-up-down, check, chevron-down, chevron-left, chevron-right, chevron-up, circle-alert, circle-check, clock, columns-2, copy, credit-card, download, ellipsis, external-link, eye, eye-off, file-text, folder, heart, house, image, image-off, images, info, layers, library, link, lock, log-out, maximize-2, mic, minus, palette, panel-left-close, panel-left-open, pencil, plus, refresh-cw, rotate-ccw, search, settings, sliders-horizontal, square, trash-2, triangle-alert, type, undo-2, upload, user, wifi-off, x, zap.
+- **Check.** Every icon name used by the approved screens (44 names, read from the Claude Design canvas source on November 14) is in the set. Nothing is missing: the chat toggle uses `panel-left-close` (Hide chat) and `panel-left-open` (Show chat), both in the set. The "Running" spinner is CSS (`.e-spinner`), not an icon.
+- **Note.** The first run of this pass checked the 55-name `ICONS` list in `design-audit/design-system-build/build.py` and about 10 of the approved images, because the design system copy was not yet in the repository; that older list lacks the two chat-toggle icons, which is why it reported them missing. The check above replaces it.
 
 ## 4. Implementation notes
 
@@ -65,8 +65,6 @@ The registrar's price (USD, per year) comes from the domain provider at check ti
 
 ## 5. Open items
 
-- **Design system copy.** `design-assets/design-system/` is missing; confirm the class names above and the icon set against it.
-- **`panel-left` and `panel-left-close`** to add to the icon set.
 - **IMG-023 and the square post template** have no preview widths in `handoff.md`; 360 / 720 was assumed.
 - **Names:** check Kestrel Analytics, Orchard Lane Cider and Tidewild Hot Sauce against real companies before public use.
 - **IMG-021 and IMG-020 at large sizes:** 2x would exceed the 1024 px files; the 1024 file itself is the 2x.

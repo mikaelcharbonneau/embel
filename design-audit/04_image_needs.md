@@ -69,7 +69,7 @@ These need no static file from this pass. They are covered by the design system 
 
 | ID | Covered by | Notes |
 | --- | --- | --- |
-| IMG-004 | Icon library: Lucide through `.e-icon[data-icon="..."]` | One library, one line weight. 55 icons are embedded (listed in the manifest). Licence ISC. |
+| IMG-004 | Icon library: Lucide through `.e-icon[data-icon="..."]` | One library, one line weight. 57 icons are defined in the design system (listed in the manifest); every icon the approved screens use is among them. Licence ISC. |
 | IMG-006 | `.e-canvas--dots` (token `--pattern-dot-grid`, `--pattern-dot-size`, `--pattern-dot-color`) | CSS only; never an image file. |
 | IMG-010 | `.e-empty` with `.e-empty__visual` holding one `.e-icon` | One treatment for every empty state; Lucide icons only. |
 | IMG-018 | `.e-media`, `.e-media--inset` | Tile, 12% inset. The 1:1 frame is `.e-media`. |
