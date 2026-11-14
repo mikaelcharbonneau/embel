@@ -48,11 +48,12 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const [projectHeader, setProjectHeader] = useState<ProjectHeader | null>(null);
   const authSegment = useSelectedLayoutSegment("auth");
   const backgroundSegments = useSelectedLayoutSegments();
-  const intercepted = ["(.)sign-in", "sign-in", "(.)sign-up", "sign-up"].includes(authSegment ?? "");
-  // The children slot retains the underlying route during intercepted navigation.
-  const pathname = intercepted
-    ? `/${backgroundSegments.filter((segment) => !segment.startsWith("(")).join("/")}`
-    : currentPathname;
+  // The children slot retains the underlying route during intercepted navigation. A direct load of /sign-in also
+  // fills the auth slot, but there the page underneath is the sign-in page itself, so it is not an overlay.
+  const background = `/${backgroundSegments.filter((segment) => !segment.startsWith("(")).join("/")}`;
+  const intercepted =
+    ["(.)sign-in", "sign-in", "(.)sign-up", "sign-up"].includes(authSegment ?? "") && background !== currentPathname;
+  const pathname = intercepted ? background : currentPathname;
   const [moreBelow, setMoreBelow] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const isHome = pathname === "/";
