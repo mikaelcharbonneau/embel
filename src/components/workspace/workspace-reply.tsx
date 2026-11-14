@@ -232,6 +232,8 @@ export function WorkspaceReplyBox({
       </label>
       <textarea
         id={id}
+        name="message"
+        autoComplete="off"
         value={value}
         readOnly={readOnly}
         maxLength={12000}

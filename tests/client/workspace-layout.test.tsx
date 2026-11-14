@@ -164,6 +164,10 @@ describe("reply box", () => {
     await act(async () => send.click());
     expect(onSend).toHaveBeenCalledOnce();
     expect(sendText).not.toHaveBeenCalled();
+    // A named field that browsers and password managers don't try to fill.
+    const field = host.querySelector("textarea")!;
+    expect(field.name).toBe("message");
+    expect(field.getAttribute("autocomplete")).toBe("off");
   });
 
   it("puts Stop in Send's place while Embel works, and Send stays unavailable with nothing to send", async () => {
