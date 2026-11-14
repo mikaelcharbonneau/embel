@@ -143,21 +143,25 @@ test("whole-brand and part likes are independent, reloadable and visible in Like
   const whole = card(page).getByRole("button", { name: `Like the whole ${brand.brand} brand`, exact: true });
   await whole.click();
   await expect(
-    card(page).getByRole("button", { name: `Unlike the whole ${brand.brand} brand`, exact: true }),
+    card(page).getByRole("button", { name: `Like the whole ${brand.brand} brand`, exact: true, pressed: true }),
   ).toBeEnabled();
   await open(page).click();
   const dialog = overlay(page),
     colors = dialog.getByRole("button", { name: `Like ${brand.brand} colors`, exact: true });
   await colors.click();
-  await expect(dialog.getByRole("button", { name: `Unlike ${brand.brand} colors`, exact: true })).toBeEnabled();
-  await dialog.getByRole("button", { name: `Unlike the whole ${brand.brand} brand`, exact: true }).click();
+  await expect(
+    dialog.getByRole("button", { name: `Like ${brand.brand} colors`, exact: true, pressed: true }),
+  ).toBeEnabled();
+  await dialog.getByRole("button", { name: `Like the whole ${brand.brand} brand`, exact: true, pressed: true }).click();
   await expect(dialog.getByRole("button", { name: `Like the whole ${brand.brand} brand`, exact: true })).toBeEnabled();
   await page.keyboard.press("Escape");
   await page.reload();
   await expect(page.getByRole("button", { name: "Liked · 1", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Liked · 1", exact: true }).click();
   await expect(page.locator(".inspiration-brand")).toHaveCount(1);
-  await expect(card(page).getByRole("button", { name: `Unlike ${brand.brand} colors`, exact: true })).toBeVisible();
+  await expect(
+    card(page).getByRole("button", { name: `Like ${brand.brand} colors`, exact: true, pressed: true }),
+  ).toBeVisible();
   await page.screenshot({ path: info.outputPath("liked.png") });
   expect(fixture.writes).toBe(3);
   expect(fixture.overview.choices[0]).toMatchObject({ ensemble: false, elements: ["colors"] });
@@ -173,7 +177,9 @@ test("a lost successful response is recovered by reading, without repeating the 
   const dialog = overlay(page);
   await expect(dialog.getByRole("button", { name: "Save my changes" })).toBeDisabled();
   await dialog.getByRole("button", { name: "Check saved choices" }).click();
-  await expect(dialog.getByRole("button", { name: `Unlike the whole ${brand.brand} brand` })).toBeEnabled();
+  await expect(
+    dialog.getByRole("button", { name: `Like the whole ${brand.brand} brand`, pressed: true }),
+  ).toBeEnabled();
   expect(fixture.writes).toBe(1);
 });
 test("a failed write retains intent and requires check then explicit retry", async ({ page }) => {
@@ -189,7 +195,9 @@ test("a failed write retains intent and requires check then explicit retry", asy
   await expect(dialog.getByRole("button", { name: "Save my changes" })).toBeEnabled();
   fixture.fail = false;
   await dialog.getByRole("button", { name: "Save my changes" }).click();
-  await expect(dialog.getByRole("button", { name: `Unlike the whole ${brand.brand} brand` })).toBeEnabled();
+  await expect(
+    dialog.getByRole("button", { name: `Like the whole ${brand.brand} brand`, pressed: true }),
+  ).toBeEnabled();
   expect(fixture.writes).toBe(2);
   expect(fixture.overview.choices[0]?.ensemble).toBe(true);
 });

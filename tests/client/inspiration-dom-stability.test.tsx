@@ -180,7 +180,7 @@ describe("Inspiration brands", () => {
       },
     };
     await render();
-    await act(async () => button(`Unlike ${first!.brand} colors`).click());
+    await act(async () => button(`Like ${first!.brand} colors`).click());
     expect(controller.save).toHaveBeenLastCalledWith(first!.id, { ensemble: true, elements: ["images"] });
     // Clicking a heart never opens the brand.
     expect(host.querySelector("dialog")).toBeNull();

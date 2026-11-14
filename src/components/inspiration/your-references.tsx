@@ -170,7 +170,7 @@ export function useYourReferences(account: VerifiedAccount, projectId: string): 
                   type="button"
                   className="inspiration-heart inspiration-part-like"
                   aria-pressed={reaction.ensemble}
-                  aria-label={`${reaction.ensemble ? "Unlike" : "Like"} ${image.attribution.label}`}
+                  aria-label={`Like ${image.attribution.label}`}
                   disabled={pending || intent || (atLimit && !reaction.ensemble)}
                   onClick={() => {
                     if (!upload.retained) upload.setNotice(null);
