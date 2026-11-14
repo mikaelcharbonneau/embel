@@ -51,7 +51,7 @@ function NewAccountHome() {
       {billing.status === "ready" && <HomeCreditsLine credits={creditsLeft(billing.summary)} />}
       <HomeExamples
         title="What you will get"
-        text="A logo, colours, type and example uses, built from your idea. These brands were made with Embel."
+        text="A logo, colors, type and example uses, built from your idea. These brands were made with Embel."
       />
     </>
   );
