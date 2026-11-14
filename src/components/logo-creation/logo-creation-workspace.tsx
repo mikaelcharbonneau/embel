@@ -474,7 +474,8 @@ function OwnedLogoCreation({
       : null;
   const conceptEstimate = useGenerationEstimate(conceptsRequest, engineStarter);
   const moreEstimate = useGenerationEstimate(
-    canEstimate && batchReady && saved && brief && !conceptReferenceLimitExceeded && canConcept
+    // At 0 credits More concepts says so before the click instead of being refused after it (D-015).
+    canEstimate && batchReady && saved && brief && !conceptReferenceLimitExceeded && canConcept && !noCredits
       ? {
           operation: "more_concepts",
           expected: saved.heads,
@@ -1104,7 +1105,7 @@ function OwnedLogoCreation({
           variant="secondary"
           estimate={moreEstimate}
           label="More concepts"
-          unavailable={canConcept ? "" : drawingUnavailable}
+          unavailable={noCredits ? "No credits left this month." : canConcept ? "" : drawingUnavailable}
         />
       )}
       {!external && engineRun && (
