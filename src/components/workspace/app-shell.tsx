@@ -19,9 +19,9 @@ import { OutOfCreditsPrompt } from "@/components/billing/out-of-credits-prompt";
 
 // Library is the existing /assets page under the redesign's name.
 const primary: NavItem[] = [
-  { href: "/", label: "Home" },
-  { href: "/brands", label: "Projects" },
-  { href: "/assets", label: "Library" },
+  { href: "/", label: "Home", icon: "house" },
+  { href: "/brands", label: "Projects", icon: "folder" },
+  { href: "/assets", label: "Library", icon: "library" },
 ];
 
 export function AppShell({ children, auth }: { children: React.ReactNode; auth: React.ReactNode }) {
