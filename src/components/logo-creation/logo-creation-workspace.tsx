@@ -19,6 +19,7 @@ import {
   logoDrawingSlotIds,
   logoRefineRequestStatus,
   logoRunBatchId,
+  logoRunEndSentence,
   logoUndrawnSlotIds,
 } from "@/domain/logo-engine";
 import { LogoGenerationAction } from "./generation-action";
@@ -147,6 +148,16 @@ function OwnedLogoCreation({
     logoRunBatchId(activeConceptRun) ??
     (latestConceptRun && logoEngine.followed.has(latestConceptRun.id) ? logoRunBatchId(latestConceptRun) : null);
   const engineRun = activeConceptRun ?? activeRefineRun;
+  // What the newest run followed here ended as, when it ended without its result. A newer run of either kind
+  // takes its place, so the sentence goes as soon as another request starts.
+  const followedConceptRun = latestConceptRun && logoEngine.followed.has(latestConceptRun.id) ? latestConceptRun : null;
+  const runEndSentence = logoRunEndSentence(
+    engineRefine && followedConceptRun
+      ? Date.parse(engineRefine.createdAt) >= Date.parse(followedConceptRun.createdAt)
+        ? engineRefine
+        : followedConceptRun
+      : (engineRefine ?? followedConceptRun),
+  );
   const canConcept = engineOn,
     canRefine = engineOn;
   const drawingUnavailable =
@@ -316,12 +327,14 @@ function OwnedLogoCreation({
         );
         if (engineDrawing.current) timer = setTimeout(() => void read(), 3000);
       } catch {
-        if (current())
-          setBatchRead((previous) =>
-            previous && previous.client === client && previous.id === batchId
-              ? { ...previous, unavailable: true }
-              : { id: batchId!, client: client!, revision: workspaceRevision!, batch: null, unavailable: true },
-          );
+        if (!current()) return;
+        setBatchRead((previous) =>
+          previous && previous.client === client && previous.id === batchId
+            ? { ...previous, unavailable: true }
+            : { id: batchId!, client: client!, revision: workspaceRevision!, batch: null, unavailable: true },
+        );
+        // One failed read does not end the round's checks: the next one that succeeds clears "unavailable".
+        if (engineDrawing.current) timer = setTimeout(() => void read(), 3000);
       }
     }
     void read();
@@ -1147,6 +1160,16 @@ function OwnedLogoCreation({
     <NoCreditsNote periodEnd={credits.periodEnd} />
   ) : null;
 
+  // A refused request (still busy, today's limit, switched off, no connection). Outside the Workspace the action
+  // that was refused explains it; a Send-driven step has no such action for a change, a first set or a retry, so
+  // the step says it here. More concepts keeps its own explanation beside its button in both.
+  const refusal = external && !ranOut && !moreEstimate.error ? logoEngine.error : null;
+  const refusalMessage = refusal ? (
+    <InlineMessage tone="warning" onDismiss={logoEngine.clearError}>
+      {refusal}
+    </InlineMessage>
+  ) : null;
+
   // The reply box (decision 2): logo types as chips before the first set, the chosen concept once there is one.
   const logoTypes = draft?.brief.logoTypes ?? [];
   const typesEditable = Boolean(draft && editing && autoSave && !activeBatch);
@@ -1205,7 +1228,7 @@ function OwnedLogoCreation({
   const conceptsDrawing = drawingNow || Boolean(activeConceptRun);
   const failedNow = failedSlotIds.length > 0 && !conceptsDrawing;
   const chosenConcept = selectedLabel?.split(" · ")[0];
-  const stepMessage = activeRefineRun
+  const stateMessage = activeRefineRun
     ? "I’m changing your logo. The new version appears on the right when it’s ready."
     : conceptsDrawing
       ? `I’m drawing six concepts for ${brandName}. They appear on the right as each one is ready.`
@@ -1216,6 +1239,8 @@ function OwnedLogoCreation({
           : failedNow
             ? ""
             : `Here are six concepts for ${brandName}. Choose the one you like most on the right. You can change it afterwards.`;
+  // A run that just ended without its result is said first, then what the person can do now.
+  const stepMessage = [runEndSentence, stateMessage].filter(Boolean).join(" ");
   useWorkspaceStepMessage("logo", inChat ? stepMessage : null);
   // The folded Logo entry once the step is finished: the chosen concept and a small copy of it.
   const chosenPreview = useVerifiedPreview(inChat ? client : null, inChat ? focusedReceipt : null);
@@ -1268,6 +1293,7 @@ function OwnedLogoCreation({
                 {failureSentence} The others are ready on the right.
               </InlineMessage>
             ) : null}
+            {refusalMessage}
             {!ranOut && noCredits && <NoCreditsNote periodEnd={credits.periodEnd} />}
             {activeBatch && !changingTypes && (
               <LogoTypesSummary
@@ -1401,6 +1427,12 @@ function OwnedLogoCreation({
           </InlineMessage>
         )}
         {!inChat && !activeBatch && ranOut === "concepts" && outOfCreditsMessage}
+        {!inChat && refusalMessage}
+        {!inChat && runEndSentence && (
+          <p className="e-muted" role="status">
+            {runEndSentence}
+          </p>
+        )}
         {(activeBatch || batchId || savedBatchLoading || savedBatchUnavailable || engineRun) && (
           <LogoConceptGridView
             batch={activeBatch}

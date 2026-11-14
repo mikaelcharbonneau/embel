@@ -384,6 +384,44 @@ export function GuidedChoicesEmpty({
   );
 }
 
+/** A step of Strategy that is no longer confirmed although the conversation has moved past it. */
+export type StrategyReviewStep = "brief" | Exclude<GuidedStage, "slogan">;
+const reviewSteps: Record<StrategyReviewStep, { action: string; text: string }> = {
+  brief: { action: "Edit brief", text: "Add a description to your brief to continue to names." },
+  competitors: { action: "Review competitors", text: "Review your competitors to continue to names." },
+  audience: { action: "Review audience", text: "Review your audience to continue to names." },
+  positioning: { action: "Review positioning", text: "Review your positioning to continue to names." },
+  personality: { action: "Review personality", text: "Review your personality to continue to names." },
+};
+/** The work area when Strategy lost its confirmation after the conversation moved on, as a brief edit
+ * does: it says so and offers the step to reopen, instead of waiting for a response nobody asked for. */
+export function GuidedStrategyReview({
+  step,
+  disabled,
+  onReview,
+}: {
+  step: StrategyReviewStep;
+  disabled?: boolean;
+  onReview: () => void;
+}) {
+  const title = "Your strategy needs another look";
+  return (
+    <section className="e-stack e-stack--lg conversation-step" aria-label={title}>
+      <EmptyState
+        variant="results"
+        icon="rotate-ccw"
+        title={title}
+        text={`Part of your strategy is no longer confirmed, which happens when the brief changes. ${reviewSteps[step].text}`}
+        action={
+          <Button variant="primary" size="sm" disabled={disabled} onClick={onReview}>
+            {reviewSteps[step].action}
+          </Button>
+        }
+      />
+    </section>
+  );
+}
+
 /** One answer inside a folded group (Strategy, Voice), with its own Edit button. */
 export function FoldedPart({
   label,

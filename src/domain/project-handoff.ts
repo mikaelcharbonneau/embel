@@ -34,10 +34,19 @@ export function getProjectHandoff(project: Pick<AccountProject, "id" | "scope" |
   let next: Continuation;
   if (!context.description.trim() || pendingReviews.length > 0) {
     const first = pendingReviews[0] ?? reviews.brief;
+    // The conversation holds each step in a section: Personality is under Voice once the conversation
+    // has reached it, everything else under Strategy. These ids are `journeySectionId` in
+    // src/components/journey/project-header.ts; the per-step `#strategy-…` anchors no longer exist.
+    const guidedStage = context.intake.guidedInterview?.stage;
+    const section =
+      first.key === "personality" &&
+      (guidedStage === "personality" || guidedStage === "slogan" || guidedStage === "complete")
+        ? "voice"
+        : "strategy";
     next = {
       stage: "strategy",
       label: first.label,
-      href: `${projectStrategyHref(project.id)}#strategy-${first.anchor}`,
+      href: `${projectStrategyHref(project.id)}#journey-${section}`,
     };
   } else if (!savedName) {
     next = { stage: "naming", label: savedName ? "Review saved name" : "Continue to Naming", href: `${base}/naming` };

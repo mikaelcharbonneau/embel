@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isActiveRun } from "./generation-run";
 import { generationRunSchema, type GenerationRun } from "./generations";
 import type { LogoConceptBatch } from "./logo-jobs";
 
@@ -17,7 +18,7 @@ export const logoEngineStatusSchema = z.strictObject({
 });
 export type LogoEngineStatus = z.infer<typeof logoEngineStatusSchema>;
 
-export const isActiveLogoRun = (run: GenerationRun) => run.status === "queued" || run.status === "running";
+export const isActiveLogoRun = (run: GenerationRun) => isActiveRun(run);
 /** The newest run of one kind. */
 export function latestLogoRun(runs: readonly GenerationRun[], kind: LogoEngineKind): GenerationRun | null {
   return (
@@ -62,4 +63,28 @@ export function logoRefineRequestStatus(run: GenerationRun): "admitted" | "runni
   if (run.status === "queued") return "admitted";
   if (run.status === "running") return "running";
   return run.status === "succeeded" ? "succeeded" : "failed";
+}
+
+/**
+ * What the Logo step says about a run that ended without its result, or null when there is
+ * nothing to say (docs/state-machines.md, rule 4). The order of the checks is the priority.
+ *
+ * Stopped is not a failure, whoever stopped it. A failed run returned the credits for what
+ * it did not deliver (finish_generation_run), so the sentence may say so. A concepts round
+ * that drew at least one concept is left to its cards, which already show what is missing.
+ */
+export function logoRunEndSentence(run: GenerationRun | null): string | null {
+  if (!run || isActiveLogoRun(run) || run.status === "succeeded") return null;
+  const refine = run.kind === LOGO_ENGINE_KINDS.refine;
+  if (!refine && run.kind !== LOGO_ENGINE_KINDS.concepts) return null;
+  if (!refine && run.outputs.some((item) => /^image\.[0-5]$/u.test(item.key))) return null;
+  if (run.status === "cancelled")
+    return refine ? "The change to your logo was stopped." : "Drawing was stopped before any concept was ready.";
+  const outcome =
+    run.errorCode === "run_timed_out"
+      ? "took too long and didn’t finish"
+      : run.errorCode === "start_failed"
+        ? "couldn’t start"
+        : "didn’t finish";
+  return `${refine ? "The change to your logo" : "Drawing your concepts"} ${outcome}. Credits for anything not delivered were returned, so you can try again.`;
 }

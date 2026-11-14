@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { generationRunStatusSchema } from "@/domain/generation-run";
 import { creditSummarySchema, type GenerationRun } from "@/domain/generations";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
@@ -21,7 +22,7 @@ const runRowSchema = z.object({
   owner_id: z.uuid(),
   project_id: z.uuid(),
   kind: generationKindSchema,
-  status: z.enum(["queued", "running", "succeeded", "failed", "cancelled"]),
+  status: generationRunStatusSchema,
   credits: z.number().int().nonnegative(),
   workflow_run_id: z.string().nullable(),
   error_code: z.string().nullable(),
@@ -31,6 +32,9 @@ const runRowSchema = z.object({
   input_revision: z.number().int().positive().nullable().default(null),
 });
 export type GenerationRunRow = z.infer<typeof runRowSchema>;
+/** Admitted, but no workflow has picked the run up yet: the one moment a start may be sent. */
+export const runAwaitsWorkflow = (run: Pick<GenerationRunRow, "status" | "workflow_run_id">) =>
+  run.status === "queued" && run.workflow_run_id === null;
 const outputRowSchema = z.object({
   run_id: z.uuid(),
   output_key: z.string(),

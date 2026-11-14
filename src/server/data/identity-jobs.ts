@@ -22,6 +22,7 @@ import {
   parseIdentityDirectionsRun,
 } from "../engine/identity";
 import { IDENTITY_DIRECTIONS_KIND } from "../engine/identity-input";
+import { runAwaitsWorkflow } from "../engine/runs";
 import { startAdmittedRun } from "../engine/start";
 
 export class IdentityAdmissionUncertainError extends ApiError {
@@ -187,7 +188,7 @@ async function startEngineIdentityBatch(
     if (run.batchId !== batch.batchId) throw new IdentityAdmissionUncertainError(projectId, input);
     // A new round starts now; a replay starts only a round whose start was evidently lost,
     // so a quick retry doesn't race the first start.
-    if (result.data.replayed ? identityRunNeedsStart(run) : run.status === "queued" && run.workflow_run_id === null) {
+    if (result.data.replayed ? identityRunNeedsStart(run) : runAwaitsWorkflow(run)) {
       try {
         await startAdmittedRun(IDENTITY_DIRECTIONS_KIND, run.id);
       } catch {

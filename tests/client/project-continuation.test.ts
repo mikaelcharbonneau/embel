@@ -180,7 +180,7 @@ describe("project continuation from saved work", () => {
     const saved = accountProjectSchema.parse({ ...project, scope: "complete_brand", context: {} });
     expect(await read(saved)).toEqual({
       label: "Review the saved brief",
-      href: `${base}?view=strategy#strategy-brief`,
+      href: `${base}?view=strategy#journey-strategy`,
     });
     expect(logo.listLogoConceptBatches).not.toHaveBeenCalled();
     expect(identity.overview).not.toHaveBeenCalled();

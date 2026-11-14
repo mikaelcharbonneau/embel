@@ -127,7 +127,7 @@ describe("generic account project entry", () => {
   it("resumes the missing Strategy review when the project has no Logo progress", async () => {
     fixture(project(), logo(false));
     await render();
-    expect(replace).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}?view=strategy#strategy-brief`);
+    expect(replace).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}?view=strategy#journey-strategy`);
   });
   it("keeps explicit Strategy access and a return link even with saved Logo work", async () => {
     const fetcher = fixture();

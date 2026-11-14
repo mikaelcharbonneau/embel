@@ -305,9 +305,10 @@ describe("project workspace retains account and saved-state safety without proje
     expect(drafts.get(projectId)?.saved.context.selectedName).toBe("Luma");
     expect(host.textContent).toContain("Luma");
     expect(host.textContent).toContain("Strategy needs review");
-    expect(host.querySelector(`a[href="/brands/account/${projectId}?view=strategy#strategy-brief"]`)?.textContent).toBe(
-      "Continue Strategy review",
-    );
+    // The conversation's Strategy section; the old per-step `#strategy-…` anchors no longer exist.
+    expect(
+      host.querySelector(`a[href="/brands/account/${projectId}?view=strategy#journey-strategy"]`)?.textContent,
+    ).toBe("Continue Strategy review");
   });
   it("shows actual stale Logo work without counting it as current approval", async () => {
     vi.stubGlobal(

@@ -432,6 +432,18 @@ export function createNamingFeedController(options: {
       return stopPolling;
     },
     dispose() {
+      // The feed state outlives this mount, and an aborted request never reaches its own reset. A Stop in
+      // flight is forgotten: the next read shows whether the server got it. An unanswered start may have
+      // reached SQL, so it ends as it does within one mount: kept for Try again, which repeats its key.
+      const aborted = new Set(controllers.values()),
+        stop = aborted.has(`naming-stop:${projectId}`),
+        start = aborted.has(`naming-start:${projectId}`) && Boolean(state()?.pending);
+      if (stop || start)
+        update((value) => ({
+          ...value,
+          stopping: stop ? false : value.stopping,
+          ...(start && value.pending ? { error: requestFailure(null, "start"), retry: "start" as const } : {}),
+        }));
       closed = true;
       stopPolling();
       for (const [controller, key] of controllers) {
