@@ -98,7 +98,7 @@ export function ProjectsWorkspace({ state = "active" }: { state?: "active" | "de
 }
 
 function ProjectsLibrary({ account, state }: { account: VerifiedAccount; state: "active" | "deleted" }) {
-  const { listing, error, pending, load, reload, remove, update } = useAccountProjectListing(account, state);
+  const { listing, error, pending, load, reload, remove, update, rename } = useAccountProjectListing(account, state);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("created");
   const [notice, setNotice] = useState<{ project: LifecycleProject; action: ProjectDeletionAction } | null>(null);
@@ -251,14 +251,23 @@ function ProjectsLibrary({ account, state }: { account: VerifiedAccount; state: 
                   project={project}
                   account={account}
                   hidden={!matches(project)}
-                  actions={(name) => (
+                  actions={(name, card) => (
                     <ProjectCardActions
-                      key={`${project.id}:${project.current_revision}:${project.lifecycle_version}`}
+                      // A rename saves a new revision without closing the menu's place, so the key leaves it out.
+                      key={`${project.id}:${project.lifecycle_version}`}
                       project={project}
                       account={account}
                       name={name}
                       onChanged={changed}
                       onReload={refreshProjects}
+                      onRenamed={
+                        deleted
+                          ? undefined
+                          : (title, revision) => {
+                              card.renamed(title, revision);
+                              rename(project.id, title, revision);
+                            }
+                      }
                     />
                   )}
                   deletionStatus={

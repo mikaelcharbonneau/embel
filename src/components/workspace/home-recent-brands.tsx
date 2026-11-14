@@ -58,7 +58,7 @@ function NewAccountHome() {
 }
 
 function HomeAccountRecentBrands({ account }: { account: VerifiedAccount }) {
-  const { listing, error, pending, reload, remove } = useAccountProjectListing(account, "active", 6);
+  const { listing, error, pending, reload, remove, rename } = useAccountProjectListing(account, "active", 6);
   const [removed, setRemoved] = useState<LifecycleProject | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const brands = [...(listing?.items ?? [])]
@@ -133,14 +133,19 @@ function HomeAccountRecentBrands({ account }: { account: VerifiedAccount }) {
               project={brand}
               account={account}
               headingLevel={3}
-              actions={(name) => (
+              actions={(name, card) => (
                 <ProjectCardActions
-                  key={`${brand.id}:${brand.current_revision}:${brand.lifecycle_version}`}
+                  // A rename saves a new revision without closing the menu's place, so the key leaves it out.
+                  key={`${brand.id}:${brand.lifecycle_version}`}
                   project={brand}
                   account={account}
                   name={name}
                   onChanged={changed}
                   onReload={refreshProjects}
+                  onRenamed={(title, revision) => {
+                    card.renamed(title, revision);
+                    rename(brand.id, title, revision);
+                  }}
                 />
               )}
             />

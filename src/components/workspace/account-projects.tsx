@@ -321,6 +321,22 @@ export function useAccountProjectListing(
     },
     [account, isCurrent, publish, remove, state],
   );
+  /** Rename saved `title` as `revision`: this list and the others kept for the account show it at once. */
+  const rename = useCallback(
+    (projectId: string, title: string, revision: number) => {
+      if (!account || !active.current || !isCurrent(account)) return;
+      const change = (kept: ProjectListing): ProjectListing => ({
+        ...kept,
+        items: kept.items.map((row) =>
+          row.id === projectId && row.current_revision < revision ? { ...row, title, current_revision: revision } : row,
+        ),
+      });
+      const previous = currentListing.current;
+      if (previous) publish(change(previous));
+      viewCache?.update<ProjectListing>(account, `projects:${state}:`, change);
+    },
+    [account, isCurrent, publish, state, viewCache],
+  );
   useEffect(() => {
     active.current = Boolean(account);
     // A kept list is shown as it was and replaced by a fresh first page; otherwise this is the first read.
@@ -332,5 +348,5 @@ export function useAccountProjectListing(
       request.current = null;
     };
   }, [account, cached, load, reload]);
-  return { listing, error, pending, load, reload, remove, update };
+  return { listing, error, pending, load, reload, remove, update, rename };
 }

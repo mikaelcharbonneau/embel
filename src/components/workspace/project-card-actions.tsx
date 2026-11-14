@@ -7,9 +7,10 @@ import { Menu } from "@/components/ui/menu";
 import { InlineMessage } from "@/components/ui/message";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { useProjectDeletion, type LifecycleProject, type ProjectDeletionAction } from "./project-deletion-client";
+import { ProjectRenameDialog } from "./project-rename-dialog";
 import "@/styles/project-card-actions.css";
 
-/** The card's options menu (Delete) for an active project, or its Restore button once deleted. Both confirm in a
+/** The card's options menu (Rename, Delete) for an active project, or its Restore button once deleted. Each opens a
  * small dialog that stays open while the change runs and shows any failure with its recovery inside it. */
 export function ProjectCardActions({
   project,
@@ -17,6 +18,7 @@ export function ProjectCardActions({
   name = project.title,
   onChanged,
   onReload,
+  onRenamed,
 }: {
   project: LifecycleProject;
   account: VerifiedAccount;
@@ -24,9 +26,12 @@ export function ProjectCardActions({
   name?: string;
   onChanged: (project: LifecycleProject, action: ProjectDeletionAction) => void;
   onReload: () => Promise<boolean>;
+  /** Rename saved `name` as `revision`; the card and its lists show it from then on. */
+  onRenamed?: (name: string, revision: number) => void;
 }) {
   const { isCurrent } = useAccountSession();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [renaming, setRenaming] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshFailed, setRefreshFailed] = useState(false);
   const cancel = useRef<HTMLButtonElement>(null);
@@ -38,6 +43,12 @@ export function ProjectCardActions({
     onChanged(saved.title === name ? saved : { ...saved, title: name }, done),
   );
   const busy = pending || refreshing;
+  // A closed dialog's failure was about the revision it saw; a newer saved revision (a rename) starts clean.
+  const [seenRevision, setSeenRevision] = useState(project.current_revision);
+  if (seenRevision !== project.current_revision) {
+    setSeenRevision(project.current_revision);
+    if (failure && !dialogOpen && !busy) clearFailure();
+  }
 
   useEffect(() => {
     active.current = true;
@@ -84,7 +95,22 @@ export function ProjectCardActions({
       {action === "delete" ? (
         <Menu
           label={`Actions for ${name}`}
-          items={[{ kind: "action", label: "Delete", icon: "trash", danger: true, onSelect: openAction }]}
+          items={[
+            ...(onRenamed
+              ? [
+                  {
+                    kind: "action" as const,
+                    label: "Rename",
+                    icon: "pencil" as const,
+                    onSelect: () => {
+                      if (isCurrent(account) && !busy) setRenaming(true);
+                    },
+                  },
+                  { kind: "separator" as const },
+                ]
+              : []),
+            { kind: "action", label: "Delete", icon: "trash", danger: true, onSelect: openAction },
+          ]}
           trigger={(props) => (
             <IconButton
               {...props}
@@ -105,6 +131,15 @@ export function ProjectCardActions({
         <Button size="sm" icon="refresh" onClick={openAction} disabled={pending}>
           {pending ? "Restoring…" : "Restore"}
         </Button>
+      )}
+      {renaming && onRenamed && (
+        <ProjectRenameDialog
+          project={project}
+          account={account}
+          name={name}
+          onClose={() => setRenaming(false)}
+          onRenamed={onRenamed}
+        />
       )}
       {dialogOpen && (
         <Dialog

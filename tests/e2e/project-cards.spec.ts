@@ -166,7 +166,9 @@ for (const route of ["/brands", "/"])
     await expect(options).toBeFocused();
     await options.click();
     await expect(card.getByRole("menu")).toBeVisible();
-    await expect(card.getByRole("menuitem", { name: "Delete", exact: true })).toBeFocused();
+    // The first row takes focus; the destructive Delete row comes last.
+    await expect(card.getByRole("menuitem", { name: "Rename", exact: true })).toBeFocused();
+    await expect(card.getByRole("menuitem", { name: "Delete", exact: true })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(options).toBeFocused();
     await expect(card.getByRole("menu")).toHaveCount(0);

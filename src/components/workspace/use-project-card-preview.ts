@@ -5,6 +5,7 @@ import { createAccountIdentityClient } from "@/components/identity/account-ident
 import { createAccountLogoClient } from "@/components/identity/account-logo-client";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { accountProjectResponseSchema } from "@/domain/project-api";
+import { contextDisplayName } from "@/domain/projects";
 import { accountRequest, AccountRequestError } from "./account-api";
 import { readProjectCardPreview } from "./project-card-preview";
 import { nextProjectAction, readProjectVisualState, type ProjectAction } from "./project-continuation";
@@ -38,7 +39,8 @@ async function withPreviewSlot(signal: AbortSignal, read: () => Promise<void>) {
 type PreviewState = {
   identity: string;
   name: string | null;
-  selectedName: string | null;
+  /** The project's visible name from its saved revision (Rename, else the chosen brand name). */
+  displayName: string | null;
   url: string | null;
   action: ProjectAction | null;
   status: "loading" | "ready" | "unavailable";
@@ -102,7 +104,7 @@ export function useProjectCardPreview(
     const initial: PreviewState = {
       identity,
       name: null,
-      selectedName: null,
+      displayName: null,
       action: null,
       url: null,
       status: "loading",
@@ -145,7 +147,7 @@ export function useProjectCardPreview(
         if (!live()) return;
         if (project.id !== projectId || project.owner_id !== userId || project.current_revision !== revision)
           throw new AccountRequestError(409);
-        publish({ selectedName: project.context.selectedName?.trim() || null });
+        publish({ displayName: contextDisplayName(project.context) });
         const progress = await readProjectVisualState(project, clients.logo, controller.signal);
         if (!live()) return;
         // A broken thumbnail must not hide the next step, and a slow progress
@@ -228,6 +230,30 @@ export function useProjectCardPreview(
         : previous,
     );
   }
+  /** After Rename saved `nextRevision`: the card keeps what it shows under that revision, with the new name, so it
+   * neither falls back to its placeholder nor drops its options menu; its quiet read then confirms the revision.
+   * A picture kept for this tab moves with its entry; one still owned by a running read is not carried over. */
+  function renamed(name: string, nextRevision: number) {
+    if (!current || !enabled || nextRevision <= revision) return;
+    const nextIdentity = `${userId}:${generation}:${projectId}:${nextRevision}`;
+    const nextKey = `card:${artwork ? "artwork" : "plain"}:${projectId}:${nextRevision}`;
+    const change = (value: PreviewState): PreviewState => ({ ...value, identity: nextIdentity, displayName: name });
+    const kept = viewCache?.get<PreviewState>(account, cacheKey);
+    const moved =
+      kept?.identity === identity ? viewCache?.move<PreviewState>(account, cacheKey, nextKey, change) : null;
+    setState((previous) =>
+      moved
+        ? moved
+        : previous?.identity === identity
+          ? {
+              ...change(previous),
+              url: null,
+              status: previous.url ? "loading" : previous.status,
+              settled: !previous.url && previous.settled,
+            }
+          : previous,
+    );
+  }
   // Without visibility observation no read starts, so callers show the saved
   // listing instead of waiting for one. Cards only render in the browser.
   const reading = current && enabled && typeof IntersectionObserver !== "undefined";
@@ -236,6 +262,7 @@ export function useProjectCardPreview(
     current,
     reading,
     rejectImage,
+    renamed,
     preview: current && enabled && state?.identity === identity ? state : null,
   };
 }
