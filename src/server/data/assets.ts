@@ -16,7 +16,7 @@ import {
 } from "@/domain/asset-library";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
-import { projectDisplayName, readSelectedProjectNames } from "./project-display-names";
+import { projectDisplayName, readProjectDisplayNames } from "./project-display-names";
 
 function input<T>(schema: z.ZodType<T>, value: unknown): T {
   const result = schema.safeParse(value);
@@ -95,12 +95,12 @@ function checkItem(auth: AuthenticatedContext, item: AssetLibraryItem): void {
     ...(item.displayedVersion ? [item.displayedVersion] : []),
   ]);
 }
-/** Library titles use the chosen brand name, as the project bar and cards do. */
+/** Library titles use the project's visible name, as the project bar and cards do. */
 async function withProjectNames<T extends { project: AssetProjectSummary }>(
   auth: AuthenticatedContext,
   rows: readonly T[],
 ): Promise<T[]> {
-  const names = await readSelectedProjectNames(
+  const names = await readProjectDisplayNames(
     auth,
     rows.map((row) => row.project),
   );

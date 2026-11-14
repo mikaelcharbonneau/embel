@@ -1,12 +1,14 @@
 import "server-only";
 import { z } from "zod";
+import { contextDisplayName } from "@/domain/projects";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 
 /** The name people see for a project, the same rule as the project bar: the
- * chosen brand name when one is saved, otherwise the saved project title. */
-export function projectDisplayName(title: string, selectedName: string | null | undefined, maxLength: number) {
-  const name = selectedName?.trim() || title;
+ * name read from its current revision (see `readProjectDisplayNames`), otherwise
+ * the saved project title. */
+export function projectDisplayName(title: string, revisionName: string | null | undefined, maxLength: number) {
+  const name = revisionName?.trim() || title;
   return name.length > maxLength ? `${name.slice(0, maxLength - 1).trimEnd()}…` : name;
 }
 
@@ -15,6 +17,8 @@ const revisionNameSchema = z.object({
   owner_id: z.uuid(),
   revision: z.number().int().positive(),
   selected_name: z.string().nullable(),
+  // Absent on revisions saved before Rename existed.
+  display_name: z.string().nullable().optional(),
 });
 type RevisionName = z.infer<typeof revisionNameSchema>;
 // Keeps each filtered read URL short; listings carry at most 100 projects.
@@ -27,7 +31,7 @@ async function readChunk(
   try {
     const { data, error } = await auth.client
       .from("project_revisions")
-      .select("project_id,owner_id,revision,selected_name:context->>selectedName")
+      .select("project_id,owner_id,revision,selected_name:context->>selectedName,display_name:context->>displayName")
       .eq("owner_id", auth.userId)
       .or(pairs.map(([id, revision]) => `and(project_id.eq.${id},revision.eq.${revision})`).join(","))
       .limit(pairs.length);
@@ -39,10 +43,11 @@ async function readChunk(
   }
 }
 
-/** Chosen names from each project's current saved revision, through the same
- * owner-scoped RLS read as the project page. Names are display metadata only:
- * a failed read keeps the saved titles, while a foreign row fails closed. */
-export async function readSelectedProjectNames(
+/** Each project's visible name from its current saved revision (the name given
+ * with Rename, else the chosen brand name), through the same owner-scoped RLS
+ * read as the project page. Names are display metadata only: a failed read
+ * keeps the saved titles, while a foreign row fails closed. */
+export async function readProjectDisplayNames(
   auth: AuthenticatedContext,
   projects: readonly { id: string; current_revision: number }[],
 ) {
@@ -56,7 +61,7 @@ export async function readSelectedProjectNames(
   for (const row of replies.flatMap((rows) => rows ?? [])) {
     if (row.owner_id !== auth.userId) throw new ApiError("integration_unavailable");
     const id = row.project_id.toLowerCase(),
-      name = row.selected_name?.trim();
+      name = contextDisplayName({ displayName: row.display_name, selectedName: row.selected_name });
     if (wanted.get(id) === row.revision && name) names.set(id, name);
   }
   return names;

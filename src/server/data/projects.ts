@@ -10,7 +10,7 @@ import {
 } from "@/domain/project-api";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
-import { projectDisplayName, readSelectedProjectNames } from "./project-display-names";
+import { projectDisplayName, readProjectDisplayNames } from "./project-display-names";
 
 const storedProjectSchema = accountProjectSummarySchema;
 const storedRevisionSchema = accountRevisionSchema;
@@ -41,8 +41,8 @@ export async function listProjects(auth: AuthenticatedContext) {
     .limit(100);
   databaseError(error);
   const projects = z.array(storedProjectSchema).parse(data);
-  // Lists show the chosen brand name, as the project bar does.
-  const names = await readSelectedProjectNames(auth, projects);
+  // Lists show the project's visible name (Rename, else the chosen brand name), as the project bar does.
+  const names = await readProjectDisplayNames(auth, projects);
   return projects.map((project) => ({
     ...project,
     title: projectDisplayName(project.title, names.get(project.id.toLowerCase()), 160),
