@@ -17,6 +17,8 @@ import { creditsLeft, nextCreditsDate, planName, useBillingSummary } from "@/com
 import { SignedOutActions } from "@/components/auth/signed-out-actions";
 import { OutOfCreditsPrompt } from "@/components/billing/out-of-credits-prompt";
 
+const ACCOUNT_PAGES = ["/sign-in", "/sign-up", "/forgot-password", "/reset-password"];
+
 // Library is the existing /assets page under the redesign's name.
 const primary: NavItem[] = [
   { href: "/", label: "Home", icon: "house" },
@@ -67,7 +69,9 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
           : projectHeader
         : { projectId: accountProjectId, projectName: "", steps: [], saveState: null }
       : null;
-  const account = <WorkspaceAccount pathname={currentPathname} />;
+  // On the account pages themselves the pill doesn't repeat "Sign in" and "Create account" (the card offers both).
+  const accountPage = !intercepted && ACCOUNT_PAGES.includes(currentPathname);
+  const account = <WorkspaceAccount pathname={currentPathname} accountPage={accountPage} />;
   const documentTitle = header ? projectDocumentTitle(header) : null;
   useBrandDocumentTitle(documentTitle);
   // Page classes scope each route's existing layout rules.
@@ -156,15 +160,12 @@ function initials(name: string) {
   return parts.length ? (parts[0]![0]! + (parts.length > 1 ? parts.at(-1)![0]! : "")).toUpperCase() : null;
 }
 
-/** Signed out, the pill offers the two ways in. Otherwise it holds the account
- * menu, which also covers checking, signing in and sign-out recovery. */
-function WorkspaceAccount({ pathname }: { pathname: string }) {
+/** Signed out, the pill offers the two ways in (except on the account pages, whose card already does). Otherwise it
+ * holds the account menu, which also covers checking, signing in and sign-out recovery. */
+function WorkspaceAccount({ pathname, accountPage }: { pathname: string; accountPage: boolean }) {
   const { session } = useAccountSession();
-  return session.status === "signed_out" ? (
-    <SignedOutActions placement="nav" />
-  ) : (
-    <WorkspaceAccountMenu pathname={pathname} />
-  );
+  if (session.status === "signed_out") return accountPage ? null : <SignedOutActions placement="nav" />;
+  return <WorkspaceAccountMenu pathname={pathname} />;
 }
 
 function WorkspaceAccountMenu({ pathname }: { pathname: string }) {

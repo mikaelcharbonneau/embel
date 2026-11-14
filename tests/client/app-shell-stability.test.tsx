@@ -386,6 +386,15 @@ describe("persistent workspace shell", () => {
     expect(host.querySelector("[data-account-menu-trigger]")).toBeNull();
     expect(host.textContent).not.toContain("Private fixture");
     expect(host.textContent).not.toContain("fixture@example.invalid");
+    // On an account page the card offers both ways in, so the pill doesn't repeat them.
+    route.pathname = "/sign-in";
+    await render();
+    expect(host.querySelector('header a[href="/sign-in"]')).toBeNull();
+    expect(host.querySelector('header a[href="/sign-up"]')).toBeNull();
+    expect(mainNav()).not.toBeNull();
+    route.pathname = "/";
+    await render();
+    expect(host.querySelector('header a[href="/sign-up"]')?.textContent).toBe("Create account");
     // Every shell check asks for the ordinary signed-out answer.
     expect(sessionCalls()).toHaveLength(2);
     for (const [, init] of sessionCalls())
