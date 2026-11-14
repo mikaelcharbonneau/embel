@@ -24,7 +24,7 @@ type FormErrors = {
   credentials?: boolean;
 };
 
-const ideaKept = "Your idea is kept. It will be waiting when you're signed in.";
+const ideaKept = "Your idea is kept. It will be waiting when you’re signed in.";
 
 function emailError(input: HTMLInputElement | null): string | undefined {
   const email = input?.value.trim() ?? "";
@@ -97,6 +97,20 @@ export function SignInForm({
     setPasswordsShown(false);
   }, []);
   const clearErrors = () => setErrors({});
+  // A field to focus once the form can take focus again: right after a request the fields may still sit in a
+  // disabled fieldset (the session is being checked), where focus() is ignored and focus would fall to the page.
+  const focusAfterRender = useRef<HTMLInputElement | null>(null);
+  const focusField = (field: HTMLInputElement | null) => {
+    focusAfterRender.current = field;
+    field?.focus();
+  };
+
+  useEffect(() => {
+    const field = focusAfterRender.current;
+    if (!field || unavailable) return;
+    focusAfterRender.current = null;
+    if (document.activeElement !== field) field.focus();
+  }, [errors, unavailable]);
 
   useEffect(() => () => clearPasswords(), [mode, clearPasswords]);
 
@@ -128,7 +142,7 @@ export function SignInForm({
       found.password = `This password has ${password.length} character${password.length === 1 ? "" : "s"}. Use at least 12.`;
     if (signingUp && password) {
       if (!repeated) found.confirm = "Enter the same password again.";
-      else if (password !== repeated) found.confirm = "The two passwords don't match. Enter the same password again.";
+      else if (password !== repeated) found.confirm = "The two passwords don’t match. Enter the same password again.";
     }
     return Object.fromEntries(Object.entries(found).filter(([, value]) => value)) as FormErrors;
   }
@@ -141,7 +155,7 @@ export function SignInForm({
     if (Object.keys(found).length > 0) {
       clearPasswords();
       setErrors(found);
-      (found.email ? emailInput : found.password ? passwordInput : confirmPasswordInput).current?.focus();
+      focusField((found.email ? emailInput : found.password ? passwordInput : confirmPasswordInput).current);
       return;
     }
     const email = emailInput.current?.value.trim() ?? "";
@@ -178,7 +192,7 @@ export function SignInForm({
       else if (result.error instanceof SignInRequestError && [401, 413, 422].includes(result.error.status)) {
         setErrors({ password: signInErrorMessage(result.error), credentials: true });
         // The person fixes the password next; the message under it is read with the field.
-        passwordInput.current?.focus();
+        focusField(passwordInput.current);
       } else setErrors({ form: signInErrorMessage(result.error) });
     }
   }
@@ -219,7 +233,7 @@ export function SignInForm({
   }
 
   const title = signedIn
-    ? "You're signed in"
+    ? "You’re signed in"
     : confirming
       ? "Check your email"
       : signingUp
@@ -250,7 +264,7 @@ export function SignInForm({
     >
       {confirmation === "failed" && (
         <InlineMessage tone="warning">
-          We couldn&apos;t confirm your email with this link. Open the newest email link in the browser where you signed
+          We couldn&rsquo;t confirm your email with this link. Open the newest email link in the browser where you signed
           up, or send a new confirmation email below. If your email is already confirmed, sign in.
         </InlineMessage>
       )}
@@ -389,7 +403,7 @@ export function SignInForm({
                   Checking your account…
                 </p>
               )}
-              {signingUp && <p className="auth-card__note">You&apos;ll confirm your email before you sign in.</p>}
+              {signingUp && <p className="auth-card__note">You&rsquo;ll confirm your email before you sign in.</p>}
             </form>
           )}
           {(confirming || confirmation === "failed") && !resend && (
