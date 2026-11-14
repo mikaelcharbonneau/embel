@@ -247,31 +247,6 @@
   border-radius: var(--radius-card);
   background: var(--chip-on-artwork-bg);
 }
-/* All / Saved filter above the names. */
-.naming-filter {
-  display: inline-flex;
-  gap: var(--space-1);
-  margin-top: 10px;
-  padding: 3px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-paper);
-}
-.naming-filter button {
-  min-height: 32px;
-  padding: 0 var(--space-3);
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--color-text-muted);
-  font: inherit;
-  font-size: var(--font-size-2);
-  cursor: pointer;
-}
-.naming-filter button[aria-pressed="true"] {
-  background: var(--color-text);
-  color: var(--color-bg-paper);
-}
 /* Answered Naming choices folded into one line (design: summary pills). */
 .guided-summary-pill {
   display: inline-flex;

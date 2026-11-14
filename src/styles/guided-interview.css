@@ -66,17 +66,6 @@
   flex-shrink: 0;
   min-height: 36px;
 }
-@keyframes embel-research-pulse {
-  0%,
-  100% {
-    opacity: 0.65;
-    transform: rotate(-6deg) scale(1.85);
-  }
-  50% {
-    opacity: 1;
-    transform: rotate(6deg) scale(2);
-  }
-}
 
 @media (max-width: 700px) {
   .guided-choice-widget {

@@ -150,7 +150,6 @@ h3 { font-size: 15px; line-height: 1.4; font-weight: 500; letter-spacing: -.2px;
   .audience-empty { padding: 27px 18px; }
   .review-complete p { font-size: var(--font-size-2); }
 }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
 
 .account-notice { color: var(--color-text-muted); font-size: var(--font-size-2); line-height: 1.7; padding: 17px 0; }
 .account-notice p + p { margin-top: 9px; max-width: 570px; }

@@ -27,36 +27,3 @@
 .concept-shell #main-content::-webkit-scrollbar {
   display: none;
 }
-
-/* Signed out, the end of the pill offers the two ways in. */
-.signed-out-actions--nav {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-.signed-out-actions--nav .button {
-  min-height: 40px;
-  padding: 0 var(--space-4);
-}
-.signed-out-actions--nav .signed-out-sign-in {
-  background: transparent;
-  color: var(--color-text);
-}
-.signed-out-actions--nav .signed-out-sign-in:hover {
-  background: var(--color-bg-sunken);
-}
-.signed-out-actions--nav .button:focus-visible {
-  outline: 2px solid var(--color-text);
-  outline-offset: 2px;
-}
-
-/* Every menu item shares one shape, text color and icon color. */
-@media (max-width: 600px) {
-  /* Phones keep one compact row: Sign in stays, and the sign-in page offers Create account. */
-  .signed-out-actions--nav .button {
-    padding: 0 var(--space-3);
-  }
-  .signed-out-actions--nav .button.primary {
-    display: none;
-  }
-}

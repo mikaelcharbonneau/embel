@@ -748,6 +748,13 @@ button.inspiration-continue {
 .inspiration-brand-tile:hover .inspiration-brand-open img {
   transform: scale(1.03);
 }
+/* Reduced motion: hover keeps its colour and opacity feedback without growing. */
+@media (prefers-reduced-motion: reduce) {
+  .inspiration-heart:hover:not(:disabled),
+  .inspiration-brand-tile:hover .inspiration-brand-open img {
+    transform: none;
+  }
+}
 .inspiration-brand-open .inspiration-image-error {
   position: absolute;
   inset: 0;

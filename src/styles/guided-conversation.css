@@ -95,10 +95,10 @@
     opacity: 1;
   }
 }
+/* Reduced motion: the entrance fades without moving; the thinking pulse (opacity only) stays as feedback. */
 @media (prefers-reduced-motion: reduce) {
-  .flow-enter,
-  .guided-thinking > .e-mark {
-    animation: none;
+  .flow-enter {
+    animation-name: e-fade;
   }
 }
 @media (max-width: 700px) {
