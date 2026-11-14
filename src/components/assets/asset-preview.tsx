@@ -1,21 +1,30 @@
 "use client";
 
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import { Icon } from "@/components/ui/icon";
+import { Button } from "@/components/ui/button";
+import { MediaFrame, type MediaRatio } from "@/components/ui/media-frame";
 import type { AssetVersionDetail } from "@/domain/asset-library";
 import { canPreviewAsset, type AccountAssetsClient } from "./account-assets-client";
 import { privatePreviewIdentity } from "./private-preview-identity";
+import { watchVisibility } from "@/components/ui/watch-visibility";
 
+/** A Library file's picture in a Media frame: contained, never cropped (IMG-012). Loading is the frame's skeleton;
+ * a file with no picture says why in the frame. */
 export function AssetPreview({
   version,
   client,
   label,
   retryable = true,
+  ratio = "1x1",
+  className,
 }: {
   version: AssetVersionDetail | null;
   client: AccountAssetsClient;
   label: string;
   retryable?: boolean;
+  /** The grid is square; the detail view is 4:3. */
+  ratio?: MediaRatio;
+  className?: string;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const [result, setResult] = useState<{
@@ -65,69 +74,56 @@ export function AssetPreview({
         if (!controller.signal.aborted && client.current()) setResult({ client, key: previewKey, failed: true });
       }
     }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          observer.disconnect();
-          void load();
-        }
-      },
-      { rootMargin: "120px" },
-    );
-    if (container.current) observer.observe(container.current);
+    const stop = container.current ? watchVisibility(container.current, () => void load(), 120) : undefined;
     return () => {
-      observer.disconnect();
+      stop?.();
       controller.abort();
       release?.();
     };
   }, [client, key, attempt]);
   const available = result?.client === client && result.key === key && client.current() ? result : null;
   const failed = available?.failed;
+  const unavailable = failed
+    ? "Preview unavailable"
+    : !version
+      ? "No versions yet"
+      : version.fileState === "metadata_only"
+        ? "Metadata only"
+        : version.fileState === "missing_or_invalid"
+          ? "File unavailable"
+          : !canPreviewAsset(version)
+            ? `${version.format.toUpperCase()} file · no preview`
+            : null;
   return (
-    <div className="assets-preview" ref={container}>
+    <div className={className ? `assets-preview ${className}` : "assets-preview"} ref={container}>
       {available?.url ? (
-        <>
-          {/* Private blob URLs must stay in this owner-scoped consumer, without an image proxy. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={available.url}
-            alt={label}
-            onError={() => {
-              available.release?.();
-              setResult({ client, key: key!, failed: true });
-            }}
-          />
-        </>
+        // Private blob URLs stay in this owner-scoped consumer, without an image proxy.
+        <MediaFrame
+          ratio={ratio}
+          contain
+          src={available.url}
+          alt={label}
+          onImageError={() => {
+            available.release?.();
+            setResult({ client, key: key!, failed: true });
+          }}
+        />
+      ) : unavailable ? (
+        <MediaFrame ratio={ratio} state="failed" failedText={unavailable} />
       ) : (
-        <div className="assets-file-placeholder">
-          <Icon name={version && canPreviewAsset(version) ? "assets" : "file"} size={32} />
-          <strong>{version ? version.format.toUpperCase() : "No file"}</strong>
-          <span>
-            {failed
-              ? "Preview unavailable"
-              : version?.fileState === "metadata_only"
-                ? "Metadata only"
-                : version?.fileState === "missing_or_invalid"
-                  ? "File unavailable"
-                  : version && canPreviewAsset(version)
-                    ? "Loading preview"
-                    : version
-                      ? "Preview not supported"
-                      : "No versions yet"}
-          </span>
-          {failed && retryable && (
-            <button
-              className="text-link"
-              type="button"
-              onClick={() => {
-                setResult(null);
-                setAttempt((value) => value + 1);
-              }}
-            >
-              Retry preview
-            </button>
-          )}
-        </div>
+        <MediaFrame ratio={ratio} state="loading" />
+      )}
+      {failed && retryable && (
+        <Button
+          size="sm"
+          icon="rotate-ccw"
+          onClick={() => {
+            setResult(null);
+            setAttempt((value) => value + 1);
+          }}
+        >
+          Retry preview
+        </Button>
       )}
     </div>
   );

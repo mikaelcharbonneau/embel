@@ -39,7 +39,9 @@ test("composer supports multiline text and IME composition without premature sub
   expect(await page.evaluate((storageKey) => localStorage.getItem(storageKey), key)).toBeNull();
   await initial.press("Enter");
   await expect(signIn).toBeVisible();
-  await expect(signIn.getByText("Your prompt is kept while you sign in.", { exact: false })).toBeVisible();
+  await expect(
+    signIn.getByText("Your idea is kept. It will be waiting when you're signed in.", { exact: false }),
+  ).toBeVisible();
   expect((await readDraft(page)).conversation?.filter((event) => event.kind === "user_message")).toMatchObject([
     { text: "First line\nSecond line" },
   ]);

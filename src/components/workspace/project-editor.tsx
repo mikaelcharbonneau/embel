@@ -536,9 +536,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
   const intake = (
     <div className="home-intake conversation-intake">
       <div className="home-introduction">
-        <h1>
-          Your next brand starts here<span>.</span>
-        </h1>
+        <h1 className="text-display">Your next brand starts here.</h1>
         <p>Describe the idea. Embel asks a few questions, then builds the name, logo and look with you.</p>
       </div>
       {resumedPrompt && !hiddenPrompt && (
@@ -687,6 +685,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
               <button
                 key={item.title}
                 type="button"
+                className="e-chip"
                 disabled={frozenInputs}
                 onClick={() => {
                   if (!canEditInputs()) return;
@@ -728,14 +727,18 @@ type EditorStorage = {
   onStrategyApproved?: (draft: LocalDraft) => Promise<boolean>;
 };
 
+/** `/brands/<id>`: an unsaved project kept on this device. What is found (nothing, a project already saved, or
+ * the project to recover) is the page's one Empty state or picker; "Back to projects" appears once, in it. */
 export function ProjectEditor({ projectId }: { projectId: string }) {
   return (
-    <div className="page">
-      <h1>Recover an unsaved project</h1>
+    <div className="e-container e-page e-stack e-stack--xl recover-page">
+      <header className="e-page-header">
+        <div className="e-stack e-stack--xs">
+          <h1 className="text-title-lg">Recover an unsaved project</h1>
+          <p className="e-muted">Work kept on this device can be saved to your account.</p>
+        </div>
+      </header>
       <UnsavedProjectRecovery draftId={projectId} />
-      <Link className="text-link" href="/brands">
-        Back to projects
-      </Link>
     </div>
   );
 }

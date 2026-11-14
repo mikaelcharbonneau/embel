@@ -171,6 +171,8 @@ it.each(["activity", "sign-out"] as const)("syncs %s native close state and can 
   const { dialog, wasDismissed } = await mount(kind);
   await act(async () => dialog.close());
   expect(wasDismissed()).toBe(true);
+  // Activity renders its dialog only while open, so a native close removes it.
+  if (kind === "activity") expect(host.querySelector("dialog")).toBeNull();
   await act(async () =>
     Array.from(host.querySelectorAll("button"))
       .find((button) =>
@@ -178,7 +180,7 @@ it.each(["activity", "sign-out"] as const)("syncs %s native close state and can 
       )!
       .click(),
   );
-  expect(dialog.open).toBe(true);
+  expect(host.querySelector("dialog")?.open).toBe(true);
 });
 it.each(kinds)("preserves %s explicit close or keep-editing action", async (kind) => {
   const { wasDismissed } = await mount(kind);

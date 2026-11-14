@@ -16,13 +16,13 @@
 }
 .concept-home .home-page {
   width: 100%;
-  max-width: 1120px;
-  padding: 80px var(--space-8) 104px;
+  max-width: calc(var(--container-page) + var(--space-gutter) * 2);
+  padding: var(--space-16) var(--space-gutter) var(--space-24);
   margin: 0 auto;
 }
 .concept-home .home-page .home-intake {
   width: 100%;
-  max-width: 760px;
+  max-width: var(--container-reading);
   margin: 0 auto;
 }
 .concept-home .home-introduction {
@@ -34,27 +34,18 @@
   margin-bottom: var(--space-6);
 }
 .concept-home .home-introduction h1 {
-  font-size: clamp(var(--font-size-8), 4vw, var(--font-size-9));
-  line-height: 1.1;
-  font-weight: 500;
-  letter-spacing: -0.03em;
   margin: 0;
-}
-.concept-home .home-introduction h1 > span {
-  color: inherit;
 }
 .concept-home .home-introduction p {
   margin: 0;
-  font-size: 15px;
-  line-height: 24px;
-  color: var(--color-text-muted);
+  font: var(--text-body);
+  color: var(--color-text);
 }
 .concept-home .home-composer.conversation-composer {
   padding: 0;
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-panel);
   background: var(--color-bg-paper);
-  box-shadow: 0 16px 40px -16px rgb(25 25 25 / 20%);
   overflow: visible;
 }
 .concept-home .home-composer.conversation-composer:focus-within {
@@ -159,80 +150,11 @@
   justify-content: center;
   gap: var(--space-2);
 }
-.concept-home .home-example-pills button {
-  min-height: 40px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  padding: 0 14px;
-  background: var(--color-bg-paper);
-  color: var(--color-text);
-  font-size: var(--font-size-2);
-  line-height: 18px;
-  font-weight: 400;
-}
-.concept-home .home-example-pills button:hover:not(:disabled) {
-  background: var(--color-bg-sunken);
-}
-.concept-home .home-recent {
-  margin-top: 56px;
-}
-.concept-home .home-recent-heading {
-  min-height: 44px;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin-bottom: var(--space-1-5);
-}
-.concept-home .home-recent-heading h2 {
-  margin: 0;
-  font-size: var(--font-size-4);
-  line-height: 24px;
-  font-weight: 500;
-  letter-spacing: 0;
-}
-.concept-home .home-recent-heading .text-link {
-  font-size: var(--font-size-2);
-  gap: var(--space-1-5);
-  color: var(--color-text-muted);
-}
-.home-brand-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-4);
-}
-.home-brands-empty {
-  min-height: 170px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-6);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-bg-paper);
-  text-align: center;
-  color: var(--color-text-muted);
-}
-.home-brands-empty h3 {
-  font-size: var(--font-size-3);
-  font-weight: 500;
-  color: var(--color-text);
-}
-.home-brands-empty p {
-  font-size: var(--font-size-2);
-}
 .concept-home .home-intake .conversation-start-notice {
   margin-top: var(--space-4);
 }
 .concept-home .home-draft-actions {
   margin-block: var(--space-3);
-}
-@media (max-width: 1000px) {
-  .home-brand-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 @media (max-width: 760px) {
   .concept-home .home-page {
@@ -311,12 +233,6 @@
   .concept-home .home-input-controls--compact .home-voice-popover > summary {
     width: 32px;
   }
-  .concept-home .home-recent-heading h2 {
-    font-size: var(--font-size-5);
-  }
-  .home-brand-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .concept-home .home-bottom-fade {
     height: 64px;
   }
@@ -356,16 +272,60 @@
     flex-basis: 100%;
   }
 }
-@media (max-width: 540px) {
-  .home-brand-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
 /* Very narrow phones: three equal options whose labels may wrap, never clipped. */
-@media (max-width: 360px) {
-}
 /* Secondary Home actions follow the rounder pill buttons. */
 .concept-home .home-draft-actions .button {
   border-radius: var(--radius-pill);
   padding-inline: var(--space-4);
+}
+
+/* Below the ideas (redesign, November 13): the credits line, then a section of three cards or examples. */
+.home-credits {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1) var(--space-4);
+  margin-top: var(--space-6);
+  font: var(--text-body);
+}
+.home-section {
+  display: grid;
+  gap: var(--space-5);
+  margin-top: var(--space-16);
+}
+.home-credits + .home-section {
+  margin-top: var(--space-16);
+}
+.home-section__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.home-section__title {
+  font: var(--text-title-md);
+  letter-spacing: var(--tracking-title-md);
+}
+.home-project-grid,
+.home-example-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--grid-gap);
+}
+.home-example-grid .e-media > picture {
+  display: contents;
+}
+.home-example-grid .e-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: left top;
+}
+@media (max-width: 639px) {
+  .home-project-grid,
+  .home-example-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

@@ -37,6 +37,24 @@ export function EmptyState({
   );
 }
 
+/** A small static label that states something. A tone badge always carries an icon and a clear word. */
+export function Badge({
+  tone = "neutral",
+  icon,
+  children,
+}: {
+  tone?: "neutral" | "positive" | "warning" | "danger";
+  icon?: IconName;
+  children: ReactNode;
+}) {
+  return (
+    <span className={tone === "neutral" ? "e-badge" : `e-badge e-badge--${tone}`}>
+      {icon ? <Icon name={icon} size="sm" /> : null}
+      {children}
+    </span>
+  );
+}
+
 /** A placeholder in the exact shape of content that is loading; hidden from assistive technology. */
 export function Skeleton({
   shape = "line",

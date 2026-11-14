@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, type ReactNode } from "react";
 import type { AccountWorkspace } from "./account-draft-memory";
 import type { DraftPatch } from "./project-editor";
 import { personalityReviewKey, positioningReviewKey } from "./project-draft-adapter";
-import { Icon } from "@/components/ui/icon";
+import { IconButton } from "@/components/ui/button";
 import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
 import styles from "@/components/ui/context-details.module.css";
 
@@ -53,18 +53,16 @@ export function AccountBriefEditor({
   }
   return (
     <div className="guided-brief-editor">
-      <button
+      <IconButton
         ref={trigger}
-        type="button"
+        icon="pencil"
+        label="Edit brief"
+        size="sm"
         className="brief-edit-trigger"
-        title="Edit brief"
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={onOpen}
-      >
-        <Icon name="pencil" size={16} />
-        <span className="sr-only">Edit brief</span>
-      </button>
+      />
       <dialog
         ref={dialog}
         className={styles.sheet}

@@ -1,25 +1,27 @@
 "use client";
 
 import { usePathname, useSelectedLayoutSegment, useSelectedLayoutSegments } from "next/navigation";
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/icon";
+import { Menu, type MenuItem } from "@/components/ui/menu";
 import { ToastProvider } from "@/components/ui/toast";
 import { MainNavContent, NavFrame, type NavItem } from "@/components/journey/floating-nav";
 import { ProjectBarContent, ProjectMenu } from "@/components/journey/project-capsule";
 import { ProjectHeaderContext, type ProjectHeader } from "@/components/journey/project-header";
 import { AccountSessionProvider, useAccountSession } from "./account-session";
 import { AccountProfileProvider, useAccountProfile } from "./account-profile-provider";
-import { AccountAccess, AccountAccessNotice } from "./account-access";
-import { GenerationActivity } from "./generation-activity";
+import { AccountAccessNotice, useSignOutFlow } from "./account-access";
+import { ActivityDialog } from "./generation-activity";
+import { preparePromptForSignIn } from "./prompt-recovery";
+import { creditsLeft, nextCreditsDate, planName, useBillingSummary } from "@/components/billing/use-billing-summary";
 import { SignedOutActions } from "@/components/auth/signed-out-actions";
 import { OutOfCreditsPrompt } from "@/components/billing/out-of-credits-prompt";
 
 // Library is the existing /assets page under the redesign's name.
 const primary: NavItem[] = [
-  { href: "/", label: "Home" },
-  { href: "/brands", label: "Projects" },
-  { href: "/assets", label: "Library" },
+  { href: "/", label: "Home", icon: "house" },
+  { href: "/brands", label: "Projects", icon: "folder" },
+  { href: "/assets", label: "Library", icon: "library" },
 ];
 
 export function AppShell({ children, auth }: { children: React.ReactNode; auth: React.ReactNode }) {
@@ -142,87 +144,106 @@ function WorkspaceAccount({ pathname }: { pathname: string }) {
 }
 
 function WorkspaceAccountMenu({ pathname }: { pathname: string }) {
-  const { session, signOutError } = useAccountSession();
+  const { session, refresh, signingIn, signingUp, signingOut, signOutError } = useAccountSession();
   const profile = useAccountProfile();
-  const menu = useRef<HTMLDetailsElement>(null);
-  useEffect(() => {
-    const node = menu.current;
-    if (!node) return;
-    const modalOpen = () => Boolean(document.querySelector("dialog[open]"));
-    const outsidePointer = (event: PointerEvent) => {
-      if (!node.open || modalOpen() || !(event.target instanceof Node) || node.contains(event.target)) return;
-      // Let the outside control receive its normal pointer action and focus.
-      node.open = false;
-    };
-    const escape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || event.defaultPrevented || !node.open || modalOpen()) return;
-      event.preventDefault();
-      node.open = false;
-      node.querySelector("summary")?.focus();
-    };
-    document.addEventListener("pointerdown", outsidePointer);
-    document.addEventListener("keydown", escape);
-    return () => {
-      document.removeEventListener("pointerdown", outsidePointer);
-      document.removeEventListener("keydown", escape);
-    };
-  }, []);
-  useEffect(() => {
-    if (menu.current) menu.current.open = false;
-  }, [pathname]);
+  const billing = useBillingSummary();
+  const signOutFlow = useSignOutFlow();
+  const [activityOpen, setActivityOpen] = useState(false);
   const ready = session.status === "ready";
   const checking = session.status === "checking" || (ready && Boolean(profile?.busy) && !profile?.workspace);
   const name = ready ? (profile?.workspace?.saved.values.fullName.trim() ?? "") : "";
   const email = ready ? (profile?.workspace?.saved.email ?? "") : "";
-  const label = ready ? name || email || "My account" : "Account";
   const monogram = ready && !checking ? (initials(name) ?? (email ? email[0]!.toUpperCase() : null)) : null;
-  // The pill shows only the avatar; the name stays available to assistive
-  // technology and at the top of the open panel.
-  return (
-    <details className="workspace-account-menu" ref={menu}>
-      <summary aria-label="Account menu" aria-busy={checking}>
-        <span className="workspace-account-label sr-only" aria-busy={checking}>
-          {checking ? <span role="status">Checking account…</span> : label}
-        </span>
-        <span className="workspace-account-avatar" aria-hidden="true">
-          {monogram ?? <Icon name="user" size={16} />}
-        </span>
-      </summary>
-      <div className="workspace-account-panel" role="group" aria-label="Account actions">
-        <div className="workspace-account-identity">
-          {checking ? (
-            <strong>Checking your account…</strong>
-          ) : ready ? (
-            <>
-              <strong>{label}</strong>
-              {name && email && <span>{email}</span>}
-            </>
-          ) : (
-            <>
-              <strong>Account</strong>
-              <span>
-                {signOutError
-                  ? "Sign-out didn’t finish. Try again, or check your account."
-                  : "Your account couldn’t be checked. Check your connection and try again."}
-              </span>
-            </>
+  const checkFailed = (session.status === "error" || session.status === "unavailable") && !signingIn && !signingOut;
+  const outOfCredits = billing.status === "ready" && creditsLeft(billing.summary) === 0;
+
+  const summary = signingIn ? (
+    <span role="status">{signingUp ? "Creating account…" : "Signing in…"}</span>
+  ) : checking ? (
+    <span role="status">Checking your account…</span>
+  ) : ready ? (
+    <>
+      {email && <span className="e-muted">{email}</span>}
+      {billing.status === "ready" ? (
+        <>
+          <span className="e-menu__summary-title">{planName(billing.summary)}</span>
+          <span className="e-tabular">
+            {creditsLeft(billing.summary).toLocaleString("en-US")} credits left this month
+          </span>
+          {outOfCredits && nextCreditsDate(billing.summary) && (
+            <span>New credits arrive on {nextCreditsDate(billing.summary)}</span>
           )}
-        </div>
-        {ready && (
-          <div className="workspace-account-links">
-            <Link href="/settings">
-              <Icon name="settings" size={18} />
-              <span>Account settings</span>
-            </Link>
-            <Link href="/plans">
-              <Icon name="layers" size={18} />
-              <span>Plans and credits</span>
-            </Link>
-            <GenerationActivity labeled />
-          </div>
+        </>
+      ) : billing.status === "failed" ? (
+        <span>Your plan can’t be shown right now.</span>
+      ) : (
+        <span role="status">Checking your plan…</span>
+      )}
+    </>
+  ) : signOutError ? (
+    <span>Sign-out didn’t finish. Try again, or check your account.</span>
+  ) : (
+    <span>Your account couldn’t be checked. Check your connection and try again.</span>
+  );
+
+  const signOutRow: MenuItem = {
+    kind: "action",
+    label: signingOut ? "Signing out…" : signOutError ? "Retry sign-out" : "Sign out",
+    icon: "log-out",
+    disabled: signingOut,
+    onSelect: () => void signOutFlow.start(),
+  };
+  const items: MenuItem[] = ready
+    ? [
+        ...(outOfCredits ? [{ kind: "link", label: "See plans", icon: "credit-card", href: "/plans" } as const] : []),
+        ...(outOfCredits ? [{ kind: "separator" } as const] : []),
+        { kind: "link", label: "Settings", icon: "settings", href: "/settings" },
+        ...(outOfCredits ? [] : [{ kind: "link", label: "Plans", icon: "credit-card", href: "/plans" } as const]),
+        { kind: "action", label: "Activity", icon: "clock", onSelect: () => setActivityOpen(true) },
+        { kind: "separator" },
+        signOutRow,
+      ]
+    : [
+        ...(checkFailed
+          ? [{ kind: "action", label: "Check account", icon: "refresh-cw", onSelect: refresh } as const]
+          : []),
+        ...(signingOut || signOutError ? [signOutRow] : []),
+        ...(checkFailed && !signOutError
+          ? [
+              {
+                kind: "link",
+                label: "Sign in",
+                icon: "arrow-right",
+                href: "/sign-in",
+                onClick: (event: React.MouseEvent<HTMLAnchorElement>) => {
+                  if (!preparePromptForSignIn()) event.preventDefault();
+                },
+              } as const,
+            ]
+          : []),
+      ];
+
+  return (
+    <>
+      <Menu
+        closeOn={pathname}
+        summary={summary}
+        items={items}
+        trigger={(props) => (
+          <button
+            {...props}
+            type="button"
+            className="e-avatar"
+            data-account-menu-trigger=""
+            aria-label={checking ? "Account menu, checking your account" : "Account menu"}
+            aria-busy={checking || undefined}
+          >
+            {monogram ?? <Icon name="user" size="sm" />}
+          </button>
         )}
-        <AccountAccess menu />
-      </div>
-    </details>
+      />
+      {activityOpen && <ActivityDialog onClose={() => setActivityOpen(false)} />}
+      {signOutFlow.dialog}
+    </>
   );
 }

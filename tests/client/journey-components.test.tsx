@@ -11,7 +11,6 @@ vi.mock("next/link", () => ({
 
 import { JOURNEY, journeyPartLabel, journeyStepOfPath, journeySteps, projectJourney } from "@/domain/journey";
 import { FloatingNav } from "@/components/journey/floating-nav";
-import { ProgressCard } from "@/components/journey/progress-card";
 import { ProjectCapsule } from "@/components/journey/project-capsule";
 import { LogoGenerationAction } from "@/components/logo-creation/generation-action";
 import type { GenerationEstimate } from "@/components/logo-creation/use-generation-estimate";
@@ -111,35 +110,22 @@ describe("project journey from saved work", () => {
   });
 });
 
-describe("progress", () => {
-  it("shows real progress with a stop action that can be disabled", async () => {
-    const stop = vi.fn();
-    await render(
-      createElement(ProgressCard, {
-        title: "Researching your competitors",
-        description: "Finding relevant brands and the sources behind them.",
-        onStop: stop,
-      }),
-    );
-    expect(host.querySelector("[role='status']")!.textContent).toContain("Researching your competitors");
-    host.querySelector("button")!.click();
-    expect(stop).toHaveBeenCalledOnce();
-    await render(createElement(ProgressCard, { title: "Researching", description: "…", onStop: stop, stopping: true }));
-    expect(host.querySelector("button")!.disabled).toBe(true);
-    expect(host.querySelector("button")!.textContent).toBe("Stopping…");
-  });
-});
-
 describe("navigation", () => {
   const items = [
-    { href: "/", label: "Home" },
-    { href: "/brands", label: "Projects" },
-    { href: "/assets", label: "Library" },
-  ];
+    { href: "/", label: "Home", icon: "house" },
+    { href: "/brands", label: "Projects", icon: "folder" },
+    { href: "/assets", label: "Library", icon: "library" },
+  ] as const;
   it("marks the current page and offers no Tools menu", async () => {
     await render(createElement(FloatingNav, { pathname: "/brands/123", items }));
     expect(host.querySelector("a[aria-current='page']")!.textContent).toBe("Projects");
     expect(host.querySelector("details")).toBeNull();
+    // At phone width the labels are hidden and each link shows its icon, so no destination disappears.
+    expect(
+      [...host.querySelectorAll("a.e-nav__item")].map((link) =>
+        link.querySelector(".e-nav__icon")?.getAttribute("data-icon"),
+      ),
+    ).toEqual(["house", "folder", "library"]);
     expect(host.textContent).not.toContain("Tools");
   });
   it("shows the four steps, the current one and confirmed save state inside a project", async () => {

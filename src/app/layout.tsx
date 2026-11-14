@@ -9,7 +9,6 @@ import "@/styles/embel/components.css";
 import "@/styles/embel/app.css";
 import "@/styles/globals.css";
 import "@/styles/project-naming.css";
-import "@/styles/generation-activity.css";
 import "@/styles/assets.css";
 import "@/styles/identity-references.css";
 import "@/styles/identity.css";

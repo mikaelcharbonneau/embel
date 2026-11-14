@@ -18,6 +18,7 @@ import { projectStrategyHref } from "@/domain/project-handoff";
 import { Icon } from "@/components/ui/icon";
 import { FloatingComposer } from "@/components/workspace/floating-composer";
 import { ConversationComposer } from "@/components/workspace/conversation-composer";
+import { useWorkspaceReply, type WorkspaceReplyAction } from "@/components/workspace/workspace-reply";
 import {
   NAMING_APPROACHES,
   getNamingPreferencesReadiness,
@@ -46,15 +47,33 @@ import "@/styles/guided-interview.css";
 import "@/styles/guided-conversation.css";
 
 /** A saved Strategy conversation already owns the transcript and bottom composer. */
+export type NameChoice = { name: string; onContinue: () => void; disabled: boolean };
+
 export type InlineNamingConversation = {
   messages: HTMLDivElement | null;
   /** Below the naming questions: Embel's message with the names themselves. */
   results: HTMLDivElement | null;
+  /** Where the naming composer renders. Unused when `reply` is "workspace". */
   composer: HTMLDivElement | null;
+  /**
+   * "workspace": the Workspace's reply box carries the naming step (its chip, Send and Stop, registered with
+   * `useWorkspaceReply`) and no naming composer is rendered. Default "composer".
+   */
+  reply?: "composer" | "workspace";
   onQuestion: (id: string | null) => void;
   onCanvas: (visible: boolean) => void;
   /** Continue on the name that was already chosen: close the names again. */
   onNameConfirmed?: () => void;
+  /**
+   * The Workspace's work-area overlay host. Name details open there, not modal, so the chat stays usable; without
+   * it they open as a modal dialog.
+   */
+  overlay?: HTMLElement | null;
+  /**
+   * Reports the chosen name (marked on its card, not yet confirmed) or null, for a reply box that shows it as a chip.
+   * Called only when the choice changes.
+   */
+  onNameChoice?: (choice: { candidateId: string; name: string; current: boolean } | null) => void;
 };
 
 export function inlineNamingMessage(host: InlineNamingConversation, content: ReactNode) {
@@ -179,7 +198,13 @@ export function NamingApproachWidgets({
   conversationHistory,
   inline,
   manualName,
+  nameChoice,
+  working: writing,
 }: {
+  /** The chosen name: the reply box shows it, and Send with nothing typed moves on with it. */
+  nameChoice?: NameChoice | null;
+  /** Names are being written: in the Workspace's reply box, Stop takes Send's place. */
+  working?: WorkspaceReplyAction["working"];
   memory: NamingBrainMemory;
   account: NamingAccount;
   projectId: string;
@@ -344,39 +369,48 @@ export function NamingApproachWidgets({
       if (memory.isCurrent(account)) setWorking(false);
     }
   }
-  async function send() {
-    if (lock.current || blocked || (!instruction.trim() && !seeds.length) || saveBlocked) return;
+  /** Sends typed guidance (the naming draft, or the Workspace reply box's text). True once it is taken. */
+  async function send(text: string = instruction): Promise<boolean> {
+    if (nameChoice && !text.trim() && !seeds.length) {
+      if (!lock.current && !nameChoice.disabled) nameChoice.onContinue();
+      return false;
+    }
+    if (lock.current || blocked || (!text.trim() && !seeds.length) || saveBlocked) return false;
+    if (text.length > 2000) {
+      setComposerError("Keep Naming guidance within 2,000 characters.");
+      return false;
+    }
     lock.current = true;
     setWorking(true);
     setComposerError(undefined);
-    const sent = instruction;
+    const sent = text;
     try {
       // Once names exist, "More like this" names and typed guidance steer the next names.
       if (seeds.length || exploring) {
         if (!canSteer || !onSteer) {
           setComposerError("Wait for the current names to finish, then send a direction for these names.");
-          return;
+          return false;
         }
-        await onSteer(seeds, instruction.trim() || null);
-        return;
+        return await onSteer(seeds, text.trim() || null);
       }
       // Guidance is an actual saved preference, never an invented chat reply.
       // An uncertain save already contains this suffix and must replay without duplicating it.
       const notes =
-        value.notes === instruction.trim() || value.notes.endsWith(`\n\n${instruction.trim()}`)
+        value.notes === text.trim() || value.notes.endsWith(`\n\n${text.trim()}`)
           ? value.notes
-          : [value.notes, instruction.trim()].filter(Boolean).join("\n\n");
+          : [value.notes, text.trim()].filter(Boolean).join("\n\n");
       if (notes.length > 2000) {
         setComposerError("Naming guidance can contain 2,000 characters. Edit the saved guidance below to make room.");
-        return;
+        return false;
       }
-      const requestedLanguage = explicitNamingLanguage(instruction);
+      const requestedLanguage = explicitNamingLanguage(text);
       patch({ notes, ...(requestedLanguage ? { creativeLocale: requestedLanguage } : {}) });
-      if ((await memory.flushPreferences(account, projectId)) && memory.isCurrent(account))
-        memory.setSteeringDraft(account, projectId, (draft) => ({
-          ...draft,
-          instruction: draft.instruction === sent ? "" : draft.instruction,
-        }));
+      if (!(await memory.flushPreferences(account, projectId)) || !memory.isCurrent(account)) return false;
+      memory.setSteeringDraft(account, projectId, (draft) => ({
+        ...draft,
+        instruction: draft.instruction === sent ? "" : draft.instruction,
+      }));
+      return true;
     } finally {
       lock.current = false;
       if (memory.isCurrent(account)) setWorking(false);
@@ -737,6 +771,7 @@ export function NamingApproachWidgets({
       )}
     </>
   );
+  const continuing = Boolean(nameChoice && !instruction.trim() && !seeds.length);
   const composer = (
     <>
       {seeds.length ? (
@@ -765,8 +800,25 @@ export function NamingApproachWidgets({
         }}
         onSend={() => void send()}
         label="Naming message"
-        placeholder={seeds.length ? "What do you like about these names?" : "Add a thought or naming guidance…"}
-        sendLabel={seeds.length || exploring ? "Send naming direction" : "Save naming guidance"}
+        placeholder={
+          seeds.length
+            ? "What do you like about these names?"
+            : nameChoice
+              ? "Tell me what you like, or press Send to continue…"
+              : "Add a thought or naming guidance…"
+        }
+        sendLabel={
+          continuing
+            ? "Continue to Slogan"
+            : seeds.length || exploring
+              ? "Send naming direction"
+              : "Save naming guidance"
+        }
+        inputControls={
+          nameChoice ? (
+            <span className={`e-chip e-chip--static ${styles.nameChip}`}>Name: {nameChoice.name}</span>
+          ) : undefined
+        }
         hint={
           seeds.length || exploring
             ? "Steers the next names"
@@ -775,16 +827,61 @@ export function NamingApproachWidgets({
               : "Saves guidance for upcoming names"
         }
         disabled={
-          blocked ||
-          working ||
-          (!instruction.trim() && !seeds.length) ||
-          saveBlocked ||
-          Boolean((seeds.length || exploring) && !canSteer)
+          continuing
+            ? Boolean(nameChoice?.disabled)
+            : blocked ||
+              working ||
+              (!instruction.trim() && !seeds.length) ||
+              saveBlocked ||
+              Boolean((seeds.length || exploring) && !canSteer)
         }
         error={composerError}
       />
     </>
   );
+  const textBlocked =
+    blocked || working || saveBlocked || Boolean((seeds.length || exploring) && !canSteer) || Boolean(writing);
+  const workspaceReply: WorkspaceReplyAction = {
+    chips: [
+      ...(nameChoice ? [`Name: ${nameChoice.name}`] : []),
+      ...(seeds.length
+        ? [
+            {
+              label: `More like: ${seeds.length} ${seeds.length === 1 ? "name" : "names"}`,
+              onRemove: working
+                ? undefined
+                : () => memory.setSteeringDraft(account, projectId, (draft) => ({ ...draft, candidateIds: [] })),
+            },
+          ]
+        : []),
+    ],
+    placeholder: seeds.length
+      ? "What do you like about these names?"
+      : nameChoice
+        ? "Tell me what you like, or press Send to continue…"
+        : "Add a thought or naming guidance…",
+    label: nameChoice && !seeds.length ? "Continue to Slogan" : seeds.length ? "Send naming direction" : undefined,
+    onSend:
+      nameChoice && !seeds.length
+        ? nameChoice.disabled
+          ? undefined
+          : () => void send("")
+        : seeds.length && !textBlocked
+          ? () => void send("")
+          : undefined,
+    onSendText: textBlocked ? undefined : (text) => send(text),
+    // A marked name keeps Send, so the person can move on while more names are written.
+    working: nameChoice && !seeds.length ? undefined : (writing ?? undefined),
+  };
+  const reply =
+    inline?.reply === "workspace" ? (
+      <>
+        <NamingWorkspaceReply action={workspaceReply} />
+        {composerError && inlineNamingMessage(inline, <p role="alert">{composerError}</p>)}
+      </>
+    ) : (
+      inline?.composer && createPortal(composer, inline.composer)
+    );
   if (inline && folded && !choicesOpen)
     return (
       <>
@@ -795,14 +892,14 @@ export function NamingApproachWidgets({
             {summaryPill}
           </>,
         )}
-        {inline.composer && createPortal(composer, inline.composer)}
+        {reply}
       </>
     );
   if (inline)
     return (
       <>
         {inlineNamingMessage(inline, messages)}
-        {inline.composer && createPortal(composer, inline.composer)}
+        {reply}
       </>
     );
   const chatHistory = (
@@ -831,4 +928,10 @@ export function NamingApproachWidgets({
       </FloatingComposer>
     </section>
   );
+}
+
+/** Registers the naming step's chips, Send and Stop with the Workspace's reply box while it is mounted. */
+function NamingWorkspaceReply({ action }: { action: WorkspaceReplyAction }) {
+  useWorkspaceReply(action);
+  return null;
 }
