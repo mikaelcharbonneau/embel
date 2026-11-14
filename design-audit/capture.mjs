@@ -195,6 +195,32 @@ state("home", "signed-out-sign-up-overlay", null, async (page) => {
   await page.getByRole("dialog").getByRole("form", { name: "Create account", exact: true }).waitFor();
   await loaded(page);
 });
+state("home", "signed-out-sign-in-overlay-error-by-field", null, async (page) => {
+  // The sign-in answer is given by the script (401), so no account is touched.
+  await fail(page, "**/api/auth/sign-in", 401, JSON.stringify({ error: { code: "invalid_credentials" } }));
+  await open(page, null, "/");
+  await page.waitForTimeout(1500);
+  await page.getByRole("link", { name: "Sign in", exact: true }).click();
+  const form = page.getByRole("dialog").getByRole("form", { name: "Sign in", exact: true });
+  await form.getByRole("textbox", { name: "Email" }).fill("ana@fieldnotes.example");
+  await form.getByLabel("Password", { exact: true }).fill("not-the-password-1");
+  await form.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.getByRole("alert").first().waitFor({ timeout: 15_000 });
+  await loaded(page);
+});
+state("home", "signed-out-sign-up-overlay-errors-by-field", null, async (page) => {
+  await open(page, null, "/");
+  await page.waitForTimeout(1500);
+  await page.getByRole("link", { name: "Sign in", exact: true }).click();
+  await page.getByRole("dialog").getByRole("link", { name: "Create account" }).click();
+  const form = page.getByRole("dialog").getByRole("form", { name: "Create account", exact: true });
+  await form.getByRole("textbox", { name: "Email" }).fill("ana@fieldnotes.example");
+  await form.getByLabel("Password", { exact: true }).fill("short-one");
+  await form.getByLabel("Confirm password").fill("different");
+  await form.getByRole("button", { name: "Create account", exact: true }).click();
+  await page.getByRole("alert").first().waitFor({ timeout: 15_000 });
+  await loaded(page);
+});
 state("sign-in", "default", null, async (page) => {
   await open(page, null, "/sign-in");
   await page.getByRole("form", { name: "Sign in", exact: true }).waitFor();
@@ -675,7 +701,7 @@ state("sign-in", "keyboard-focus-submit", null, async (page) => {
   await page.waitForTimeout(1500);
   await page.getByRole("form", { name: "Sign in", exact: true }).getByLabel("Password", { exact: true }).focus();
   await page.keyboard.press("Tab"); // show password
-  await page.keyboard.press("Tab"); // forgot password / submit
+  await page.keyboard.press("Tab"); // submit (Forgot password? sits on the label line, before the field)
   await loaded(page);
 });
 state(

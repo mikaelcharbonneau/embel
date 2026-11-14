@@ -108,7 +108,7 @@ it("checks repeated passwords and clears both fields without sending a mismatche
   await render();
   const inputs = fill("different synthetic password");
   await submit();
-  expect(host.querySelector('[role="alert"]')?.textContent).toContain("passwords didn't match");
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("passwords don't match");
   expect(inputs.password.value).toBe("");
   expect(inputs.confirm.value).toBe("");
   expect(requestBodies).toEqual([]);
@@ -137,7 +137,7 @@ it("clears credentials immediately, admits one request, preserves recovery and a
   expect(host.querySelector("h1")?.textContent).toBe("Check your email");
   expect(document.activeElement).toBe(host.querySelector("h1"));
   expect(host.querySelector('input[type="password"]')).toBeNull();
-  expect(host.textContent).toContain("Your prompt is kept while you sign in");
+  expect(host.textContent).toContain("Your idea is kept. It will be waiting when you're signed in.");
   expect(mocks.replace).not.toHaveBeenCalled();
   expect(localStorage.getItem("synthetic-draft")).toBe("Retained browser work");
   const storage = JSON.stringify({ local: { ...localStorage }, session: { ...sessionStorage } });
@@ -186,8 +186,12 @@ it("keeps modal labels unique when an auth page is retained beneath it", async (
   await until(() => expect(host.querySelector("fieldset")?.disabled).toBe(false));
   const ids = [...host.querySelectorAll("[id]")].map((element) => element.id);
   expect(new Set(ids).size).toBe(ids.length);
-  for (const label of host.querySelectorAll<HTMLLabelElement>("label"))
-    expect(label.control).toBe(label.querySelector("input"));
+  // Each label names the input it sits beside, inside the same form.
+  for (const label of host.querySelectorAll<HTMLLabelElement>("label")) {
+    expect(label.control).toBeInstanceOf(HTMLInputElement);
+    expect(label.control?.id).toBe(label.htmlFor);
+    expect(label.control?.closest("form")).toBe(label.closest("form"));
+  }
 });
 it("sanitizes rate limits and malformed responses, retains the form, then recovers on an explicit retry", async () => {
   createResponse = async () =>
