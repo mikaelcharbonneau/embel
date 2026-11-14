@@ -15,7 +15,7 @@ vi.mock("@/components/workspace/account-session", async (importOriginal) => ({
   useAccountSession: () => ({ session: { status: "loading" } }),
   AccountStatus: () => <p data-account-status />,
 }));
-import { VisualDirectionsPage } from "@/components/visual-directions/visual-directions-page";
+import { shownAsChosen, VisualDirectionsPage } from "@/components/visual-directions/visual-directions-page";
 
 const projectId = "bbbbbbbb-3333-4333-8333-333333333333";
 let host: HTMLDivElement, root: Root;
@@ -53,4 +53,14 @@ it("never redirects when it is shown inside the conversation", async () => {
   await act(async () => root.render(<VisualDirectionsPage projectId={projectId} variant="conversation" />));
   expect(fixture.replace).not.toHaveBeenCalled();
   expect(host.querySelector("[data-account-status]")).toBeNull();
+});
+
+it("marks the board being chosen from the click, and the saved one again once that ends", () => {
+  // Saving the second board while the first is the saved choice: only the second shows as chosen.
+  expect(shownAsChosen("b", "a", "b")).toBe(true);
+  expect(shownAsChosen("b", "a", "a")).toBe(false);
+  // Nothing saving (it finished, or failed and cleared): the saved choice shows.
+  expect(shownAsChosen(null, "a", "a")).toBe(true);
+  expect(shownAsChosen(null, "a", "b")).toBe(false);
+  expect(shownAsChosen(null, undefined, "a")).toBe(false);
 });
