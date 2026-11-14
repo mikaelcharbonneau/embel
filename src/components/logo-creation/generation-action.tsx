@@ -1,6 +1,8 @@
 "use client";
 
 import { useId } from "react";
+import { Button } from "@/components/ui/button";
+import { InlineMessage } from "@/components/ui/message";
 import type { GenerationEstimate } from "./use-generation-estimate";
 import styles from "./logo-creation.module.css";
 
@@ -30,27 +32,31 @@ export function LogoGenerationAction({
   return (
     <div className={styles.generationAction} role="group" aria-label={label}>
       <div className={styles.generationActionRow}>
-        <button
-          className={variant === "primary" ? styles.primaryButton : styles.secondaryButton}
-          type="button"
+        <span id={description} className={styles.generationStatus} role="status">
+          {status}
+        </span>
+        <Button
+          variant={variant}
           disabled={!estimate.canStart}
           aria-label={label}
           aria-describedby={description}
           onClick={onStart ?? estimate.start}
         >
           {label}
-        </button>
-        <span id={description} className={styles.generationEstimate} role="status">
-          {status}
-        </span>
+        </Button>
       </div>
       {estimate.error && (
-        <div className={styles.estimateRecovery}>
-          <p>{estimate.error}</p>
-          <button className={styles.secondaryButton} type="button" onClick={estimate.refresh}>
-            Try again
-          </button>
-        </div>
+        <InlineMessage
+          form="field"
+          tone="warning"
+          actions={
+            <Button size="sm" onClick={estimate.refresh}>
+              Try again
+            </Button>
+          }
+        >
+          {estimate.error}
+        </InlineMessage>
       )}
     </div>
   );

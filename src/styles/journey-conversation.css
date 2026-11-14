@@ -361,125 +361,6 @@
   font-size: 15px;
   line-height: 1.55;
 }
-.logo-types-question {
-  margin: 14px 0 0;
-  padding: 18px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-bg-paper);
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.logo-types-question h2 {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-}
-.logo-types-question > p {
-  margin: 0;
-  font-size: var(--font-size-2);
-  color: var(--color-text-muted);
-}
-.logo-types-options {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 10px;
-}
-.logo-types-options .naming-approach-option {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-0-5);
-  align-items: flex-start;
-  text-align: left;
-  min-height: 64px;
-  padding: var(--space-3) 14px var(--space-3) 42px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: var(--color-bg-paper);
-  cursor: pointer;
-  font: inherit;
-}
-.logo-types-options .naming-approach-option strong {
-  font-size: var(--font-size-3);
-  font-weight: 500;
-}
-.logo-types-options .naming-approach-option span {
-  font-size: var(--font-size-1);
-  color: var(--color-text-muted);
-  line-height: 1.45;
-}
-.logo-types-options .naming-approach-option::before {
-  content: "";
-  position: absolute;
-  left: 14px;
-  top: 14px;
-  width: 18px;
-  height: 18px;
-  box-sizing: border-box;
-  border: 1.5px solid var(--color-border-strong);
-  border-radius: 5px;
-  background: var(--color-bg-paper) center / 12px 12px no-repeat;
-}
-.logo-types-options .naming-approach-option[aria-pressed="true"] {
-  border-color: var(--color-text);
-  box-shadow: inset 0 0 0 0.5px var(--color-text);
-}
-.logo-types-options .naming-approach-option[aria-pressed="true"]::before {
-  border-color: var(--color-text);
-  background-color: var(--color-text);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E");
-}
-.logo-types-count {
-  margin: 0;
-  font-size: var(--font-size-2);
-  color: var(--color-text-muted);
-}
-/* The count and Explore six concepts share one row, the button on the right. */
-.logo-types-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-}
-.logo-types-footer > :only-child {
-  margin-left: auto;
-}
-.logo-types-note {
-  margin: 0;
-  font-size: var(--font-size-2);
-  color: var(--color-text-muted);
-}
-/* Once concepts exist, the chosen types sit in one quiet row with Change on the right. */
-.logo-types-summary {
-  margin: 14px 0 0;
-  padding: 10px 10px 10px 18px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-bg-paper);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-}
-.logo-types-summary p {
-  margin: 0;
-  font-size: var(--font-size-3);
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: baseline;
-  min-width: 0;
-}
-.logo-types-summary p span {
-  font-size: var(--font-size-2);
-  color: var(--color-text-muted);
-}
 /* The Identity pages share the conversation's centred column. */
 .workspace-main .project-logo-creation:has(.logo-conversation-message) {
   width: min(840px, 100%);
@@ -487,43 +368,15 @@
   padding: var(--space-10) var(--space-6) 120px;
   box-sizing: border-box;
 }
-.project-logo-creation:has(.logo-conversation-message) [class*="generationActions"] {
-  display: flex;
-  justify-content: flex-end;
-}
 .project-logo-creation:has(.logo-conversation-message) [class*="primaryButton"] {
   border-radius: var(--radius-pill);
   min-height: 44px;
   padding: 0 var(--space-5);
 }
 
-/* Identity · Creative direction: click a board to choose it. */
+/* Identity · Creative direction: Embel's message above the three boards. */
 .identity-conversation-message {
   margin-bottom: var(--space-5);
-}
-.direction-choice-card {
-  cursor: pointer;
-}
-.direction-choice-card[aria-disabled="true"] {
-  cursor: default;
-}
-.direction-choice-card:focus-visible {
-  outline: 2px solid var(--color-text);
-  outline-offset: 3px;
-}
-.direction-footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-3);
-  margin-top: var(--space-4);
-}
-.direction-footer .identity-primary-button {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 var(--space-5);
-  border-radius: var(--radius-pill);
 }
 .concept-project-workspace .workspace-main:has(.identity-conversation-message) {
   background-color: var(--color-bg-canvas);

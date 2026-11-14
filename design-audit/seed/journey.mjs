@@ -152,31 +152,36 @@ async function inspiration(page, b, uploadFile) {
     if (await like.count()) await like.click();
   }
   await sendNext(page, "Continue to Logo");
-  await expect(page.getByRole("button", { name: "Explore six concepts", exact: true })).toBeVisible({
+  await expect(replyBox(page).getByRole("button", { name: "Draw six concepts", exact: true })).toBeVisible({
     timeout: GENERATION,
   });
 }
 
-/** The Logo step prepares its saved inputs first ("Preparing saved inputs…"); a reload helps it along. */
-async function exploreReady(page) {
-  const explore = page.getByRole("button", { name: "Explore six concepts", exact: true });
+const replyBox = (page) => page.getByRole("form", { name: "Reply", exact: true });
+
+/**
+ * The Logo step prepares its saved inputs first ("Preparing saved inputs…"), then Send in the reply box (the logo
+ * types as chips) draws the six concepts; a reload helps it along.
+ */
+async function drawReady(page) {
+  const draw = replyBox(page).getByRole("button", { name: "Draw six concepts", exact: true });
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      await expect(explore).toBeEnabled({ timeout: 60_000 });
-      return explore;
+      await expect(draw).toBeEnabled({ timeout: 60_000 });
+      return draw;
     } catch {
       await page.reload();
     }
   }
-  await expect(explore).toBeEnabled({ timeout: GENERATION });
-  return explore;
+  await expect(draw).toBeEnabled({ timeout: GENERATION });
+  return draw;
 }
 
 async function concepts(page, b) {
-  await (await exploreReady(page)).click();
+  await (await drawReady(page)).click();
   const grid = page.getByRole("region", { name: "Logo concepts", exact: true });
   const ready = 6 - (b.failedLogoSlots ?? 0);
-  await expect(grid.getByRole("img", { name: "Image preview of saved logo concept" })).toHaveCount(ready, {
+  await expect(grid.getByRole("button", { name: /^Concept [1-6]$/u })).toHaveCount(ready, {
     timeout: GENERATION,
   });
   if (b.failedLogoSlots) {
@@ -187,26 +192,31 @@ async function concepts(page, b) {
 
 async function chooseLogo(page, b) {
   const grid = page.getByRole("region", { name: "Logo concepts", exact: true });
-  await grid.getByRole("button", { name: "Select concept 1", exact: true }).click();
-  await expect(grid.getByText(/Logo chosen/u)).toBeVisible();
+  await grid.getByRole("button", { name: "Concept 1", exact: true }).click();
+  await expect(grid.getByRole("heading", { name: "Your logo", exact: true })).toBeVisible();
+  await expect(replyBox(page).getByText("Logo: Concept 1", { exact: true })).toBeVisible();
   if (b.refine) await refine(page, b);
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await sendNext(page, "Continue to Creative direction");
 }
 
 async function refine(page, b) {
-  // The composer under the concepts refines the chosen concept (a new version on its card).
-  await page.getByRole("textbox", { name: "Describe a change to this logo", exact: true }).fill(b.refineInstruction);
-  await page.getByRole("button", { name: "Refine", exact: true }).click();
-  await expect(page.getByText("Your refined logo is ready on its card.", { exact: true })).toBeVisible({
-    timeout: GENERATION,
-  });
+  // Text typed in the reply box with a concept chosen changes it: Send makes a new version on its card, which
+  // becomes the chosen logo.
+  await replyBox(page).getByRole("textbox").fill(b.refineInstruction);
+  await sendNext(page, "Send prompt");
+  await expect(replyBox(page).getByText(/^Logo: Concept 1 · Version \d+$/u)).toBeVisible({ timeout: GENERATION });
+  await replyBox(page).getByRole("textbox").fill("");
 }
 
 async function directions(page) {
   const step = page.getByRole("region", { name: "Creative direction", exact: true });
-  await expect(step.getByRole("img", { name: "Chosen logo concept", exact: true })).toBeVisible({
-    timeout: GENERATION,
-  });
+  // The directions build on the chosen logo, folded into the chat with its picture.
+  await expect(
+    page
+      .locator('[data-journey-section="identity"] details')
+      .filter({ has: page.locator(".e-answer__question", { hasText: /^Logo$/u }) })
+      .getByRole("img", { name: "Chosen logo concept", exact: true }),
+  ).toBeVisible({ timeout: GENERATION });
   await expect(
     step.getByRole("region", { name: "Creative directions", exact: true }).getByText("3 of 3 ready", { exact: true }),
   ).toBeVisible({ timeout: GENERATION });
@@ -215,11 +225,14 @@ async function directions(page) {
 
 async function complete(page) {
   const step = page.getByRole("region", { name: "Creative direction", exact: true });
-  const first = step.getByRole("radio", { name: /^Direction 1: /u });
+  const first = step
+    .getByRole("article", { name: /^Direction 1: /u })
+    .getByRole("button", { name: /^(Choose|Chosen)$/u });
   await expect(first).toBeEnabled({ timeout: GENERATION });
   await first.click();
-  await expect(first).toHaveAttribute("aria-checked", "true");
-  await step.getByRole("link", { name: "Continue", exact: true }).click();
+  await expect(first).toHaveAttribute("aria-pressed", "true");
+  await expect(replyBox(page).getByText(/^Direction: /u)).toBeVisible();
+  await sendNext(page, "Continue to Assets");
   await expect(page).toHaveURL(/\/logo\/deliverables/u, { timeout: 120_000 });
   const assets = page.getByRole("region", { name: "Brand assets", exact: true });
   await expect(assets.getByRole("status").filter({ hasText: "Ready to download." })).toBeVisible({

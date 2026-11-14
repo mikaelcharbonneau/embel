@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { syntheticLogoBatch, syntheticLogoWorkspace, syntheticResolvedLogoConcept } from "../fixtures/logo-creation";
 import { contextSnapshotSchema } from "../../src/domain/projects";
-test("six logo cards use the selected Image FX preset and respect reduced motion", async ({ page }, info) => {
+test("six logo concepts being made show the drawing frame and respect reduced motion", async ({ page }, info) => {
   const source = syntheticResolvedLogoConcept(),
     foundation = syntheticLogoWorkspace();
   const batch = syntheticLogoBatch(Array.from({ length: 6 }, () => "running" as const));
@@ -58,15 +58,14 @@ test("six logo cards use the selected Image FX preset and respect reduced motion
     await route.fulfill({ status: value ? 200 : 503, json: value ?? {} });
   });
   await page.goto(`/brands/account/${projectId}/logo`);
-  await expect(page.locator("[data-generation-animation]")).toHaveCount(6);
-  expect(
-    await page
-      .locator("[data-generation-animation]")
-      .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-generation-animation"))),
-  ).toEqual(["1", "2", "3", "4", "5", "6"]);
-  await page.screenshot({ path: info.outputPath("image-fx-logo-loading.png"), fullPage: true });
+  // Each concept being made is a drawing frame named after its concept (decision 5); no shader runs.
+  const frames = page.getByRole("img", { name: /^Concept [1-6] is being drawn$/u });
+  await expect(frames).toHaveCount(6);
+  expect(await frames.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("aria-label")))).toEqual(
+    [1, 2, 3, 4, 5, 6].map((n) => `Concept ${n} is being drawn`),
+  );
+  await page.screenshot({ path: info.outputPath("logo-drawing-loading.png"), fullPage: true });
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await expect(page.locator("[data-generation-animation] canvas")).toHaveCount(0);
-  await expect(page.locator('[data-image-fx-preset="pixels-organic"]')).toHaveCount(6);
-  await expect(page.getByText("Creating your concept", { exact: true })).toHaveCount(6);
+  await expect(page.locator(".e-media--drawing canvas")).toHaveCount(0);
+  await expect(page.locator(".e-media--drawing")).toHaveCount(6);
 });

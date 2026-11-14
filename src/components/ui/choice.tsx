@@ -136,6 +136,8 @@ type Artwork = {
   selected: boolean;
   busy?: boolean;
   onEnlarge?: () => void;
+  /** Failed: the one sentence inside the frame ("Concept 3 couldn't be drawn."). */
+  failedText?: string;
 };
 
 /** An image choice with its label and a real Choose button (direction boards, inspiration tiles). */
@@ -150,6 +152,7 @@ export function ImageChoice({
   status,
   selected,
   busy = false,
+  failedText,
   onEnlarge,
   onChoose,
   details,
@@ -170,6 +173,7 @@ export function ImageChoice({
         inset={inset}
         label={label}
         status={status}
+        failedText={failedText}
       />
       {onEnlarge && state !== "drawing" ? (
         <span className="e-choice__enlarge">
@@ -213,9 +217,21 @@ export function ArtworkChoice({
   status,
   selected,
   busy = false,
+  failedText,
   onEnlarge,
   onChoose,
-}: Artwork & { onChoose: () => void }) {
+  disabled = false,
+  mediaClassName,
+  overlay,
+}: Artwork & {
+  onChoose: () => void;
+  /** The choice cannot be made or saved right now (another choice is saving): the picture stays, its button is off. */
+  disabled?: boolean;
+  /** Extra classes on the media frame, such as the reveal (`e-media--revealing`). */
+  mediaClassName?: string;
+  /** Parts drawn inside the media frame over the picture, such as the reveal's handles and labels. */
+  overlay?: ReactNode;
+}) {
   const ready = state === undefined || state === "loaded";
   return (
     <div className="e-choice e-choice--image" data-selected={selected || undefined} aria-busy={busy || undefined}>
@@ -228,9 +244,20 @@ export function ArtworkChoice({
         inset={inset}
         label={label}
         status={status}
-      />
+        failedText={failedText}
+        className={mediaClassName}
+      >
+        {overlay}
+      </MediaFrame>
       {ready ? (
-        <button type="button" className="e-choice__hit" aria-label={label} aria-pressed={selected} onClick={onChoose} />
+        <button
+          type="button"
+          className="e-choice__hit"
+          aria-label={label}
+          aria-pressed={selected}
+          disabled={disabled}
+          onClick={onChoose}
+        />
       ) : null}
       {ready && onEnlarge ? (
         <span className="e-choice__enlarge">

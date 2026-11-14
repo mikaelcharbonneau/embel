@@ -1,12 +1,14 @@
 // @vitest-environment jsdom
 import { webcrypto } from "node:crypto";
-import { act, createElement } from "react";
+import { act, createElement, type ComponentProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountSessionProvider, useAccountSession } from "@/components/workspace/account-session";
 import { LogoCreationWorkspace } from "@/components/logo-creation/logo-creation-workspace";
 import { syntheticRefinementWorkspaceHttp } from "../fixtures/logo-refinement-workspace-http";
 import { logoFixtureId as id } from "../fixtures/logo-creation";
+import type { StepReply } from "@/features/logo-creation/model/step-reply";
+import { WorkspaceSlotContext } from "@/components/workspace/workspace-slots";
 
 // The Logo screen on the generation engine, with the actual account, client and memory
 // over synthetic same-origin HTTP. No provider, database or Storage service.
@@ -56,7 +58,12 @@ async function until(check: () => void, rounds = 100) {
 }
 const grid = () => host.querySelector('[aria-label="Logo concepts"]')!;
 const button = (text: string) => [...host.querySelectorAll("button")].find((node) => node.textContent === text) ?? null;
-async function mount(projectId: string, fetcher: typeof fetch) {
+async function mount(
+  projectId: string,
+  fetcher: typeof fetch,
+  props: Partial<Parameters<typeof LogoCreationWorkspace>[0]> = {},
+  slots: ComponentProps<typeof WorkspaceSlotContext.Provider>["value"] = null,
+) {
   vi.stubGlobal("fetch", fetcher);
   function App() {
     const account = useAccountSession();
@@ -64,10 +71,18 @@ async function mount(projectId: string, fetcher: typeof fetch) {
       "main",
       null,
       createElement("button", { onClick: account.refresh }, "Recheck account"),
-      createElement(LogoCreationWorkspace, { projectId }),
+      createElement(LogoCreationWorkspace, { projectId, ...props }),
     );
   }
-  await act(async () => root.render(createElement(AccountSessionProvider, null, createElement(App))));
+  await act(async () =>
+    root.render(
+      createElement(
+        WorkspaceSlotContext.Provider,
+        { value: slots },
+        createElement(AccountSessionProvider, null, createElement(App)),
+      ),
+    ),
+  );
   await until(() => expect(grid()?.querySelector('img[src^="blob:"]')).toBeTruthy());
 }
 async function instruction(value: string) {
@@ -156,12 +171,89 @@ describe("the Logo screen on the generation engine", () => {
     const refine = () => host.querySelector<HTMLButtonElement>('button[aria-label="Refine"]')!;
     await until(() => expect(refine().disabled).toBe(false));
     await act(async () => refine().click());
+    // The refusal shows the Out-of-credits message in place (D-015), once, with the way to Plans.
     await until(() =>
       expect(host.textContent).toContain(
-        "You've used this month's credits. They renew on December 1. Your logos are saved.",
+        "You’ve used this month’s credits. New credits arrive on December 1. Your work is saved.",
       ),
     );
+    expect(host.textContent!.split("used this month").length).toBe(2);
+    expect([...host.querySelectorAll("a")].some((link) => link.textContent === "See plans")).toBe(true);
     expect(host.textContent).not.toMatch(/\$\d/u);
     expect(f.quotes).toEqual([]);
+  }, 30_000);
+
+  it("hands a Send-driven reply box the chosen concept, and Send with text changes it with one request", async () => {
+    const f = await syntheticRefinementWorkspaceHttp(),
+      projectId = f.workspace.projectId,
+      base = `/api/projects/${projectId}/logo`;
+    const posts: { kind: string; input: Record<string, unknown> }[] = [];
+    const fetcher: typeof fetch = async (input, init) => {
+      const path = String(input).split("?")[0]!;
+      if (path === `${base}/engine`) return Response.json({ engine: true, runs: [] });
+      if (path === `/api/projects/${projectId}/generations` && init?.method === "POST") {
+        posts.push(JSON.parse(String(init.body)));
+        return Response.json({ error: { code: "busy" } }, { status: 409 });
+      }
+      return f.fetcher(input, init);
+    };
+    let reply: StepReply | null = null;
+    const onContinue = vi.fn();
+    await mount(projectId, fetcher, { reply: "external", onReplyChange: (value) => (reply = value), onContinue });
+    // The reply box carries the step: no Continue button and no change box of its own.
+    expect(button("Continue")).toBeNull();
+    expect(host.querySelector('textarea[aria-label="Describe a change to this logo"]')).toBeNull();
+    await until(() => {
+      expect(reply?.chips.map((chip) => chip.label)).toEqual(["Logo: Concept 1"]);
+      expect(reply?.canSend).toBe(true);
+      expect(reply?.acceptsText).toBe(true);
+    });
+    expect(reply!.sendLabel).toBe("Continue to Creative direction");
+    expect(reply!.outOfCredits).toBe(false);
+    await act(async () => reply!.send("Make the lettering bolder"));
+    await until(() => expect(posts).toHaveLength(1));
+    expect(posts[0]!.kind).toBe("logo.refine");
+    expect(posts[0]!.input.instruction).toBe("Make the lettering bolder");
+    expect(onContinue).not.toHaveBeenCalled();
+    await act(async () => reply!.send(""));
+    expect(onContinue).toHaveBeenCalledTimes(1);
+    expect(f.quotes).toEqual([]);
+  }, 30_000);
+
+  it("talks in the Workspace chat: Embel's words for the state, the logo types and credits in place", async () => {
+    const f = await syntheticRefinementWorkspaceHttp(),
+      projectId = f.workspace.projectId,
+      base = `/api/projects/${projectId}/logo`;
+    const fetcher: typeof fetch = async (input, init) => {
+      const path = String(input).split("?")[0]!;
+      if (path === `${base}/engine`) return Response.json({ engine: true, runs: [] });
+      if (path === "/api/credits")
+        return Response.json({ credits: { planId: "free", balance: 0, periodEnd: "2026-12-01T00:00:00.000Z" } });
+      return f.fetcher(input, init);
+    };
+    const chat = document.createElement("div");
+    document.body.append(chat);
+    const setMessage = vi.fn();
+    await mount(
+      projectId,
+      fetcher,
+      { reply: "external", onReplyChange: vi.fn(), onContinue: vi.fn() },
+      { chat, overlay: null, setRows: vi.fn(), setSummary: vi.fn(), setMessage },
+    );
+    await until(() =>
+      expect(setMessage).toHaveBeenLastCalledWith("logo", expect.stringMatching(/^Concept 1 is your logo\. /u)),
+    );
+    // The chat holds the status; the work area holds only the work.
+    await until(() => expect(chat.textContent).toContain("You have no credits left this month."));
+    expect(host.textContent).not.toContain("You have no credits left this month.");
+    expect(chat.querySelector('[aria-label="Logo types"]')?.textContent).toMatch(
+      /^Logo types: .+ · Change logo types$/u,
+    );
+    expect(host.querySelector('[aria-label="Logo types"]')).toBeNull();
+    // A failed concept is told in the chat with its retry; its tile alone says so in the work area.
+    expect(chat.textContent).toContain("Concept 6 couldn’t be drawn. The others are ready on the right.");
+    expect(chat.querySelector('button[aria-label="Retry 1 failed concept"]')).not.toBeNull();
+    expect(host.querySelector('button[aria-label="Retry 1 failed concept"]')).toBeNull();
+    chat.remove();
   }, 30_000);
 });
