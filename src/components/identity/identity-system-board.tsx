@@ -112,9 +112,12 @@ export function IdentitySystemBoard({
   const shown = preview?.client === client && preview.key === key && client.current() ? preview : null;
   const shownUrl = shown?.url ?? null;
   const tellUrl = useEffectEvent((url: string | null) => onUrl?.(url));
+  // Report the picture when it changes, and also when a listener appears: a board chosen after its picture loaded
+  // must still hand that picture to the folded Creative direction entry.
+  const listening = Boolean(onUrl);
   useEffect(() => {
-    tellUrl(shownUrl);
-  }, [shownUrl]);
+    if (listening) tellUrl(shownUrl);
+  }, [shownUrl, listening]);
   return (
     <figure className="identity-board">
       <div className="identity-board-image" ref={node}>
