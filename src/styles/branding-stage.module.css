@@ -15,7 +15,7 @@
   min-width: 0;
   max-width: var(--branding-max-width);
   margin: 0 auto;
-  padding: 28px var(--branding-gutter) 40px;
+  padding: 28px var(--branding-gutter) var(--space-10);
   overflow-wrap: anywhere;
 }
 
@@ -49,14 +49,14 @@
   letter-spacing: -0.01em;
 }
 .frame .eyebrow {
-  color: var(--secondary, #696965);
+  color: var(--color-text-muted, var(--color-text-muted));
   font-weight: 400;
   line-height: 1.5;
   letter-spacing: normal;
 }
 .frame .eyebrow {
-  margin: 0 0 6px;
-  font-size: 12px;
+  margin: 0 0 var(--space-1-5);
+  font-size: var(--font-size-1);
 }
 
 .frame button,
@@ -83,6 +83,6 @@
     --branding-section-size: 18px;
   }
   .frame {
-    padding-block: 20px 32px;
+    padding-block: var(--space-5) var(--space-8);
   }
 }

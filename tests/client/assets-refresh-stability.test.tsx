@@ -156,7 +156,7 @@ it("titles cards in plain words with the project's name and uses menu-style filt
   expect(card.querySelector("h2")?.textContent).toBe("Brand board");
   expect(card.querySelector(".assets-brand")?.textContent).toBe("Launchpad");
   expect(host.textContent).not.toMatch(/logo_identity_system|File checked/);
-  expect(host.querySelectorAll(".assets-filter svg.assets-filter-chevron")).toHaveLength(2);
+  expect(host.querySelectorAll(".assets-filter .e-icon.assets-filter-chevron")).toHaveLength(2);
   expect(host.querySelector('.assets-filter img[src$="filter.svg"]')).toBeNull();
   expect([...host.querySelectorAll("button")].find((button) => button.textContent === "Refresh")).toBeDefined();
 });

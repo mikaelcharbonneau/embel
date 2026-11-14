@@ -2,7 +2,6 @@
 
 import { useId, useLayoutEffect, useRef, type FormEvent } from "react";
 import { Icon } from "@/components/ui/icon";
-import { ProjectArtwork } from "@/components/ui/project-artwork";
 
 type ConversationComposerProps = {
   value: string;
@@ -119,7 +118,7 @@ export function ConversationComposer({
           title={sendLabel}
         >
           <span className={project || home || sendLabel === "Send prompt" ? "sr-only" : undefined}>{sendLabel}</span>
-          {project ? <ProjectArtwork name="send" /> : <Icon name="arrow-up" size={home ? 16 : 18} />}
+          {project ? <Icon name="arrow-up" size="sm" /> : <Icon name="arrow-up" size={home ? 16 : 18} />}
         </button>
       </div>
       {error && (

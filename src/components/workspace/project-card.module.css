@@ -4,13 +4,13 @@
   display: block;
   min-width: 0;
   overflow: visible;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
-  background: var(--paper);
+  background: var(--color-bg-paper);
   scroll-margin-block: 16px 104px;
 }
 .card.card:hover {
-  border-color: var(--border-strong);
+  border-color: var(--color-border-strong);
 }
 .card:has(:global(.project-card-menu)) {
   z-index: 4;
@@ -27,7 +27,7 @@
   color: inherit;
 }
 .link:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--color-accent);
   outline-offset: 3px;
 }
 
@@ -38,9 +38,9 @@
   overflow: hidden;
   display: grid;
   place-items: center;
-  padding: 20px 48px;
-  background: var(--surface);
-  color: var(--secondary);
+  padding: var(--space-5) var(--space-12);
+  background: var(--color-bg-sunken);
+  color: var(--color-text-muted);
 }
 .preview img {
   display: block;
@@ -53,7 +53,7 @@
 }
 /* No logo yet: the first words of the idea, or a large initial, and a quiet label. */
 .placeholder {
-  padding: 16px;
+  padding: var(--space-4);
 }
 .idea {
   align-self: start;
@@ -64,8 +64,8 @@
   -webkit-line-clamp: 3;
   overflow: hidden;
   overflow-wrap: anywhere;
-  color: var(--secondary);
-  font-size: 13px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
   line-height: 20px;
 }
 .initial {
@@ -73,10 +73,10 @@
   place-items: center;
   width: 56px;
   height: 56px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: 50%;
-  background: var(--paper);
-  color: var(--secondary);
+  background: var(--color-bg-paper);
+  color: var(--color-text-muted);
   font-size: 28px;
   font-weight: 500;
   line-height: 1;
@@ -85,11 +85,11 @@
   position: absolute;
   left: 12px;
   bottom: 12px;
-  padding: 1px 8px;
+  padding: 1px var(--space-2);
   border-radius: var(--radius-pill);
-  background: var(--paper);
-  color: var(--secondary);
-  font-size: 12px;
+  background: var(--color-bg-paper);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
   line-height: 18px;
 }
 
@@ -97,14 +97,14 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  gap: 4px;
-  padding: 12px 14px 14px;
+  gap: var(--space-1);
+  padding: var(--space-3) 14px 14px;
 }
 .row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 0;
 }
 .title {
@@ -113,44 +113,44 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  color: var(--text);
-  font-size: 14px;
+  color: var(--color-text);
+  font-size: var(--font-size-3);
   font-weight: 500;
   line-height: 20px;
 }
 .date {
   flex: 0 0 auto;
-  color: var(--secondary);
-  font-size: 12px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
   line-height: 20px;
 }
 .next {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
   min-width: 0;
-  color: var(--secondary);
-  font-size: 13px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
   line-height: 20px;
 }
 .link:hover .next {
-  color: var(--text);
+  color: var(--color-text);
 }
 .deletedFooter {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding-top: 4px;
-  color: var(--secondary);
-  font-size: 12px;
+  gap: var(--space-3);
+  padding-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
   line-height: 20px;
 }
 
 /* Loading: neutral blocks the same size as the content they stand in for. */
 .block {
-  background: var(--surface);
+  background: var(--color-bg-sunken);
   animation: pulse 1.6s ease-in-out infinite;
 }
 .skeleton .row {
@@ -173,7 +173,7 @@
   display: block;
   width: 45%;
   height: 12px;
-  margin-block: 4px;
+  margin-block: var(--space-1);
   border-radius: var(--radius-pill);
 }
 @keyframes pulse {

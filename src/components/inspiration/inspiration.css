@@ -1,9 +1,9 @@
 .inspiration-workspace {
   display: flex;
   min-height: 100%;
-  color: var(--text);
-  background: var(--canvas);
-  font-size: 13px;
+  color: var(--color-text);
+  background: var(--color-bg-canvas);
+  font-size: var(--font-size-2);
 }
 /* One centered column for Embel's message, the filters, the gallery and Continue. */
 .inspiration-browse {
@@ -11,25 +11,25 @@
   flex: 1;
   min-width: 0;
   width: 100%;
-  max-width: calc(var(--page-max) + 2 * 24px);
+  max-width: calc(var(--container-page) + 2 * 24px);
   margin: 0 auto;
-  padding: 40px 24px 24px;
+  padding: var(--space-10) var(--space-6) var(--space-6);
 }
 .inspiration-browse .inspiration-message {
   max-width: none;
-  margin: 0 0 20px;
+  margin: 0 0 var(--space-5);
 }
 .inspiration-toolbar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(150px, 430px) minmax(0, 1fr);
-  gap: 20px;
+  gap: var(--space-5);
   align-items: center;
-  padding: 4px 0 20px;
+  padding: var(--space-1) 0 var(--space-5);
 }
 .inspiration-views {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: var(--space-5);
   min-height: 40px;
   justify-self: start;
   position: relative;
@@ -41,50 +41,50 @@
   border: 0;
   background: transparent;
   white-space: nowrap;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .inspiration-views button[aria-pressed="true"] {
-  color: var(--text);
+  color: var(--color-text);
 }
 .inspiration-views button[aria-pressed="true"]::after {
   content: "";
   position: absolute;
   inset: auto 0 0;
   height: 2px;
-  background: var(--text);
+  background: var(--color-text);
 }
 .inspiration-views span {
-  padding-left: 6px;
+  padding-left: var(--space-1-5);
 }
 /* One segmented pill toggle for All, Identities and Logos. */
 .inspiration-categories {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-0-5);
   justify-self: end;
   padding: 3px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
-  background: var(--paper);
+  background: var(--color-bg-paper);
 }
 .inspiration-categories button {
   min-height: 34px;
-  padding: 6px 14px;
+  padding: var(--space-1-5) 14px;
   border: 0;
   border-radius: var(--radius-pill);
   background: transparent;
-  color: var(--secondary);
-  font-size: 13px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
   line-height: 18px;
   white-space: nowrap;
 }
 .inspiration-categories button:hover:not([aria-pressed="true"]) {
-  color: var(--text);
-  background: var(--surface);
+  color: var(--color-text);
+  background: var(--color-bg-sunken);
 }
 .inspiration-categories button[aria-pressed="true"] {
-  background: var(--text);
-  color: var(--paper);
+  background: var(--color-text);
+  color: var(--color-bg-paper);
 }
 .inspiration-search {
   box-sizing: border-box;
@@ -95,10 +95,10 @@
   align-items: center;
   gap: 10px;
   padding: 0 14px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-control);
   border-radius: var(--radius-pill);
-  background: var(--paper);
-  color: var(--secondary);
+  background: var(--color-bg-paper);
+  color: var(--color-text-muted);
 }
 .inspiration-search input {
   border: 0;
@@ -112,7 +112,7 @@
   padding: 0;
 }
 .inspiration-search:focus-within {
-  outline: 2px solid var(--accent-ink);
+  outline: 2px solid var(--color-text);
   outline-offset: 2px;
 }
 .inspiration-feed {
@@ -127,27 +127,27 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-top: 24px;
-  padding: 8px 8px 8px 20px;
-  border: 1px solid var(--border);
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
-  background: var(--paper);
+  background: var(--color-bg-paper);
   box-shadow: 0 12px 32px -16px rgb(25 25 25 / 35%);
-  color: var(--secondary);
-  font-size: 13px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
 }
 .inspiration-continue {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-height: 44px;
-  padding: 0 18px 0 20px;
+  padding: 0 18px 0 var(--space-5);
   border-radius: var(--radius-pill);
-  background: var(--text);
-  color: var(--paper);
-  font-size: 14px;
+  background: var(--color-text);
+  color: var(--color-bg-paper);
+  font-size: var(--font-size-3);
   font-weight: 500;
   text-decoration: none;
 }
@@ -155,13 +155,13 @@
   box-shadow: none;
 }
 .inspiration-continue:hover {
-  background: var(--text-strong-hover);
+  background: var(--color-accent-hover);
 }
 .inspiration-columns {
   position: relative;
   display: grid;
   grid-template-columns: repeat(var(--inspiration-column-count, 1), minmax(0, 1fr));
-  gap: 20px 16px;
+  gap: var(--space-5) var(--space-4);
   align-items: start;
 }
 .inspiration-columns[data-positioned="true"] {
@@ -229,13 +229,13 @@
   border: 0;
   border-radius: var(--radius-pill);
   background: none;
-  color: #fff;
+  color: var(--color-text-inverse);
   box-shadow: none;
   transition:
     transform 120ms,
     opacity 120ms;
 }
-.inspiration-heart svg {
+.inspiration-heart :is(svg, .e-icon) {
   width: 22px;
   height: 22px;
   fill: rgb(25 25 25 / 28%);
@@ -247,14 +247,14 @@
   transform: scale(1.12);
 }
 .inspiration-heart[aria-pressed="true"] {
-  color: var(--text);
+  color: var(--color-text);
 }
-.inspiration-heart[aria-pressed="true"] svg {
-  fill: #fff;
+.inspiration-heart[aria-pressed="true"] :is(svg, .e-icon) {
+  fill: var(--color-text-inverse);
   stroke-width: 1.5;
 }
-.inspiration-heart svg,
-.inspiration-overall svg {
+.inspiration-heart :is(svg, .e-icon),
+.inspiration-overall :is(svg, .e-icon) {
   flex-shrink: 0;
 }
 .inspiration-caption {
@@ -262,40 +262,40 @@
   flex-wrap: wrap;
   align-items: baseline;
   text-align: left;
-  gap: 0 6px;
-  padding: 8px 2px 0;
+  gap: 0 var(--space-1-5);
+  padding: var(--space-2) var(--space-0-5) 0;
   border: 0;
   background: none;
   width: 100%;
-  color: var(--text);
+  color: var(--color-text);
 }
 .inspiration-caption strong {
-  font-size: 14px;
+  font-size: var(--font-size-3);
   line-height: 22px;
   font-weight: 500;
 }
 .inspiration-caption span {
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 22px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .inspiration-caption span::before {
   content: "·";
-  margin-right: 6px;
-  color: var(--placeholder);
+  margin-right: var(--space-1-5);
+  color: var(--color-text-placeholder);
 }
 .inspiration-element-label {
-  margin: 4px 2px 0;
-  font-size: 12px;
+  margin: var(--space-1) var(--space-0-5) 0;
+  font-size: var(--font-size-1);
   line-height: 15px;
-  color: var(--accent-ink);
+  color: var(--color-text);
 }
 .inspiration-saving,
 .inspiration-pending {
-  margin: 5px 2px 0;
+  margin: 5px var(--space-0-5) 0;
   padding: 0;
-  font-size: 12px;
-  color: var(--secondary);
+  font-size: var(--font-size-1);
+  color: var(--color-text-muted);
 }
 .inspiration-pending {
   background: none;
@@ -303,24 +303,24 @@
   text-decoration: underline;
 }
 .inspiration-notice {
-  margin: 0 0 20px;
+  margin: 0 0 var(--space-5);
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
-  padding: 12px 16px;
-  border: 1px solid var(--border);
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
-  background: var(--paper);
+  background: var(--color-bg-paper);
   line-height: 20px;
 }
 .inspiration-notice button,
 .inspiration-recovery button,
 .inspiration-empty button {
   min-height: 36px;
-  padding: 6px 14px;
-  border: 1px solid var(--border);
-  background: var(--paper);
+  padding: var(--space-1-5) 14px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-paper);
   border-radius: var(--radius-pill);
 }
 .inspiration-empty {
@@ -330,13 +330,13 @@
   justify-content: center;
   text-align: center;
   min-height: 360px;
-  padding: 40px 20px;
-  color: var(--secondary);
+  padding: var(--space-10) var(--space-5);
+  color: var(--color-text-muted);
 }
 .inspiration-empty h2 {
-  margin: 16px 0 0;
-  color: var(--text);
-  font-size: 20px;
+  margin: var(--space-4) 0 0;
+  color: var(--color-text);
+  font-size: var(--font-size-6);
   font-weight: 500;
 }
 .inspiration-empty p {
@@ -346,12 +346,12 @@
 .inspiration-footer {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   flex-wrap: wrap;
   justify-content: flex-end;
   margin: 28px 0 0;
-  color: var(--secondary);
-  font-size: 13px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
   line-height: 20px;
 }
 .inspiration-footer > span {
@@ -362,15 +362,15 @@
   align-items: center;
   min-height: 36px;
   padding: 0 14px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
-  background: var(--paper);
-  color: var(--text);
+  background: var(--color-bg-paper);
+  color: var(--color-text);
   text-decoration: none;
 }
 .inspiration-footer-link:hover {
-  background: var(--canvas);
-  border-color: var(--border-strong);
+  background: var(--color-bg-canvas);
+  border-color: var(--color-border-strong);
 }
 .inspiration-icon-button {
   display: grid;
@@ -388,10 +388,10 @@
   max-width: none;
   max-height: calc(100dvh - 64px);
   margin: auto;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
-  color: var(--text);
-  background: var(--paper);
+  color: var(--color-text);
+  background: var(--color-bg-paper);
   box-shadow: 0 24px 100px rgb(0 0 0 / 20%);
 }
 .inspiration-detail::backdrop {
@@ -406,7 +406,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--canvas);
+  background: var(--color-bg-canvas);
   min-width: 0;
 }
 .inspiration-detail-art > img {
@@ -416,7 +416,7 @@
   border-radius: 0;
 }
 .inspiration-detail-body {
-  padding: 24px;
+  padding: var(--space-6);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -425,81 +425,81 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  color: var(--secondary);
-  font-size: 12px;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
   letter-spacing: 0.6px;
-  margin: -8px -8px 8px 0;
+  margin: -8px -8px var(--space-2) 0;
 }
 .inspiration-detail-body h2 {
   margin: 0;
-  font-size: 24px;
+  font-size: var(--font-size-7);
   line-height: 32px;
   font-weight: 500;
 }
 .inspiration-detail-body h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-size-3);
   line-height: 22px;
   font-weight: 500;
 }
 .inspiration-detail-body p {
   margin: 0;
-  color: var(--secondary);
-  font-size: 13px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
   line-height: 18px;
 }
 .inspiration-detail-body hr {
   width: 100%;
   border: 0;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border);
   margin: 0;
 }
 .inspiration-overall {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
-  background: var(--paper);
-  border: 1px solid var(--border);
+  gap: var(--space-3);
+  padding: 10px var(--space-4);
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   min-height: 42px;
   text-align: left;
 }
 .inspiration-overall[aria-pressed="true"] {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--on-accent);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
 }
 .inspiration-detail-body .inspiration-detail-footer {
   margin-top: auto;
-  padding-top: 24px;
-  font-size: 12px;
+  padding-top: var(--space-6);
+  font-size: var(--font-size-1);
 }
 .inspiration-recovery {
-  padding: 12px;
-  background: var(--warning-soft);
-  border: 1px solid var(--warning-border);
+  padding: var(--space-3);
+  background: var(--color-bg-warning-soft);
+  border: 1px solid var(--color-border-warning-soft);
   border-radius: var(--radius-control);
 }
 .inspiration-recovery div {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
   margin-top: 10px;
 }
 .inspiration-recovery button {
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .inspiration-image-error {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   flex-direction: column;
   align-items: center;
   justify-content: center;
   width: 100%;
-  background: var(--surface);
-  color: var(--secondary);
+  background: var(--color-bg-sunken);
+  color: var(--color-text-muted);
   border-radius: var(--radius-card);
 }
 .inspiration-workspace button:disabled,
@@ -509,27 +509,27 @@
 }
 .inspiration-workspace :is(button, a, input, [role="button"]):focus-visible,
 .inspiration-detail :is(button, a):focus-visible {
-  outline: 2px solid var(--accent-ink);
+  outline: 2px solid var(--color-text);
   outline-offset: 3px;
 }
 @media (max-width: 1100px) {
   .inspiration-toolbar {
     grid-template-columns: auto minmax(150px, 1fr) auto;
-    gap: 12px;
+    gap: var(--space-3);
   }
 }
 @media (max-width: 760px) {
   .inspiration-toolbar {
     grid-template-columns: 1fr auto;
-    padding: 4px 0 20px;
-    gap: 14px 12px;
+    padding: var(--space-1) 0 var(--space-5);
+    gap: 14px var(--space-3);
   }
   .inspiration-views {
-    padding-right: 16px;
+    padding-right: var(--space-4);
     gap: 14px;
   }
   .inspiration-categories button {
-    padding: 10px 12px;
+    padding: 10px var(--space-3);
   }
   .inspiration-search {
     grid-column: 1 / -1;
@@ -538,7 +538,7 @@
     height: 44px;
   }
   .inspiration-browse {
-    padding: 24px 16px 16px;
+    padding: var(--space-6) var(--space-4) var(--space-4);
   }
   .inspiration-heart {
     width: 44px;
@@ -558,7 +558,7 @@
     height: min(38dvh, 320px);
   }
   .inspiration-detail-body {
-    padding: 20px;
+    padding: var(--space-5);
   }
   .inspiration-detail-top {
     margin: 0;
@@ -567,7 +567,7 @@
     position: absolute;
     right: 8px;
     top: 6px;
-    background: var(--paper);
+    background: var(--color-bg-paper);
   }
   .inspiration-detail :is(button, a),
   .inspiration-icon-button,
@@ -593,32 +593,32 @@
   padding: 0;
 }
 .inspiration-in-conversation .inspiration-question {
-  margin: 4px 0 12px;
+  margin: var(--space-1) 0 var(--space-3);
 }
 .inspiration-in-conversation .inspiration-toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px 16px;
-  padding: 0 0 16px;
+  gap: var(--space-2) var(--space-4);
+  padding: 0 0 var(--space-4);
 }
 .inspiration-in-conversation .inspiration-search {
   order: 3;
   flex: 1 1 100%;
 }
 .inspiration-in-conversation .inspiration-footer {
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 .inspiration-continue-inline {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 16px;
-  font-size: 13px;
-  color: var(--secondary);
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  font-size: var(--font-size-2);
+  color: var(--color-text-muted);
 }
 button.inspiration-continue {
   border: 0;
@@ -634,7 +634,7 @@ button.inspiration-continue {
   position: relative;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-3);
   align-items: start;
 }
 .inspiration-brands[data-positioned="true"] {
@@ -645,17 +645,17 @@ button.inspiration-continue {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: 8px;
-  border: 1px solid var(--border);
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
-  background: var(--paper);
+  background: var(--color-bg-paper);
   cursor: pointer;
   transition:
     border-color 120ms,
     box-shadow 120ms;
 }
 .inspiration-brand:hover {
-  border-color: var(--border-strong);
+  border-color: var(--color-border-strong);
   box-shadow: 0 10px 30px -18px rgb(25 25 25 / 35%);
 }
 .inspiration-brand-header {
@@ -663,28 +663,28 @@ button.inspiration-continue {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   height: 36px;
-  margin-bottom: 8px;
-  padding-left: 6px;
+  margin-bottom: var(--space-2);
+  padding-left: var(--space-1-5);
 }
 .inspiration-brand-title {
   display: inline-flex;
   flex: 1;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 0;
   padding: 0;
   border: 0;
   background: none;
-  color: var(--text);
+  color: var(--color-text);
   font: inherit;
   text-align: left;
   cursor: pointer;
 }
 .inspiration-brand-title strong {
   overflow: hidden;
-  font-size: 14px;
+  font-size: var(--font-size-3);
   line-height: 22px;
   font-weight: 500;
   white-space: nowrap;
@@ -692,8 +692,8 @@ button.inspiration-continue {
 }
 .inspiration-brand-title span {
   flex: none;
-  color: var(--secondary);
-  font-size: 13px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
   line-height: 22px;
   opacity: 0;
   transition: opacity 120ms;
@@ -705,7 +705,7 @@ button.inspiration-continue {
 .inspiration-brand-header > :is(.inspiration-saving, .inspiration-pending, .inspiration-availability) {
   flex: none;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   white-space: nowrap;
 }
 .inspiration-workspace .inspiration-heart.inspiration-brand-like {
@@ -715,18 +715,18 @@ button.inspiration-continue {
 .inspiration-brand-bento {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 .inspiration-brand-row {
   display: flex;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 .inspiration-brand-tile {
   position: relative;
   min-width: 0;
   overflow: hidden;
   border-radius: var(--radius-control);
-  background: var(--surface);
+  background: var(--color-bg-sunken);
 }
 .inspiration-brand-open {
   position: absolute;
@@ -751,17 +751,17 @@ button.inspiration-continue {
 .inspiration-brand-open .inspiration-image-error {
   position: absolute;
   inset: 0;
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .inspiration-tile-label {
   position: absolute;
   left: 6px;
   bottom: 6px;
-  padding: 2px 8px;
+  padding: var(--space-0-5) var(--space-2);
   border-radius: var(--radius-pill);
   background: rgb(255 255 255 / 92%);
-  color: var(--text);
-  font-size: 12px;
+  color: var(--color-text);
+  font-size: var(--font-size-1);
   line-height: 18px;
   opacity: 0;
   transition: opacity 120ms;
@@ -781,7 +781,7 @@ button.inspiration-continue {
     opacity 120ms,
     transform 120ms;
 }
-.inspiration-workspace .inspiration-heart.inspiration-part-like svg {
+.inspiration-workspace .inspiration-heart.inspiration-part-like :is(svg, .e-icon) {
   width: 18px;
   height: 18px;
 }
@@ -795,17 +795,17 @@ button.inspiration-continue {
   align-items: center;
   justify-content: center;
   min-height: 40px;
-  margin: 20px auto 0;
+  margin: var(--space-5) auto 0;
   padding: 0 18px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
-  background: var(--paper);
-  color: var(--text);
-  font-size: 13px;
+  background: var(--color-bg-paper);
+  color: var(--color-text);
+  font-size: var(--font-size-2);
   cursor: pointer;
 }
 .inspiration-more:hover {
-  border-color: var(--border-strong);
+  border-color: var(--color-border-strong);
 }
 
 /* The brand overlay: the selected image large on the left; the brand, its
@@ -824,11 +824,11 @@ button.inspiration-continue {
   position: absolute;
   left: 16px;
   bottom: 16px;
-  padding: 4px 10px;
+  padding: var(--space-1) 10px;
   border-radius: var(--radius-pill);
   background: rgb(255 255 255 / 92%);
-  color: var(--text);
-  font-size: 12px;
+  color: var(--color-text);
+  font-size: var(--font-size-1);
   line-height: 18px;
 }
 .inspiration-overlay-step {
@@ -843,14 +843,14 @@ button.inspiration-continue {
   border: 1px solid rgb(25 25 25 / 8%);
   border-radius: 50%;
   background: rgb(255 255 255 / 94%);
-  color: var(--text);
+  color: var(--color-text);
   box-shadow: 0 1px 4px rgb(25 25 25 / 22%);
   cursor: pointer;
 }
 .inspiration-overlay-step[data-direction="previous"] {
   left: 16px;
 }
-.inspiration-overlay-step[data-direction="previous"] svg {
+.inspiration-overlay-step[data-direction="previous"] :is(svg, .e-icon) {
   transform: rotate(180deg);
 }
 .inspiration-overlay-step[data-direction="next"] {
@@ -859,7 +859,7 @@ button.inspiration-continue {
 .inspiration-overlay-parts {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1-5);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -867,38 +867,38 @@ button.inspiration-continue {
 .inspiration-overlay-parts li {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .inspiration-overlay-part {
   display: flex;
   flex: 1;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   min-width: 0;
-  padding: 4px;
+  padding: var(--space-1);
   border: 1px solid transparent;
   border-radius: var(--radius-control);
   background: none;
-  color: var(--text);
+  color: var(--color-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-2);
   text-align: left;
   cursor: pointer;
 }
 .inspiration-overlay-part:hover {
-  background: var(--canvas);
+  background: var(--color-bg-canvas);
 }
 .inspiration-overlay-part[aria-current="true"] {
-  border-color: var(--border-strong);
-  background: var(--canvas);
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-canvas);
 }
 .inspiration-overlay-part img {
   flex: none;
   width: 72px;
   height: 48px;
   object-fit: cover;
-  border-radius: 8px;
-  background: var(--surface);
+  border-radius: var(--radius-small);
+  background: var(--color-bg-sunken);
 }
 .inspiration-detail .inspiration-heart.inspiration-overlay-like {
   position: static;
@@ -908,57 +908,57 @@ button.inspiration-continue {
    heart, outlined until liked. */
 .inspiration-workspace .inspiration-heart.inspiration-brand-like,
 .inspiration-detail .inspiration-heart {
-  color: var(--text);
+  color: var(--color-text);
 }
-.inspiration-workspace .inspiration-heart.inspiration-brand-like svg,
-.inspiration-detail .inspiration-heart svg {
+.inspiration-workspace .inspiration-heart.inspiration-brand-like :is(svg, .e-icon),
+.inspiration-detail .inspiration-heart :is(svg, .e-icon) {
   width: 20px;
   height: 20px;
   fill: none;
   stroke-width: 1.6;
   filter: none;
 }
-.inspiration-workspace .inspiration-heart.inspiration-brand-like[aria-pressed="true"] svg,
-.inspiration-detail .inspiration-heart[aria-pressed="true"] svg {
-  fill: var(--text);
+.inspiration-workspace .inspiration-heart.inspiration-brand-like[aria-pressed="true"] :is(svg, .e-icon),
+.inspiration-detail .inspiration-heart[aria-pressed="true"] :is(svg, .e-icon) {
+  fill: var(--color-text);
 }
 
 /* Your own images: "Add your own references" opens the file picker, and the
    saved images sit in a container just above that button, one heart each. */
 button.inspiration-footer-link {
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-2);
   cursor: pointer;
 }
 .inspiration-yours-slot {
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 .inspiration-brand.inspiration-yours {
   cursor: default;
 }
 .inspiration-brand.inspiration-yours:hover {
-  border-color: var(--border);
+  border-color: var(--color-border);
   box-shadow: none;
 }
 .inspiration-yours .inspiration-brand-header {
   min-height: 36px;
 }
 .inspiration-yours-count {
-  color: var(--secondary);
-  font-size: 13px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
   line-height: 22px;
 }
 .inspiration-yours-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 8px;
+  gap: var(--space-2);
 }
 .inspiration-yours-tile {
   position: relative;
   overflow: hidden;
   aspect-ratio: 3 / 2;
   border-radius: var(--radius-control);
-  background: var(--surface);
+  background: var(--color-bg-sunken);
 }
 .inspiration-yours-tile .identity-reference-preview {
   position: absolute;
@@ -975,16 +975,16 @@ button.inspiration-footer-link {
 }
 .inspiration-yours-tile .identity-reference-placeholder {
   height: 100%;
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 .inspiration-yours-tile:hover .inspiration-part-like,
 .inspiration-yours-tile:focus-within .inspiration-part-like {
   opacity: 1;
 }
 .inspiration-yours-status {
-  margin: 12px 0 0;
-  color: var(--secondary);
-  font-size: 13px;
+  margin: var(--space-3) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
   line-height: 18px;
   text-align: right;
 }
@@ -992,8 +992,8 @@ button.inspiration-footer-link {
   text-align: left;
 }
 .inspiration-yours-limit {
-  margin: 8px 6px 2px;
-  color: var(--secondary);
-  font-size: 12px;
+  margin: var(--space-2) var(--space-1-5) var(--space-0-5);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
   line-height: 16px;
 }

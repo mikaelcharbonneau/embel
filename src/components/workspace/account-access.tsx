@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
-import { SignOutIcon } from "@/components/auth/auth-icons";
 import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
 import { useEffect, useRef, useState } from "react";
 import { useAccountSession } from "./account-session";
@@ -59,7 +58,7 @@ export function AccountAccess({ menu = false }: { menu?: boolean }) {
               onClick={() => void startSignOut()}
               disabled={signingOut}
             >
-              <SignOutIcon />
+              <Icon name="log-out" />
               {signOutLabel}
             </button>
           ) : session.status === "checking" ? (

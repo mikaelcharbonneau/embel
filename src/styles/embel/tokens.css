@@ -1,0 +1,53 @@
+/* Embel Design System tokens, from design-assets/design-system/tokens.css (version 1794614133-df61).
+   Only the font stacks differ: the fonts are self-hosted by next/font in src/app/layout.tsx,
+   which sets --font-geist-sans and --font-instrument-sans. */
+:root {
+  /* color: primitives */
+  --neutral-0: #ffffff; --neutral-50: #f7f7f5; --neutral-100: #f1f0ee; --neutral-200: #e4e3df; --neutral-300: #c9c8c2; --neutral-400: #8a8985; --neutral-500: #85847f; --neutral-600: #696965; --neutral-800: #3a3a37; --neutral-900: #191919;
+  --green-50: #eef3ef; --green-200: #c8d8cc; --green-700: #3d6448;
+  --red-50: #faeeee; --red-200: #e5c4c4; --red-500: #b54b4b; --red-700: #a42a2a; --red-800: #8a2222;
+  --amber-50: #fff8e9; --amber-200: #e3ce9c; --amber-800: #6b4617;
+  /* color: semantic */
+  --color-bg-canvas: var(--neutral-50); --color-bg-paper: var(--neutral-0); --color-bg-sunken: var(--neutral-100); --color-bg-hover: var(--neutral-100); --color-bg-selected: var(--neutral-100); --color-bg-disabled: var(--neutral-100); --color-bg-inverse: var(--neutral-900); --color-bg-scrim: rgb(25 25 25 / 0.4);
+  --color-bg-positive-soft: var(--green-50); --color-bg-danger-soft: var(--red-50); --color-bg-warning-soft: var(--amber-50); --color-bg-danger: var(--red-700); --color-bg-danger-hover: var(--red-800); --color-bg-skeleton: var(--neutral-200);
+  --color-text: var(--neutral-900); --color-text-muted: var(--neutral-600); --color-text-placeholder: var(--neutral-600); --color-text-disabled: var(--neutral-500); --color-text-inverse: var(--neutral-0); --color-text-positive: var(--green-700); --color-text-danger: var(--red-700); --color-text-warning: var(--amber-800);
+  --color-border: var(--neutral-200); --color-border-strong: var(--neutral-300); --color-border-control: var(--neutral-400); --color-border-selected: var(--neutral-900); --color-border-danger: var(--red-500); --color-border-danger-soft: var(--red-200); --color-border-warning-soft: var(--amber-200); --color-border-positive-soft: var(--green-200);
+  --color-accent: var(--neutral-900); --color-accent-hover: var(--neutral-800); --color-on-accent: var(--neutral-0); --color-icon: var(--neutral-900); --color-icon-muted: var(--neutral-600);
+  --focus-ring-color: var(--neutral-900); --focus-ring-halo: var(--neutral-0); --color-selection: var(--neutral-200); --pattern-dot-color: var(--neutral-300); --chip-on-artwork-bg: rgb(255 255 255 / 0.92);
+  /* spacing */
+  --space-0-5: 2px; --space-1: 4px; --space-1-5: 6px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px; --space-16: 64px; --space-24: 96px;
+  --space-card: 24px; --space-stack: 20px; --space-section: 48px; --space-gutter: 16px;
+  /* radius */
+  --radius-inset: 4px; --radius-small: 8px; --radius-control: 12px; --radius-card: 16px; --radius-panel: 20px; --radius-pill: 999px;
+  /* shadow */
+  --shadow-none: none; --shadow-raised: 0 12px 32px -16px rgb(25 25 25 / 0.28); --shadow-overlay: 0 16px 40px -16px rgb(25 25 25 / 0.30); --shadow-modal: 0 24px 80px rgb(25 25 25 / 0.15);
+  /* layering */
+  --z-base: 0; --z-raised: 1; --z-sticky: 10; --z-nav: 30; --z-popover: 40; --z-toast: 60; --z-skip-link: 70;
+  /* layout */
+  --container-reading: 792px; --container-page: 1056px; --measure: 68ch; --nav-height: 56px; --nav-offset: 16px; --target-min: 44px; --link-target-min: 24px; --field-max: 480px; --grid-gap: 16px;
+  /* component sizes */
+  --button-height: 44px; --button-height-sm: 36px; --button-padding-x: 16px; --field-padding-x: 12px; --control-box: 20px; --chip-height: 36px; --badge-height: 24px; --icon-sm: 16px; --icon-md: 20px; --icon-lg: 24px; --avatar-sm: 32px; --avatar-md: 40px; --menu-row-height: 40px; --menu-min-width: 200px; --table-row-height: 48px; --progress-height: 4px;
+  --dialog-width-sm: 440px; --dialog-width-md: 560px; --dialog-width-lg: 860px; --dialog-width-xl: 1100px; --drawer-width-md: 480px; --drawer-width-lg: 860px; --workspace-chat-width: 400px; --focus-ring-width: 2px; --focus-ring-offset: 2px; --focus-ring-inset: -2px; --pattern-dot-size: 24px; --empty-visual: 56px;
+  /* duration, easing, movement */
+  --duration-fast: 120ms; --duration-press: 160ms; --duration-base: 200ms; --duration-slow: 300ms; --duration-loop-pulse: 1.6s; --duration-loop-spin: 0.8s; --duration-loop-sweep: 2.4s; --menu-duration: 150ms; --toast-duration: 5s; --tooltip-delay: 500ms;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1); --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --press-scale: 0.97; --enter-scale: 0.97; --enter-shift: 4px; --stagger: 40ms;
+  /* type primitives */
+  --font-size-1: 12px; --font-size-2: 13px; --font-size-3: 14px; --font-size-4: 16px; --font-size-5: 18px; --font-size-6: 20px; --font-size-7: 24px; --font-size-8: 32px; --font-size-9: 44px;
+  --font-weight-regular: 400; --font-weight-medium: 500; --font-weight-semibold: 600;
+  --font-sans: var(--font-geist-sans), "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-instrument-sans), var(--font-geist-sans), "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+/* text roles (the font shorthands live in components/bundle.css) */
+.text-display { font: var(--text-display); letter-spacing: var(--tracking-display); }
+.text-title-xl { font: var(--text-title-xl); letter-spacing: var(--tracking-title-xl); }
+.text-title-lg { font: var(--text-title-lg); letter-spacing: var(--tracking-title-lg); }
+.text-title-md { font: var(--text-title-md); letter-spacing: var(--tracking-title-md); }
+.text-title-sm { font: var(--text-title-sm); letter-spacing: var(--tracking-title-sm); }
+.text-body-lg { font: var(--text-body-lg); }
+.text-body { font: var(--text-body); }
+.text-label { font: var(--text-label); }
+.text-small { font: var(--text-small); }
+.text-caption { font: var(--text-caption); letter-spacing: var(--tracking-caption); }
+.text-code { font: var(--text-code); }

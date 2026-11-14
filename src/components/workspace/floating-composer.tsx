@@ -2,6 +2,7 @@
 
 import { useCallback, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import styles from "./floating-composer.module.css";
+import { Icon } from "@/components/ui/icon";
 
 type Props = {
   children: ReactNode;
@@ -18,25 +19,6 @@ type Props = {
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(n, max));
 // Content fades out over this distance above the message box.
 const FADE = 32;
-
-function Symbol({ name }: { name: "open" | "close" }) {
-  const paths = { open: "m4 10 4-4 4 4", close: "m4 6 4 4 4-4" };
-  return (
-    <svg
-      aria-hidden="true"
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d={paths[name]} />
-    </svg>
-  );
-}
 
 /** The message box at the bottom of a conversation, like Home's. Content
  * scrolling underneath fades out behind it, and the conversation reserves its
@@ -169,7 +151,7 @@ export function FloatingComposer({
               aria-expanded={open}
               onClick={toggleHistory}
             >
-              <Symbol name={open ? "close" : "open"} />
+              <Icon name={open ? "chevron-down" : "chevron-up"} size="sm" />
             </button>
           </div>
         )}

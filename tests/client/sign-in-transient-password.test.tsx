@@ -21,7 +21,7 @@ vi.mock("@/components/workspace/account-session", () => ({
 }));
 vi.mock("@/components/workspace/prompt-recovery", () => ({ hasPromptRecovery: () => false }));
 vi.mock("@/components/ui/auth-artwork", () => ({ AuthArtwork: () => null }));
-vi.mock("@/components/ui/icon", () => ({ Icon: () => null }));
+vi.mock("@/components/ui/icon", () => ({ Icon: () => null, EmbelMark: () => null }));
 
 // Inert transport only; no browser or Supabase request is made.
 const email = "transient-fixture@example.invalid",

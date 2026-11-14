@@ -3,19 +3,19 @@
   align-items: flex-start;
   gap: 9px;
   padding: 13px 15px;
-  margin: -6px 0 20px;
-  border: 1px solid var(--border);
+  margin: -6px 0 var(--space-5);
+  border: 1px solid var(--color-border);
   border-radius: 7px;
-  color: var(--secondary);
-  background: var(--surface);
-  font-size: var(--font-ui);
+  color: var(--color-text-muted);
+  background: var(--color-bg-sunken);
+  font-size: var(--font-size-2);
   line-height: 1.65;
 }
-.competitor-research-note > svg {
-  margin-top: 2px;
+.competitor-research-note > :is(svg, .e-icon) {
+  margin-top: var(--space-0-5);
 }
 .competitor-research-note strong {
-  color: var(--text);
+  color: var(--color-text);
   font-weight: 500;
 }
 .competitor-empty {
@@ -27,12 +27,12 @@
 .competitor-input {
   display: block;
   width: 100%;
-  padding: 12px;
+  padding: var(--space-3);
   margin-top: 9px;
   border: 1px solid #d8d7d3;
   border-radius: 6px;
-  background: var(--paper);
-  font-size: 14px;
+  background: var(--color-bg-paper);
+  font-size: var(--font-size-3);
   line-height: 1.55;
 }
 .competitor-input::placeholder {
@@ -40,7 +40,7 @@
   opacity: 1;
 }
 .competitor-input[aria-invalid="true"] {
-  border-color: #b54b4b;
+  border-color: var(--color-border-danger);
 }
 .competitor-field {
   margin-top: 18px;
@@ -49,34 +49,34 @@
   min-height: 92px;
 }
 .competitor-field-error {
-  margin-top: 6px;
+  margin-top: var(--space-1-5);
   color: #a02929;
-  font-size: var(--font-ui);
+  font-size: var(--font-size-2);
 }
 .competitor-none {
-  margin-top: 20px;
-  padding: 14px 16px;
-  border: 1px solid var(--border);
+  margin-top: var(--space-5);
+  padding: 14px var(--space-4);
+  border: 1px solid var(--color-border);
   border-radius: 7px;
-  background: var(--paper);
+  background: var(--color-bg-paper);
 }
 .competitor-none .target-toggle {
   align-items: flex-start;
-  font-size: var(--font-ui);
-  color: var(--text);
+  font-size: var(--font-size-2);
+  color: var(--color-text);
   line-height: 1.6;
 }
 .competitor-none .target-toggle input {
   flex: 0 0 auto;
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
 }
 .competitor-none > p {
-  margin: 2px 0 0 23px;
-  font-size: var(--font-ui);
-  color: var(--secondary);
+  margin: var(--space-0-5) 0 0 23px;
+  font-size: var(--font-size-2);
+  color: var(--color-text-muted);
 }
 .competitor-limit {
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 .competitor-card .target-toggle {
   min-height: 44px;
@@ -91,14 +91,14 @@
 @media (max-width: 540px) {
   .competitor-input {
     padding: 10px;
-    font-size: 16px;
+    font-size: var(--font-size-4);
   }
   .competitor-research-note {
-    padding: 12px 13px;
-    font-size: var(--font-ui);
+    padding: var(--space-3) 13px;
+    font-size: var(--font-size-2);
   }
   .competitor-none {
-    padding: 12px 14px;
+    padding: var(--space-3) 14px;
   }
   .competitor-card .target-toggle {
     min-height: 44px;

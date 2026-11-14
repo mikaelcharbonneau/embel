@@ -2,10 +2,10 @@
    Embel's message, the toolbar and the three boards on the same edges. */
 /* section.workspace outranks the shared stage frame width and padding. */
 section.workspace {
-  max-width: calc(var(--page-max) + 2 * var(--branding-gutter, 32px));
-  padding-top: 40px;
+  max-width: calc(var(--container-page) + 2 * var(--branding-gutter, 32px));
+  padding-top: var(--space-10);
   padding-bottom: 120px;
-  color: var(--text);
+  color: var(--color-text);
 }
 .workspace *,
 .workspace *::before,
@@ -26,23 +26,23 @@ section.workspace {
   opacity: 1;
 }
 .workspace :is(button, a):focus-visible {
-  outline: 2px solid var(--accent-ink);
+  outline: 2px solid var(--color-text);
   outline-offset: 4px;
 }
 .label {
-  color: var(--secondary);
-  font-size: 12px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
   line-height: 1.5;
 }
 
 /* The chosen logo and Change logo share one compact row inside the message. */
 .chosenLogo {
-  gap: 12px;
+  gap: var(--space-3);
 }
 .chosenLogo :global(.identity-chosen-logo) {
   width: 48px;
   height: 48px;
-  padding: 4px;
+  padding: var(--space-1);
   border-radius: var(--radius-control);
 }
 .chosenLogo :global(.identity-chosen-logo) img {
@@ -50,28 +50,28 @@ section.workspace {
   filter: brightness(1.04);
 }
 .chosenLogoLabel {
-  font-size: 13px;
-  color: var(--secondary);
+  font-size: var(--font-size-2);
+  color: var(--color-text-muted);
 }
 .changeLogo {
   display: inline-flex;
   align-items: center;
   min-height: 36px;
   padding: 0 14px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
-  background: var(--paper);
-  color: var(--text);
-  font-size: 13px !important;
+  background: var(--color-bg-paper);
+  color: var(--color-text);
+  font-size: var(--font-size-2) !important;
   text-decoration: none;
 }
 .changeLogo:hover {
-  background: var(--canvas);
-  border-color: var(--border-strong);
+  background: var(--color-bg-canvas);
+  border-color: var(--color-border-strong);
 }
 
 .generation {
-  margin: 24px 0 16px;
+  margin: var(--space-6) 0 var(--space-4);
   min-width: 0;
 }
 .toolbar {
@@ -79,35 +79,35 @@ section.workspace {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: var(--space-2) var(--space-4);
   min-height: 44px;
 }
 .toolbarStatus {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 8px;
+  gap: var(--space-1) var(--space-2);
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 20px;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .toolbarStatus > span + span::before {
   content: "·";
-  margin-right: 8px;
-  color: var(--placeholder);
+  margin-right: var(--space-2);
+  color: var(--color-text-placeholder);
 }
 .toolbarStatus .selectionStatus {
-  color: var(--positive);
+  color: var(--color-text-positive);
 }
 .progressCount {
-  color: var(--text);
+  color: var(--color-text);
 }
 .toolbarActions {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: var(--space-2) var(--space-4);
   margin-left: auto;
 }
 .primaryButton,
@@ -116,36 +116,36 @@ section.workspace {
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  gap: 6px;
-  border: 1px solid var(--border);
+  gap: var(--space-1-5);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   padding: 10px 18px;
-  font-size: 13px !important;
+  font-size: var(--font-size-2) !important;
   line-height: 1.4;
   text-align: center;
   cursor: pointer;
 }
 .primaryButton {
-  background: var(--text);
-  border-color: var(--text);
-  color: var(--paper);
+  background: var(--color-text);
+  border-color: var(--color-text);
+  color: var(--color-bg-paper);
 }
 .primaryButton:hover:not(:disabled) {
-  background: var(--text-strong-hover);
+  background: var(--color-accent-hover);
 }
 .secondaryButton {
-  background: var(--paper);
-  color: var(--text);
+  background: var(--color-bg-paper);
+  color: var(--color-text);
 }
 .secondaryButton:hover:not(:disabled) {
-  background: var(--canvas);
-  border-color: var(--border-strong);
+  background: var(--color-bg-canvas);
+  border-color: var(--color-border-strong);
 }
 .primaryButton:disabled,
 .secondaryButton:disabled {
-  background: var(--surface);
-  border-color: var(--border);
-  color: var(--secondary);
+  background: var(--color-bg-sunken);
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
   cursor: not-allowed;
 }
 .textButton {
@@ -154,31 +154,31 @@ section.workspace {
   justify-content: center;
   gap: 7px;
   min-height: var(--branding-action-height);
-  padding: 8px 0;
-  color: var(--secondary);
+  padding: var(--space-2) 0;
+  color: var(--color-text-muted);
   border: 0;
   background: none;
-  font-size: 13px !important;
+  font-size: var(--font-size-2) !important;
   text-decoration: none;
   cursor: pointer;
 }
 .textButton:hover:not(:disabled) {
-  color: var(--text);
+  color: var(--color-text);
 }
 .textButton:disabled {
-  color: var(--placeholder);
+  color: var(--color-text-placeholder);
   cursor: not-allowed;
 }
 .helper {
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 1.6;
-  color: var(--secondary);
-  margin-top: 8px !important;
+  color: var(--color-text-muted);
+  margin-top: var(--space-2) !important;
 }
 .error {
-  margin-top: 12px !important;
-  color: var(--danger);
-  font-size: 13px;
+  margin-top: var(--space-3) !important;
+  color: var(--color-text-danger);
+  font-size: var(--font-size-2);
   line-height: 1.6;
 }
 .progressActions {
@@ -186,7 +186,7 @@ section.workspace {
   align-items: center;
   gap: 18px;
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 .progressActions .secondaryButton {
   padding: 7px 14px;
@@ -196,50 +196,50 @@ section.workspace {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: stretch;
-  gap: 16px;
+  gap: var(--space-4);
 }
 .card {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  background: var(--paper);
-  border: 1px solid var(--border);
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   overflow: hidden;
   transition: border-color 120ms;
 }
 .card:hover:not([data-selected="true"]):not([aria-disabled="true"]) {
-  border-color: var(--border-strong);
+  border-color: var(--color-border-strong);
 }
 .card[data-selected="true"] {
-  border-color: var(--text);
-  box-shadow: 0 0 0 1px var(--text);
+  border-color: var(--color-text);
+  box-shadow: 0 0 0 1px var(--color-text);
 }
 .cardTop {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-height: 42px;
-  padding: 10px 16px;
+  padding: 10px var(--space-4);
 }
 .cardNumber {
-  color: var(--secondary);
-  font-size: 12px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
 }
 .selectedBadge,
 .staleBadge {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 1.4;
 }
 .selectedBadge {
-  color: var(--positive);
+  color: var(--color-text-positive);
 }
 .staleBadge {
-  color: var(--warning);
+  color: var(--color-text-warning);
 }
 .preview {
   min-width: 0;
@@ -247,7 +247,7 @@ section.workspace {
   display: grid;
   place-items: center;
   overflow: hidden;
-  background: var(--canvas);
+  background: var(--color-bg-canvas);
 }
 .preview > * {
   min-width: 0;
@@ -274,14 +274,14 @@ section.workspace {
   display: none;
 }
 .preview p {
-  padding: 20px;
-  font-size: 12px;
+  padding: var(--space-5);
+  font-size: var(--font-size-1);
   line-height: 1.6;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   text-align: center;
 }
 .cardIntro {
-  padding: 0 16px 12px;
+  padding: 0 var(--space-4) var(--space-3);
 }
 .cardBody {
   display: flex;
@@ -289,7 +289,7 @@ section.workspace {
   flex-direction: column;
   align-items: stretch;
   gap: 9px;
-  padding: 12px 16px 16px;
+  padding: var(--space-3) var(--space-4) var(--space-4);
 }
 .cardBody:not(:has(p, button)) {
   display: none;
@@ -312,30 +312,30 @@ section.workspace {
   border: 0;
   border-radius: var(--radius-pill);
   background: transparent;
-  color: var(--secondary);
+  color: var(--color-text-muted);
   cursor: pointer;
 }
 .expandButton:hover {
-  background: var(--surface);
-  color: var(--text);
+  background: var(--color-bg-sunken);
+  color: var(--color-text);
 }
 .designDetails {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 16px;
+  gap: var(--space-4);
   align-items: start;
-  margin: 0 16px;
-  padding: 12px 0 14px;
-  border-top: 1px solid var(--border);
+  margin: 0 var(--space-4);
+  padding: var(--space-3) 0 14px;
+  border-top: 1px solid var(--color-border);
 }
 .designDetails > div {
   min-width: 0;
 }
 .detailLabel {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 1.4;
   font-weight: 500;
-  margin-bottom: 6px !important;
+  margin-bottom: var(--space-1-5) !important;
 }
 .swatches {
   display: flex;
@@ -360,8 +360,8 @@ section.workspace {
   white-space: nowrap;
 }
 .cardNotice {
-  color: var(--warning);
-  font-size: 12px;
+  color: var(--color-text-warning);
+  font-size: var(--font-size-1);
   line-height: 1.6;
 }
 .cardActions {
@@ -382,29 +382,29 @@ section.workspace {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: var(--space-4);
   aspect-ratio: 1;
   min-width: 0;
-  padding: 20px;
-  background: var(--canvas);
-  color: var(--border-strong);
+  padding: var(--space-5);
+  background: var(--color-bg-canvas);
+  color: var(--color-border-strong);
 }
 .placeholder p {
   max-width: 160px;
   text-align: center;
-  font-size: 13px;
+  font-size: var(--font-size-2);
   line-height: 1.6;
-  color: var(--secondary);
+  color: var(--color-text-muted);
 }
 .emptyCaption {
-  padding: 20px 16px;
-  color: var(--secondary);
-  font-size: 12px;
+  padding: var(--space-5) var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
   line-height: 1.6;
 }
 .workspace .nextHint {
-  color: var(--secondary);
-  font-size: 13px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
 }
 .dialog {
   position: fixed;
@@ -414,9 +414,9 @@ section.workspace {
   margin: auto;
   padding: 0;
   overflow: auto;
-  color: var(--text);
-  background: var(--paper);
-  border: 1px solid var(--border);
+  color: var(--color-text);
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
 }
 .dialog::backdrop {
@@ -426,9 +426,9 @@ section.workspace {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  padding: 18px 24px;
-  border-bottom: 1px solid var(--border);
+  gap: var(--space-5);
+  padding: 18px var(--space-6);
+  border-bottom: 1px solid var(--color-border);
 }
 .dialogHeader h2 {
   margin-top: 3px;
@@ -439,16 +439,16 @@ section.workspace {
   flex-shrink: 0;
   width: var(--branding-action-height);
   height: var(--branding-action-height);
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
-  color: var(--text);
-  background: var(--paper);
-  font-size: 20px !important;
+  color: var(--color-text);
+  background: var(--color-bg-paper);
+  font-size: var(--font-size-6) !important;
   cursor: pointer;
 }
 .dialogPreview {
   min-width: 0;
-  background: var(--canvas);
+  background: var(--color-bg-canvas);
 }
 .dialogPreview :is(figure, div):has(img) {
   margin: 0;
@@ -467,12 +467,12 @@ section.workspace {
   object-fit: contain;
 }
 .dialogPreview figcaption {
-  padding: 12px 24px;
+  padding: var(--space-3) var(--space-6);
 }
 .dialogSummary {
-  padding: 18px 24px 22px;
-  color: var(--secondary);
-  font-size: 13px;
+  padding: 18px var(--space-6) 22px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-2);
   line-height: 1.7;
 }
 
@@ -483,33 +483,33 @@ section.workspace {
   .cardTop,
   .cardIntro,
   .cardBody {
-    padding-inline: 12px;
+    padding-inline: var(--space-3);
   }
   .designDetails {
-    margin-inline: 12px;
+    margin-inline: var(--space-3);
   }
 }
 @media (max-width: 760px) {
   .cards {
     grid-template-columns: minmax(0, 1fr);
-    gap: 20px;
+    gap: var(--space-5);
   }
   .cardTop,
   .cardIntro,
   .cardBody {
-    padding-inline: 16px;
+    padding-inline: var(--space-4);
   }
   .designDetails {
-    margin-inline: 16px;
+    margin-inline: var(--space-4);
   }
   .dialog {
     width: calc(100vw - 24px);
     max-height: calc(100dvh - 24px);
   }
   .dialogHeader {
-    padding: 12px 16px;
+    padding: var(--space-3) var(--space-4);
   }
   .dialogSummary {
-    padding: 16px;
+    padding: var(--space-4);
   }
 }

@@ -33,3 +33,8 @@ design-audit/evidence/
 
 # A read-only snapshot of the published design system, kept as published.
 design-assets/design-system/
+
+# The design system's component layer, copied byte-for-byte from design-assets/design-system/components/bundle.css
+# (tests/client/design-system-copy.test.ts checks it), and its tokens in the same one-line layout.
+src/styles/embel/components.css
+src/styles/embel/tokens.css

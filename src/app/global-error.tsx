@@ -4,7 +4,8 @@ import { useEffect, useRef } from "react";
 
 // This replaces the root layout, including its providers, styles and fonts.
 // Keep recovery independent of those dependencies and never display raw errors.
-// Inline colors mirror tokens.css (--canvas, --text) because no stylesheet loads here.
+// Inline colors are the design system primitives (neutral-50 canvas, neutral-900 text) written out,
+// because no stylesheet loads here.
 export default function GlobalError({ retry }: { error: unknown; retry: () => void }) {
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {

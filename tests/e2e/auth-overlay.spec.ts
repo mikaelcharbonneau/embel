@@ -104,8 +104,8 @@ test("auth overlay: continuation clears the slot; direct visits and reloads use 
     // Unavailable-account notice grows the honest card rather than hiding the status.
     expect(box?.y).toBe(172);
   }
-  await expect(card.locator('img[src="/auth/card-mark.svg"]')).toHaveAttribute("width", "32");
-  await expect(card.locator('img[src="/auth/submit-arrow.svg"]')).toHaveAttribute("width", "17");
+  await expect(card.locator(".e-mark")).toBeVisible();
+  await expect(card.locator('.e-icon[data-icon="arrow-right"]').first()).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
   await page.screenshot({ path: testInfo.outputPath("sign-in-page.png"), scale: "css" });
 });

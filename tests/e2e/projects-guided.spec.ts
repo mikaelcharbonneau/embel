@@ -139,7 +139,7 @@ test("Projects reference: empty state uses original artwork and opens existing c
     await expect(
       page.getByRole("navigation", { name: "Main navigation", exact: true }).locator('img[src="/embel-mark.svg"]'),
     ).toBeVisible();
-  await expect(page.locator('.projects-empty-panel img[src="/projects/empty-projects.svg"]')).toBeVisible();
+  await expect(page.locator('.projects-empty-panel .e-icon[data-icon="folder"]')).toBeVisible();
   if (info.project.name === "desktop") {
     const panel = await page.locator(".projects-empty-panel").boundingBox();
     expect(panel).toMatchObject({ x: 192, width: 1056, height: 360 });

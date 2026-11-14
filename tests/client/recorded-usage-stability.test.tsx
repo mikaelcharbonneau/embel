@@ -179,8 +179,8 @@ describe("Recorded usage presentation", () => {
         .join(" ");
     expect(declarations(".recorded-usage-entry > *")).toMatch(/block-size:\s*45px;/);
     expect(declarations(".recorded-usage-pending-slot")).toMatch(/min-block-size:\s*45px;/);
-    expect(declarations(".recorded-usage-entry > *")).toMatch(/border-bottom:\s*1px solid var\(--border\);/);
-    expect(declarations(".recorded-usage-pending-slot")).toMatch(/border-bottom:\s*1px solid var\(--border\);/);
+    expect(declarations(".recorded-usage-entry > *")).toMatch(/border-bottom:\s*1px solid var\(--color-border\);/);
+    expect(declarations(".recorded-usage-pending-slot")).toMatch(/border-bottom:\s*1px solid var\(--color-border\);/);
     expect(declarations(".recorded-usage")).toMatch(/border-radius:\s*var\(--radius-card\);/);
     expect(declarations(".recorded-usage-table th")).toMatch(/overflow-wrap:\s*anywhere;/);
     expect(css).not.toMatch(
