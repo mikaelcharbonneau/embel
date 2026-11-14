@@ -1,0 +1,877 @@
+{
+ "slug": "brand-assets__kestrel-ready-pro",
+ "account": "audit-pro",
+ "route": "/brands/account/04a066cf-4f04-46aa-b04c-4823d64a308d/logo/deliverables",
+ "width": 1440,
+ "doc": {
+  "url": "/brands/account/04a066cf-4f04-46aa-b04c-4823d64a308d/logo/deliverables",
+  "title": "Kestrel Analytics · Assets · Embel",
+  "lang": "en",
+  "viewportMeta": "width=device-width, initial-scale=1",
+  "h1": [
+   "Kestrel Analytics"
+  ],
+  "headings": [
+   "H1 Kestrel Analytics",
+   "H2 Brand board",
+   "H2 Social images",
+   "H3 Profile image",
+   "H3 Square post template",
+   "H3 Portrait post template",
+   "H3 Wide banner",
+   "H3 Cover banner"
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 1,
+   "header": 2,
+   "footer": 0,
+   "aside": 0,
+   "form": 0,
+   "[role=\"search\"]": 0,
+   "section[aria-label], section[aria-labelledby]": 9
+  },
+  "navLabels": [
+   "Brand journey"
+  ],
+  "skipLink": [
+   {
+    "text": "Skip to content",
+    "href": "#main-content",
+    "targetExists": true
+   }
+  ],
+  "liveRegions": 5,
+  "dialogsOpen": [],
+  "overflowX": 0,
+  "bodyText": "Skip to content Kestrel Analytics Strategy , complete Voice , complete Identity , complete Assets Saved A Kestrel Analytics Your brand kit, made from your logo and your direction, Editorial Soft Shapes. Brand images Brand guidelines Design system Download brand kit Logo files, images, guidelines and",
+  "focusableCount": 15
+ },
+ "contrast": [
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "p.brand-assets-module__GHEyxG__lead «Your brand kit, made from your logo and your direc» in section > div.brand-assets-module__GHEyxG__page > header.e-stack",
+    "p.brand-assets-module__GHEyxG__lead «, Editorial Soft Shapes» in section > div.brand-assets-module__GHEyxG__page > header.e-stack",
+    "p.brand-assets-module__GHEyxG__lead «.» in section > div.brand-assets-module__GHEyxG__page > header.e-stack"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "p#_r_1_-kit.e-section__hint.e-tabular «Logo files, images, guidelines and tokens · ZIP · » in section > div.brand-assets-module__GHEyxG__page > div.e-stack",
+    "p.e-section__hint.e-tabular «1600 × 2200 · PNG» in section.e-compare > div.e-compare__side > div.e-stack",
+    "p.e-section__hint «Ready to upload as PNG. Posts and banners also com» in div.brand-assets-module__GHEyxG__panel > section.e-section > div.e-section__head"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 500,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 5,
+   "samples": [
+    "span «Strategy» in ol.e-steps > li > a.e-step",
+    "span «Voice» in ol.e-steps > li > a.e-step",
+    "span «Identity» in ol.e-steps > li > a.e-step"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 12,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 5,
+   "samples": [
+    "span.e-card__meta.e-tabular «1024 × 1024 · PNG» in li.e-card > div.e-card__body > div.e-stack",
+    "span.e-card__meta.e-tabular «1080 × 1080 · PNG and SVG» in li.e-card > div.e-card__body > div.e-stack",
+    "span.e-card__meta.e-tabular «1080 × 1350 · PNG and SVG» in li.e-card > div.e-card__body > div.e-stack"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#3d6448",
+   "bg": "#ffffff",
+   "size": 12,
+   "weight": 400,
+   "ratio": 6.74,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.journey-module__MmLfbq__save \"Saved\" «Saved» in div.workspace-main > header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 14,
+   "weight": 500,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "button.e-avatar[Account menu] \"A\" «A» in div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > span.e-anchor"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 32,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 3,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "h1.brand-assets-module__GHEyxG__title \"Kestrel Analytics\" «Kestrel Analytics» in section > div.brand-assets-module__GHEyxG__page > header.e-stack"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 20,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 2,
+   "samples": [
+    "h2#_r_1_-board.e-section__title \"Brand board\" «Brand board» in section.e-compare > div.e-compare__side > div.e-stack",
+    "h2#_r_1_-social.e-section__title \"Social images\" «Social images» in div.brand-assets-module__GHEyxG__panel > section.e-section > div.e-section__head"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 400,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p «Your logo, colors and type on one page, with detai» in section.e-compare > div.e-compare__side > div.e-stack"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.skip-link \"Skip to content\" «Skip to content» in div.app-shell"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 11,
+   "samples": [
+    "span.journey-module__MmLfbq__projectTitle «Kestrel Analytics» in div.journey-module__MmLfbq__capsule > details.journey-module__MmLfbq__tools > summary.journey-module__MmLfbq__projectName",
+    "span «Assets» in ol.e-steps > li > span.e-step",
+    "button#_r_1_-images-tab.e-tab \"Brand images\" «Brand images» in div.e-stack > div.e-section-bar > div.e-tabs"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "button.e-button.e-button--primary \"Download brand kit\" «Download brand kit» in div.brand-assets-module__GHEyxG__page > div.e-stack > div.e-section-bar"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 5,
+   "samples": [
+    "h3.e-card__title \"Profile image\" «Profile image» in li.e-card > div.e-card__body > div.e-stack",
+    "h3.e-card__title \"Square post template\" «Square post template» in li.e-card > div.e-card__body > div.e-stack",
+    "h3.e-card__title \"Portrait post template\" «Portrait post template» in li.e-card > div.e-card__body > div.e-stack"
+   ],
+   "pass": true
+  }
+ ],
+ "edges": [
+  {
+   "kind": "button",
+   "fill": "#f1f0ee",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 1.13,
+   "borderRatio": null,
+   "best": 1.13,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "button.e-avatar[Account menu] \"A\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#f7f7f5",
+   "fillRatio": 1.07,
+   "borderRatio": 1.19,
+   "best": 1.19,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "button.e-button.e-button--secondary.e-button--sm[Download PNG: brand board] \"Download PNG\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": 1.28,
+   "best": 1.28,
+   "pass": false,
+   "count": 5,
+   "samples": [
+    "button.e-button.e-button--secondary.e-button--sm[Download PNG: profile image] \"Download PNG\"",
+    "button.e-button.e-button--secondary.e-button--sm[Download square post template] \"Download\"",
+    "button.e-button.e-button--secondary.e-button--sm[Download portrait post template] \"Download\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#191919",
+   "border": "#ffffff",
+   "outside": "#ffffff",
+   "fillRatio": 17.58,
+   "borderRatio": 1,
+   "best": 17.58,
+   "pass": true,
+   "count": 1,
+   "samples": [
+    "button.e-button.e-button--primary \"Download brand kit\""
+   ]
+  }
+ ],
+ "targets": {
+  "total": 15,
+  "under44": 8,
+  "under24": []
+ },
+ "fields": [],
+ "clipped": [],
+ "axe": {
+  "violations": [],
+  "incomplete": [
+   {
+    "id": "aria-valid-attr-value",
+    "count": 5,
+    "help": "ARIA attributes must conform to valid values"
+   }
+  ]
+ },
+ "walk": [
+  {
+   "el": "a.skip-link \"Skip to content\"",
+   "where": "div.app-shell",
+   "x": 8,
+   "y": 8,
+   "w": 130,
+   "h": 45,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.skip-link \"Skip to content\"@8,8",
+   "crop": "focus/brand-assets__kestrel-ready-pro__1440__001.png"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__brandIcon[Embel home]",
+   "where": "div.workspace-main > header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule",
+   "x": 348,
+   "y": 22,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__brandIcon[Embel home]@348,22"
+  },
+  {
+   "el": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary[Project: Kestrel Analytics. Switch proje] \"Kestrel Analytics\"",
+   "where": "header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule > details.journey-module__MmLfbq__tools",
+   "x": 398,
+   "y": 24,
+   "w": 156,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary[Project: Kestrel Analytics. Switch proje] \"Kestrel Analytics\"@398,24"
+  },
+  {
+   "el": "a.e-step \"Strategy , complete\"",
+   "where": "nav.journey-module__MmLfbq__stepsNav > ol.e-steps > li",
+   "x": 575,
+   "y": 22,
+   "w": 104,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-step \"Strategy , complete\"@575,22"
+  },
+  {
+   "el": "a.e-step \"Voice , complete\"",
+   "where": "nav.journey-module__MmLfbq__stepsNav > ol.e-steps > li",
+   "x": 684,
+   "y": 22,
+   "w": 84,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-step \"Voice , complete\"@684,22"
+  },
+  {
+   "el": "a.e-step \"Identity , complete\"",
+   "where": "nav.journey-module__MmLfbq__stepsNav > ol.e-steps > li",
+   "x": 772,
+   "y": 22,
+   "w": 98,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-step \"Identity , complete\"@772,22"
+  },
+  {
+   "el": "button.e-avatar[Account menu] \"A\"",
+   "where": "div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > span.e-anchor",
+   "x": 1062,
+   "y": 28,
+   "w": 32,
+   "h": 32,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-avatar[Account menu] \"A\"@1062,28"
+  },
+  {
+   "el": "button#_r_1_-images-tab.e-tab \"Brand images\"",
+   "where": "div.e-stack > div.e-section-bar > div.e-tabs",
+   "x": 212,
+   "y": 215,
+   "w": 90,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button#_r_1_-images-tab.e-tab \"Brand images\"@212,215"
+  },
+  {
+   "el": "button.e-button.e-button--primary \"Download brand kit\"",
+   "where": "div.brand-assets-module__GHEyxG__page > div.e-stack > div.e-section-bar",
+   "x": 1057,
+   "y": 215,
+   "w": 185,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-button.e-button--primary \"Download brand kit\"@1057,215"
+  },
+  {
+   "el": "button.e-button.e-button--secondary.e-button--sm[Download PNG: brand board] \"Download PNG\"",
+   "where": "section.e-compare > div.e-compare__side > div",
+   "x": 835,
+   "y": 451,
+   "w": 148,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-button.e-button--secondary.e-button--sm[Download PNG: brand board] \"Download PNG\"@835,451"
+  },
+  {
+   "el": "button.e-button.e-button--secondary.e-button--sm[Download PNG: profile image] \"Download PNG\"",
+   "where": "li.e-card > div.e-card__body > div",
+   "x": 209,
+   "y": 468,
+   "w": 148,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-button.e-button--secondary.e-button--sm[Download PNG: profile image] \"Download PNG\"@209,468"
+  },
+  {
+   "el": "button.e-button.e-button--secondary.e-button--sm[Download square post template] \"Download\"",
+   "where": "div.e-card__body > div > span.e-anchor",
+   "x": 569,
+   "y": 468,
+   "w": 140,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-button.e-button--secondary.e-button--sm[Download square post template] \"Download\"@569,468"
+  },
+  {
+   "el": "button.e-button.e-button--secondary.e-button--sm[Download portrait post template] \"Download\"",
+   "where": "div.e-card__body > div > span.e-anchor",
+   "x": 929,
+   "y": 468,
+   "w": 140,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-button.e-button--secondary.e-button--sm[Download portrait post template] \"Download\"@929,468"
+  },
+  {
+   "el": "button.e-button.e-button--secondary.e-button--sm[Download wide banner] \"Download\"",
+   "where": "div.e-card__body > div.e-cluster > span.e-anchor",
+   "x": 1091,
+   "y": 468,
+   "w": 140,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-button.e-button--secondary.e-button--sm[Download wide banner] \"Download\"@1091,468"
+  },
+  {
+   "el": "button.e-button.e-button--secondary.e-button--sm[Download cover banner] \"Download\"",
+   "where": "div.e-card__body > div.e-cluster > span.e-anchor",
+   "x": 1091,
+   "y": 822,
+   "w": 140,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-button.e-button--secondary.e-button--sm[Download cover banner] \"Download\"@1091,822"
+  }
+ ],
+ "walkTruncated": false,
+ "hover": [
+  {
+   "kind": "a.skip-link",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.e-step",
+   "rest": {
+    "fg": "#696965",
+    "bg": "#ffffff",
+    "ratio": 5.51,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#696965",
+    "bg": "#f1f0ee",
+    "ratio": 4.84,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "button.e-avatar",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#e4e3df",
+    "ratio": 13.69,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "main.",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "button.e-tab",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": false
+  },
+  {
+   "kind": "button.e-button.e-button--primary",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#3a3a37",
+    "ratio": 11.41,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "button.e-button.e-button--secondary.e-button--sm",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  }
+ ],
+ "reflow": {
+  "320": {
+   "viewport": "320x640",
+   "overflowX": 0,
+   "bodyScrollWidth": 320,
+   "offenders": [
+    "div.e-section-bar left 16 right 384",
+    "p#_r_1_-kit.e-section__hint.e-tabular left 16 right 384"
+   ],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    }
+   ],
+   "minFontSize": 12,
+   "screenshot": "reflow/brand-assets__kestrel-ready-pro__320.png"
+  },
+  "zoom200": {
+   "viewport": "720x450",
+   "overflowX": 0,
+   "bodyScrollWidth": 720,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    }
+   ],
+   "minFontSize": 12,
+   "screenshot": "reflow/brand-assets__kestrel-ready-pro__zoom200.png"
+  }
+ }
+}

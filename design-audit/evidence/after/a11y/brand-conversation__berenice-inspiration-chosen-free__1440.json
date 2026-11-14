@@ -1,0 +1,1280 @@
+{
+ "slug": "brand-conversation__berenice-inspiration-chosen-free",
+ "account": "audit-free",
+ "route": "/brands/account/671e504e-d8f5-48a1-8644-8f6ced41a8eb?view=strategy",
+ "width": 1440,
+ "doc": {
+  "url": "/brands/account/671e504e-d8f5-48a1-8644-8f6ced41a8eb?view=strategy",
+  "title": "Fromagerie Bérénice Côté · Identity · Embel",
+  "lang": "en",
+  "viewportMeta": "width=device-width, initial-scale=1",
+  "h1": [],
+  "headings": [
+   "H2 Chat"
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "header": 2,
+   "footer": 0,
+   "aside": 0,
+   "form": 1,
+   "[role=\"search\"]": 0,
+   "section[aria-label], section[aria-labelledby]": 5
+  },
+  "navLabels": [
+   "Brand journey",
+   "Project navigation"
+  ],
+  "skipLink": [
+   {
+    "text": "Skip to content",
+    "href": "#main-content",
+    "targetExists": true
+   }
+  ],
+  "liveRegions": 6,
+  "dialogsOpen": [],
+  "overflowX": 0,
+  "bodyText": "Skip to content Fromagerie Bérénice Côté Strategy , complete Voice , complete Identity 4 Assets Saved A Fromagerie Bérénice Côté Chat Hide chat Une fromagerie de quartier dans le Vieux-Québec qui vend des fromages fermiers du Québec, des produits du terroir et des plateaux pour les fêtes. A neighbou",
+  "focusableCount": 21
+ },
+ "contrast": [
+  {
+   "fg": "#85847f",
+   "bg": "#fefefe",
+   "size": 12,
+   "weight": 400,
+   "ratio": 3.72,
+   "required": 4.5,
+   "disabled": true,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span.e-step__mark «4» in ol.e-steps > li > span.e-step"
+   ],
+   "pass": false
+  },
+  {
+   "fg": "#85847f",
+   "bg": "#fefefe",
+   "size": 14,
+   "weight": 500,
+   "ratio": 3.72,
+   "required": 4.5,
+   "disabled": true,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span «Assets» in ol.e-steps > li > span.e-step"
+   ],
+   "pass": false
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 3,
+   "samples": [
+    "p#_r_4_-hint.e-muted «Choose as many as you like. The six concepts are s» in div.project-logo-creation > div.logo-creation-module__UDtEIW__stepStack > fieldset.logo-creation-module__UDtEIW__typesQuestion",
+    "p#_r_4_-hint.e-muted «, and each one you choose is added to your reply.» in div.project-logo-creation > div.logo-creation-module__UDtEIW__stepStack > fieldset.logo-creation-module__UDtEIW__typesQuestion",
+    "p.e-muted \"6 types chosen\" «6 types chosen» in div.logo-creation-module__UDtEIW__stepStack > fieldset.logo-creation-module__UDtEIW__typesQuestion > div.logo-creation-module__UDtEIW__typesFooter"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#fefefe",
+   "size": 14,
+   "weight": 500,
+   "ratio": 5.48,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "span «Strategy» in ol.e-steps > li > a.e-step",
+    "span «Voice» in ol.e-steps > li > a.e-step"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 11,
+   "samples": [
+    "span.e-answer__question «Strategy» in section.e-stack > details.e-disclosure > summary",
+    "span.e-answer__question «Voice» in section.e-stack > details.e-disclosure > summary",
+    "span.e-answer__question «Inspiration» in section.e-stack > details.e-disclosure > summary"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "placeholder": true,
+   "disabled": false,
+   "count": 1,
+   "samples": [
+    "textarea#_r_2_[message] placeholder «Choose the logo types, then press Send…»"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#3d6448",
+   "bg": "#fefefe",
+   "size": 12,
+   "weight": 400,
+   "ratio": 6.7,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span.journey-module__MmLfbq__save \"Saved\" «Saved» in div.workspace-main > header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 14,
+   "weight": 500,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "button.e-avatar[Account menu] \"A\" «A» in div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > span.e-anchor"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 14,
+   "weight": 400,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p.e-turn__text «Une fromagerie de quartier dans le Vieux-Québec qu» in div.e-workspace__thread > div.e-turn > div.e-turn__bubble"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 20,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "legend.logo-creation-module__UDtEIW__stepTitle «Which logo types should I explore?» in div.project-logo-creation > div.logo-creation-module__UDtEIW__stepStack > fieldset.logo-creation-module__UDtEIW__typesQuestion"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#fefefe",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.48,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "span.journey-module__MmLfbq__projectTitle «Fromagerie Bérénice Côté» in div.journey-module__MmLfbq__capsule > details.journey-module__MmLfbq__tools > summary.journey-module__MmLfbq__projectName",
+    "span «Identity» in ol.e-steps > li > span.e-step"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.skip-link \"Skip to content\" «Skip to content» in div.app-shell"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 14,
+   "samples": [
+    "h2.e-workspace__title \"Chat\" «Chat» in div.e-workspace > section.e-workspace__chat > div.e-workspace__head",
+    "span.e-chip.e-chip--static «Wordmark» in form.e-composer > ul.e-cluster > li",
+    "span.e-chip.e-chip--static «Lettermark or monogram» in form.e-composer > ul.e-cluster > li"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 6,
+   "samples": [
+    "span.e-badge «Quebec City locals» in section.e-stack > details.e-disclosure > summary",
+    "span.e-badge «Le terroir, une meule à la fois» in section.e-stack > details.e-disclosure > summary",
+    "span.e-badge «Chaleureuse et authentique» in section.e-stack > details.e-disclosure > summary"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p.e-turn__text «Time for a logo. I’ll draw six concepts for Fromag» in div.e-workspace__thread > article.e-turn > div.e-turn__main"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "div «You have no credits left this month.» in div.e-stack > div.e-message > div.e-message__body",
+    "div «New credits arrive on December 1.» in div.e-stack > div.e-message > div.e-message__body",
+    "a.e-link \"See plans\" «See plans» in div.e-message > div.e-message__body > div"
+   ],
+   "pass": true
+  }
+ ],
+ "edges": [
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#ffffff",
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": 1,
+   "best": 1,
+   "pass": false,
+   "count": 7,
+   "samples": [
+    "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Hide chat]",
+    "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Remove Wordmark]",
+    "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Remove Lettermark or monogram]"
+   ]
+  },
+  {
+   "kind": "field",
+   "fill": "#ffffff",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": null,
+   "best": 1,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "textarea#_r_2_[message]"
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#f1f0ee",
+   "border": null,
+   "outside": "#fefefe",
+   "fillRatio": 1.13,
+   "borderRatio": null,
+   "best": 1.13,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "button.e-avatar[Account menu] \"A\""
+   ]
+  }
+ ],
+ "targets": {
+  "total": 21,
+  "under44": 12,
+  "under24": [
+   {
+    "target": "a.e-link \"See plans\"",
+    "where": "div.e-message > div.e-message__body > div",
+    "width": 58.6,
+    "height": 17,
+    "inline": true,
+    "crowdedBy": null,
+    "fails258": false
+   }
+  ]
+ },
+ "fields": [
+  {
+   "field": "textarea#_r_2_[message]",
+   "type": "textarea",
+   "label": "Message Embel",
+   "autocomplete": "off",
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 16
+  }
+ ],
+ "clipped": [],
+ "axe": {
+  "violations": [],
+  "incomplete": [
+   {
+    "id": "aria-prohibited-attr",
+    "count": 1,
+    "help": "Elements must only use permitted ARIA attributes"
+   },
+   {
+    "id": "aria-valid-attr-value",
+    "count": 1,
+    "help": "ARIA attributes must conform to valid values"
+   },
+   {
+    "id": "color-contrast",
+    "count": 8,
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+   }
+  ]
+ },
+ "walk": [
+  {
+   "el": "a.skip-link \"Skip to content\"",
+   "where": "div.app-shell",
+   "x": 8,
+   "y": 8,
+   "w": 130,
+   "h": 45,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.skip-link \"Skip to content\"@8,8",
+   "crop": "focus/brand-conversation__berenice-inspiration-chosen-free__1440__001.png"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__brandIcon[Embel home]",
+   "where": "div.workspace-main > header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule",
+   "x": 526,
+   "y": 22,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__brandIcon[Embel home]@526,22"
+  },
+  {
+   "el": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary[Project: Fromagerie Bérénice Côté. Switc] \"Fromagerie Bérénice Côté\"",
+   "where": "header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule > details.journey-module__MmLfbq__tools",
+   "x": 576,
+   "y": 24,
+   "w": 216,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary[Project: Fromagerie Bérénice Côté. Switc] \"Fromagerie Bérénice Côté\"@576,24"
+  },
+  {
+   "el": "a.e-step \"Strategy , complete\"",
+   "where": "nav.journey-module__MmLfbq__stepsNav > ol.e-steps > li",
+   "x": 813,
+   "y": 22,
+   "w": 104,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-step \"Strategy , complete\"@813,22"
+  },
+  {
+   "el": "a.e-step \"Voice , complete\"",
+   "where": "nav.journey-module__MmLfbq__stepsNav > ol.e-steps > li",
+   "x": 922,
+   "y": 22,
+   "w": 84,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-step \"Voice , complete\"@922,22"
+  },
+  {
+   "el": "button.e-avatar[Account menu] \"A\"",
+   "where": "div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > span.e-anchor",
+   "x": 1300,
+   "y": 28,
+   "w": 32,
+   "h": 32,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-avatar[Account menu] \"A\"@1300,28"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Hide chat]",
+   "where": "section.e-workspace__chat > div.e-workspace__head > span.e-tooltip-host",
+   "x": 371,
+   "y": 25,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Hide chat]@371,25"
+  },
+  {
+   "el": "div.e-workspace__log[Conversation] \"Une fromagerie de quartier dans le Vieux\"",
+   "where": "div.guided-interview > div.e-workspace > section.e-workspace__chat",
+   "x": 17,
+   "y": 70,
+   "w": 398,
+   "h": 488,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "div.e-workspace__log[Conversation] \"Une fromagerie de quartier dans le Vieux\"@17,70"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Edit brief]",
+   "where": "div.e-turn__bubble > div.guided-brief-editor > span.e-tooltip-host",
+   "x": 346,
+   "y": 106,
+   "w": 40,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Edit brief]@346,106"
+  },
+  {
+   "el": "summary \"Strategy Quebec City locals Le terroir, \"",
+   "where": "div.e-workspace__thread > section.e-stack > details.e-disclosure",
+   "x": 50,
+   "y": 337,
+   "w": 332,
+   "h": 68,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary \"Strategy Quebec City locals Le terroir, \"@50,337"
+  },
+  {
+   "el": "summary \"Voice Chaleureuse et authentique Fromage\"",
+   "where": "div.e-workspace__thread > section.e-stack > details.e-disclosure",
+   "x": 50,
+   "y": 427,
+   "w": 332,
+   "h": 96,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary \"Voice Chaleureuse et authentique Fromage\"@50,427"
+  },
+  {
+   "el": "summary \"Inspiration 2 liked\"",
+   "where": "div.e-workspace__thread > section.e-stack > details.e-disclosure",
+   "x": 50,
+   "y": 514,
+   "w": 332,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary \"Inspiration 2 liked\"@50,514"
+  },
+  {
+   "el": "a.e-link \"See plans\"",
+   "where": "div.e-message > div.e-message__body > div",
+   "x": 131,
+   "y": 523,
+   "w": 59,
+   "h": 17,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-link \"See plans\"@131,523"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Remove Wordmark]",
+   "where": "ul.e-cluster > li > span.e-chip",
+   "x": 133,
+   "y": 585,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Remove Wordmark]@133,585"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Remove Lettermark or monogram]",
+   "where": "ul.e-cluster > li > span.e-chip",
+   "x": 228,
+   "y": 629,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Remove Lettermark or monogram]@228,629"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Remove Pictorial mark]",
+   "where": "ul.e-cluster > li > span.e-chip",
+   "x": 156,
+   "y": 673,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Remove Pictorial mark]@156,673"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Remove Abstract mark]",
+   "where": "ul.e-cluster > li > span.e-chip",
+   "x": 316,
+   "y": 673,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Remove Abstract mark]@316,673"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Remove Combination mark]",
+   "where": "ul.e-cluster > li > span.e-chip",
+   "x": 185,
+   "y": 717,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Remove Combination mark]@185,717"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Remove Emblem]",
+   "where": "ul.e-cluster > li > span.e-chip",
+   "x": 305,
+   "y": 717,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Remove Emblem]@305,717"
+  },
+  {
+   "el": "textarea#_r_2_[message]",
+   "where": "div.e-workspace__reply > section.conversation-reply > form.e-composer",
+   "x": 46,
+   "y": 762,
+   "w": 344,
+   "h": 48,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "textarea#_r_2_[message]@46,762"
+  },
+  {
+   "el": "div.e-workspace__resize[Resize chat]",
+   "where": "div.project-workspace-content > div.guided-interview > div.e-workspace",
+   "x": 416,
+   "y": 16,
+   "w": 32,
+   "h": 868,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "div.e-workspace__resize[Resize chat]@416,16"
+  },
+  {
+   "el": "input[_r_4_-logo-types]",
+   "where": "fieldset.logo-creation-module__UDtEIW__typesQuestion > div.logo-creation-module__UDtEIW__typesGrid > label.e-choice",
+   "x": 449,
+   "y": 166,
+   "w": 1,
+   "h": 1,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": true,
+   "covered": 2,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat Une fromagerie de quartie\" (fixed)",
+   "key": "input[_r_4_-logo-types]@449,166"
+  },
+  {
+   "el": "input[_r_4_-logo-types]",
+   "where": "fieldset.logo-creation-module__UDtEIW__typesQuestion > div.logo-creation-module__UDtEIW__typesGrid > label.e-choice",
+   "x": 777,
+   "y": 166,
+   "w": 1,
+   "h": 1,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": true,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "input[_r_4_-logo-types]@777,166"
+  },
+  {
+   "el": "input[_r_4_-logo-types]",
+   "where": "fieldset.logo-creation-module__UDtEIW__typesQuestion > div.logo-creation-module__UDtEIW__typesGrid > label.e-choice",
+   "x": 1105,
+   "y": 166,
+   "w": 1,
+   "h": 1,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": true,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "input[_r_4_-logo-types]@1105,166"
+  },
+  {
+   "el": "input[_r_4_-logo-types]",
+   "where": "fieldset.logo-creation-module__UDtEIW__typesQuestion > div.logo-creation-module__UDtEIW__typesGrid > label.e-choice",
+   "x": 449,
+   "y": 268,
+   "w": 1,
+   "h": 1,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": true,
+   "covered": 2,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat Une fromagerie de quartie\" (fixed)",
+   "key": "input[_r_4_-logo-types]@449,268"
+  },
+  {
+   "el": "input[_r_4_-logo-types]",
+   "where": "fieldset.logo-creation-module__UDtEIW__typesQuestion > div.logo-creation-module__UDtEIW__typesGrid > label.e-choice",
+   "x": 777,
+   "y": 268,
+   "w": 1,
+   "h": 1,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": true,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "input[_r_4_-logo-types]@777,268"
+  },
+  {
+   "el": "input[_r_4_-logo-types]",
+   "where": "fieldset.logo-creation-module__UDtEIW__typesQuestion > div.logo-creation-module__UDtEIW__typesGrid > label.e-choice",
+   "x": 1105,
+   "y": 268,
+   "w": 1,
+   "h": 1,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": true,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "input[_r_4_-logo-types]@1105,268"
+  },
+  {
+   "el": "input[_r_4_-logo-types]",
+   "where": "fieldset.logo-creation-module__UDtEIW__typesQuestion > div.logo-creation-module__UDtEIW__typesGrid > label.e-choice",
+   "x": 449,
+   "y": 370,
+   "w": 1,
+   "h": 1,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": true,
+   "covered": 2,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat Une fromagerie de quartie\" (fixed)",
+   "key": "input[_r_4_-logo-types]@449,370"
+  }
+ ],
+ "walkTruncated": false,
+ "hover": [
+  {
+   "kind": "a.skip-link",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#fefefe",
+    "ratio": 17.48,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.e-step",
+   "rest": {
+    "fg": "#696965",
+    "bg": "#fefefe",
+    "ratio": 5.48,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#696965",
+    "bg": "#f1f0ee",
+    "ratio": 4.84,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "button.e-avatar",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#e4e3df",
+    "ratio": 13.69,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "main.",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "div.e-workspace__log",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "section.e-stack.e-stack--sm.conversation-section",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "summary.",
+   "rest": {
+    "fg": "#3a3a37",
+    "bg": "#ffffff",
+    "ratio": 11.41,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#3a3a37",
+    "bg": "#ffffff",
+    "ratio": 11.41,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.e-link",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#3a3a37",
+    "bg": "#ffffff",
+    "ratio": 11.41,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "changes": true
+  },
+  {
+   "kind": "div.e-workspace__main.conversation-work.e-focus-inset",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "div.conversation-slot",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  }
+ ],
+ "reflow": {
+  "320": {
+   "viewport": "320x640",
+   "overflowX": 0,
+   "bodyScrollWidth": 320,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    },
+    {
+     "layer": "div.e-workspace__reply",
+     "top": 236,
+     "height": 388,
+     "width": 288,
+     "shareOfViewport": 61
+    }
+   ],
+   "minFontSize": 12,
+   "screenshot": "reflow/brand-conversation__berenice-inspiration-chosen-free__320.png"
+  },
+  "zoom200": {
+   "viewport": "720x450",
+   "overflowX": 0,
+   "bodyScrollWidth": 720,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    }
+   ],
+   "minFontSize": 12,
+   "screenshot": "reflow/brand-conversation__berenice-inspiration-chosen-free__zoom200.png"
+  }
+ }
+}

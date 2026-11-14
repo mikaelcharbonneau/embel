@@ -1611,6 +1611,8 @@ The redesign and the implementation must meet these. Each can be measured with t
 
 One line per finding, for the final review. "Compare against" names the evidence to set beside the "after" capture: a screenshot where one exists, otherwise the report or script output to re-run. Screenshot paths are under `design-audit/evidence/`; the "after" set uses the same file names under `evidence/after/`.
 
+**Done November 14, 2026:** the desktop review against the "after" set, with the section 8 measurements, is in `evidence/after/review-checklist.md` (49 pass, 34 partly, 1 fail, 12 with the owner, 2 phone-only).
+
 | ID | Sev | Tag | What "fixed" looks like | Compare against |
 | --- | --- | --- | --- | --- |
 | D-001 | P0 | fix | A test account that has chosen a brand name can be deleted from the Settings dialog; a forced failure says what happens next. | `screens/settings__delete-account-dialog-free__1440.png` |

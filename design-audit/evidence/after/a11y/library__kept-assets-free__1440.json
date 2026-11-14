@@ -1,0 +1,868 @@
+{
+ "slug": "library__kept-assets-free",
+ "account": "audit-free",
+ "route": "/assets",
+ "width": 1440,
+ "doc": {
+  "url": "/assets",
+  "title": "Library · Embel",
+  "lang": "en",
+  "viewportMeta": "width=device-width, initial-scale=1",
+  "h1": [
+   "Library"
+  ],
+  "headings": [
+   "H1 Library",
+   "H2 Orchard Lane Cider 1",
+   "H3 Direction board"
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 1,
+   "header": 2,
+   "footer": 0,
+   "aside": 0,
+   "form": 0,
+   "[role=\"search\"]": 0,
+   "section[aria-label], section[aria-labelledby]": 2
+  },
+  "navLabels": [
+   "Main navigation"
+  ],
+  "skipLink": [
+   {
+    "text": "Skip to content",
+    "href": "#main-content",
+    "targetExists": true
+   }
+  ],
+  "liveRegions": 2,
+  "dialogsOpen": [],
+  "overflowX": 0,
+  "bodyText": "Skip to content Embel Home Projects Library A Library Everything Embel has made for you, by brand. In your brands Everything made Search your library Project All projects Orchard Lane Cider Mosswood Candles Tidewater Kayak Tours Quill Fromagerie Bérénice Côté Northern Lights Community Physiotherapy ",
+  "focusableCount": 12
+ },
+ "contrast": [
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p.e-muted «Everything Embel has made for you, by brand.» in div.e-container > header.e-page-header > div.e-stack"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 500,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "button#assets-tab-all_generations.e-tab \"Everything made\" «Everything made» in section.library > div.assets-toolbar > div.e-tabs"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 12,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p.e-card__meta «PNG · Nov 13» in div.assets-grid > article.e-card > div.e-card__body"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "placeholder": true,
+   "disabled": false,
+   "count": 1,
+   "samples": [
+    "input#_r_0_[search] placeholder «Search your library»"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 14,
+   "weight": 500,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "button.e-avatar[Account menu] \"A\" «A» in div.e-nav > div.e-nav__account > span.e-anchor"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 24,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 3,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "h1#assets-heading.text-title-lg \"Library\" «Library» in div.e-container > header.e-page-header > div.e-stack"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 2,
+   "samples": [
+    "button#assets-tab-my_selection.e-tab \"In your brands\" «In your brands» in section.library > div.assets-toolbar > div.e-tabs",
+    "a.e-link.e-link--standalone \"Open project\" «Open project» in div.assets-results-body > section.library-brand > div.library-brand__head"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 20,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "h2#library-brand-441a29a9-19b4-4c1e-bb00-1f145c134957.library-brand__title \"Orchard Lane Cider 1\" «Orchard Lane Cider» in div.assets-results-body > section.library-brand > div.library-brand__head"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.skip-link \"Skip to content\" «Skip to content» in div.app-shell"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 600,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.e-nav__label «Embel» in div.e-nav > nav.app-nav > a.e-nav__brand"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 2,
+   "samples": [
+    "span.e-nav__label «Home» in ul.app-nav > li > a.e-nav__item",
+    "span.e-nav__label «Projects» in ul.app-nav > li > a.e-nav__item"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.e-nav__label «Library» in ul.app-nav > li > a.e-nav__item"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 2,
+   "samples": [
+    "span.e-badge «1» in section.library-brand > div.library-brand__head > h2.library-brand__title",
+    "span.e-badge «Chosen» in article.e-card > div.assets-card__media > span.assets-card__chosen"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "button.e-card__link.assets-open \"Direction board\" «Direction board» in article.e-card > div.e-card__body > h3.e-card__title"
+   ],
+   "pass": true
+  }
+ ],
+ "edges": [
+  {
+   "kind": "field",
+   "fill": "#ffffff",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": null,
+   "best": 1,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "input#_r_0_[search]"
+   ]
+  },
+  {
+   "kind": "field",
+   "fill": "#ffffff",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": null,
+   "best": 1,
+   "pass": false,
+   "count": 2,
+   "samples": [
+    "select#_r_1_",
+    "select#_r_2_"
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#f1f0ee",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 1.13,
+   "borderRatio": null,
+   "best": 1.13,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "button.e-avatar[Account menu] \"A\""
+   ]
+  }
+ ],
+ "targets": {
+  "total": 12,
+  "under44": 6,
+  "under24": []
+ },
+ "fields": [
+  {
+   "field": "input#_r_0_[search]",
+   "type": "search",
+   "label": "Search your library",
+   "autocomplete": "off",
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 16
+  },
+  {
+   "field": "select#_r_1_",
+   "type": "select",
+   "label": "Project",
+   "autocomplete": null,
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 16
+  },
+  {
+   "field": "select#_r_2_",
+   "type": "select",
+   "label": "File type",
+   "autocomplete": null,
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 16
+  }
+ ],
+ "clipped": [],
+ "axe": {
+  "violations": [],
+  "incomplete": [
+   {
+    "id": "aria-valid-attr-value",
+    "count": 1,
+    "help": "ARIA attributes must conform to valid values"
+   }
+  ]
+ },
+ "walk": [
+  {
+   "el": "a.skip-link \"Skip to content\"",
+   "where": "div.app-shell",
+   "x": 8,
+   "y": 8,
+   "w": 130,
+   "h": 45,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.skip-link \"Skip to content\"@8,8",
+   "crop": "focus/library__kept-assets-free__1440__001.png"
+  },
+  {
+   "el": "a.e-nav__brand[Embel home] \"Embel\"",
+   "where": "header.e-nav-wrap > div.e-nav > nav.app-nav",
+   "x": 521,
+   "y": 22,
+   "w": 80,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__brand[Embel home] \"Embel\"@521,22"
+  },
+  {
+   "el": "a.e-nav__item \"Home\"",
+   "where": "nav.app-nav > ul.app-nav > li",
+   "x": 626,
+   "y": 22,
+   "w": 70,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__item \"Home\"@626,22"
+  },
+  {
+   "el": "a.e-nav__item \"Projects\"",
+   "where": "nav.app-nav > ul.app-nav > li",
+   "x": 700,
+   "y": 22,
+   "w": 86,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__item \"Projects\"@700,22"
+  },
+  {
+   "el": "a.e-nav__item \"Library\"",
+   "where": "nav.app-nav > ul.app-nav > li",
+   "x": 791,
+   "y": 22,
+   "w": 77,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__item \"Library\"@791,22"
+  },
+  {
+   "el": "button.e-avatar[Account menu] \"A\"",
+   "where": "div.e-nav > div.e-nav__account > span.e-anchor",
+   "x": 891,
+   "y": 28,
+   "w": 32,
+   "h": 32,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-avatar[Account menu] \"A\"@891,28"
+  },
+  {
+   "el": "button#assets-tab-my_selection.e-tab \"In your brands\"",
+   "where": "section.library > div.assets-toolbar > div.e-tabs",
+   "x": 192,
+   "y": 185,
+   "w": 93,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset -2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button#assets-tab-my_selection.e-tab \"In your brands\"@192,185",
+   "crop": "focus/library__kept-assets-free__1440__007.png"
+  },
+  {
+   "el": "input#_r_0_[search]",
+   "where": "div.assets-filters > div.e-field > div.e-input",
+   "x": 229,
+   "y": 271,
+   "w": 606,
+   "h": 24,
+   "focusVisible": true,
+   "indicator": "on ancestor: outline-style, outline-width, box-shadow",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "input#_r_0_[search]@229,271",
+   "crop": "focus/library__kept-assets-free__1440__008.png"
+  },
+  {
+   "el": "select#_r_1_",
+   "where": "div.assets-filters > div.e-field > div.e-input",
+   "x": 869,
+   "y": 271,
+   "w": 170,
+   "h": 24,
+   "focusVisible": true,
+   "indicator": "on ancestor: outline-style, outline-width, box-shadow",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "select#_r_1_@869,271"
+  },
+  {
+   "el": "select#_r_2_",
+   "where": "div.assets-filters > div.e-field > div.e-input",
+   "x": 1069,
+   "y": 271,
+   "w": 170,
+   "h": 24,
+   "focusVisible": true,
+   "indicator": "on ancestor: outline-style, outline-width, box-shadow",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "select#_r_2_@1069,271"
+  },
+  {
+   "el": "a.e-link.e-link--standalone \"Open project\"",
+   "where": "div.assets-results-body > section.library-brand > div.library-brand__head",
+   "x": 1143,
+   "y": 339,
+   "w": 105,
+   "h": 24,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-link.e-link--standalone \"Open project\"@1143,339"
+  },
+  {
+   "el": "button.e-card__link.assets-open \"Direction board\"",
+   "where": "article.e-card > div.e-card__body > h3.e-card__title",
+   "x": 209,
+   "y": 732,
+   "w": 113,
+   "h": 24,
+   "focusVisible": true,
+   "indicator": "none",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-card__link.assets-open \"Direction board\"@209,732",
+   "crop": "focus/library__kept-assets-free__1440__012.png"
+  }
+ ],
+ "walkTruncated": false,
+ "hover": [
+  {
+   "kind": "a.skip-link",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.e-nav__brand",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 16,
+    "weight": 600
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 16,
+    "weight": 600
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.e-nav__item",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "button.e-avatar",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#e4e3df",
+    "ratio": 13.69,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "main.",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "h1.text-title-lg",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 24,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 24,
+    "weight": 500
+   },
+   "changes": false
+  },
+  {
+   "kind": "button.e-tab",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": false
+  },
+  {
+   "kind": "select.",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 16,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 16,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.e-link.e-link--standalone",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#3a3a37",
+    "bg": "#f7f7f5",
+    "ratio": 10.63,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "button.e-card__link.assets-open",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 16,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 16,
+    "weight": 500
+   },
+   "changes": false
+  }
+ ],
+ "reflow": {
+  "320": {
+   "viewport": "320x640",
+   "overflowX": 0,
+   "bodyScrollWidth": 320,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    },
+    {
+     "layer": "header.e-nav-wrap",
+     "top": 16,
+     "height": 56,
+     "width": 320,
+     "shareOfViewport": 9
+    }
+   ],
+   "minFontSize": 12,
+   "screenshot": "reflow/library__kept-assets-free__320.png"
+  },
+  "zoom200": {
+   "viewport": "720x450",
+   "overflowX": 0,
+   "bodyScrollWidth": 720,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    },
+    {
+     "layer": "header.e-nav-wrap",
+     "top": 16,
+     "height": 56,
+     "width": 720,
+     "shareOfViewport": 12
+    }
+   ],
+   "minFontSize": 12,
+   "screenshot": "reflow/library__kept-assets-free__zoom200.png"
+  }
+ }
+}

@@ -1,0 +1,808 @@
+{
+ "slug": "plans__signed-out",
+ "account": null,
+ "route": "/plans",
+ "width": 1440,
+ "doc": {
+  "url": "/plans",
+  "title": "Plans · Embel",
+  "lang": "en",
+  "viewportMeta": "width=device-width, initial-scale=1",
+  "h1": [
+   "Plans"
+  ],
+  "headings": [
+   "H1 Plans",
+   "H2 Free",
+   "H2 Pro",
+   "H2 Studio"
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 1,
+   "header": 5,
+   "footer": 0,
+   "aside": 0,
+   "form": 0,
+   "[role=\"search\"]": 0,
+   "section[aria-label], section[aria-labelledby]": 1
+  },
+  "navLabels": [
+   "Main navigation"
+  ],
+  "skipLink": [
+   {
+    "text": "Skip to content",
+    "href": "#main-content",
+    "targetExists": true
+   }
+  ],
+  "liveRegions": 1,
+  "dialogsOpen": [],
+  "overflowX": 0,
+  "bodyText": "Skip to content Embel Home Projects Library Sign in Create account Plans Every plan includes the full branding journey. Paid plans add more credits each month. Free $0 USD a month About 1 complete brand a month 30 credits every month Try the full branding journey, with credits to spare for a second ",
+  "focusableCount": 11
+ },
+ "contrast": [
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p «Every plan includes the full branding journey. Pai» in main > div.e-container > header.plans-heading"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 500,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "th «Step» in table.e-table > thead > tr",
+    "th «What you get» in table.e-table > thead > tr",
+    "th.is-num «Credits» in table.e-table > thead > tr"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p.plans-footnote «Prices are in US dollars, billed monthly. Taxes ar» in div.workspace-main > main > div.e-container"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "small «USD a month» in ul.plans-grid > li.e-card > p.e-plan__price",
+    "small «USD a month» in ul.plans-grid > li.e-card > p.e-plan__price",
+    "small «USD a month» in ul.plans-grid > li.e-card > p.e-plan__price"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 24,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 3,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "h1 \"Plans\" «Plans» in main > div.e-container > header.plans-heading"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 13,
+   "weight": 400,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 44,
+   "samples": [
+    "p.plans-sign-in «Already have an account?» in div.workspace-main > main > div.e-container",
+    "a.e-link \"Sign in\" «Sign in» in main > div.e-container > p.plans-sign-in",
+    "p.plans-sign-in «to see your plan and credits.» in div.workspace-main > main > div.e-container"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 16,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "caption#plans-prices-title «What a credit buys» in div.e-container > section.plans-prices > table.e-table"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.skip-link \"Skip to content\" «Skip to content» in div.app-shell"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 600,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.e-nav__label «Embel» in div.e-nav > nav.app-nav > a.e-nav__brand"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 6,
+   "samples": [
+    "span.e-nav__label «Home» in ul.app-nav > li > a.e-nav__item",
+    "span.e-nav__label «Projects» in ul.app-nav > li > a.e-nav__item",
+    "span.e-nav__label «Library» in ul.app-nav > li > a.e-nav__item"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 2,
+   "samples": [
+    "a.e-button.e-button--primary.e-button--sm \"Create account\" «Create account» in div.e-nav > div.e-nav__account > div.app-nav",
+    "a.e-button.e-button--primary.e-button--block \"Create account to choose Pro\" «Create account to choose Pro» in ul.plans-grid > li.e-card > div.plans-card__actions"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 18,
+   "samples": [
+    "h2 \"Free\" «Free» in ul.plans-grid > li.e-card > header.plans-card__head",
+    "p.plans-card__outcome «About» in div.e-container > ul.plans-grid > li.e-card",
+    "p.plans-card__outcome «1» in div.e-container > ul.plans-grid > li.e-card"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 24,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 3,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "p.e-plan__price «$0» in div.e-container > ul.plans-grid > li.e-card",
+    "p.e-plan__price «$7.99» in div.e-container > ul.plans-grid > li.e-card",
+    "p.e-plan__price «$27.99» in div.e-container > ul.plans-grid > li.e-card"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 600,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "strong «30» in ul.e-list-check > li > span",
+    "strong «150» in ul.e-list-check > li > span",
+    "strong «500» in ul.e-list-check > li > span"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 6,
+   "samples": [
+    "span «credits every month» in li.e-card > ul.e-list-check > li",
+    "span «Try the full branding journey, with credits to spa» in li.e-card > ul.e-list-check > li",
+    "span «credits every month» in li.e-card > ul.e-list-check > li"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.e-badge «Recommended» in ul.plans-grid > li.e-card > header.plans-card__head"
+   ],
+   "pass": true
+  }
+ ],
+ "edges": [],
+ "targets": {
+  "total": 11,
+  "under44": 2,
+  "under24": [
+   {
+    "target": "a.e-link \"Sign in\"",
+    "where": "main > div.e-container > p.plans-sign-in",
+    "width": 40.9,
+    "height": 17,
+    "inline": true,
+    "crowdedBy": null,
+    "fails258": false
+   }
+  ]
+ },
+ "fields": [],
+ "clipped": [],
+ "axe": {
+  "violations": [],
+  "incomplete": []
+ },
+ "walk": [
+  {
+   "el": "a.skip-link \"Skip to content\"",
+   "where": "div.app-shell",
+   "x": 8,
+   "y": 8,
+   "w": 130,
+   "h": 45,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.skip-link \"Skip to content\"@8,8",
+   "crop": "focus/plans__signed-out__1440__001.png"
+  },
+  {
+   "el": "a.e-nav__brand[Embel home] \"Embel\"",
+   "where": "header.e-nav-wrap > div.e-nav > nav.app-nav",
+   "x": 440,
+   "y": 22,
+   "w": 80,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__brand[Embel home] \"Embel\"@440,22"
+  },
+  {
+   "el": "a.e-nav__item \"Home\"",
+   "where": "nav.app-nav > ul.app-nav > li",
+   "x": 545,
+   "y": 22,
+   "w": 70,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__item \"Home\"@545,22"
+  },
+  {
+   "el": "a.e-nav__item \"Projects\"",
+   "where": "nav.app-nav > ul.app-nav > li",
+   "x": 619,
+   "y": 22,
+   "w": 86,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__item \"Projects\"@619,22"
+  },
+  {
+   "el": "a.e-nav__item \"Library\"",
+   "where": "nav.app-nav > ul.app-nav > li",
+   "x": 709,
+   "y": 22,
+   "w": 77,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__item \"Library\"@709,22"
+  },
+  {
+   "el": "a.e-nav__item.e-nav__item--keep-label \"Sign in\"",
+   "where": "div.e-nav > div.e-nav__account > div.app-nav",
+   "x": 803,
+   "y": 22,
+   "w": 77,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__item.e-nav__item--keep-label \"Sign in\"@803,22"
+  },
+  {
+   "el": "a.e-button.e-button--primary.e-button--sm \"Create account\"",
+   "where": "div.e-nav > div.e-nav__account > div.app-nav",
+   "x": 884,
+   "y": 26,
+   "w": 126,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-button.e-button--primary.e-button--sm \"Create account\"@884,26"
+  },
+  {
+   "el": "a.e-button.e-button--secondary.e-button--block \"Create free account\"",
+   "where": "ul.plans-grid > li.e-card > div.plans-card__actions",
+   "x": 217,
+   "y": 422,
+   "w": 286,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-button.e-button--secondary.e-button--block \"Create free account\"@217,422"
+  },
+  {
+   "el": "a.e-button.e-button--primary.e-button--block \"Create account to choose Pro\"",
+   "where": "ul.plans-grid > li.e-card > div.plans-card__actions",
+   "x": 577,
+   "y": 422,
+   "w": 286,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-button.e-button--primary.e-button--block \"Create account to choose Pro\"@577,422"
+  },
+  {
+   "el": "a.e-button.e-button--secondary.e-button--block \"Create account to choose Studio\"",
+   "where": "ul.plans-grid > li.e-card > div.plans-card__actions",
+   "x": 937,
+   "y": 422,
+   "w": 286,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-button.e-button--secondary.e-button--block \"Create account to choose Studio\"@937,422"
+  },
+  {
+   "el": "a.e-link \"Sign in\"",
+   "where": "main > div.e-container > p.plans-sign-in",
+   "x": 348,
+   "y": 524,
+   "w": 41,
+   "h": 17,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-link \"Sign in\"@348,524"
+  }
+ ],
+ "walkTruncated": false,
+ "hover": [
+  {
+   "kind": "a.skip-link",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.e-nav__brand",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 16,
+    "weight": 600
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 16,
+    "weight": 600
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.e-nav__item",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.e-nav__item.e-nav__item--keep-label",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.e-button.e-button--primary.e-button--sm",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#3a3a37",
+    "ratio": 11.41,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "main.",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.e-button.e-button--secondary.e-button--block",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.e-button.e-button--primary.e-button--block",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#3a3a37",
+    "ratio": 11.41,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.e-link",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#3a3a37",
+    "bg": "#f7f7f5",
+    "ratio": 10.63,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "changes": true
+  }
+ ],
+ "reflow": {
+  "320": {
+   "viewport": "320x640",
+   "overflowX": 0,
+   "bodyScrollWidth": 320,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    },
+    {
+     "layer": "header.e-nav-wrap",
+     "top": 16,
+     "height": 56,
+     "width": 320,
+     "shareOfViewport": 9
+    }
+   ],
+   "minFontSize": 13,
+   "screenshot": "reflow/plans__signed-out__320.png"
+  },
+  "zoom200": {
+   "viewport": "720x450",
+   "overflowX": 0,
+   "bodyScrollWidth": 720,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    },
+    {
+     "layer": "header.e-nav-wrap",
+     "top": 16,
+     "height": 56,
+     "width": 720,
+     "shareOfViewport": 12
+    }
+   ],
+   "minFontSize": 13,
+   "screenshot": "reflow/plans__signed-out__zoom200.png"
+  }
+ }
+}

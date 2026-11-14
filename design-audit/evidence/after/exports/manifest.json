@@ -1,0 +1,283 @@
+{
+  "brand": "kestrel",
+  "account": "audit-pro",
+  "downloads": [
+    {
+      "button": "Download brand kit",
+      "file": "kestrel/downloads/kestrel-analytics-brand-assets.zip",
+      "bytes": 3193251
+    },
+    {
+      "button": "Download PNG: brand board",
+      "file": "kestrel/downloads/brand-board.png",
+      "bytes": 720676
+    },
+    {
+      "button": "Download guidelines",
+      "file": "kestrel/downloads/brand-guide.html",
+      "bytes": 543263
+    },
+    {
+      "button": "Download CSS",
+      "file": "kestrel/downloads/design-tokens.css",
+      "bytes": 814
+    },
+    {
+      "button": "Download JSON",
+      "file": "kestrel/downloads/design-tokens.json",
+      "bytes": 1487
+    }
+  ],
+  "kitFiles": [
+    {
+      "name": "brand-board.png",
+      "bytes": 720676
+    },
+    {
+      "name": "logo/logo-original.png",
+      "bytes": 59988
+    },
+    {
+      "name": "direction/selected-direction.png",
+      "bytes": 1311254
+    },
+    {
+      "name": "social/profile.png",
+      "bytes": 69012
+    },
+    {
+      "name": "social/post-square.png",
+      "bytes": 76662
+    },
+    {
+      "name": "social/post-square.svg",
+      "bytes": 137822
+    },
+    {
+      "name": "social/post-portrait.png",
+      "bytes": 83012
+    },
+    {
+      "name": "social/post-portrait.svg",
+      "bytes": 138098
+    },
+    {
+      "name": "social/banner-wide.png",
+      "bytes": 46879
+    },
+    {
+      "name": "social/banner-wide.svg",
+      "bytes": 138709
+    },
+    {
+      "name": "social/banner-cover.png",
+      "bytes": 39992
+    },
+    {
+      "name": "social/banner-cover.svg",
+      "bytes": 138653
+    },
+    {
+      "name": "logo/logo-transparent.png",
+      "bytes": 112951
+    },
+    {
+      "name": "logo/logo-reversed.png",
+      "bytes": 100390
+    },
+    {
+      "name": "guides/colors.json",
+      "bytes": 582
+    },
+    {
+      "name": "guides/colors.css",
+      "bytes": 121
+    },
+    {
+      "name": "guides/brand-guide.html",
+      "bytes": 543263
+    },
+    {
+      "name": "README.txt",
+      "bytes": 905
+    },
+    {
+      "name": "design-system/design-tokens.css",
+      "bytes": 814
+    },
+    {
+      "name": "design-system/design-tokens.json",
+      "bytes": 1487
+    }
+  ],
+  "rendered": [
+    {
+      "file": "brand-board.png",
+      "rendered": "rendered/kestrel__brand-board.png.png",
+      "bytes": 720676,
+      "type": "png",
+      "pixels": "1600x2200"
+    },
+    {
+      "file": "logo/logo-original.png",
+      "rendered": "rendered/kestrel__logo--logo-original.png.png",
+      "bytes": 59988,
+      "type": "png",
+      "pixels": "1024x1024"
+    },
+    {
+      "file": "direction/selected-direction.png",
+      "rendered": "rendered/kestrel__direction--selected-direction.png.png",
+      "bytes": 1311254,
+      "type": "png",
+      "pixels": "1024x1024"
+    },
+    {
+      "file": "social/profile.png",
+      "rendered": "rendered/kestrel__social--profile.png.png",
+      "bytes": 69012,
+      "type": "png",
+      "pixels": "1024x1024"
+    },
+    {
+      "file": "social/post-square.png",
+      "rendered": "rendered/kestrel__social--post-square.png.png",
+      "bytes": 76662,
+      "type": "png",
+      "pixels": "1080x1080"
+    },
+    {
+      "file": "social/post-square.svg",
+      "rendered": "rendered/kestrel__social--post-square.svg.png",
+      "bytes": 137822,
+      "type": "svg",
+      "pixels": null
+    },
+    {
+      "file": "social/post-portrait.png",
+      "rendered": "rendered/kestrel__social--post-portrait.png.png",
+      "bytes": 83012,
+      "type": "png",
+      "pixels": "1080x1350"
+    },
+    {
+      "file": "social/post-portrait.svg",
+      "rendered": "rendered/kestrel__social--post-portrait.svg.png",
+      "bytes": 138098,
+      "type": "svg",
+      "pixels": null
+    },
+    {
+      "file": "social/banner-wide.png",
+      "rendered": "rendered/kestrel__social--banner-wide.png.png",
+      "bytes": 46879,
+      "type": "png",
+      "pixels": "1500x500"
+    },
+    {
+      "file": "social/banner-wide.svg",
+      "rendered": "rendered/kestrel__social--banner-wide.svg.png",
+      "bytes": 138709,
+      "type": "svg",
+      "pixels": null
+    },
+    {
+      "file": "social/banner-cover.png",
+      "rendered": "rendered/kestrel__social--banner-cover.png.png",
+      "bytes": 39992,
+      "type": "png",
+      "pixels": "1584x396"
+    },
+    {
+      "file": "social/banner-cover.svg",
+      "rendered": "rendered/kestrel__social--banner-cover.svg.png",
+      "bytes": 138653,
+      "type": "svg",
+      "pixels": null
+    },
+    {
+      "file": "logo/logo-transparent.png",
+      "rendered": "rendered/kestrel__logo--logo-transparent.png.png",
+      "bytes": 112951,
+      "type": "png",
+      "pixels": "1024x1024"
+    },
+    {
+      "file": "logo/logo-reversed.png",
+      "rendered": "rendered/kestrel__logo--logo-reversed.png.png",
+      "bytes": 100390,
+      "type": "png",
+      "pixels": "1024x1024"
+    },
+    {
+      "file": "guides/colors.json",
+      "rendered": "rendered/kestrel__guides--colors.json.png",
+      "bytes": 582,
+      "type": "json",
+      "pixels": null
+    },
+    {
+      "file": "guides/colors.css",
+      "rendered": "rendered/kestrel__guides--colors.css.png",
+      "bytes": 121,
+      "type": "css",
+      "pixels": null
+    },
+    {
+      "file": "guides/brand-guide.html",
+      "rendered": "rendered/kestrel__guides--brand-guide.html.png",
+      "bytes": 543263,
+      "type": "html",
+      "pixels": null
+    },
+    {
+      "file": "README.txt",
+      "rendered": "rendered/kestrel__README.txt.png",
+      "bytes": 905,
+      "type": "txt",
+      "pixels": null
+    },
+    {
+      "file": "design-system/design-tokens.css",
+      "rendered": "rendered/kestrel__design-system--design-tokens.css.png",
+      "bytes": 814,
+      "type": "css",
+      "pixels": null
+    },
+    {
+      "file": "design-system/design-tokens.json",
+      "rendered": "rendered/kestrel__design-system--design-tokens.json.png",
+      "bytes": 1487,
+      "type": "json",
+      "pixels": null
+    },
+    {
+      "file": "downloads/brand-board.png",
+      "rendered": "rendered/kestrel__downloads--brand-board.png.png",
+      "bytes": 720676,
+      "type": "png",
+      "pixels": "1600x2200"
+    },
+    {
+      "file": "downloads/brand-guide.html",
+      "rendered": "rendered/kestrel__downloads--brand-guide.html.png",
+      "bytes": 543263,
+      "type": "html",
+      "pixels": null
+    },
+    {
+      "file": "downloads/design-tokens.css",
+      "rendered": "rendered/kestrel__downloads--design-tokens.css.png",
+      "bytes": 814,
+      "type": "css",
+      "pixels": null
+    },
+    {
+      "file": "downloads/design-tokens.json",
+      "rendered": "rendered/kestrel__downloads--design-tokens.json.png",
+      "bytes": 1487,
+      "type": "json",
+      "pixels": null
+    }
+  ]
+}

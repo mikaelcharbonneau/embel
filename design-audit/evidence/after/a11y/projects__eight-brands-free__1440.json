@@ -1,0 +1,1215 @@
+{
+ "slug": "projects__eight-brands-free",
+ "account": "audit-free",
+ "route": "/brands",
+ "width": 1440,
+ "doc": {
+  "url": "/brands",
+  "title": "Projects · Embel",
+  "lang": "en",
+  "viewportMeta": "width=device-width, initial-scale=1",
+  "h1": [
+   "Projects"
+  ],
+  "headings": [
+   "H1 Projects",
+   "H2 Orchard Lane Cider",
+   "H2 Mosswood Candles",
+   "H2 Tidewater Kayak Tours",
+   "H2 Quill",
+   "H2 Fromagerie Bérénice Côté",
+   "H2 Northern Lights Community Physiotherapy and Sports Rehabilit",
+   "H2 Untitled brand",
+   "H2 Untitled brand"
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 1,
+   "header": 2,
+   "footer": 0,
+   "aside": 0,
+   "form": 0,
+   "[role=\"search\"]": 0,
+   "section[aria-label], section[aria-labelledby]": 1
+  },
+  "navLabels": [
+   "Main navigation"
+  ],
+  "skipLink": [
+   {
+    "text": "Skip to content",
+    "href": "#main-content",
+    "targetExists": true
+   }
+  ],
+  "liveRegions": 1,
+  "dialogsOpen": [],
+  "overflowX": 0,
+  "bodyText": "Skip to content Embel Home Projects Library A Projects Every idea, in its own world. Deleted projects New project Search projects Sort Orchard Lane Cider Brand kit ready Created 15 hours ago Mosswood Candles Compare 3 directions Created 15 hours ago Tidewater Kayak Tours Tidewater Kayak Tours Choose",
+  "focusableCount": 26
+ },
+ "contrast": [
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p.e-muted «Every idea, in its own world.» in div.e-container > header.e-page-header > div.e-stack"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 8,
+   "samples": [
+    "span#_r_2_.e-card__next.project-card-module__yo1VFG__sentence «Brand kit ready» in article.e-card > div.e-card__body > div.project-card-module__yo1VFG__progress",
+    "span#_r_3_.e-card__next.project-card-module__yo1VFG__sentence «Compare 3 directions» in article.e-card > div.e-card__body > div.project-card-module__yo1VFG__progress",
+    "span#_r_4_.e-card__next.project-card-module__yo1VFG__sentence «Choose a logo» in article.e-card > div.e-card__body > div.project-card-module__yo1VFG__progress"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 12,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 16,
+   "samples": [
+    "time.e-card__meta «Created» in section.e-grid-cards > article.e-card > div.e-card__body",
+    "time.e-card__meta «15 hours ago» in section.e-grid-cards > article.e-card > div.e-card__body",
+    "time.e-card__meta «Created» in section.e-grid-cards > article.e-card > div.e-card__body"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "placeholder": true,
+   "disabled": false,
+   "count": 1,
+   "samples": [
+    "input#_r_0_[search] placeholder «Search projects»"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 14,
+   "weight": 500,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "button.e-avatar[Account menu] \"A\" «A» in div.e-nav > div.e-nav__account > span.e-anchor"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 20,
+   "weight": 500,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 6,
+   "samples": [
+    "span.project-card-module__yo1VFG__name «Tidewater Kayak Tours» in section.e-grid-cards > article.e-card > div.e-card__media",
+    "span.project-card-module__yo1VFG__name «Quill» in section.e-grid-cards > article.e-card > div.e-card__media",
+    "span.project-card-module__yo1VFG__name «Fromagerie Bérénice Côté» in section.e-grid-cards > article.e-card > div.e-card__media"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 24,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 3,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "h1.text-title-lg \"Projects\" «Projects» in div.e-container > header.e-page-header > div.e-stack"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.e-button.e-button--quiet \"Deleted projects\" «Deleted projects» in div.e-container > header.e-page-header > div.e-cluster"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.skip-link \"Skip to content\" «Skip to content» in div.app-shell"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 600,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.e-nav__label «Embel» in div.e-nav > nav.app-nav > a.e-nav__brand"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "span.e-nav__label «Home» in ul.app-nav > li > a.e-nav__item",
+    "span.e-nav__label «Library» in ul.app-nav > li > a.e-nav__item",
+    "button.e-button.e-button--secondary[Sort projects] \"Sort\" «Sort» in div.e-container > div.projects-toolbar > span.e-anchor"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 2,
+   "samples": [
+    "span.e-nav__label «Projects» in ul.app-nav > li > a.e-nav__item",
+    "a.e-button.e-button--primary \"New project\" «New project» in div.e-container > header.e-page-header > div.e-cluster"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 8,
+   "samples": [
+    "a.e-card__link \"Orchard Lane Cider\" «Orchard Lane Cider» in div.e-card__body > div.project-card-module__yo1VFG__row > h2.e-card__title",
+    "a.e-card__link \"Mosswood Candles\" «Mosswood Candles» in div.e-card__body > div.project-card-module__yo1VFG__row > h2.e-card__title",
+    "a.e-card__link \"Tidewater Kayak Tours\" «Tidewater Kayak Tours» in div.e-card__body > div.project-card-module__yo1VFG__row > h2.e-card__title"
+   ],
+   "pass": true
+  }
+ ],
+ "edges": [
+  {
+   "kind": "field",
+   "fill": "#ffffff",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": null,
+   "best": 1,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "input#_r_0_[search]"
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#ffffff",
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": 1,
+   "best": 1,
+   "pass": false,
+   "count": 8,
+   "samples": [
+    "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Project options for Orchard Lane Cider]",
+    "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Project options for Mosswood Candles]",
+    "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Project options for Tidewater Kayak Tour]"
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#f1f0ee",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 1.13,
+   "borderRatio": null,
+   "best": 1.13,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "button.e-avatar[Account menu] \"A\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#f7f7f5",
+   "fillRatio": 1.07,
+   "borderRatio": 1.19,
+   "best": 1.19,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "button.e-button.e-button--secondary[Sort projects] \"Sort\""
+   ]
+  }
+ ],
+ "targets": {
+  "total": 26,
+  "under44": 17,
+  "under24": [
+   {
+    "target": "a.e-card__link \"Orchard Lane Cider\"",
+    "where": "div.e-card__body > div.project-card-module__yo1VFG__row > h2.e-card__title",
+    "width": 142.2,
+    "height": 21,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "a.e-card__link \"Mosswood Candles\"",
+    "where": "div.e-card__body > div.project-card-module__yo1VFG__row > h2.e-card__title",
+    "width": 143.5,
+    "height": 21,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "a.e-card__link \"Tidewater Kayak Tours\"",
+    "where": "div.e-card__body > div.project-card-module__yo1VFG__row > h2.e-card__title",
+    "width": 164.9,
+    "height": 21,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "a.e-card__link \"Quill\"",
+    "where": "div.e-card__body > div.project-card-module__yo1VFG__row > h2.e-card__title",
+    "width": 33.1,
+    "height": 21,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "a.e-card__link \"Fromagerie Bérénice Côté\"",
+    "where": "div.e-card__body > div.project-card-module__yo1VFG__row > h2.e-card__title",
+    "width": 190.3,
+    "height": 21,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "a.e-card__link \"Untitled brand\"",
+    "where": "div.e-card__body > div.project-card-module__yo1VFG__row > h2.e-card__title",
+    "width": 104.4,
+    "height": 21,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "a.e-card__link \"Untitled brand\"",
+    "where": "div.e-card__body > div.project-card-module__yo1VFG__row > h2.e-card__title",
+    "width": 104.4,
+    "height": 21,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   }
+  ]
+ },
+ "fields": [
+  {
+   "field": "input#_r_0_[search]",
+   "type": "search",
+   "label": "Search projects",
+   "autocomplete": "off",
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 16
+  }
+ ],
+ "clipped": [],
+ "axe": {
+  "violations": [],
+  "incomplete": [
+   {
+    "id": "aria-valid-attr-value",
+    "count": 10,
+    "help": "ARIA attributes must conform to valid values"
+   },
+   {
+    "id": "color-contrast",
+    "count": 1,
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+   }
+  ]
+ },
+ "walk": [
+  {
+   "el": "a.skip-link \"Skip to content\"",
+   "where": "div.app-shell",
+   "x": 8,
+   "y": 8,
+   "w": 130,
+   "h": 45,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.skip-link \"Skip to content\"@8,8",
+   "crop": "focus/projects__eight-brands-free__1440__001.png"
+  },
+  {
+   "el": "a.e-nav__brand[Embel home] \"Embel\"",
+   "where": "header.e-nav-wrap > div.e-nav > nav.app-nav",
+   "x": 521,
+   "y": 22,
+   "w": 80,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__brand[Embel home] \"Embel\"@521,22"
+  },
+  {
+   "el": "a.e-nav__item \"Home\"",
+   "where": "nav.app-nav > ul.app-nav > li",
+   "x": 626,
+   "y": 22,
+   "w": 70,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__item \"Home\"@626,22"
+  },
+  {
+   "el": "a.e-nav__item \"Projects\"",
+   "where": "nav.app-nav > ul.app-nav > li",
+   "x": 700,
+   "y": 22,
+   "w": 86,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__item \"Projects\"@700,22"
+  },
+  {
+   "el": "a.e-nav__item \"Library\"",
+   "where": "nav.app-nav > ul.app-nav > li",
+   "x": 791,
+   "y": 22,
+   "w": 77,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__item \"Library\"@791,22"
+  },
+  {
+   "el": "button.e-avatar[Account menu] \"A\"",
+   "where": "div.e-nav > div.e-nav__account > span.e-anchor",
+   "x": 891,
+   "y": 28,
+   "w": 32,
+   "h": 32,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-avatar[Account menu] \"A\"@891,28"
+  },
+  {
+   "el": "a.e-button.e-button--quiet \"Deleted projects\"",
+   "where": "div.e-container > header.e-page-header > div.e-cluster",
+   "x": 952,
+   "y": 109,
+   "w": 142,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-button.e-button--quiet \"Deleted projects\"@952,109"
+  },
+  {
+   "el": "a.e-button.e-button--primary \"New project\"",
+   "where": "div.e-container > header.e-page-header > div.e-cluster",
+   "x": 1111,
+   "y": 109,
+   "w": 137,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-button.e-button--primary \"New project\"@1111,109"
+  },
+  {
+   "el": "input#_r_0_[search]",
+   "where": "div.projects-toolbar > div.e-field > div.e-input",
+   "x": 229,
+   "y": 195,
+   "w": 912,
+   "h": 24,
+   "focusVisible": true,
+   "indicator": "on ancestor: outline-style, outline-width, box-shadow",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "input#_r_0_[search]@229,195",
+   "crop": "focus/projects__eight-brands-free__1440__009.png"
+  },
+  {
+   "el": "button.e-button.e-button--secondary[Sort projects] \"Sort\"",
+   "where": "div.e-container > div.projects-toolbar > span.e-anchor",
+   "x": 1162,
+   "y": 185,
+   "w": 86,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-button.e-button--secondary[Sort projects] \"Sort\"@1162,185"
+  },
+  {
+   "el": "a.e-card__link \"Orchard Lane Cider\"",
+   "where": "div.e-card__body > div.project-card-module__yo1VFG__row > h2.e-card__title",
+   "x": 209,
+   "y": 442,
+   "w": 142,
+   "h": 21,
+   "focusVisible": true,
+   "indicator": "none",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-card__link \"Orchard Lane Cider\"@209,442",
+   "crop": "focus/projects__eight-brands-free__1440__011.png"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Project options for Orchard Lane Cider]",
+   "where": "div.project-card-module__yo1VFG__row > div.e-card__action > span.e-anchor",
+   "x": 483,
+   "y": 435,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Project options for Orchard Lane Cider]@483,435"
+  },
+  {
+   "el": "a.e-card__link \"Mosswood Candles\"",
+   "where": "div.e-card__body > div.project-card-module__yo1VFG__row > h2.e-card__title",
+   "x": 569,
+   "y": 442,
+   "w": 144,
+   "h": 21,
+   "focusVisible": true,
+   "indicator": "none",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-card__link \"Mosswood Candles\"@569,442"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Project options for Mosswood Candles]",
+   "where": "div.project-card-module__yo1VFG__row > div.e-card__action > span.e-anchor",
+   "x": 843,
+   "y": 435,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Project options for Mosswood Candles]@843,435"
+  },
+  {
+   "el": "a.e-card__link \"Tidewater Kayak Tours\"",
+   "where": "div.e-card__body > div.project-card-module__yo1VFG__row > h2.e-card__title",
+   "x": 929,
+   "y": 442,
+   "w": 165,
+   "h": 21,
+   "focusVisible": true,
+   "indicator": "none",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-card__link \"Tidewater Kayak Tours\"@929,442"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Project options for Tidewater Kayak Tour]",
+   "where": "div.project-card-module__yo1VFG__row > div.e-card__action > span.e-anchor",
+   "x": 1203,
+   "y": 435,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Project options for Tidewater Kayak Tour]@1203,435"
+  },
+  {
+   "el": "a.e-card__link \"Quill\"",
+   "where": "div.e-card__body > div.project-card-module__yo1VFG__row > h2.e-card__title",
+   "x": 209,
+   "y": 731,
+   "w": 33,
+   "h": 21,
+   "focusVisible": true,
+   "indicator": "none",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-card__link \"Quill\"@209,731"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Project options for Quill]",
+   "where": "div.project-card-module__yo1VFG__row > div.e-card__action > span.e-anchor",
+   "x": 483,
+   "y": 724,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Project options for Quill]@483,724"
+  },
+  {
+   "el": "a.e-card__link \"Fromagerie Bérénice Côté\"",
+   "where": "div.e-card__body > div.project-card-module__yo1VFG__row > h2.e-card__title",
+   "x": 569,
+   "y": 731,
+   "w": 190,
+   "h": 21,
+   "focusVisible": true,
+   "indicator": "none",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-card__link \"Fromagerie Bérénice Côté\"@569,731"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Project options for Fromagerie Bérénice ]",
+   "where": "div.project-card-module__yo1VFG__row > div.e-card__action > span.e-anchor",
+   "x": 843,
+   "y": 724,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Project options for Fromagerie Bérénice ]@843,724"
+  },
+  {
+   "el": "a.e-card__link \"Northern Lights Community Physiotherapy \"",
+   "where": "div.e-card__body > div.project-card-module__yo1VFG__row > h2.e-card__title",
+   "x": 929,
+   "y": 730,
+   "w": 202,
+   "h": 69,
+   "focusVisible": true,
+   "indicator": "none",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-card__link \"Northern Lights Community Physiotherapy \"@929,730"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Project options for Northern Lights Comm]",
+   "where": "div.project-card-module__yo1VFG__row > div.e-card__action > span.e-anchor",
+   "x": 1203,
+   "y": 724,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Project options for Northern Lights Comm]@1203,724"
+  },
+  {
+   "el": "a.e-card__link \"Untitled brand\"",
+   "where": "div.e-card__body > div.project-card-module__yo1VFG__row > h2.e-card__title",
+   "x": 209,
+   "y": 752,
+   "w": 104,
+   "h": 21,
+   "focusVisible": true,
+   "indicator": "none",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-card__link \"Untitled brand\"@209,752"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Project options for Untitled brand]",
+   "where": "div.project-card-module__yo1VFG__row > div.e-card__action > span.e-anchor",
+   "x": 483,
+   "y": 745,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Project options for Untitled brand]@483,745"
+  },
+  {
+   "el": "a.e-card__link \"Untitled brand\"",
+   "where": "div.e-card__body > div.project-card-module__yo1VFG__row > h2.e-card__title",
+   "x": 569,
+   "y": 752,
+   "w": 104,
+   "h": 21,
+   "focusVisible": true,
+   "indicator": "none",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-card__link \"Untitled brand\"@569,752"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Project options for Untitled brand]",
+   "where": "div.project-card-module__yo1VFG__row > div.e-card__action > span.e-anchor",
+   "x": 843,
+   "y": 745,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Project options for Untitled brand]@843,745"
+  }
+ ],
+ "walkTruncated": false,
+ "hover": [
+  {
+   "kind": "a.skip-link",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.e-nav__brand",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 16,
+    "weight": 600
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 16,
+    "weight": 600
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.e-nav__item",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "button.e-avatar",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#e4e3df",
+    "ratio": 13.69,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "main.",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "h1.text-title-lg",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 24,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 24,
+    "weight": 500
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.e-button.e-button--quiet",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.e-button.e-button--primary",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#3a3a37",
+    "ratio": 11.41,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "button.e-button.e-button--secondary",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.e-card__link",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 16,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 16,
+    "weight": 500
+   },
+   "changes": false
+  }
+ ],
+ "reflow": {
+  "320": {
+   "viewport": "320x640",
+   "overflowX": 0,
+   "bodyScrollWidth": 320,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    },
+    {
+     "layer": "header.e-nav-wrap",
+     "top": 16,
+     "height": 56,
+     "width": 320,
+     "shareOfViewport": 9
+    }
+   ],
+   "minFontSize": 13,
+   "screenshot": "reflow/projects__eight-brands-free__320.png"
+  },
+  "zoom200": {
+   "viewport": "720x450",
+   "overflowX": 0,
+   "bodyScrollWidth": 720,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    },
+    {
+     "layer": "header.e-nav-wrap",
+     "top": 16,
+     "height": 56,
+     "width": 720,
+     "shareOfViewport": 12
+    }
+   ],
+   "minFontSize": 13,
+   "screenshot": "reflow/projects__eight-brands-free__zoom200.png"
+  }
+ }
+}

@@ -1,0 +1,864 @@
+{
+ "slug": "sign-in__default",
+ "account": null,
+ "route": "/sign-in",
+ "width": 1440,
+ "doc": {
+  "url": "/sign-in",
+  "title": "Sign in · Embel",
+  "lang": "en",
+  "viewportMeta": "width=device-width, initial-scale=1",
+  "h1": [
+   "Sign in to Embel"
+  ],
+  "headings": [
+   "H1 Sign in to Embel"
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 1,
+   "header": 2,
+   "footer": 0,
+   "aside": 0,
+   "form": 1,
+   "[role=\"search\"]": 0,
+   "section[aria-label], section[aria-labelledby]": 1
+  },
+  "navLabels": [
+   "Main navigation"
+  ],
+  "skipLink": [
+   {
+    "text": "Skip to content",
+    "href": "#main-content",
+    "targetExists": true
+   }
+  ],
+  "liveRegions": 1,
+  "dialogsOpen": [],
+  "overflowX": 0,
+  "bodyText": "Skip to content Embel Home Projects Library Sign in Create account Sign in to Embel Continue with your email and password. Email Password Forgot password? Sign in New to Embel? Create account Return to Home",
+  "focusableCount": 14
+ },
+ "contrast": [
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "placeholder": true,
+   "disabled": false,
+   "count": 1,
+   "samples": [
+    "input#auth-page-email[email] placeholder «you@example.com»"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.e-link.e-link--standalone.auth-page__home \"Return to Home\" «Return to Home» in div.workspace-main > main > div.auth-page"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.skip-link \"Skip to content\" «Skip to content» in div.app-shell"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 600,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.e-nav__label «Embel» in div.e-nav > nav.app-nav > a.e-nav__brand"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 7,
+   "samples": [
+    "span.e-nav__label «Home» in ul.app-nav > li > a.e-nav__item",
+    "span.e-nav__label «Projects» in ul.app-nav > li > a.e-nav__item",
+    "span.e-nav__label «Library» in ul.app-nav > li > a.e-nav__item"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 2,
+   "samples": [
+    "a.e-button.e-button--primary.e-button--sm \"Create account\" «Create account» in div.e-nav > div.e-nav__account > div.app-nav",
+    "button.e-button.e-button--primary.e-button--block \"Sign in\" «Sign in» in section.auth-card > form.auth-form > fieldset.auth-form__fields"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 20,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "h1#auth-page-title.auth-card__title \"Sign in to Embel\" «Sign in to Embel» in div.auth-page > section.auth-card > header.auth-card__header"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p.auth-card__intro «Continue with your email and password.» in div.auth-page > section.auth-card > header.auth-card__header"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 2,
+   "samples": [
+    "p.auth-card__switch «New to Embel?» in main > div.auth-page > section.auth-card",
+    "a.e-link \"Create account\" «Create account» in div.auth-page > section.auth-card > p.auth-card__switch"
+   ],
+   "pass": true
+  }
+ ],
+ "edges": [
+  {
+   "kind": "field",
+   "fill": "#ffffff",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": null,
+   "best": 1,
+   "pass": false,
+   "count": 2,
+   "samples": [
+    "input#auth-page-email[email]",
+    "input#auth-page-password[password]"
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#ffffff",
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": 1,
+   "best": 1,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Show password]"
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#191919",
+   "border": "#ffffff",
+   "outside": "#ffffff",
+   "fillRatio": 17.58,
+   "borderRatio": 1,
+   "best": 17.58,
+   "pass": true,
+   "count": 1,
+   "samples": [
+    "button.e-button.e-button--primary.e-button--block \"Sign in\""
+   ]
+  }
+ ],
+ "targets": {
+  "total": 14,
+  "under44": 7,
+  "under24": [
+   {
+    "target": "a.e-link.e-link--standalone \"Forgot password?\"",
+    "where": "fieldset.auth-form__fields > div.e-field > div.auth-field__label-row",
+    "width": 117.8,
+    "height": 20,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "a.e-link \"Create account\"",
+    "where": "div.auth-page > section.auth-card > p.auth-card__switch",
+    "width": 90.7,
+    "height": 17,
+    "inline": true,
+    "crowdedBy": null,
+    "fails258": false
+   }
+  ]
+ },
+ "fields": [
+  {
+   "field": "input#auth-page-email[email]",
+   "type": "email",
+   "label": "Email",
+   "autocomplete": "username",
+   "inputmode": null,
+   "required": true,
+   "ariaInvalid": null,
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 16
+  },
+  {
+   "field": "input#auth-page-password[password]",
+   "type": "password",
+   "label": "Password",
+   "autocomplete": "current-password",
+   "inputmode": null,
+   "required": true,
+   "ariaInvalid": null,
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 16
+  }
+ ],
+ "clipped": [],
+ "axe": {
+  "violations": [],
+  "incomplete": []
+ },
+ "walk": [
+  {
+   "el": "a.skip-link \"Skip to content\"",
+   "where": "div.app-shell",
+   "x": 8,
+   "y": 8,
+   "w": 130,
+   "h": 45,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.skip-link \"Skip to content\"@8,8",
+   "crop": "focus/sign-in__default__1440__001.png"
+  },
+  {
+   "el": "a.e-nav__brand[Embel home] \"Embel\"",
+   "where": "header.e-nav-wrap > div.e-nav > nav.app-nav",
+   "x": 440,
+   "y": 22,
+   "w": 80,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__brand[Embel home] \"Embel\"@440,22"
+  },
+  {
+   "el": "a.e-nav__item \"Home\"",
+   "where": "nav.app-nav > ul.app-nav > li",
+   "x": 545,
+   "y": 22,
+   "w": 70,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__item \"Home\"@545,22"
+  },
+  {
+   "el": "a.e-nav__item \"Projects\"",
+   "where": "nav.app-nav > ul.app-nav > li",
+   "x": 619,
+   "y": 22,
+   "w": 86,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__item \"Projects\"@619,22"
+  },
+  {
+   "el": "a.e-nav__item \"Library\"",
+   "where": "nav.app-nav > ul.app-nav > li",
+   "x": 709,
+   "y": 22,
+   "w": 77,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__item \"Library\"@709,22"
+  },
+  {
+   "el": "a.e-nav__item.e-nav__item--keep-label \"Sign in\"",
+   "where": "div.e-nav > div.e-nav__account > div.app-nav",
+   "x": 803,
+   "y": 22,
+   "w": 77,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__item.e-nav__item--keep-label \"Sign in\"@803,22"
+  },
+  {
+   "el": "a.e-button.e-button--primary.e-button--sm \"Create account\"",
+   "where": "div.e-nav > div.e-nav__account > div.app-nav",
+   "x": 884,
+   "y": 26,
+   "w": 126,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-button.e-button--primary.e-button--sm \"Create account\"@884,26"
+  },
+  {
+   "el": "input#auth-page-email[email]",
+   "where": "fieldset.auth-form__fields > div.e-field > div.e-input",
+   "x": 537,
+   "y": 326,
+   "w": 366,
+   "h": 24,
+   "focusVisible": true,
+   "indicator": "on ancestor: outline-style, outline-width, box-shadow",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "input#auth-page-email[email]@537,326",
+   "crop": "focus/sign-in__default__1440__008.png"
+  },
+  {
+   "el": "a.e-link.e-link--standalone \"Forgot password?\"",
+   "where": "fieldset.auth-form__fields > div.e-field > div.auth-field__label-row",
+   "x": 798,
+   "y": 380,
+   "w": 118,
+   "h": 20,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-link.e-link--standalone \"Forgot password?\"@798,380"
+  },
+  {
+   "el": "input#auth-page-password[password]",
+   "where": "fieldset.auth-form__fields > div.e-field > div.e-input",
+   "x": 537,
+   "y": 418,
+   "w": 330,
+   "h": 24,
+   "focusVisible": true,
+   "indicator": "on ancestor: outline-style, outline-width, box-shadow",
+   "indicatorRatio": null,
+   "behind": "#ffffff",
+   "changed": [],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "input#auth-page-password[password]@537,418"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Show password]",
+   "where": "fieldset.auth-form__fields > div.e-field > div.e-input",
+   "x": 875,
+   "y": 412,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Show password]@875,412"
+  },
+  {
+   "el": "button.e-button.e-button--primary.e-button--block \"Sign in\"",
+   "where": "section.auth-card > form.auth-form > fieldset.auth-form__fields",
+   "x": 524,
+   "y": 472,
+   "w": 392,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-button.e-button--primary.e-button--block \"Sign in\"@524,472"
+  },
+  {
+   "el": "a.e-link \"Create account\"",
+   "where": "div.auth-page > section.auth-card > p.auth-card__switch",
+   "x": 618,
+   "y": 537,
+   "w": 91,
+   "h": 17,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-link \"Create account\"@618,537"
+  },
+  {
+   "el": "a.e-link.e-link--standalone.auth-page__home \"Return to Home\"",
+   "where": "div.workspace-main > main > div.auth-page",
+   "x": 659,
+   "y": 600,
+   "w": 123,
+   "h": 24,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-link.e-link--standalone.auth-page__home \"Return to Home\"@659,600"
+  }
+ ],
+ "walkTruncated": false,
+ "hover": [
+  {
+   "kind": "a.skip-link",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.e-nav__brand",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 16,
+    "weight": 600
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 16,
+    "weight": 600
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.e-nav__item",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.e-nav__item.e-nav__item--keep-label",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.e-button.e-button--primary.e-button--sm",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#3a3a37",
+    "ratio": 11.41,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "main.",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "h1.auth-card__title",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 20,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 20,
+    "weight": 500
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.e-link.e-link--standalone",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#3a3a37",
+    "bg": "#ffffff",
+    "ratio": 11.41,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "button.e-button.e-button--primary.e-button--block",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#3a3a37",
+    "ratio": 11.41,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.e-link",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#3a3a37",
+    "bg": "#ffffff",
+    "ratio": 11.41,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.e-link.e-link--standalone.auth-page__home",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#3a3a37",
+    "bg": "#f7f7f5",
+    "ratio": 10.63,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  }
+ ],
+ "reflow": {
+  "320": {
+   "viewport": "320x640",
+   "overflowX": 0,
+   "bodyScrollWidth": 320,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    },
+    {
+     "layer": "header.e-nav-wrap",
+     "top": 16,
+     "height": 56,
+     "width": 320,
+     "shareOfViewport": 9
+    }
+   ],
+   "minFontSize": 13,
+   "screenshot": "reflow/sign-in__default__320.png"
+  },
+  "zoom200": {
+   "viewport": "720x450",
+   "overflowX": 0,
+   "bodyScrollWidth": 720,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    },
+    {
+     "layer": "header.e-nav-wrap",
+     "top": 16,
+     "height": 56,
+     "width": 720,
+     "shareOfViewport": 12
+    }
+   ],
+   "minFontSize": 13,
+   "screenshot": "reflow/sign-in__default__zoom200.png"
+  }
+ }
+}

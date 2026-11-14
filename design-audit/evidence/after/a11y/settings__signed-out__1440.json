@@ -1,0 +1,687 @@
+{
+ "slug": "settings__signed-out",
+ "account": null,
+ "route": "/settings",
+ "width": 1440,
+ "doc": {
+  "url": "/settings",
+  "title": "Settings · Embel",
+  "lang": "en",
+  "viewportMeta": "width=device-width, initial-scale=1",
+  "h1": [
+   "Settings"
+  ],
+  "headings": [
+   "H1 Settings",
+   "H2 Profile",
+   "H2 Sign in"
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 1,
+   "header": 2,
+   "footer": 0,
+   "aside": 0,
+   "form": 0,
+   "[role=\"search\"]": 0,
+   "section[aria-label], section[aria-labelledby]": 2
+  },
+  "navLabels": [
+   "Main navigation"
+  ],
+  "skipLink": [
+   {
+    "text": "Skip to content",
+    "href": "#main-content",
+    "targetExists": true
+   }
+  ],
+  "liveRegions": 2,
+  "dialogsOpen": [],
+  "overflowX": 0,
+  "bodyText": "Skip to content Embel Home Projects Library Sign in Create account Settings Manage your account and see your usage. Account Usage Profile Changes on this page save automatically. Sign in to edit your profile and preferences. Sign in Sign in to save your work and settings to your account. Sign in",
+  "focusableCount": 10
+ },
+ "contrast": [
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 2,
+   "samples": [
+    "p.e-muted «Manage your account and see your usage.» in main > div.settings-guided > header.sg-heading",
+    "p.e-muted \"Sign in to edit your profile and prefere\" «Sign in to edit your profile and preferences.» in div.settings-guided > div.sg-content > section.e-section"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 500,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "button#settings-tab-usage.e-tab \"Usage\" «Usage» in main > div.settings-guided > div.e-tabs"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p.e-section__hint «Changes on this page save automatically.» in div.sg-content > section.e-section > div.e-section__head"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 24,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 3,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "h1.sg-heading__title \"Settings\" «Settings» in main > div.settings-guided > header.sg-heading"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "button#settings-tab-account.e-tab \"Account\" «Account» in main > div.settings-guided > div.e-tabs"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 20,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 2,
+   "samples": [
+    "h2#profile-title.e-section__title \"Profile\" «Profile» in div.sg-content > section.e-section > div.e-section__head",
+    "h2.e-section__title \"Sign in\" «Sign in» in div.settings-guided > div.sg-content > section.e-section"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 400,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p.e-setting-row__text «Sign in to save your work and settings to your acc» in div.sg-content > section.e-section > div.e-setting-row"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.skip-link \"Skip to content\" «Skip to content» in div.app-shell"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 600,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "span.e-nav__label «Embel» in div.e-nav > nav.app-nav > a.e-nav__brand"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 5,
+   "samples": [
+    "span.e-nav__label «Home» in ul.app-nav > li > a.e-nav__item",
+    "span.e-nav__label «Projects» in ul.app-nav > li > a.e-nav__item",
+    "span.e-nav__label «Library» in ul.app-nav > li > a.e-nav__item"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.e-button.e-button--primary.e-button--sm \"Create account\" «Create account» in div.e-nav > div.e-nav__account > div.app-nav"
+   ],
+   "pass": true
+  }
+ ],
+ "edges": [],
+ "targets": {
+  "total": 10,
+  "under44": 1,
+  "under24": []
+ },
+ "fields": [],
+ "clipped": [],
+ "axe": {
+  "violations": [],
+  "incomplete": []
+ },
+ "walk": [
+  {
+   "el": "a.skip-link \"Skip to content\"",
+   "where": "div.app-shell",
+   "x": 8,
+   "y": 8,
+   "w": 130,
+   "h": 45,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.skip-link \"Skip to content\"@8,8",
+   "crop": "focus/settings__signed-out__1440__001.png"
+  },
+  {
+   "el": "a.e-nav__brand[Embel home] \"Embel\"",
+   "where": "header.e-nav-wrap > div.e-nav > nav.app-nav",
+   "x": 440,
+   "y": 22,
+   "w": 80,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__brand[Embel home] \"Embel\"@440,22"
+  },
+  {
+   "el": "a.e-nav__item \"Home\"",
+   "where": "nav.app-nav > ul.app-nav > li",
+   "x": 545,
+   "y": 22,
+   "w": 70,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__item \"Home\"@545,22"
+  },
+  {
+   "el": "a.e-nav__item \"Projects\"",
+   "where": "nav.app-nav > ul.app-nav > li",
+   "x": 619,
+   "y": 22,
+   "w": 86,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__item \"Projects\"@619,22"
+  },
+  {
+   "el": "a.e-nav__item \"Library\"",
+   "where": "nav.app-nav > ul.app-nav > li",
+   "x": 709,
+   "y": 22,
+   "w": 77,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__item \"Library\"@709,22"
+  },
+  {
+   "el": "a.e-nav__item.e-nav__item--keep-label \"Sign in\"",
+   "where": "div.e-nav > div.e-nav__account > div.app-nav",
+   "x": 803,
+   "y": 22,
+   "w": 77,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-nav__item.e-nav__item--keep-label \"Sign in\"@803,22"
+  },
+  {
+   "el": "a.e-button.e-button--primary.e-button--sm \"Create account\"",
+   "where": "div.e-nav > div.e-nav__account > div.app-nav",
+   "x": 884,
+   "y": 26,
+   "w": 126,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-button.e-button--primary.e-button--sm \"Create account\"@884,26"
+  },
+  {
+   "el": "button#settings-tab-account.e-tab \"Account\"",
+   "where": "main > div.settings-guided > div.e-tabs",
+   "x": 192,
+   "y": 185,
+   "w": 55,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset -2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button#settings-tab-account.e-tab \"Account\"@192,185",
+   "crop": "focus/settings__signed-out__1440__008.png"
+  },
+  {
+   "el": "div#settings-panel-account.sg-content.e-focus-inset \"Profile Changes on this page save automa\"",
+   "where": "div.workspace-main > main > div.settings-guided",
+   "x": 192,
+   "y": 261,
+   "w": 1056,
+   "h": 265,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset -2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "div#settings-panel-account.sg-content.e-focus-inset \"Profile Changes on this page save automa\"@192,261"
+  },
+  {
+   "el": "a.e-button.e-button--secondary \"Sign in\"",
+   "where": "div.sg-content > section.e-section > div.e-setting-row",
+   "x": 1169,
+   "y": 482,
+   "w": 79,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-button.e-button--secondary \"Sign in\"@1169,482"
+  }
+ ],
+ "walkTruncated": false,
+ "hover": [
+  {
+   "kind": "a.skip-link",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.e-nav__brand",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 16,
+    "weight": 600
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 16,
+    "weight": 600
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.e-nav__item",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.e-nav__item.e-nav__item--keep-label",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.e-button.e-button--primary.e-button--sm",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#3a3a37",
+    "ratio": 11.41,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "main.",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "button.e-tab",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": false
+  },
+  {
+   "kind": "div.sg-content.e-focus-inset",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.e-button.e-button--secondary",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  }
+ ],
+ "reflow": {
+  "320": {
+   "viewport": "320x640",
+   "overflowX": 0,
+   "bodyScrollWidth": 320,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    },
+    {
+     "layer": "header.e-nav-wrap",
+     "top": 16,
+     "height": 56,
+     "width": 320,
+     "shareOfViewport": 9
+    }
+   ],
+   "minFontSize": 13,
+   "screenshot": "reflow/settings__signed-out__320.png"
+  },
+  "zoom200": {
+   "viewport": "720x450",
+   "overflowX": 0,
+   "bodyScrollWidth": 720,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    },
+    {
+     "layer": "header.e-nav-wrap",
+     "top": 16,
+     "height": 56,
+     "width": 720,
+     "shareOfViewport": 12
+    }
+   ],
+   "minFontSize": 13,
+   "screenshot": "reflow/settings__signed-out__zoom200.png"
+  }
+ }
+}

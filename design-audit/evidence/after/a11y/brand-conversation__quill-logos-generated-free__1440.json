@@ -1,0 +1,1363 @@
+{
+ "slug": "brand-conversation__quill-logos-generated-free",
+ "account": "audit-free",
+ "route": "/brands/account/d5284bf2-46b4-4d4e-8c4c-77fa7d54fd83?view=strategy",
+ "width": 1440,
+ "doc": {
+  "url": "/brands/account/d5284bf2-46b4-4d4e-8c4c-77fa7d54fd83?view=strategy",
+  "title": "Quill · Identity · Embel",
+  "lang": "en",
+  "viewportMeta": "width=device-width, initial-scale=1",
+  "h1": [],
+  "headings": [
+   "H2 Chat",
+   "H2 Choose the concept you like most"
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "header": 3,
+   "footer": 0,
+   "aside": 0,
+   "form": 1,
+   "[role=\"search\"]": 0,
+   "section[aria-label], section[aria-labelledby]": 6
+  },
+  "navLabels": [
+   "Brand journey",
+   "Project navigation"
+  ],
+  "skipLink": [
+   {
+    "text": "Skip to content",
+    "href": "#main-content",
+    "targetExists": true
+   }
+  ],
+  "liveRegions": 7,
+  "dialogsOpen": [],
+  "overflowX": 0,
+  "bodyText": "Skip to content Quill Strategy , complete Voice , complete Identity 4 Assets Saved A Quill Chat Hide chat Simple contract templates and e-signatures for freelance designers and developers, with plain-language explanations of every clause. Edit brief Strategy Freelance designers Contracts you can act",
+  "focusableCount": 29
+ },
+ "contrast": [
+  {
+   "fg": "#85847f",
+   "bg": "#fefefe",
+   "size": 12,
+   "weight": 400,
+   "ratio": 3.72,
+   "required": 4.5,
+   "disabled": true,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span.e-step__mark «4» in ol.e-steps > li > span.e-step"
+   ],
+   "pass": false
+  },
+  {
+   "fg": "#85847f",
+   "bg": "#fefefe",
+   "size": 14,
+   "weight": 500,
+   "ratio": 3.72,
+   "required": 4.5,
+   "disabled": true,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span «Assets» in ol.e-steps > li > span.e-step"
+   ],
+   "pass": false
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 14,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "p.e-muted \"6 of 6 concepts ready\" «6 of 6 concepts ready» in section.logo-creation-module__UDtEIW__step > header.logo-creation-module__UDtEIW__stepHeader > div.e-stack"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#fefefe",
+   "size": 14,
+   "weight": 500,
+   "ratio": 5.48,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "span «Strategy» in ol.e-steps > li > a.e-step",
+    "span «Voice» in ol.e-steps > li > a.e-step"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 7,
+   "samples": [
+    "span.e-answer__question «Strategy» in section.e-stack > details.e-disclosure > summary",
+    "span.e-answer__question «Voice» in section.e-stack > details.e-disclosure > summary",
+    "span.e-answer__question «Inspiration» in section.e-stack > details.e-disclosure > summary"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "placeholder": true,
+   "disabled": false,
+   "count": 1,
+   "samples": [
+    "textarea#_r_2_[message] placeholder «Choose a concept, then press Send…»"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#3d6448",
+   "bg": "#fefefe",
+   "size": 12,
+   "weight": 400,
+   "ratio": 6.7,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span.journey-module__MmLfbq__save \"Saved\" «Saved» in div.workspace-main > header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 14,
+   "weight": 500,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "button.e-avatar[Account menu] \"A\" «A» in div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > span.e-anchor"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 14,
+   "weight": 400,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p.e-turn__text «Simple contract templates and e-signatures for fre» in div.e-workspace__thread > div.e-turn > div.e-turn__bubble"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 20,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "h2.logo-creation-module__UDtEIW__stepTitle \"Choose the concept you like most\" «Choose the concept you like most» in section.logo-creation-module__UDtEIW__step > header.logo-creation-module__UDtEIW__stepHeader > div.e-stack"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#fefefe",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.48,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "span.journey-module__MmLfbq__projectTitle «Quill» in div.journey-module__MmLfbq__capsule > details.journey-module__MmLfbq__tools > summary.journey-module__MmLfbq__projectName",
+    "span «Identity» in ol.e-steps > li > span.e-step"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.skip-link \"Skip to content\" «Skip to content» in div.app-shell"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 2,
+   "samples": [
+    "h2.e-workspace__title \"Chat\" «Chat» in div.e-workspace > section.e-workspace__chat > div.e-workspace__head",
+    "button.e-button.e-button--secondary[More concepts] \"More concepts\" «More concepts» in div.logo-creation-module__UDtEIW__stepActions > div.logo-creation-module__UDtEIW__generationAction > div.logo-creation-module__UDtEIW__generationActionRow"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 6,
+   "samples": [
+    "span.e-badge «Freelance designers» in section.e-stack > details.e-disclosure > summary",
+    "span.e-badge «Contracts you can actually read» in section.e-stack > details.e-disclosure > summary",
+    "span.e-badge «Clear and confident» in section.e-stack > details.e-disclosure > summary"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p.e-turn__text «Here are six concepts for Quill. Choose the one yo» in div.e-workspace__thread > article.e-turn > div.e-turn__main"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 4,
+   "samples": [
+    "div «You have no credits left this month.» in div.e-stack > div.e-message > div.e-message__body",
+    "div «New credits arrive on December 1.» in div.e-stack > div.e-message > div.e-message__body",
+    "a.e-link \"See plans\" «See plans» in div.e-message > div.e-message__body > div"
+   ],
+   "pass": true
+  }
+ ],
+ "edges": [
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#ffffff",
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": 1,
+   "best": 1,
+   "pass": false,
+   "count": 7,
+   "samples": [
+    "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Hide chat]",
+    "button.e-icon-button.e-icon-button--on-artwork.e-icon-button--sm[Enlarge Concept 1]",
+    "button.e-icon-button.e-icon-button--on-artwork.e-icon-button--sm[Enlarge Concept 2]"
+   ]
+  },
+  {
+   "kind": "field",
+   "fill": "#ffffff",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": null,
+   "best": 1,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "textarea#_r_2_[message]"
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#f1f0ee",
+   "border": null,
+   "outside": "#fefefe",
+   "fillRatio": 1.13,
+   "borderRatio": null,
+   "best": 1.13,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "button.e-avatar[Account menu] \"A\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#f7f7f5",
+   "fillRatio": 1.07,
+   "borderRatio": 1.19,
+   "best": 1.19,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "button.e-button.e-button--secondary[More concepts] \"More concepts\""
+   ]
+  }
+ ],
+ "targets": {
+  "total": 29,
+  "under44": 13,
+  "under24": [
+   {
+    "target": "a.e-link \"See plans\"",
+    "where": "div.e-message > div.e-message__body > div",
+    "width": 58.6,
+    "height": 17,
+    "inline": true,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "button.e-link \"Change logo types\"",
+    "where": "div.conversation-chat-slot > div.e-stack > p.logo-creation-module__UDtEIW__typesLine",
+    "width": 111.4,
+    "height": 20,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   }
+  ]
+ },
+ "fields": [
+  {
+   "field": "textarea#_r_2_[message]",
+   "type": "textarea",
+   "label": "Message Embel",
+   "autocomplete": "off",
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 16
+  }
+ ],
+ "clipped": [],
+ "axe": {
+  "violations": [],
+  "incomplete": [
+   {
+    "id": "aria-prohibited-attr",
+    "count": 1,
+    "help": "Elements must only use permitted ARIA attributes"
+   },
+   {
+    "id": "aria-valid-attr-value",
+    "count": 1,
+    "help": "ARIA attributes must conform to valid values"
+   },
+   {
+    "id": "color-contrast",
+    "count": 7,
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+   }
+  ]
+ },
+ "walk": [
+  {
+   "el": "a.skip-link \"Skip to content\"",
+   "where": "div.app-shell",
+   "x": 8,
+   "y": 8,
+   "w": 130,
+   "h": 45,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.skip-link \"Skip to content\"@8,8",
+   "crop": "focus/brand-conversation__quill-logos-generated-free__1440__001.png"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__brandIcon[Embel home]",
+   "where": "div.workspace-main > header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule",
+   "x": 597,
+   "y": 22,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__brandIcon[Embel home]@597,22"
+  },
+  {
+   "el": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary[Project: Quill. Switch project] \"Quill\"",
+   "where": "header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule > details.journey-module__MmLfbq__tools",
+   "x": 647,
+   "y": 24,
+   "w": 76,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary[Project: Quill. Switch project] \"Quill\"@647,24"
+  },
+  {
+   "el": "a.e-step \"Strategy , complete\"",
+   "where": "nav.journey-module__MmLfbq__stepsNav > ol.e-steps > li",
+   "x": 743,
+   "y": 22,
+   "w": 104,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-step \"Strategy , complete\"@743,22"
+  },
+  {
+   "el": "a.e-step \"Voice , complete\"",
+   "where": "nav.journey-module__MmLfbq__stepsNav > ol.e-steps > li",
+   "x": 852,
+   "y": 22,
+   "w": 84,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-step \"Voice , complete\"@852,22"
+  },
+  {
+   "el": "button.e-avatar[Account menu] \"A\"",
+   "where": "div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > span.e-anchor",
+   "x": 1229,
+   "y": 28,
+   "w": 32,
+   "h": 32,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-avatar[Account menu] \"A\"@1229,28"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Hide chat]",
+   "where": "section.e-workspace__chat > div.e-workspace__head > span.e-tooltip-host",
+   "x": 371,
+   "y": 25,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Hide chat]@371,25"
+  },
+  {
+   "el": "div.e-workspace__log[Conversation] \"Simple contract templates and e-signatur\"",
+   "where": "div.guided-interview > div.e-workspace > section.e-workspace__chat",
+   "x": 17,
+   "y": 70,
+   "w": 398,
+   "h": 666,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "div.e-workspace__log[Conversation] \"Simple contract templates and e-signatur\"@17,70"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Edit brief]",
+   "where": "div.e-turn__bubble > div.guided-brief-editor > span.e-tooltip-host",
+   "x": 346,
+   "y": 99,
+   "w": 40,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Edit brief]@346,99"
+  },
+  {
+   "el": "summary \"Strategy Freelance designers Contracts y\"",
+   "where": "div.e-workspace__thread > section.e-stack > details.e-disclosure",
+   "x": 50,
+   "y": 225,
+   "w": 332,
+   "h": 68,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary \"Strategy Freelance designers Contracts y\"@50,225"
+  },
+  {
+   "el": "summary \"Voice Clear and confident Quill Contract\"",
+   "where": "div.e-workspace__thread > section.e-stack > details.e-disclosure",
+   "x": 50,
+   "y": 315,
+   "w": 332,
+   "h": 68,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary \"Voice Clear and confident Quill Contract\"@50,315"
+  },
+  {
+   "el": "summary \"Inspiration 2 liked\"",
+   "where": "div.e-workspace__thread > section.e-stack > details.e-disclosure",
+   "x": 50,
+   "y": 405,
+   "w": 332,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary \"Inspiration 2 liked\"@50,405"
+  },
+  {
+   "el": "a.e-link \"See plans\"",
+   "where": "div.e-message > div.e-message__body > div",
+   "x": 131,
+   "y": 585,
+   "w": 59,
+   "h": 17,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-link \"See plans\"@131,585"
+  },
+  {
+   "el": "button.e-link \"Change logo types\"",
+   "where": "div.conversation-chat-slot > div.e-stack > p.logo-creation-module__UDtEIW__typesLine",
+   "x": 33,
+   "y": 652,
+   "w": 111,
+   "h": 20,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-link \"Change logo types\"@33,652"
+  },
+  {
+   "el": "textarea#_r_2_[message]",
+   "where": "div.e-workspace__reply > section.conversation-reply > form.e-composer",
+   "x": 46,
+   "y": 762,
+   "w": 344,
+   "h": 48,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "textarea#_r_2_[message]@46,762"
+  },
+  {
+   "el": "div.e-workspace__resize[Resize chat]",
+   "where": "div.project-workspace-content > div.guided-interview > div.e-workspace",
+   "x": 416,
+   "y": 16,
+   "w": 32,
+   "h": 868,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "div.e-workspace__resize[Resize chat]@416,16"
+  },
+  {
+   "el": "button.e-button.e-button--secondary[More concepts] \"More concepts\"",
+   "where": "div.logo-creation-module__UDtEIW__stepActions > div.logo-creation-module__UDtEIW__generationAction > div.logo-creation-module__UDtEIW__generationActionRow",
+   "x": 1276,
+   "y": 104,
+   "w": 132,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-button.e-button--secondary[More concepts] \"More concepts\"@1276,104"
+  },
+  {
+   "el": "button.e-choice__hit[Concept 1]",
+   "where": "li > div.logo-creation-module__UDtEIW__tile > div.e-choice",
+   "x": 449,
+   "y": 182,
+   "w": 302,
+   "h": 302,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-choice__hit[Concept 1]@449,182"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--on-artwork.e-icon-button--sm[Enlarge Concept 1]",
+   "where": "div.e-choice > span.e-choice__enlarge > span.e-tooltip-host",
+   "x": 457,
+   "y": 190,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--on-artwork.e-icon-button--sm[Enlarge Concept 1]@457,190"
+  },
+  {
+   "el": "button.e-choice__hit[Concept 2]",
+   "where": "li > div.logo-creation-module__UDtEIW__tile > div.e-choice",
+   "x": 777,
+   "y": 182,
+   "w": 302,
+   "h": 302,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-choice__hit[Concept 2]@777,182"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--on-artwork.e-icon-button--sm[Enlarge Concept 2]",
+   "where": "div.e-choice > span.e-choice__enlarge > span.e-tooltip-host",
+   "x": 785,
+   "y": 190,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--on-artwork.e-icon-button--sm[Enlarge Concept 2]@785,190"
+  },
+  {
+   "el": "button.e-choice__hit[Concept 3]",
+   "where": "li > div.logo-creation-module__UDtEIW__tile > div.e-choice",
+   "x": 1105,
+   "y": 182,
+   "w": 302,
+   "h": 302,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-choice__hit[Concept 3]@1105,182"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--on-artwork.e-icon-button--sm[Enlarge Concept 3]",
+   "where": "div.e-choice > span.e-choice__enlarge > span.e-tooltip-host",
+   "x": 1113,
+   "y": 190,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--on-artwork.e-icon-button--sm[Enlarge Concept 3]@1113,190"
+  },
+  {
+   "el": "button.e-choice__hit[Concept 4]",
+   "where": "li > div.logo-creation-module__UDtEIW__tile > div.e-choice",
+   "x": 449,
+   "y": 510,
+   "w": 302,
+   "h": 302,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-choice__hit[Concept 4]@449,510"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--on-artwork.e-icon-button--sm[Enlarge Concept 4]",
+   "where": "div.e-choice > span.e-choice__enlarge > span.e-tooltip-host",
+   "x": 457,
+   "y": 518,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--on-artwork.e-icon-button--sm[Enlarge Concept 4]@457,518"
+  },
+  {
+   "el": "button.e-choice__hit[Concept 5]",
+   "where": "li > div.logo-creation-module__UDtEIW__tile > div.e-choice",
+   "x": 777,
+   "y": 510,
+   "w": 302,
+   "h": 302,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-choice__hit[Concept 5]@777,510"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--on-artwork.e-icon-button--sm[Enlarge Concept 5]",
+   "where": "div.e-choice > span.e-choice__enlarge > span.e-tooltip-host",
+   "x": 785,
+   "y": 518,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--on-artwork.e-icon-button--sm[Enlarge Concept 5]@785,518"
+  },
+  {
+   "el": "button.e-choice__hit[Concept 6]",
+   "where": "li > div.logo-creation-module__UDtEIW__tile > div.e-choice",
+   "x": 1105,
+   "y": 510,
+   "w": 302,
+   "h": 302,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-choice__hit[Concept 6]@1105,510"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--on-artwork.e-icon-button--sm[Enlarge Concept 6]",
+   "where": "div.e-choice > span.e-choice__enlarge > span.e-tooltip-host",
+   "x": 1113,
+   "y": 518,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--on-artwork.e-icon-button--sm[Enlarge Concept 6]@1113,518"
+  }
+ ],
+ "walkTruncated": false,
+ "hover": [
+  {
+   "kind": "a.skip-link",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#fefefe",
+    "ratio": 17.48,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.e-step",
+   "rest": {
+    "fg": "#696965",
+    "bg": "#fefefe",
+    "ratio": 5.48,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#696965",
+    "bg": "#f1f0ee",
+    "ratio": 4.84,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "button.e-avatar",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#e4e3df",
+    "ratio": 13.69,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "main.",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "div.e-workspace__log",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "section.e-stack.e-stack--sm.conversation-section",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "summary.",
+   "rest": {
+    "fg": "#3a3a37",
+    "bg": "#ffffff",
+    "ratio": 11.41,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#3a3a37",
+    "bg": "#ffffff",
+    "ratio": 11.41,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": false
+  },
+  {
+   "kind": "a.e-link",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#3a3a37",
+    "bg": "#ffffff",
+    "ratio": 11.41,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "changes": true
+  },
+  {
+   "kind": "button.e-link",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#3a3a37",
+    "bg": "#ffffff",
+    "ratio": 11.41,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "changes": true
+  },
+  {
+   "kind": "div.e-workspace__main.conversation-work.e-focus-inset",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "div.conversation-slot",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "button.e-button.e-button--secondary",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  }
+ ],
+ "reflow": {
+  "320": {
+   "viewport": "320x640",
+   "overflowX": 0,
+   "bodyScrollWidth": 320,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    },
+    {
+     "layer": "div.e-workspace__reply",
+     "top": 502,
+     "height": 122,
+     "width": 288,
+     "shareOfViewport": 19
+    }
+   ],
+   "minFontSize": 12,
+   "screenshot": "reflow/brand-conversation__quill-logos-generated-free__320.png"
+  },
+  "zoom200": {
+   "viewport": "720x450",
+   "overflowX": 0,
+   "bodyScrollWidth": 720,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    }
+   ],
+   "minFontSize": 12,
+   "screenshot": "reflow/brand-conversation__quill-logos-generated-free__zoom200.png"
+  }
+ }
+}
