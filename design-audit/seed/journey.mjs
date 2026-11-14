@@ -60,11 +60,22 @@ async function startBrand(page, b) {
   return /\/brands\/account\/([0-9a-f-]{36})/u.exec(page.url())[1];
 }
 
+/** Send is the one way forward: it confirms what is chosen and names the next step. */
+async function sendNext(page, name) {
+  await page.getByRole("form", { name: "Reply", exact: true }).getByRole("button", { name, exact: true }).click();
+}
+const nextStep = {
+  "Which competitors should we keep in mind?": "Continue to Audience",
+  "Who should the brand speak to first?": "Continue to Positioning",
+  "Which positioning fits best?": "Continue to Voice",
+  "Which personality feels right?": "Continue to Name",
+};
+
 async function pick(page, groupName, role, label) {
   const group = question(page, groupName);
   await expect(group).toBeVisible({ timeout: GENERATION });
   await group.getByRole(role, { name: label, exact: true }).check();
-  await group.getByRole("button", { name: "Continue", exact: true }).click();
+  await sendNext(page, nextStep[groupName]);
 }
 
 async function strategy(page, b) {
@@ -73,7 +84,7 @@ async function strategy(page, b) {
   const competitors = question(page, "Which competitors should we keep in mind?");
   for (const [name] of b.competitors.slice(0, 2))
     await competitors.getByRole("checkbox", { name, exact: true }).check();
-  await competitors.getByRole("button", { name: "Continue", exact: true }).click();
+  await sendNext(page, "Continue to Audience");
   await pick(page, "Who should the brand speak to first?", "checkbox", b.audiences[0][0]);
   await pick(page, "Which positioning fits best?", "radio", b.positionings[0][0]);
   await expect(question(page, "Which personality feels right?")).toBeVisible({ timeout: GENERATION });
@@ -112,14 +123,19 @@ async function voice(page, b) {
     .getByRole("article", { name: "Names", exact: true })
     .getByRole("button", { name: "Continue", exact: true })
     .click();
-  await expect(page.getByRole("article", { name: "Your name", exact: true }).getByRole("listitem")).toHaveText(b.name);
+  await expect(
+    page
+      .locator('[data-journey-section="voice"] details')
+      .filter({ has: page.locator(".e-answer__question", { hasText: /^Name$/u }) })
+      .locator("summary"),
+  ).toContainText(b.name);
 
   const slogan = question(page, "Which slogan do you like?");
   await expect(slogan).toBeVisible({ timeout: GENERATION });
   if (b.skipSlogan) await page.getByRole("button", { name: "Skip for now", exact: true }).click();
   else {
     await slogan.getByRole("radio", { name: b.slogans[0], exact: true }).check();
-    await slogan.getByRole("button", { name: "Continue", exact: true }).click();
+    await sendNext(page, "Continue to Identity");
   }
   await expect(page.getByRole("article", { name: "Inspiration gallery", exact: true })).toBeVisible({
     timeout: GENERATION,
@@ -131,7 +147,7 @@ async function inspiration(page, b, uploadFile) {
   const likes = gallery.getByRole("button", { name: /^Like the whole .+ brand$/u });
   await expect(likes.first()).toBeVisible({ timeout: GENERATION });
   await likes.nth(0).click();
-  await expect(gallery.getByText(/^1 liked/u)).toBeVisible();
+  await expect(page.getByRole("form", { name: "Reply", exact: true }).getByText("Inspiration: 1 liked")).toBeVisible();
   if (uploadFile) {
     await page.locator('input[type="file"][aria-label="Choose images to add"]').setInputFiles(uploadFile);
     const yours = page.getByRole("article", { name: "Your images", exact: true });
@@ -139,7 +155,7 @@ async function inspiration(page, b, uploadFile) {
     const like = yours.getByRole("button", { name: /^Like /u }).first();
     if (await like.count()) await like.click();
   }
-  await gallery.getByRole("button", { name: "Continue", exact: true }).click();
+  await sendNext(page, "Continue to Logo");
   await expect(page.getByRole("button", { name: "Explore six concepts", exact: true })).toBeVisible({
     timeout: GENERATION,
   });

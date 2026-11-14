@@ -156,7 +156,9 @@ function InspirationGrid({ children }: { children: ReactNode }) {
 }
 /** "page" is the standalone Inspiration page; "conversation" is the same step
  * shown as one Embel message inside the project conversation. */
-type InspirationVariant = "page" | "conversation";
+/** "workspace" is the gallery alone in the Workspace's work area: Embel's message is in the chat and Send in the
+ * reply box moves on, so it has neither. */
+type InspirationVariant = "page" | "conversation" | "workspace";
 /** In the conversation, Continue reveals the next message (onContinue) instead of
  * opening a page; once that message is on screen the row is no longer needed. */
 type InspirationProps = {
@@ -165,6 +167,8 @@ type InspirationProps = {
   lead?: string;
   onContinue?: () => void;
   continueHidden?: boolean;
+  /** The number of likes (brands, parts and your own images) once saved choices are read. */
+  onLikes?: (count: number) => void;
 };
 export function InspirationWorkspace({
   projectId,
@@ -172,6 +176,7 @@ export function InspirationWorkspace({
   lead,
   onContinue,
   continueHidden,
+  onLikes,
 }: InspirationProps) {
   const { session } = useAccountSession();
   if (session.status !== "ready")
@@ -190,6 +195,7 @@ export function InspirationWorkspace({
       lead={lead}
       onContinue={onContinue}
       continueHidden={continueHidden}
+      onLikes={onLikes}
     />
   );
 }
@@ -200,6 +206,7 @@ function OwnedInspiration({
   lead,
   onContinue,
   continueHidden,
+  onLikes,
 }: InspirationProps & { account: Extract<ReturnType<typeof useAccountSession>["session"], { status: "ready" }> }) {
   const controller = useInspiration(account, projectId),
     references = useYourReferences(account, projectId);
@@ -228,6 +235,7 @@ function OwnedInspiration({
       onContinue={onContinue}
       continueHidden={continueHidden}
       references={references}
+      onLikes={onLikes}
     />
   );
 }
@@ -244,6 +252,7 @@ export function InspirationView({
   onContinue,
   continueHidden = false,
   references,
+  onLikes,
 }: {
   controller: InspirationController;
   projectId: string;
@@ -252,8 +261,10 @@ export function InspirationView({
   onContinue?: () => void;
   continueHidden?: boolean;
   references?: YourReferences;
+  onLikes?: (count: number) => void;
 }) {
   const conversation = variant === "conversation";
+  const workspace = variant === "workspace";
   const [query, setQuery] = useState(""),
     [category, setCategory] = useState<InspirationCategory>("brands"),
     [liked, setLiked] = useState(false);
@@ -274,6 +285,10 @@ export function InspirationView({
     [...saved.values()]
       .filter((choice) => brandIds.has(choice.referenceId))
       .reduce((total, choice) => total + inspirationLikeCount(choice), 0) + (references?.liked ?? 0);
+  const counted = Boolean(controller.overview);
+  useEffect(() => {
+    if (counted) onLikes?.(count);
+  }, [counted, count, onLikes]);
   const yours = references?.section(liked) ?? null;
   const page = category === "brands" ? PAGE.brands : PAGE.parts;
   const reset = (next: { category?: InspirationCategory; liked?: boolean; query?: string }) => {
@@ -334,7 +349,9 @@ export function InspirationView({
         );
   const total = category === "brands" ? brands.length : parts.length;
   const noun = inspirationCategories.find((item) => item.value === category)!.label.toLowerCase();
-  const message = (
+  const message = workspace ? (
+    <h2 className="e-section__title inspiration-question">What do you like?</h2>
+  ) : (
     <>
       <EmbelIdentity label={journeyPartLabel("identity", "Inspiration")} />
       {!conversation && <h1 className="sr-only">Inspiration</h1>}
@@ -344,9 +361,17 @@ export function InspirationView({
   );
   // In the conversation the gallery is part of Embel's message, so it lines up
   // with the chat; on the page it keeps its own wide column.
-  const Frame = conversation ? "article" : "section";
+  const Frame = conversation || workspace ? "article" : "section";
   return (
-    <div className={conversation ? "inspiration-workspace inspiration-in-conversation" : "inspiration-workspace"}>
+    <div
+      className={
+        conversation
+          ? "inspiration-workspace inspiration-in-conversation"
+          : workspace
+            ? "inspiration-workspace inspiration-in-workspace"
+            : "inspiration-workspace"
+      }
+    >
       <Frame
         className={
           conversation
@@ -355,7 +380,7 @@ export function InspirationView({
         }
         aria-label="Inspiration gallery"
       >
-        {conversation ? (
+        {conversation || workspace ? (
           message
         ) : (
           <div className="guided-assistant-message identity-conversation-message inspiration-message">{message}</div>

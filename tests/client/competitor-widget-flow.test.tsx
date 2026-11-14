@@ -176,7 +176,7 @@ async function ready() {
 }
 it("adds a competitor as entered when research is unavailable, retaining selections after acknowledgment", async () => {
   await ready();
-  const selected = host.querySelector<HTMLInputElement>(".guided-choice-card input")!;
+  const selected = host.querySelector<HTMLInputElement>(".guided-choices .e-choice input")!;
   await act(async () => selected.click());
   await click("Add a competitor");
   await fill(".competitor-add-form input", "Manual Studio");
@@ -195,7 +195,7 @@ it("adds a competitor as entered when research is unavailable, retaining selecti
     selected: true,
     sources: [],
   });
-  expect([...host.querySelectorAll<HTMLInputElement>(".guided-choice-card input:checked")]).toHaveLength(2);
+  expect([...host.querySelectorAll<HTMLInputElement>(".guided-choices .e-choice input:checked")]).toHaveLength(2);
   expect(host.querySelector<HTMLElement>(".competitor-add-form")!.hidden).toBe(true);
 });
 it("keeps manual entry visible after an unconfirmed save and rejects duplicate suggestions", async () => {
@@ -228,7 +228,7 @@ it("requests additional suggestions only after explicit action while retaining e
     operations: [{ operation: "strategy.competitors", maximumCostMicrousd: 100000, interviewVersion: 1 }],
   };
   await render();
-  await act(async () => host.querySelector<HTMLInputElement>(".guided-choice-card input")!.click());
+  await act(async () => host.querySelector<HTMLInputElement>(".guided-choices .e-choice input")!.click());
   saveContext.mockResolvedValue(workspace);
   await click("Suggest more");
   expect(saveContext).toHaveBeenCalledOnce();
@@ -249,7 +249,7 @@ it("researches an added competitor like the suggestions, in the same save, keepi
     operations: [{ operation: "strategy.competitors", maximumCostMicrousd: 100000, interviewVersion: 1 }],
   };
   await render();
-  await act(async () => host.querySelector<HTMLInputElement>(".guided-choice-card input")!.click());
+  await act(async () => host.querySelector<HTMLInputElement>(".guided-choices .e-choice input")!.click());
   expect(host.querySelector(".competitor-add-form")!.textContent).toContain(
     "Embel looks it up like the other competitors",
   );

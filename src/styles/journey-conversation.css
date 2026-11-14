@@ -8,40 +8,8 @@
 .guided-interview-opening {
   background: transparent;
 }
-:is(.project-workspace, .guided-interview-opening) .guided-interview-scroll {
-  padding: var(--space-12) max(var(--space-6), calc((100% - var(--container-reading)) / 2)) var(--space-8);
-  gap: var(--space-6);
-}
 
 /* Your messages: a labelled bubble on the right. */
-:is(.project-workspace, .guided-interview-opening) .guided-user-turn {
-  align-self: flex-end;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--space-1);
-  max-width: min(560px, 88%);
-  min-width: 0;
-}
-:is(.project-workspace, .guided-interview-opening) .guided-user-label {
-  font-size: var(--font-size-1);
-  line-height: 18px;
-  color: var(--color-text-muted);
-}
-:is(.project-workspace, .guided-interview-opening) .guided-user-turn .guided-user-message {
-  align-self: auto;
-  max-width: 100%;
-  padding: 14px 18px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-panel) var(--radius-panel) 6px var(--radius-panel);
-  background: var(--color-bg-paper);
-}
-:is(.project-workspace, .guided-interview-opening) .guided-brief-turn {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--space-2);
-}
 
 /* Embel's messages: round avatar on the left, everything else beside it. */
 :is(.project-workspace, .guided-interview-opening) .guided-assistant-message {
@@ -92,66 +60,6 @@
   border: 0;
   background: transparent;
   gap: var(--space-3);
-}
-:is(.project-workspace, .guided-interview-opening) .guided-choice-intro h3 {
-  font-size: var(--font-size-4);
-  letter-spacing: -0.01em;
-}
-:is(.project-workspace, .guided-interview-opening) .guided-choice-intro p {
-  font-size: var(--font-size-2);
-}
-:is(.project-workspace, .guided-interview-opening) .guided-choice-options {
-  gap: var(--space-3);
-}
-:is(.project-workspace, .guided-interview-opening) .guided-choice-card {
-  border-radius: var(--radius-card);
-  background: var(--color-bg-paper);
-}
-:is(.project-workspace, .guided-interview-opening) .guided-choice-card.is-selected {
-  border-color: var(--color-text);
-  box-shadow:
-    inset 0 0 0 0.5px var(--color-text),
-    0 12px 28px -18px rgb(25 25 25 / 30%);
-}
-:is(.project-workspace, .guided-interview-opening) .guided-choice-target {
-  padding: var(--space-4);
-}
-:is(.project-workspace, .guided-interview-opening) .guided-choice-target input {
-  order: 2;
-  width: 18px;
-  height: 18px;
-  flex-basis: 18px;
-  margin: var(--space-0-5) 0 0 auto;
-}
-:is(.project-workspace, .guided-interview-opening) .guided-choice-label {
-  font-size: 15px;
-}
-:is(.project-workspace, .guided-interview-opening) .guided-choice-recommended {
-  min-height: 22px;
-  padding: 0 9px;
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-selected);
-  color: #3a3a37;
-  font-size: var(--font-size-1);
-}
-:is(.project-workspace, .guided-interview-opening) .guided-choice-description {
-  color: #3a3a37;
-  font-size: var(--font-size-3);
-  line-height: 1.45;
-}
-:is(.project-workspace, .guided-interview-opening) .guided-choice-reason {
-  padding: 10px var(--space-3);
-  border-radius: 10px;
-}
-:is(.project-workspace, .guided-interview-opening) .guided-choice-references {
-  padding: 10px var(--space-4);
-  border-top-color: var(--color-bg-sunken);
-}
-:is(.project-workspace, .guided-interview-opening) .guided-choice-actions > .button {
-  min-height: 44px;
-  padding: 0 var(--space-5);
-  border-radius: var(--radius-pill);
-  font-size: var(--font-size-3);
 }
 
 /* An answered question collapses into a compact card with its answer as chips. */
@@ -206,18 +114,7 @@
 }
 
 /* The brief's edit button sits inside the bubble, below the "You" label. */
-:is(.project-workspace, .guided-interview-opening) .guided-brief-turn .guided-user-turn {
-  max-width: 100%;
-}
-:is(.project-workspace, .guided-interview-opening) .guided-brief-turn > .guided-brief-editor {
-  top: 26px;
-  right: 4px;
-}
-:is(.project-workspace, .guided-interview-opening) .guided-user-turn .guided-user-message.guided-brief-message {
-  padding-inline-end: 52px;
-}
 /* Secondary actions inside the conversation are pills too. */
-:is(.project-workspace, .guided-interview-opening) .competitor-widget-toolbar .button,
 :is(.project-workspace, .guided-interview-opening) .guided-assistant-message .button.secondary {
   min-height: 40px;
   padding: 0 14px;
@@ -258,20 +155,8 @@
 .competitor-logo-monogram {
   background: var(--color-bg-canvas);
 }
-:is(.project-workspace, .guided-interview-opening) .guided-choice-target > .competitor-logo {
-  order: 0;
-}
-:is(.project-workspace, .guided-interview-opening) .guided-choice-target > .guided-choice-content {
-  order: 1;
-  flex: 1 1 auto;
-  min-width: 0;
-}
 :is(.project-workspace, .guided-interview-opening) .guided-choice-answer li {
   gap: var(--space-1-5);
-}
-:is(.project-workspace, .guided-interview-opening) .guided-choice-answer li.has-logo {
-  padding-left: var(--space-1);
-  gap: var(--space-2);
 }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-answer li .competitor-logo {
   border-radius: 50%;
@@ -280,59 +165,6 @@
 
 /* One row under the cards: add / suggest on the left, the count and Continue on the right.
    The add form opens above that row. */
-:is(.project-workspace, .guided-interview-opening) .guided-choice-actions {
-  justify-content: flex-end;
-  gap: var(--space-2);
-  padding-top: var(--space-1);
-}
-:is(.project-workspace, .guided-interview-opening) .guided-choice-actions .competitor-widget-controls {
-  display: contents;
-}
-:is(.project-workspace, .guided-interview-opening) .guided-choice-actions .competitor-widget-toolbar {
-  margin-right: auto;
-  display: flex;
-  gap: var(--space-2);
-}
-:is(.project-workspace, .guided-interview-opening) .guided-choice-actions .competitor-add-form {
-  order: -1;
-  flex-basis: 100%;
-  margin-bottom: var(--space-2);
-  padding: var(--space-4);
-  border-radius: var(--radius-card);
-  background: var(--color-bg-paper);
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-:is(.project-workspace, .guided-interview-opening) .competitor-add-form > p {
-  grid-column: 1 / -1;
-}
-.competitor-add-actions {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-2);
-}
-:is(.project-workspace, .guided-interview-opening) .competitor-add-actions .button {
-  min-height: 40px;
-  padding: 0 var(--space-4);
-  border-radius: var(--radius-pill);
-}
-:is(.project-workspace, .guided-interview-opening) .competitor-widget-toolbar .button {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1-5);
-}
-.guided-choice-count {
-  font-size: var(--font-size-2);
-  color: var(--color-text-muted);
-  margin-left: var(--space-1);
-}
-:is(.project-workspace, .guided-interview-opening) .guided-choice-actions > .button.primary {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-left: var(--space-1);
-  padding: 0 18px 0 var(--space-5);
-}
 
 /* Research in progress sits in Embel's message, like the other replies. */
 :is(.project-workspace, .guided-interview-opening) .guided-assistant-message > section[aria-label] {
@@ -340,166 +172,10 @@
 }
 
 /* Phase 3 · Positioning: the angle is the card's heading, the statement its main line. */
-:is(.project-workspace, .guided-interview-opening) .guided-choice-widget-positioning .guided-choice-label {
-  font-size: var(--font-size-2);
-  font-weight: 500;
-  color: #3a3a37;
-}
-.guided-positioning-statement {
-  display: block;
-  font-size: var(--font-size-6);
-  line-height: 1.4;
-  letter-spacing: -0.015em;
-  color: var(--color-text);
-}
-:is(.project-workspace, .guided-interview-opening) .guided-positioning-details {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--space-3) var(--space-6);
-  margin-top: var(--space-3);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-bg-sunken);
-}
-:is(.project-workspace, .guided-interview-opening) .guided-choice-traits {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1-5);
-}
-:is(.project-workspace, .guided-interview-opening) .guided-choice-traits > span {
-  display: inline-flex;
-  align-items: center;
-  min-height: 26px;
-  padding: 0 10px;
-  border: 1px solid #eeedea;
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-canvas);
-  font-size: var(--font-size-1);
-  color: #3a3a37;
-}
 
 /* Strategy, complete: one summary card replaces the three answered questions. */
-.strategy-summary {
-  margin-left: 44px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-4) 18px 18px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: rgb(255 255 255 / 80%);
-}
-.strategy-summary-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-.strategy-summary-head h2 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 500;
-}
-.strategy-summary-mark {
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--color-accent);
-  color: var(--color-bg-paper);
-}
-.strategy-summary-state {
-  font-size: var(--font-size-1);
-  color: var(--color-text-positive);
-}
-.strategy-summary-head .button {
-  margin-left: auto;
-  min-height: 40px;
-  padding: 0 14px;
-  border-radius: var(--radius-pill);
-}
-.strategy-summary dl {
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--space-4) var(--space-6);
-}
-.strategy-summary dt {
-  margin-bottom: var(--space-2);
-  font-size: var(--font-size-1);
-  color: var(--color-text-muted);
-}
-.strategy-summary dd {
-  margin: 0;
-  font-size: var(--font-size-3);
-  line-height: 1.45;
-}
 /* Competitors: even pill chips, each with a small logo inset from its edge. */
-.strategy-summary-chips {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1-5);
-}
-.strategy-summary-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  box-sizing: border-box;
-  height: 32px;
-  max-width: 100%;
-  padding: 0 var(--space-3) 0 5px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-paper);
-  font-size: var(--font-size-2);
-  line-height: 1;
-  white-space: nowrap;
-}
-.strategy-summary-chip > span:last-child {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.strategy-summary-chip .competitor-logo {
-  border-radius: 50%;
-  font-size: var(--font-size-1);
-}
 /* Audience: a short list, one segment per line. */
-.strategy-summary-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1-5);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.strategy-summary-list li {
-  position: relative;
-  padding-left: 14px;
-}
-.strategy-summary-list li::before {
-  content: "";
-  position: absolute;
-  left: 2px;
-  top: 0.62em;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--color-border-strong);
-}
-.strategy-summary-positioning {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-0-5);
-}
-.strategy-summary-positioning strong {
-  font-weight: 500;
-}
-.strategy-summary-positioning span {
-  font-size: var(--font-size-2);
-  color: #3a3a37;
-}
 
 /* Voice · Slogan (optional): a live preview, the lines as compact cards, your own line, skip. */
 .guided-slogan-widget {
@@ -510,100 +186,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-}
-.guided-slogan-preview {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-0-5);
-  padding: 18px var(--space-5);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-bg-paper);
-}
-.guided-slogan-preview-label {
-  font-size: var(--font-size-1);
-  color: var(--color-text-muted);
-}
-.guided-slogan-preview-name {
-  font-size: var(--font-size-7);
-  font-weight: 500;
-  letter-spacing: -0.02em;
-}
-.guided-slogan-preview-line {
-  font-size: 15px;
-  color: #3a3a37;
-}
-.guided-slogan-preview-line.is-empty {
-  color: #8a8a85;
-}
-.guided-slogan-options {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  gap: 10px;
-}
-.guided-slogan-option {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  min-height: 56px;
-  padding: 14px var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: 14px;
-  background: var(--color-bg-paper);
-  font-size: var(--font-size-3);
-  line-height: 1.4;
-  cursor: pointer;
-}
-.guided-slogan-option input,
-.guided-slogan-own > input[type="radio"] {
-  flex: 0 0 auto;
-  width: 16px;
-  height: 16px;
-  margin: var(--space-0-5) 0 0;
-  accent-color: var(--color-text);
-}
-.guided-slogan-option.is-selected,
-.guided-slogan-own.is-selected {
-  border: 1px solid var(--color-text);
-  box-shadow:
-    inset 0 0 0 0.5px var(--color-text),
-    0 10px 24px -16px rgb(25 25 25 / 35%);
-}
-.guided-slogan-own {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px var(--space-4);
-  border: 1px dashed var(--color-border-strong);
-  border-radius: 14px;
-  background: var(--color-bg-paper);
-}
-.guided-slogan-own > input[type="text"] {
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: 36px;
-  border: 0;
-  outline: none;
-  background: transparent;
-  font: inherit;
-  font-size: var(--font-size-3);
-}
-.guided-slogan-widget .guided-choice-actions .button {
-  min-height: 44px;
-  padding: 0 18px;
-  border-radius: var(--radius-pill);
-}
-.guided-slogan-widget .guided-slogan-more {
-  margin-right: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1-5);
-  min-height: 40px !important;
-}
-.guided-slogan-widget .guided-choice-actions .button.primary {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
 }
 /* The answer and its Edit button share a row; Edit wraps below only when narrow. */
 :is(.project-workspace, .guided-interview-opening) .guided-choice-answer-copy {
@@ -832,19 +414,6 @@
   border-radius: 50%;
   background: var(--color-text);
   color: var(--color-bg-paper);
-}
-.guided-next-step {
-  margin-top: 14px;
-  display: flex;
-  justify-content: flex-end;
-}
-.guided-next-step .button {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 44px;
-  padding: 0 18px 0 var(--space-5);
-  border-radius: var(--radius-pill);
 }
 
 /* Phase 5 · Identity · Logo: the concepts screen opens with Embel's message and
@@ -1514,42 +1083,5 @@
 /* The Logo step inside the project conversation (Identity, after Inspiration):
    no page padding, and everything after Embel's message lines up with the chat
    text, like the names grid. Dialogs keep their own centering. */
-.workspace-main .logo-in-conversation .project-logo-creation:has(.logo-conversation-message) {
-  width: 100%;
-  margin: 0;
-  padding: 0;
-}
-.logo-in-conversation {
-  scroll-margin-top: 24px;
-}
-.logo-in-conversation:focus {
-  outline: none;
-}
-.logo-in-conversation .project-logo-creation > div > :not(.logo-conversation-message):not(dialog) {
-  margin-left: 44px;
-  max-width: calc(100% - 44px);
-}
 /* Creative direction in the conversation: the chat column's edges instead of its
    own page frame, with the toolbar and boards aligned to Embel's message text. */
-.directions-in-conversation {
-  --branding-gutter: 0px;
-  --branding-max-width: none;
-  --branding-title-size: 32px;
-  --branding-section-size: 20px;
-  --branding-subheading-size: 16px;
-  --branding-action-height: 44px;
-  scroll-margin-top: 24px;
-}
-.directions-in-conversation:focus {
-  outline: none;
-}
-.workspace-main .directions-in-conversation > section {
-  width: 100%;
-  max-width: none;
-  margin: 0;
-  padding: 0;
-}
-.directions-in-conversation > section > :not(.guided-assistant-message):not(dialog) {
-  margin-left: 44px;
-  max-width: calc(100% - 44px);
-}

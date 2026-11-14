@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, createElement } from "react";
+import { act, createElement, useEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountGuidedInterview } from "@/components/workspace/account-guided-interview";
@@ -14,6 +14,7 @@ import { accountProjectSchema, type AccountProject } from "@/domain/project-api"
 const fixture = vi.hoisted(() => ({
   progress: null as null | { projectId: string; nextHref: string | null },
   replace: vi.fn(),
+  push: vi.fn(),
   strategy: {
     overview: { availability: { status: "unavailable", reason: "worker_unavailable", operations: [] }, jobs: [] },
     pending: false,
@@ -27,18 +28,32 @@ const fixture = vi.hoisted(() => ({
 vi.mock("@/components/workspace/use-strategy-jobs", () => ({ useStrategyJobs: () => fixture.strategy }));
 vi.mock("@/components/workspace/project-progress", () => ({ useProjectProgress: () => fixture.progress }));
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: fixture.replace, push: vi.fn(), refresh: vi.fn() }),
+  useRouter: () => ({ replace: fixture.replace, push: fixture.push, refresh: vi.fn() }),
 }));
+vi.mock("@/components/inspiration/inspiration-like-count", () => ({ InspirationLikeCount: () => null }));
 vi.mock("@/components/inspiration/inspiration-workspace", () => ({
-  InspirationWorkspace: ({ onContinue, continueHidden }: { onContinue?: () => void; continueHidden?: boolean }) => (
-    <article className="guided-assistant-message" data-inspiration>
-      {!continueHidden && (
-        <button type="button" className="inspiration-continue" onClick={onContinue}>
-          Continue
-        </button>
-      )}
-    </article>
-  ),
+  InspirationWorkspace: ({
+    onContinue,
+    continueHidden,
+    onLikes,
+    variant,
+  }: {
+    onContinue?: () => void;
+    continueHidden?: boolean;
+    onLikes?: (count: number) => void;
+    variant?: string;
+  }) => {
+    useEffect(() => onLikes?.(2), [onLikes]);
+    return (
+      <article data-inspiration data-variant={variant}>
+        {!continueHidden && (
+          <button type="button" className="inspiration-continue" onClick={onContinue}>
+            Continue
+          </button>
+        )}
+      </article>
+    );
+  },
 }));
 vi.mock("@/components/logo-creation/logo-creation-workspace", () => ({
   LogoCreationWorkspace: ({
@@ -68,28 +83,27 @@ vi.mock("@/components/visual-directions/visual-directions-page", () => ({
 const account = { status: "ready" as const, userId: "aaaaaaaa-2222-4222-8222-222222222222", generation: 1 };
 const projectId = "bbbbbbbb-2222-4222-8222-222222222222",
   when = "2026-11-07T10:00:00Z";
-const LOGO_TOP = 2000,
-  DIRECTIONS_TOP = 3000;
 let root: Root, host: HTMLDivElement, workspace: AccountWorkspace;
 const scrollTo = vi.fn(function (this: HTMLElement, options: ScrollToOptions) {
   this.scrollTop = Math.max(0, options.top ?? 0);
 });
 
-function area() {
-  return host.querySelector<HTMLDivElement>(".guided-interview-scroll")!;
-}
 function identity() {
   return host.querySelector<HTMLElement>('[data-journey-section="identity"]');
 }
-function continueButton() {
-  return host.querySelector<HTMLButtonElement>("button.inspiration-continue");
+/** The Workspace's work area, where the step on screen is. */
+function work() {
+  return host.querySelector<HTMLElement>(".e-workspace__main");
 }
-/** Scroll requests that brought the Logo message to the top of the conversation. */
-function logoJumps() {
-  return scrollTo.mock.calls.filter(([options]) => options?.top === LOGO_TOP - 24).length;
+/** Send in the reply box: its accessible name says what it does. */
+function send() {
+  return host.querySelector<HTMLButtonElement>('form[aria-label="Reply"] button[type="submit"]');
 }
-function directionsJumps() {
-  return scrollTo.mock.calls.filter(([options]) => options?.top === DIRECTIONS_TOP - 24).length;
+function chips() {
+  return [...host.querySelectorAll('[aria-label="In your reply"] .e-chip')].map((chip) => chip.textContent);
+}
+function buttonNamed(name: string) {
+  return [...host.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent === name);
 }
 function logoContinue() {
   return host.querySelector<HTMLButtonElement>("button.logo-continue");
@@ -119,6 +133,7 @@ beforeEach(() => {
   );
   scrollTo.mockClear();
   fixture.replace.mockReset();
+  fixture.push.mockReset();
   progressAt("inspiration");
   // Voice is finished: a name is chosen and the slogan question was asked.
   const project = accountProjectSchema.parse({
@@ -157,17 +172,6 @@ beforeEach(() => {
     },
   };
   workspace = { ownerId: account.userId, generation: 1, saved, draft: accountProjectDraft(saved), conflict: false };
-  vi.spyOn(Element.prototype, "scrollHeight", "get").mockImplementation(function (this: Element) {
-    return this.classList.contains("guided-interview-scroll") ? 6000 : 0;
-  });
-  vi.spyOn(Element.prototype, "clientHeight", "get").mockImplementation(function (this: Element) {
-    return this.classList.contains("guided-interview-scroll") ? 800 : 0;
-  });
-  vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
-    const offset = this.id === "journey-logo" ? LOGO_TOP : this.id === "journey-directions" ? DIRECTIONS_TOP : null;
-    const top = offset === null ? 0 : offset - (area()?.scrollTop ?? 0);
-    return { top, bottom: top, left: 0, right: 0, x: 0, y: top, width: 0, height: 0, toJSON: () => ({}) };
-  });
   Object.defineProperty(HTMLElement.prototype, "scrollTo", { configurable: true, writable: true, value: scrollTo });
   host = document.createElement("div");
   document.body.append(host);
@@ -183,84 +187,78 @@ afterEach(async () => {
 });
 
 describe("Logo step inside the Identity conversation", () => {
-  it("opens below Inspiration after Continue and keeps it in view while images load, until the reader scrolls", async () => {
-    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  it("shows Inspiration in the work area and opens the Logo step with Send", async () => {
     await render();
-    expect(identity()?.querySelector("[data-inspiration]")).not.toBeNull();
+    expect(work()?.querySelector("[data-inspiration]")?.getAttribute("data-variant")).toBe("workspace");
     expect(host.querySelector("#journey-logo")).toBeNull();
-    scrollTo.mockClear();
-
-    await act(async () => continueButton()!.click());
-    const logo = identity()!.querySelector("#journey-logo")!;
-    expect(logo.querySelector("[data-logo-workspace]")?.getAttribute("data-logo-workspace")).toBe(projectId);
-    expect(continueButton()).toBeNull();
-    expect(logoJumps()).toBe(1);
-
-    // Inspiration images finish loading and push the Logo message down.
-    area().scrollTop = 0;
-    await act(async () => {
-      vi.advanceTimersByTime(300);
-    });
-    expect(logoJumps()).toBe(2);
-
-    // Once the reader scrolls, the conversation stays where they put it.
-    await act(async () => {
-      area().dispatchEvent(new Event("wheel"));
-      area().scrollTop = 500;
-      vi.advanceTimersByTime(3000);
-    });
-    expect(logoJumps()).toBe(2);
-    expect(area().scrollTop).toBe(500);
+    // Decision 2: no Continue in the step; its likes go into the reply box and Send moves on.
+    expect(host.querySelector("button.inspiration-continue")).toBeNull();
+    expect(chips()).toEqual(["Inspiration: 2 liked"]);
+    expect(send()!.disabled).toBe(false);
+    await act(async () => send()!.click());
+    expect(work()!.querySelector("#journey-logo [data-logo-workspace]")?.getAttribute("data-logo-workspace")).toBe(
+      projectId,
+    );
+    expect(work()!.querySelector("[data-inspiration]")).toBeNull();
+    // Inspiration folds into the chat, and can be reopened from there.
+    const folded = identity()!.querySelector("details")!;
+    expect(folded.querySelector("summary")!.textContent).toContain("2 liked");
+    await act(async () => buttonNamed("Edit inspiration")!.click());
+    expect(work()!.querySelector("[data-inspiration]")).not.toBeNull();
+    expect(send()!.getAttribute("aria-label")).toBe("Continue to Logo");
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 
-  it("shows the Logo step without Continue once the project has reached it, without moving the reader", async () => {
+  it("shows the Logo step once the project has reached it, with Inspiration folded", async () => {
     progressAt("logo");
     await render();
-    expect(identity()!.querySelector("#journey-logo [data-logo-workspace]")).not.toBeNull();
-    expect(continueButton()).toBeNull();
-    expect(logoJumps()).toBe(0);
+    expect(work()!.querySelector("#journey-logo [data-logo-workspace]")).not.toBeNull();
+    expect(identity()!.querySelector("details summary")!.textContent).toContain("Inspiration");
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 
   it("opens at the Logo step from a #journey-logo link", async () => {
     window.history.replaceState(null, "", "#journey-logo");
     await render();
-    expect(identity()!.querySelector("#journey-logo [data-logo-workspace]")).not.toBeNull();
-    expect(logoJumps()).toBe(1);
+    expect(work()!.querySelector("#journey-logo [data-logo-workspace]")).not.toBeNull();
   });
 });
 
 describe("Creative direction inside the Identity conversation", () => {
-  it("opens below the Logo step after its Continue and moves to it", async () => {
+  it("opens after the Logo step's Continue", async () => {
     progressAt("logo");
     await render();
     expect(host.querySelector("#journey-directions")).toBeNull();
-    scrollTo.mockClear();
     await act(async () => logoContinue()!.click());
-    const directions = identity()!.querySelector("#journey-directions [data-directions]")!;
+    const directions = work()!.querySelector("#journey-directions [data-directions]")!;
     expect(directions.getAttribute("data-directions")).toBe(projectId);
     expect(directions.getAttribute("data-variant")).toBe("conversation");
-    expect(logoContinue()).toBeNull();
-    expect(directionsJumps()).toBe(1);
-    expect(logoJumps()).toBe(0);
+    expect(work()!.querySelector("#journey-logo")).toBeNull();
   });
 
-  it("shows Creative direction without Logo's Continue once the project has reached it, without moving the reader", async () => {
+  it("shows Creative direction once the project has reached it, with the Logo step folded and reopenable", async () => {
     progressAt("logo/directions");
     await render();
-    expect(identity()!.querySelector("#journey-logo [data-logo-workspace]")).not.toBeNull();
-    expect(identity()!.querySelector("#journey-directions [data-directions]")).not.toBeNull();
+    expect(work()!.querySelector("#journey-directions [data-directions]")).not.toBeNull();
+    await act(async () => buttonNamed("Change logo")!.click());
+    expect(work()!.querySelector("#journey-logo [data-logo-workspace]")).not.toBeNull();
     expect(logoContinue()).toBeNull();
-    expect(directionsJumps()).toBe(0);
   });
 
-  it("opens at Creative direction from a #journey-directions link, with the Logo step above it", async () => {
+  it("opens at Creative direction from a #journey-directions link", async () => {
     progressAt("inspiration");
     window.history.replaceState(null, "", "#journey-directions");
     await render();
-    expect(identity()!.querySelector("#journey-logo [data-logo-workspace]")).not.toBeNull();
-    expect(identity()!.querySelector("#journey-directions [data-directions]")).not.toBeNull();
-    expect(directionsJumps()).toBe(1);
-    expect(logoJumps()).toBe(0);
+    expect(work()!.querySelector("#journey-directions [data-directions]")).not.toBeNull();
+  });
+
+  it("sends a finished brand on to Assets with Send", async () => {
+    fixture.progress = { projectId, nextHref: `/brands/account/${projectId}/logo/deliverables` };
+    await render();
+    expect(work()!.querySelector("#journey-directions [data-directions]")).not.toBeNull();
+    expect(send()!.getAttribute("aria-label")).toBe("Continue to Assets");
+    await act(async () => send()!.click());
+    expect(fixture.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}/logo/deliverables`);
   });
 });
 
