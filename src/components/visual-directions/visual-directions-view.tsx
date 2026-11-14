@@ -7,6 +7,8 @@ import { EmbelIdentity } from "@/components/workspace/embel-identity";
 import { journeyPartLabel } from "@/domain/journey";
 import { Button, IconButton, Spinner } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { WorkAreaLayer } from "@/components/workspace/work-area-layer";
+import { useWorkspaceOverlayHost, useWorkspaceResultRows } from "@/components/workspace/workspace-slots";
 import { EmptyState } from "@/components/ui/feedback";
 import { Icon } from "@/components/ui/icon";
 import { InlineMessage } from "@/components/ui/message";
@@ -95,6 +97,10 @@ export function VisualDirectionsView({
   const titleId = useId(),
     reasonId = useId();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  // In the Workspace the larger view opens over the work area only, so the chat stays usable beside it.
+  const overlay = useWorkspaceOverlayHost();
+  // In the Workspace the work column narrows so the row of three boards stays in view (decision 1).
+  useWorkspaceResultRows(1);
   const ready = cards.flatMap((card, index) => (card ? [{ card, index }] : []));
   const expanded = ready.find(({ card }) => card.id === expandedId) ?? null;
   if (expandedId && !expanded) setExpandedId(null);
@@ -289,56 +295,59 @@ export function VisualDirectionsView({
       {history}
 
       {expanded ? (
-        <Dialog
-          size="lg"
-          media
-          title={expanded.card.title}
-          description={`Direction ${expanded.index + 1} of 3`}
-          onClose={() => setExpandedId(null)}
-          footer={
-            <>
-              <Button
-                icon="chevron-left"
-                disabled={ready.length < 2}
-                onClick={() => {
-                  const at = ready.indexOf(expanded);
-                  setExpandedId(ready[(at - 1 + ready.length) % ready.length]!.card.id);
-                }}
-              >
-                Previous
-              </Button>
-              <Button
-                disabled={ready.length < 2}
-                onClick={() => {
-                  const at = ready.indexOf(expanded);
-                  setExpandedId(ready[(at + 1) % ready.length]!.card.id);
-                }}
-              >
-                Next
-                <Icon name="chevron-right" size="sm" />
-              </Button>
-              <Button
-                variant={expanded.card.selected ? "secondary" : "primary"}
-                aria-pressed={Boolean(expanded.card.selected && !expanded.card.stale)}
-                disabled={
-                  !expanded.card.onChoose ||
-                  expanded.card.stale ||
-                  expanded.card.pending ||
-                  Boolean(expanded.card.disabledReason)
-                }
-                onClick={() => {
-                  choose(expanded.card);
-                  setExpandedId(null);
-                }}
-              >
-                {expanded.card.selected && !expanded.card.stale ? "Chosen" : "Choose this direction"}
-              </Button>
-            </>
-          }
-        >
-          <div className={styles.enlarged}>{expanded.card.preview}</div>
-          {expanded.card.summary && <p className="e-muted">{expanded.card.summary}</p>}
-        </Dialog>
+        <WorkAreaLayer host={overlay} onEscape={() => setExpandedId(null)}>
+          <Dialog
+            size="lg"
+            media
+            modal={!overlay}
+            title={expanded.card.title}
+            description={`Direction ${expanded.index + 1} of 3`}
+            onClose={() => setExpandedId(null)}
+            footer={
+              <>
+                <Button
+                  icon="chevron-left"
+                  disabled={ready.length < 2}
+                  onClick={() => {
+                    const at = ready.indexOf(expanded);
+                    setExpandedId(ready[(at - 1 + ready.length) % ready.length]!.card.id);
+                  }}
+                >
+                  Previous
+                </Button>
+                <Button
+                  disabled={ready.length < 2}
+                  onClick={() => {
+                    const at = ready.indexOf(expanded);
+                    setExpandedId(ready[(at + 1) % ready.length]!.card.id);
+                  }}
+                >
+                  Next
+                  <Icon name="chevron-right" size="sm" />
+                </Button>
+                <Button
+                  variant={expanded.card.selected ? "secondary" : "primary"}
+                  aria-pressed={Boolean(expanded.card.selected && !expanded.card.stale)}
+                  disabled={
+                    !expanded.card.onChoose ||
+                    expanded.card.stale ||
+                    expanded.card.pending ||
+                    Boolean(expanded.card.disabledReason)
+                  }
+                  onClick={() => {
+                    choose(expanded.card);
+                    setExpandedId(null);
+                  }}
+                >
+                  {expanded.card.selected && !expanded.card.stale ? "Chosen" : "Choose this direction"}
+                </Button>
+              </>
+            }
+          >
+            <div className={styles.enlarged}>{expanded.card.preview}</div>
+            {expanded.card.summary && <p className="e-muted">{expanded.card.summary}</p>}
+          </Dialog>
+        </WorkAreaLayer>
       ) : null}
     </section>
   );

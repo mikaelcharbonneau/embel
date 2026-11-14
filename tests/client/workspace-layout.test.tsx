@@ -202,7 +202,7 @@ describe("reply box", () => {
     const send = vi.fn(),
       stop = vi.fn();
     const base = {
-      step: "logo",
+      step: "logo" as const,
       chips: [{ id: "wordmark", label: "Wordmark", onRemove: vi.fn() }],
       placeholder: "Describe a change…",
       sendLabel: "Draw six concepts",

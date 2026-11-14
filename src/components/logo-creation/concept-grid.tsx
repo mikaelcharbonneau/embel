@@ -8,6 +8,8 @@ import type { AccountLogoClient } from "../identity/account-logo-client";
 import { ArtworkChoice } from "@/components/ui/choice";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { WorkAreaLayer } from "@/components/workspace/work-area-layer";
+import { useWorkspaceOverlayHost, useWorkspaceResultRows } from "@/components/workspace/workspace-slots";
 import { Icon } from "@/components/ui/icon";
 import { MediaFrame } from "@/components/ui/media-frame";
 import { useLogoReveal } from "@/features/logo-reveal/use-logo-reveal";
@@ -171,6 +173,10 @@ export function LogoConceptGridView({
   });
   const [urls, setUrls] = useState<Record<number, string>>({});
   const [enlarged, setEnlarged] = useState<number | null>(null);
+  // In the Workspace the larger view opens over the work area only, so the chat stays usable beside it.
+  const overlay = useWorkspaceOverlayHost();
+  // In the Workspace the work column narrows so both rows of three stay in view (decision 1).
+  useWorkspaceResultRows(2);
   const viewable = tiles.filter((tile) => tile.state === "ready" && urls[tile.ordinal]);
   const shown = enlarged === null ? null : (viewable.find((tile) => tile.ordinal === enlarged) ?? null);
   const position = shown ? viewable.indexOf(shown) : -1;
@@ -212,46 +218,49 @@ export function LogoConceptGridView({
         </ol>
       </div>
       {shown ? (
-        <Dialog
-          size="lg"
-          media
-          title={`Concept ${shown.ordinal + 1}`}
-          onClose={() => setEnlarged(null)}
-          footer={
-            <>
-              <Button
-                icon="chevron-left"
-                disabled={viewable.length < 2}
-                onClick={() => setEnlarged(viewable[(position - 1 + viewable.length) % viewable.length]!.ordinal)}
-              >
-                Previous
-              </Button>
-              <Button
-                disabled={viewable.length < 2}
-                onClick={() => setEnlarged(viewable[(position + 1) % viewable.length]!.ordinal)}
-              >
-                Next
-                <Icon name="chevron-right" size="sm" />
-              </Button>
-              <Button
-                variant={shown.selected ? "secondary" : "primary"}
-                aria-pressed={shown.selected}
-                disabled={!onSelectVersion || !shown.source}
-                onClick={() => {
-                  if (shown.source && !shown.selected) onSelectVersion?.(shown.source);
-                  setEnlarged(null);
-                }}
-              >
-                {shown.selected ? "Chosen" : "Choose this concept"}
-              </Button>
-            </>
-          }
-        >
-          <MediaFrame ratio="16x9" contain src={urls[shown.ordinal]} alt={`Concept ${shown.ordinal + 1}, enlarged`} />
-          <p className="e-muted">
-            {position + 1} of {viewable.length} concepts
-          </p>
-        </Dialog>
+        <WorkAreaLayer host={overlay} onEscape={() => setEnlarged(null)}>
+          <Dialog
+            size="lg"
+            media
+            modal={!overlay}
+            title={`Concept ${shown.ordinal + 1}`}
+            onClose={() => setEnlarged(null)}
+            footer={
+              <>
+                <Button
+                  icon="chevron-left"
+                  disabled={viewable.length < 2}
+                  onClick={() => setEnlarged(viewable[(position - 1 + viewable.length) % viewable.length]!.ordinal)}
+                >
+                  Previous
+                </Button>
+                <Button
+                  disabled={viewable.length < 2}
+                  onClick={() => setEnlarged(viewable[(position + 1) % viewable.length]!.ordinal)}
+                >
+                  Next
+                  <Icon name="chevron-right" size="sm" />
+                </Button>
+                <Button
+                  variant={shown.selected ? "secondary" : "primary"}
+                  aria-pressed={shown.selected}
+                  disabled={!onSelectVersion || !shown.source}
+                  onClick={() => {
+                    if (shown.source && !shown.selected) onSelectVersion?.(shown.source);
+                    setEnlarged(null);
+                  }}
+                >
+                  {shown.selected ? "Chosen" : "Choose this concept"}
+                </Button>
+              </>
+            }
+          >
+            <MediaFrame ratio="16x9" contain src={urls[shown.ordinal]} alt={`Concept ${shown.ordinal + 1}, enlarged`} />
+            <p className="e-muted">
+              {position + 1} of {viewable.length} concepts
+            </p>
+          </Dialog>
+        </WorkAreaLayer>
       ) : null}
     </section>
   );

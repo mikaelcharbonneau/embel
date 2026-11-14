@@ -10,7 +10,6 @@ import {
   useState,
   useSyncExternalStore,
   type ComponentProps,
-  type ComponentType,
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
@@ -82,10 +81,10 @@ import {
   WorkspaceReplyBox,
   WorkspaceReplyRegistry,
   stepReplyAction,
-  type StepReplyLike,
   type WorkspaceReplyAction,
 } from "./workspace-reply";
 import { WorkspaceSlotContext, type WorkspaceStepSummary, type WorkspaceSummaryStep } from "./workspace-slots";
+import type { StepReply } from "@/features/logo-creation/model/step-reply";
 import "@/styles/conversation.css";
 
 function subscribeToHash(onChange: () => void) {
@@ -880,7 +879,7 @@ export function AccountGuidedInterview({
   const [likes, setLikes] = useState<number | null>(null);
   const [sloganChoice, setSloganChoice] = useState<SloganChoice | null>(null);
   // The Logo and Creative direction steps hand their reply box (chips, Send, Stop) to the conversation.
-  const [stepReply, setStepReply] = useState<StepReplyLike | null>(null);
+  const [stepReply, setStepReply] = useState<StepReply | null>(null);
 
   // The project bar's steps open their part of the chat.
   const root = useRef<HTMLDivElement>(null);
@@ -1499,7 +1498,7 @@ export function AccountGuidedInterview({
       <InspirationWorkspace projectId={saved.id} variant="workspace" continueHidden onLikes={setLikes} />
     ) : view === "logo" ? (
       <div id="journey-logo" className="conversation-slot" tabIndex={-1}>
-        <LogoStep
+        <LogoCreationWorkspace
           projectId={saved.id}
           continueHidden={directionsShown}
           onContinue={() => {
@@ -1507,16 +1506,16 @@ export function AccountGuidedInterview({
             setDirectionsOpened(true);
           }}
           reply="external"
-          onReplyChange={(next) => setStepReply(next && { ...next, step: "logo" })}
+          onReplyChange={setStepReply}
         />
       </div>
     ) : view === "directions" ? (
       <div id="journey-directions" className="conversation-slot" tabIndex={-1}>
-        <DirectionsStep
+        <VisualDirectionsPage
           projectId={saved.id}
           variant="conversation"
           reply="external"
-          onReplyChange={(next) => setStepReply(next && { ...next, step: "directions" })}
+          onReplyChange={setStepReply}
         />
       </div>
     ) : (
@@ -1599,7 +1598,10 @@ export function AccountGuidedInterview({
     return null;
   })();
   const stepAction =
-    (view === "logo" || view === "directions") && stepReply?.step === view ? stepReplyAction(stepReply) : null;
+    stepReply &&
+    ((view === "logo" && stepReply.step === "logo") || (view === "directions" && stepReply.step === "direction"))
+      ? stepReplyAction(stepReply)
+      : null;
   const action = replyRegistry.action ?? stepAction ?? ownAction ?? replyRegistry.fallback;
   // While the names are open, typed text is naming guidance, sent only through the naming step's own handler.
   const namingText = namingOpen && !action?.onSendText;
@@ -1666,18 +1668,6 @@ type WorkView = "choices" | "naming" | "slogan" | "inspiration" | "logo" | "dire
 // The Workspace's reply box serves every naming question, and the names always sit in the work area.
 const ignoreNamingQuestion = () => undefined;
 const ignoreNamingCanvas = () => undefined;
-
-/** The Logo and Creative direction steps hand their reply box to the Workspace (`reply="external"`, from branch
- * ui/logo-direction): their chips, Send and Stop arrive through `onReplyChange`. Until those props exist on main the
- * steps ignore them and keep their own controls. */
-type ExternalReply = {
-  reply?: "inline" | "external";
-  onReplyChange?: (reply: Omit<StepReplyLike, "step"> | null) => void;
-};
-const LogoStep = LogoCreationWorkspace as ComponentType<ComponentProps<typeof LogoCreationWorkspace> & ExternalReply>;
-const DirectionsStep = VisualDirectionsPage as ComponentType<
-  ComponentProps<typeof VisualDirectionsPage> & ExternalReply
->;
 
 /** A finished brand's Send goes to Assets, unless the step on screen offers its own. */
 function FinishedBrandReply({ href }: { href: string }) {

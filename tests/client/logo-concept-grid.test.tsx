@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LogoConceptGridView } from "@/components/logo-creation/concept-grid";
 import type { AccountLogoClient } from "@/components/identity/account-logo-client";
 import type { LogoConceptBatch } from "@/domain/logo-jobs";
+import { WorkspaceSlotContext } from "@/components/workspace/workspace-slots";
 import { syntheticLogoBatch } from "../fixtures/logo-creation";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -87,6 +88,47 @@ describe("logo concepts as artwork only", () => {
     expect(onSelectVersion).toHaveBeenCalledTimes(1);
     expect(onSelectVersion.mock.calls[0]![0].slotId).toBe(batch.slots[0]!.id);
     expect(dialog()).toBeNull();
+  });
+
+  it("opens the larger view over the work area, not modal, inside the Workspace, and asks for two rows", async () => {
+    const overlay = document.createElement("div");
+    document.body.append(overlay);
+    const setRows = vi.fn();
+    const show = vi.fn(),
+      showModal = vi.spyOn(HTMLDialogElement.prototype, "showModal");
+    HTMLDialogElement.prototype.show = show;
+    const slots = { chat: null, overlay, setRows, setSummary: vi.fn() };
+    const batch = syntheticLogoBatch(["succeeded", "succeeded", "succeeded", "succeeded", "succeeded", "succeeded"]);
+    await act(async () =>
+      root.render(
+        createElement(
+          WorkspaceSlotContext.Provider,
+          { value: slots },
+          createElement(LogoConceptGridView, {
+            client,
+            batch,
+            title: "Choose the concept you like most",
+            subtitle: "",
+          }),
+        ),
+      ),
+    );
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(setRows).toHaveBeenCalledWith(expect.any(Symbol), 2);
+    await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Enlarge Concept 2"]')!.click());
+    expect(host.querySelector("dialog")).toBeNull();
+    expect(overlay.querySelector(".e-workspace__overlay dialog h2")?.textContent).toBe("Concept 2");
+    expect(show).toHaveBeenCalled();
+    expect(showModal).not.toHaveBeenCalled();
+    // Escape closes the larger view and returns to the work.
+    await act(async () =>
+      overlay
+        .querySelector(".e-workspace__overlay")!
+        .dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })),
+    );
+    expect(overlay.querySelector("dialog")).toBeNull();
   });
 
   it("keeps the pictures but turns their buttons off while a choice cannot be saved", async () => {

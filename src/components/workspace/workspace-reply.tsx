@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { IconButton } from "@/components/ui/button";
+import type { StepReply } from "@/features/logo-creation/model/step-reply";
 
 /**
  * What the reply box offers for the step on screen (design decision 2: Send is the one way forward). A step puts its
@@ -45,25 +46,9 @@ function chipAt(action: WorkspaceReplyAction | null, index: number) {
 }
 const chipLabel = (chip: WorkspaceReplyChip) => (typeof chip === "string" ? chip : chip.label);
 
-/**
- * The reply contract of the Logo and Creative direction steps when they render with `reply="external"` (branch
- * ui/logo-direction, `src/features/logo-creation/model/step-reply.ts`). Typed here structurally so this branch does
- * not depend on that one; `stepReplyAction` turns it into what the reply box shows.
- */
-export type StepReplyLike = {
-  step: string;
-  chips: readonly { id: string; label: string; onRemove?: () => void }[];
-  placeholder: string;
-  sendLabel: string;
-  canSend: boolean;
-  acceptsText: boolean;
-  outOfCredits: boolean;
-  working: boolean;
-  stopLabel: string;
-  send: (text: string) => void;
-  stop?: () => void;
-};
-export function stepReplyAction(reply: StepReplyLike): WorkspaceReplyAction {
+/** The Logo and Creative direction steps render with `reply="external"` and report their reply box (`StepReply`);
+ * this turns it into what the reply box shows. */
+export function stepReplyAction(reply: StepReply): WorkspaceReplyAction {
   const usable = reply.canSend && !reply.outOfCredits;
   return {
     chips: reply.chips.map((chip) => ({ label: chip.label, onRemove: chip.onRemove })),
@@ -72,7 +57,7 @@ export function stepReplyAction(reply: StepReplyLike): WorkspaceReplyAction {
     onSend: usable ? () => reply.send("") : undefined,
     onSendText: reply.acceptsText && usable ? (text) => reply.send(text) : undefined,
     blockedReason: reply.outOfCredits ? "No credits left for this step." : undefined,
-    working: reply.working ? { label: reply.stopLabel, onStop: reply.stop } : undefined,
+    working: reply.working ? { label: reply.stopLabel ?? "Stop", onStop: reply.stop } : undefined,
   };
 }
 
