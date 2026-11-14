@@ -6,6 +6,7 @@ import { MediaFrame, type MediaRatio } from "@/components/ui/media-frame";
 import type { AssetVersionDetail } from "@/domain/asset-library";
 import { canPreviewAsset, type AccountAssetsClient } from "./account-assets-client";
 import { privatePreviewIdentity } from "./private-preview-identity";
+import { watchVisibility } from "@/components/ui/watch-visibility";
 
 /** A Library file's picture in a Media frame: contained, never cropped (IMG-012). Loading is the frame's skeleton;
  * a file with no picture says why in the frame. */
@@ -73,18 +74,9 @@ export function AssetPreview({
         if (!controller.signal.aborted && client.current()) setResult({ client, key: previewKey, failed: true });
       }
     }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          observer.disconnect();
-          void load();
-        }
-      },
-      { rootMargin: "120px" },
-    );
-    if (container.current) observer.observe(container.current);
+    const stop = container.current ? watchVisibility(container.current, () => void load(), 120) : undefined;
     return () => {
-      observer.disconnect();
+      stop?.();
       controller.abort();
       release?.();
     };
