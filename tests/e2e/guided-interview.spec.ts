@@ -640,7 +640,7 @@ async function sendChoice(page: Page, stage: GuidedStage) {
 }
 /** A finished answer is folded in the chat: open it, then press its Edit button. */
 async function editAnswer(page: Page, question: string) {
-  const edit = page.getByRole("button", { name: `Edit your answer: ${question}`, exact: true });
+  const edit = page.getByRole("button", { name: `Change answer: ${question}`, exact: true });
   const folded = page.locator("details.conversation-folded", { has: edit });
   if (!(await folded.evaluate((element) => (element as HTMLDetailsElement).open)))
     await folded.locator("summary").click();
@@ -1057,7 +1057,7 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
   });
   await page.reload();
   await expect(
-    page.getByRole("button", { name: `Edit your answer: ${questions.competitors}`, exact: true }),
+    page.getByRole("button", { name: `Change answer: ${questions.competitors}`, exact: true }),
   ).toBeAttached();
   expect(state.enqueues).toHaveLength(1);
   completeLatest(state);
@@ -1083,9 +1083,7 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
   expect(state.project.context.intake.positioningReviewedAt).not.toBeNull();
   // Strategy is complete: its three answers fold into one entry in the chat.
   await expect(page.locator('[data-journey-section="strategy"] .e-answer__question').first()).toHaveText("Strategy");
-  await expect(
-    page.getByRole("button", { name: `Edit your answer: ${questions.competitors}`, exact: true }),
-  ).toBeHidden();
+  await expect(page.getByRole("button", { name: `Change answer: ${questions.competitors}`, exact: true })).toBeHidden();
   completeLatest(state);
   await expectReplyArrivalInViewport(page, "personality", "The warm guide");
   await page.screenshot({ path: info.outputPath("guided-personality-arrival-viewport.png"), scale: "css" });
@@ -1174,7 +1172,7 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
   try {
     await page.reload();
     await expect(
-      page.getByRole("button", { name: `Edit your answer: ${questions.personality}`, exact: true }),
+      page.getByRole("button", { name: `Change answer: ${questions.personality}`, exact: true }),
     ).toBeAttached();
     await expect(userMessage(page, initialPrompt)).toBeVisible();
   } finally {
@@ -1199,14 +1197,14 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
     await page.reload();
     await expect(userMessage(page, initialPrompt)).toBeVisible();
     await expect(
-      page.getByRole("button", { name: `Edit your answer: ${questions.personality}`, exact: true }),
+      page.getByRole("button", { name: `Change answer: ${questions.personality}`, exact: true }),
     ).toHaveCount(0);
     await expect(namingQuestion).toHaveCount(0);
   } finally {
     finishHistory();
   }
   await expect(
-    page.getByRole("button", { name: `Edit your answer: ${questions.personality}`, exact: true }),
+    page.getByRole("button", { name: `Change answer: ${questions.personality}`, exact: true }),
   ).toBeAttached();
   await expect(namingQuestion).toBeInViewport({ ratio: 1 });
   await expect(page.getByRole("button", { name: /View new response/ })).toHaveCount(0);
@@ -1317,7 +1315,7 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
   await expect(page.locator("[data-naming-layout]")).toHaveCount(0);
   await expect(page.getByRole("log", { name: "Conversation", exact: true })).toBeVisible();
   await expect(
-    page.getByRole("button", { name: `Edit your answer: ${questions.personality}`, exact: true }),
+    page.getByRole("button", { name: `Change answer: ${questions.personality}`, exact: true }),
   ).toBeAttached();
   // As in the design: a click marks a name (the ring alone shows it), and Send in the reply box moves on.
   const continueName = page.getByRole("button", { name: "Continue to Slogan", exact: true });

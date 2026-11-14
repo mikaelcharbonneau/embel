@@ -271,7 +271,7 @@ describe("guided interview choice controls", () => {
         <FoldedAnswer
           label="Audience"
           answers={[{ text: audience.label }]}
-          editName="Edit your answer: Who are you here for?"
+          editName="Change answer: Who are you here for?"
           onEdit={onEdit}
         />,
       ),

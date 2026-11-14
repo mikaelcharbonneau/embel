@@ -510,10 +510,10 @@ export function NamingApproachWidgets({
               type="button"
               className="text-link"
               disabled={blocked || working}
-              aria-label={`Edit answer: ${questions[item]}`}
+              aria-label={`Change answer: ${questions[item]}`}
               onClick={() => revisit(item)}
             >
-              Edit
+              Change
             </button>
           </section>
         ))}

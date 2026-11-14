@@ -178,7 +178,7 @@ it("asks one decision at a time, preserves every approach, and revisits without 
   expect(start).not.toHaveBeenCalled();
   await act(async () =>
     host
-      .querySelector<HTMLButtonElement>('[aria-label="Edit answer: Which approaches would you like to explore?"]')!
+      .querySelector<HTMLButtonElement>('[aria-label="Change answer: Which approaches would you like to explore?"]')!
       .click(),
   );
   expect(host.querySelector('[aria-pressed="true"]')?.textContent).toContain("Real words");
@@ -345,7 +345,7 @@ it("keeps confirmed choices complete when newly selected approaches used to add 
   expect(host.querySelector("#project-naming-preferences-heading")?.textContent).toBe("Your naming direction");
   await act(async () =>
     host
-      .querySelector<HTMLButtonElement>('[aria-label="Edit answer: Which approaches would you like to explore?"]')!
+      .querySelector<HTMLButtonElement>('[aria-label="Change answer: Which approaches would you like to explore?"]')!
       .click(),
   );
   await click("Other languages");

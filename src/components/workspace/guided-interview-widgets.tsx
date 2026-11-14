@@ -388,7 +388,7 @@ export function GuidedChoicesEmpty({
 export function FoldedPart({
   label,
   answers,
-  editLabel = "Edit answer",
+  editLabel = "Change answer",
   editName,
   disabled,
   onEdit,
@@ -422,7 +422,7 @@ export function FoldedAnswer({
   label,
   answers,
   thumbnail,
-  editLabel = "Edit answer",
+  editLabel = "Change answer",
   editName,
   onEdit,
   editDisabled,
