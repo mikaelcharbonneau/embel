@@ -27,6 +27,10 @@ export const PLAN_CATALOG: Record<
   },
 };
 
+/** Monthly credits per plan, for screens that must state them before the account's own numbers load
+ * (signed out, or while loading). The database (fluid_private.plans) is the source the server uses. */
+export const PLAN_MONTHLY_CREDITS: Record<PlanId, number> = { free: 30, pro: 150, studio: 500 };
+
 export const paidPlanSchema = z.enum(PAID_PLAN_IDS);
 
 /** The plan a Stripe price lookup key sells, if it is one of ours. */
