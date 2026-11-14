@@ -61,7 +61,26 @@ export function brandPackReadme(
   vectorIncluded: boolean,
   slogan: string | null = null,
 ): Uint8Array<ArrayBuffer> {
-  return textBytes(
-    `${snapshot.name} — Brand assets\n${slogan ? `Slogan: ${slogan}\n` : ""}\nbrand-board.png: final overview of your selected identity.\nlogo/: original saved logo, a copy with its light background made transparent, a one-color reversed copy for dark backgrounds${vectorIncluded ? " and the matching saved SVG vector" : ""}.\ndirection/: unchanged selected direction image.\nsocial/: profile image, square and portrait post templates, and two banners.\nguides/: color values, CSS variables and the brand guidelines (brand-guide.html, with font links).\ndesign-system/: design tokens as CSS and JSON.\n\nThe social PNGs are ready to upload. Any headline or message in them comes from your saved slogan and positioning. Their SVG companions have editable text, colors and shapes; the embedded logo remains raster. Install the fonts linked in guides/brand-guide.html before editing. Font software is not included.\n\nThe original logo file retains its saved background and resolution. The transparent and reversed logos are raster images made from it. ${vectorIncluded ? "The separate logo SVG is verified saved vector geometry." : "There is no vector logo in this pack. Social SVG templates are not vector logo masters."}\n`,
-  );
+  // A short, friendly "What's in this kit" (D-063). It says plainly that the logos are images, never vectors,
+  // unless a saved vector is included.
+  const lines = [
+    `${snapshot.name}: your brand kit`,
+    ...(slogan ? [`Slogan: ${slogan}`] : []),
+    "",
+    "What's in this kit",
+    "- brand-board.png: your brand on one page.",
+    `- logo/: your logo as you chose it, a copy with a transparent background and a one-color copy for dark backgrounds${vectorIncluded ? ", plus your saved SVG vector" : ""}.`,
+    "- direction/: the creative direction you chose.",
+    "- social/: a profile image, square and portrait post templates and two banners, ready to upload.",
+    "- guides/: your colors, CSS variables and the brand guidelines (brand-guide.html, with links to your fonts).",
+    "- design-system/: design tokens as CSS and JSON.",
+    "",
+    "Good to know",
+    "- Headlines in the social images come from your slogan and positioning. Each has an SVG copy whose text, colors and shapes you can edit (the logo inside stays an image); install the fonts linked in the brand guidelines first. The fonts themselves are not included.",
+    vectorIncluded
+      ? "- The logo PNGs are images made from your saved logo; logo/ also holds your saved SVG vector."
+      : "- The logos are PNG images, not vector files. They keep the size of your saved logo.",
+    "",
+  ];
+  return textBytes(lines.join("\n"));
 }
