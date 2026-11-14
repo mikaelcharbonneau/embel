@@ -58,12 +58,6 @@
   min-width: 0;
   background: var(--color-bg-canvas);
 }
-.project-workbench :is(h1, .project-workbench-heading h2) {
-  font-size: var(--font-size-7);
-  font-weight: 500;
-  line-height: 32px;
-  letter-spacing: -0.5px;
-}
 .project-workbench .button {
   min-height: 34px;
   font-size: var(--font-size-2);
