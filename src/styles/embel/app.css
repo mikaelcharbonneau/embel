@@ -2,3 +2,11 @@
 :root {
   --embel-mark: url("/embel-mark.svg");
 }
+
+/* The main navigation's links sit in a list inside the pill: lay the list out as the pill does. */
+.app-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
