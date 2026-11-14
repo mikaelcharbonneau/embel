@@ -115,7 +115,6 @@ export function initialIdentityPreferences(context: ContextSnapshot): IdentityPr
 export const identityPreferenceRevisionSchema = z
   .strictObject({ ...ownership, revision, preferences: identityPreferencesSchema, createdAt: timestamp })
   .transform(freeze);
-export type IdentityPreferenceRevision = z.infer<typeof identityPreferenceRevisionSchema>;
 
 const identityNameResolutionSchema = z.discriminatedUnion("status", [
   z.strictObject({
