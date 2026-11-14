@@ -845,7 +845,7 @@ button.inspiration-continue {
   height: 40px;
   margin-top: -20px;
   padding: 0;
-  border: 1px solid rgb(25 25 25 / 8%);
+  border: 1px solid var(--color-border);
   border-radius: 50%;
   background: var(--chip-on-artwork-bg);
   color: var(--color-text);
