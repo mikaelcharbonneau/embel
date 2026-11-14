@@ -56,7 +56,9 @@ export function stepReplyAction(reply: StepReply): WorkspaceReplyAction {
     label: reply.sendLabel,
     onSend: usable ? () => reply.send("") : undefined,
     onSendText: reply.acceptsText && usable ? (text) => reply.send(text) : undefined,
-    blockedReason: reply.outOfCredits ? "No credits left for this step." : undefined,
+    // At 0 credits the step says so once, in the chat, with when credits return and See plans (D-014). Send stays
+    // off; the reply box adds no second message.
+    blockedReason: undefined,
     working: reply.working ? { label: reply.stopLabel ?? "Stop", onStop: reply.stop } : undefined,
   };
 }

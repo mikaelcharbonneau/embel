@@ -220,7 +220,9 @@ describe("reply box", () => {
     action.onSend!();
     expect(send).toHaveBeenCalledWith("");
     expect(stepReplyAction({ ...base, outOfCredits: true }).onSend).toBeUndefined();
-    expect(stepReplyAction({ ...base, outOfCredits: true }).blockedReason).toBeTruthy();
+    // At 0 credits Send is off and the step's own note in the chat is the only message (D-014).
+    expect(stepReplyAction({ ...base, outOfCredits: true }).onSendText).toBeUndefined();
+    expect(stepReplyAction({ ...base, outOfCredits: true }).blockedReason).toBeUndefined();
     expect(stepReplyAction({ ...base, working: true }).working).toMatchObject({ label: "Stop drawing" });
   });
 });
