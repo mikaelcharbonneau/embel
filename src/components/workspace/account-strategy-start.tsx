@@ -451,16 +451,17 @@ export function useAccountStrategyStart({
       {checked?.error && <p role="alert">{checked.error}</p>}
       {session.status === "signed_out" && (
         <p className="field-hint">
+          You’ll{" "}
           <Link
             href="/sign-in"
-            className="text-link"
+            className="e-link"
             onClick={(event) => {
               if (beforeSignIn && !beforeSignIn(locked)) event.preventDefault();
             }}
           >
-            Sign in
+            sign in
           </Link>{" "}
-          to save your project. Your prompt is kept.
+          before we start. Your idea is kept.
         </p>
       )}
       {session.status === "ready" &&

@@ -2,35 +2,57 @@
 
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
-import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
-import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { useState, type ReactNode } from "react";
 import { useAccountSession } from "./account-session";
 import { preparePromptForSignIn } from "./prompt-recovery";
 import "@/styles/auth.css";
 
-/** Sign-out and recovery controls. In the account menu, a signed-in owner sees
- * only Sign out: routine session checks run on their own. A failed check offers
- * Check account; Settings keeps its explicit check beside Sign out. */
-export function AccountAccess({ menu = false }: { menu?: boolean }) {
-  const { session, refresh, signOut, signingIn, signingUp, signingOut, signOutError } = useAccountSession();
-  const [confirmSignOut, setConfirmSignOut] = useState(false);
-  const dialog = useRef<HTMLDialogElement>(null);
-  const cancel = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    if (confirmSignOut && dialog.current && !dialog.current.open) {
-      dialog.current.showModal();
-      cancel.current?.focus();
-    } else if (!confirmSignOut && dialog.current?.open) dialog.current.close();
-  }, [confirmSignOut]);
-
-  async function startSignOut(discardUnsaved = false) {
+/** Signing out, with the confirmation shown when unsaved account edits would be lost. Render `dialog`
+ * outside any menu: a closed menu is hidden, and the confirmation must stay visible. */
+export function useSignOutFlow(): { start: (discardUnsaved?: boolean) => Promise<void>; dialog: ReactNode } {
+  const { signOut } = useAccountSession();
+  const [confirming, setConfirming] = useState(false);
+  async function start(discardUnsaved = false) {
     const result = await signOut(discardUnsaved);
-    if (!result.ok && result.reason === "confirmation_required") setConfirmSignOut(true);
+    if (!result.ok && result.reason === "confirmation_required") setConfirming(true);
   }
+  const dialog = confirming ? (
+    <Dialog
+      title="Sign out with unsaved account edits?"
+      description="Saved work stays in your account. Unsaved edits will be discarded only after sign-out is confirmed."
+      size="sm"
+      onClose={() => setConfirming(false)}
+      footer={
+        <>
+          <Button variant="secondary" autoFocus onClick={() => setConfirming(false)}>
+            Keep editing
+          </Button>
+          <Button
+            variant="danger-filled"
+            onClick={() => {
+              setConfirming(false);
+              void start(true);
+            }}
+          >
+            Discard edits and sign out
+          </Button>
+        </>
+      }
+    />
+  ) : null;
+  return { start, dialog };
+}
+
+/** Settings' sign-out and recovery controls: an explicit account check beside Sign out. The account menu
+ * builds its own rows from `useSignOutFlow`. */
+export function AccountAccess() {
+  const { session, refresh, signingIn, signingUp, signingOut, signOutError } = useAccountSession();
+  const { start: startSignOut, dialog } = useSignOutFlow();
 
   const signOutAvailable = session.status === "ready" || signingOut || Boolean(signOutError);
   const signOutLabel = signingOut ? "Signing out…" : signOutError ? "Retry sign-out" : "Sign out";
-  const checkFailed = (session.status === "error" || session.status === "unavailable") && !signingIn && !signingOut;
   const signInLink = (
     <Link
       className="text-link auth-session-action"
@@ -45,114 +67,46 @@ export function AccountAccess({ menu = false }: { menu?: boolean }) {
 
   return (
     <>
-      {menu ? (
-        <div className="auth-account-menu-actions">
-          {signingIn ? (
-            <button type="button" className="auth-session-action" disabled>
-              {signingUp ? "Creating account…" : "Signing in…"}
-            </button>
-          ) : signOutAvailable ? (
-            <button
-              type="button"
-              className="auth-session-action"
-              onClick={() => void startSignOut()}
-              disabled={signingOut}
-            >
-              <Icon name="log-out" />
-              {signOutLabel}
-            </button>
-          ) : session.status === "checking" ? (
-            <span className="auth-session-action" role="status">
-              Checking account…
-            </span>
-          ) : null}
-          {checkFailed && (
-            <button type="button" className="account-check" onClick={refresh}>
-              <Icon name="refresh" size={18} />
-              Check account
-            </button>
-          )}
-          {checkFailed && !signOutError && signInLink}
-        </div>
-      ) : (
-        <div className="topbar-account auth-account-access">
+      <div className="topbar-account auth-account-access">
+        <button
+          type="button"
+          className="icon-button subtle account-check"
+          aria-label={session.status === "checking" ? "Checking account…" : "Check account"}
+          title="Check account"
+          onClick={refresh}
+          disabled={session.status === "checking" || signingIn || signingOut}
+        >
+          <Icon name="refresh" size={18} />
+        </button>
+        {signingIn ? (
+          <button type="button" className="text-link auth-session-action" disabled>
+            {signingUp ? "Creating account…" : "Signing in…"}
+          </button>
+        ) : signOutAvailable ? (
           <button
             type="button"
-            className="icon-button subtle account-check"
-            aria-label={session.status === "checking" ? "Checking account…" : "Check account"}
-            title="Check account"
-            onClick={refresh}
-            disabled={session.status === "checking" || signingIn || signingOut}
+            className="text-link auth-session-action"
+            onClick={() => void startSignOut()}
+            disabled={signingOut}
           >
-            <Icon name="refresh" size={18} />
+            {signOutLabel}
           </button>
-          {signingIn ? (
-            <button type="button" className="text-link auth-session-action" disabled>
-              {signingUp ? "Creating account…" : "Signing in…"}
-            </button>
-          ) : signOutAvailable ? (
-            <button
-              type="button"
-              className="text-link auth-session-action"
-              onClick={() => void startSignOut()}
-              disabled={signingOut}
-            >
-              {signOutLabel}
-            </button>
-          ) : session.status === "checking" ? (
-            <span className="text-link auth-session-action" role="status">
-              Checking account…
-            </span>
-          ) : (
-            signInLink
-          )}
-          <Link className="preview-badge" href="/settings">
-            {session.status === "ready"
-              ? "Account connected"
-              : session.status === "checking"
-                ? "Checking account…"
-                : "Sign in to save"}
-          </Link>
-        </div>
-      )}
-      <dialog
-        ref={dialog}
-        className="auth-signout-dialog"
-        aria-labelledby="sign-out-title"
-        aria-describedby="sign-out-description"
-        onCancel={() => setConfirmSignOut(false)}
-        onClose={(event) => {
-          if (!event.currentTarget.open) setConfirmSignOut(false);
-        }}
-        onClick={(event) => {
-          if (isDialogBackdropClick(event)) setConfirmSignOut(false);
-        }}
-      >
-        <h2 id="sign-out-title">Sign out with unsaved account edits?</h2>
-        <p id="sign-out-description">
-          Saved work stays in your account. Unsaved edits will be discarded only after sign-out is confirmed.
-        </p>
-        <div className="auth-dialog-actions">
-          <button
-            ref={cancel}
-            type="button"
-            className="button secondary small"
-            onClick={() => setConfirmSignOut(false)}
-          >
-            Keep editing
-          </button>
-          <button
-            type="button"
-            className="button danger small"
-            onClick={() => {
-              setConfirmSignOut(false);
-              void startSignOut(true);
-            }}
-          >
-            Discard edits and sign out
-          </button>
-        </div>
-      </dialog>
+        ) : session.status === "checking" ? (
+          <span className="text-link auth-session-action" role="status">
+            Checking account…
+          </span>
+        ) : (
+          signInLink
+        )}
+        <Link className="preview-badge" href="/settings">
+          {session.status === "ready"
+            ? "Account connected"
+            : session.status === "checking"
+              ? "Checking account…"
+              : "Sign in to save"}
+        </Link>
+      </div>
+      {dialog}
     </>
   );
 }

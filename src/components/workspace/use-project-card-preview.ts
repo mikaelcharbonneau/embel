@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createAccountIdentityClient } from "@/components/identity/account-identity-client";
 import { createAccountLogoClient } from "@/components/identity/account-logo-client";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
-import { accountProjectResponseSchema, type AccountProject } from "@/domain/project-api";
+import { accountProjectResponseSchema } from "@/domain/project-api";
 import { accountRequest, AccountRequestError } from "./account-api";
 import { readProjectCardPreview } from "./project-card-preview";
 import { nextProjectAction, readProjectVisualState, type ProjectAction } from "./project-continuation";
@@ -39,21 +39,11 @@ type PreviewState = {
   identity: string;
   name: string | null;
   selectedName: string | null;
-  idea: string | null;
   url: string | null;
   action: ProjectAction | null;
   status: "loading" | "ready" | "unavailable";
   settled: boolean;
 };
-
-/** The first words of the saved idea, so cards without a logo stay recognizable. */
-function ideaExcerpt(context: Partial<Pick<AccountProject["context"], "description" | "offering" | "activity">>) {
-  const text = [context.description, context.offering, context.activity]
-    .map((value) => (value ?? "").replace(/\s+/g, " ").trim())
-    .find(Boolean);
-  if (!text) return null;
-  return text.length > 140 ? `${text.slice(0, 139).trimEnd()}…` : text;
-}
 
 export function useProjectCardPreview(
   account: VerifiedAccount,
@@ -62,12 +52,17 @@ export function useProjectCardPreview(
   enabled: boolean,
   artwork = true,
 ) {
-  const { session, isCurrent, expire } = useAccountSession();
+  const { session, isCurrent, expire, viewCache } = useAccountSession();
   const target = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
-  const [state, setState] = useState<PreviewState | null>(null);
   const { userId, generation } = account;
   const identity = `${userId}:${generation}:${projectId}:${revision}`;
+  const cacheKey = `card:${artwork ? "artwork" : "plain"}:${projectId}:${revision}`;
+  // A card this tab already read for this owner and session shows what it showed, and refreshes quietly (D-073).
+  const [state, setState] = useState<PreviewState | null>(() => {
+    const kept = enabled ? viewCache?.get<PreviewState>(account, cacheKey) : undefined;
+    return kept?.identity === identity ? kept : null;
+  });
   const current =
     session.status === "ready" && session.userId === userId && session.generation === generation && isCurrent(account);
   // Clear during render, before effects release the old URL. A later return to
@@ -108,19 +103,31 @@ export function useProjectCardPreview(
       identity,
       name: null,
       selectedName: null,
-      idea: null,
       action: null,
       url: null,
       status: "loading",
       settled: false,
     };
-    let loadingArtwork = true;
+    const kept = viewCache?.get<PreviewState>(captured, cacheKey);
+    // What this read has established so far, starting from what the card already shows.
+    let snapshot: PreviewState = kept?.identity === identity ? kept : initial;
+    let loadingArtwork = snapshot.status === "loading";
     let preview: { url: string; release(): void } | null = null;
     const live = () => active && !controller.signal.aborted && isCurrent(captured);
     function publish(changes: Partial<PreviewState>) {
       if (!live()) return;
       if (changes.status) loadingArtwork = changes.status === "loading";
+      snapshot = { ...snapshot, ...changes };
       setState((previous) => ({ ...(previous?.identity === identity ? previous : initial), ...changes }));
+    }
+    /** Keep the finished read for a later visit; the kept entry now owns the preview URL. */
+    function keep() {
+      if (!live() || !viewCache) return;
+      if (preview) {
+        const owned = preview;
+        preview = null;
+        viewCache.set(captured, cacheKey, snapshot, () => owned.release());
+      } else if (!snapshot.url) viewCache.set(captured, cacheKey, snapshot);
     }
     function handleError(error: unknown) {
       if (error instanceof AccountRequestError && error.status === 401 && live()) expire(captured);
@@ -138,7 +145,7 @@ export function useProjectCardPreview(
         if (!live()) return;
         if (project.id !== projectId || project.owner_id !== userId || project.current_revision !== revision)
           throw new AccountRequestError(409);
-        publish({ selectedName: project.context.selectedName?.trim() || null, idea: ideaExcerpt(project.context) });
+        publish({ selectedName: project.context.selectedName?.trim() || null });
         const progress = await readProjectVisualState(project, clients.logo, controller.signal);
         if (!live()) return;
         // A broken thumbnail must not hide the next step, and a slow progress
@@ -147,7 +154,7 @@ export function useProjectCardPreview(
           nextProjectAction(project, clients, progress, controller.signal).then((action) => publish({ action })),
           (async () => {
             if (!clients.logo || !progress) {
-              publish({ status: "ready" });
+              publish({ status: "ready", url: null });
               return;
             }
             const value = await readProjectCardPreview({
@@ -158,7 +165,7 @@ export function useProjectCardPreview(
               progress,
             });
             if (!value || !live()) {
-              publish({ status: "unavailable" });
+              publish({ status: "unavailable", url: null });
               return;
             }
             preview = value.receipt ? await clients.logo.previewAsset(value.receipt, controller.signal) : null;
@@ -177,12 +184,15 @@ export function useProjectCardPreview(
         if (action.status === "rejected") handleError(action.reason);
         if (artworkResult.status === "rejected") {
           handleError(artworkResult.reason);
-          publish({ status: "unavailable" });
+          publish({ status: "unavailable", url: null });
         }
         publish({ settled: true });
+        keep();
       } catch (error) {
         handleError(error);
         publish({ status: "unavailable", settled: true });
+        // A card that could not be read shows the same on return, while its next read runs.
+        keep();
       } finally {
         clearTimeout(deadline);
       }
@@ -194,9 +204,24 @@ export function useProjectCardPreview(
       clients.logo?.dispose();
       clients.identity?.dispose();
     };
-  }, [artwork, current, enabled, expire, generation, identity, isCurrent, projectId, revision, userId, visible]);
+  }, [
+    artwork,
+    cacheKey,
+    current,
+    enabled,
+    expire,
+    generation,
+    identity,
+    isCurrent,
+    projectId,
+    revision,
+    userId,
+    viewCache,
+    visible,
+  ]);
 
   function rejectImage(url: string) {
+    if (viewCache?.get<PreviewState>(account, cacheKey)?.url === url) viewCache.delete(account, cacheKey);
     setState((previous) =>
       previous?.identity === identity && previous.url === url
         ? { ...previous, url: null, status: "unavailable" }

@@ -16,7 +16,7 @@
   max-width: none;
   padding: 0;
 }
-.home-page:has(.guided-interview-opening) .home-recent {
+.home-page:has(.guided-interview-opening) :is(.home-section, .home-credits) {
   display: none;
 }
 .guided-interview-scroll {
@@ -137,7 +137,7 @@
   margin-left: auto;
   font-size: var(--font-size-2);
 }
-.home-page:has(.guided-research-screen) .home-recent {
+.home-page:has(.guided-research-screen) :is(.home-section, .home-credits) {
   display: none;
 }
 /* Entry motion never delays a result or changes its allocated layout. */

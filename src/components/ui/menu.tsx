@@ -1,12 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { Icon, type IconName } from "./icon";
 
 export type MenuItem =
   | { kind: "action"; label: string; icon?: IconName; onSelect: () => void; danger?: boolean; disabled?: boolean }
-  | { kind: "link"; label: string; icon?: IconName; href: string }
+  | {
+      kind: "link";
+      label: string;
+      icon?: IconName;
+      href: string;
+      onClick?: (event: ReactMouseEvent<HTMLAnchorElement>) => void;
+    }
   | { kind: "choice"; label: string; checked: boolean; onSelect: () => void }
   | { kind: "separator" }
   | { kind: "label"; label: string };
@@ -20,8 +35,10 @@ export function Menu({
   trigger,
   items,
   summary,
+  label,
   align = "end",
   className,
+  closeOn,
 }: {
   /** Renders the trigger; spread the props onto a button. */
   trigger: (props: {
@@ -34,10 +51,19 @@ export function Menu({
   items: MenuItem[];
   /** A block at the top that is not a row, such as the plan and balance in the account menu. */
   summary?: ReactNode;
+  /** The menu's accessible name when the trigger's own name is not enough ("Actions for Kestrel Analytics"). */
+  label?: string;
   align?: "start" | "end";
   className?: string;
+  /** The menu closes whenever this value changes (pass the current page, so moving pages closes it). */
+  closeOn?: unknown;
 }) {
   const [open, setOpen] = useState(false);
+  const [closedFor, setClosedFor] = useState(closeOn);
+  if (closedFor !== closeOn) {
+    setClosedFor(closeOn);
+    setOpen(false);
+  }
   const id = useId();
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -58,6 +84,16 @@ export function Menu({
       if (menuRef.current?.contains(target) || triggerRef.current?.contains(target)) return;
       event.preventDefault();
       event.stopPropagation();
+      // The click that follows this press must not reach what is underneath either.
+      const swallow = (click: MouseEvent) => {
+        document.removeEventListener("click", swallow, true);
+        if (click.target !== target) return;
+        click.preventDefault();
+        click.stopPropagation();
+      };
+      document.addEventListener("click", swallow, true);
+      window.setTimeout(() => document.removeEventListener("click", swallow, true), 1000);
+      window.setTimeout(() => document.removeEventListener("click", swallow, true), 600);
       setOpen(false);
     };
     document.addEventListener("pointerdown", outside, true);
@@ -99,6 +135,7 @@ export function Menu({
         ref={menuRef}
         id={id}
         role="menu"
+        aria-label={label}
         className="e-menu"
         hidden={!open}
         onKeyDown={onKeyDown}
@@ -130,7 +167,10 @@ export function Menu({
                   role="menuitem"
                   tabIndex={-1}
                   className="e-menu__item"
-                  onClick={() => setOpen(false)}
+                  onClick={(event) => {
+                    item.onClick?.(event);
+                    setOpen(false);
+                  }}
                 >
                   {item.icon ? <Icon name={item.icon} size="sm" /> : null}
                   {item.label}

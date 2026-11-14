@@ -286,7 +286,7 @@ it("refills Home after deleting its last loaded card and never claims older proj
   await act(async () => root.render(<HomeRecentBrands />));
   await click(`Project options for ${a.title}`);
   await click("Delete");
-  await click("Stop active work and delete project");
+  await click("Delete project");
   expect(fetcher).toHaveBeenCalledTimes(3);
   expect(fetcher.mock.lastCall![0]).toBe("/api/projects/page?limit=6");
   expect(host.textContent).not.toContain("Your first brand");
@@ -322,7 +322,7 @@ it("finishes queued-work deletion in one POST and moves an acknowledged card int
   expect(host.querySelector(".project-card a button")).toBeNull();
   await click(`Project options for ${a.title}`);
   await click("Delete");
-  await click("Stop active work and delete project");
+  await click("Delete project");
   expect(host.querySelector(".project-card")).toBeNull();
   expect(host.querySelector('[role="status"]')?.textContent).toContain("moved to Deleted projects");
   expect(host.querySelector('a[href="/brands?state=deleted"]')).not.toBeNull();
@@ -361,7 +361,7 @@ describe("immediate acknowledged deletion and recovery", () => {
       await act(async () => root.render(<HomeRecentBrands />));
       await click(`Project options for ${a.title}`);
       await click("Delete");
-      await click("Stop active work and delete project");
+      await click("Delete project");
       expect(host.querySelector(".home-brand-card")).toBeNull();
       expect(host.querySelector(".project-deletion-state")?.textContent).toBe("Deleted");
       expect(host.textContent).not.toMatch(/Stopping…|Awaiting resolution/);
@@ -389,7 +389,7 @@ describe("immediate acknowledged deletion and recovery", () => {
     await act(async () => root.render(<ProjectsWorkspace />));
     await click(`Project options for ${a.title}`);
     await click("Delete");
-    await click("Stop active work and delete project");
+    await click("Delete project");
     expect(host.querySelector(".project-card")).not.toBeNull();
     expect(host.querySelector(".project-deletion-state")).toBeNull();
     expect(host.textContent).toContain("could not be confirmed");
@@ -416,7 +416,7 @@ describe("immediate acknowledged deletion and recovery", () => {
       await act(async () => root.render(<ProjectsWorkspace state="deleted" />));
       await act(async () => vi.advanceTimersByTimeAsync(state === "stopping" ? 5_000 : 30_000));
       expect(host.querySelector(".project-deletion-state")?.textContent).toBe("Deleted");
-      expect(host.querySelector(".project-footer > span")?.textContent).toMatch(/^Deleted /);
+      expect(host.querySelector(".project-footer > time")?.textContent).toMatch(/^Deleted /);
       expect(host.textContent).toContain("The project is still deleted.");
       expect(button("Restore").disabled).toBe(false);
       await click("Restore");
@@ -449,7 +449,7 @@ describe("immediate acknowledged deletion and recovery", () => {
       await act(async () => root.render(<ProjectsWorkspace />));
       await click(`Project options for ${a.title}`);
       await click("Delete");
-      await click("Stop active work and delete project");
+      await click("Delete project");
       expect(host.querySelector(".project-card")).toBeNull();
       expect(host.querySelector(".project-deletion-state")?.textContent).toBe("Deleted");
       expect(host.textContent).not.toMatch(/Stopping…|Awaiting resolution|Delete requested/);
@@ -458,7 +458,7 @@ describe("immediate acknowledged deletion and recovery", () => {
       expect(host.querySelector(".project-card")?.textContent).toContain(a.title);
       expect(button("Restore").disabled).toBe(false);
       expect(host.querySelector(".project-card .project-deletion-state")?.textContent).toBe("Deleted");
-      expect(host.querySelector(".project-footer > span")?.textContent).toMatch(/^Deleted /);
+      expect(host.querySelector(".project-footer > time")?.textContent).toMatch(/^Deleted /);
       expect(host.textContent).not.toMatch(/Awaiting resolution|Delete requested/);
       expect(saved.deletion_state).toBe(state);
       expect(saved.deleted_at).toBeNull();

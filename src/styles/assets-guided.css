@@ -1,233 +1,34 @@
-/* Library page layout. Private previews remain dynamic account data. */
-.assets-guided {
-  max-width: calc(var(--container-page) + var(--space-gutter) * 2);
-  margin: 0 auto;
-  padding: var(--space-10) var(--space-gutter) var(--space-12);
-}
-.assets-guided .assets-heading {
-  margin: 0 0 var(--space-6);
-}
-.assets-guided .assets-heading h1 {
-  font-size: 28px;
-  line-height: 40px;
-  font-weight: 500;
-  letter-spacing: -0.6px;
-  margin: 0;
-}
-.assets-guided .assets-heading h1 span {
-  color: var(--color-accent);
-}
-.assets-guided .assets-heading p {
-  font-size: var(--font-size-3);
-  line-height: 20px;
-  margin: var(--space-1) 0 0;
-}
-.assets-guided .assets-toolbar {
-  margin-bottom: var(--space-5);
-}
-.assets-guided-filters {
-  display: flex;
-  gap: var(--space-3);
-  margin-bottom: var(--space-1);
-}
-.assets-search {
-  flex: 1;
-  min-width: 0;
-}
-.assets-search input {
-  width: 100%;
-  height: 44px;
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-pill);
-  padding: 11px 18px;
-  background: var(--color-bg-paper);
-  font-size: var(--font-size-3);
-  line-height: 20px;
-}
-.assets-search input::placeholder {
-  color: var(--color-text-muted);
-  opacity: 1;
-}
-/* Filters read as menus that open in place: pill select with a down chevron. */
-.assets-filter {
-  position: relative;
-  flex: 0 0 168px;
-  min-width: 0;
-}
-.assets-filter select {
-  appearance: none;
-  width: 100%;
-  height: 44px;
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-pill);
-  padding: 11px var(--space-10) 11px 18px;
-  background: var(--color-bg-paper);
-  color: var(--color-text);
-  font-size: var(--font-size-3);
-  font-weight: 500;
-  text-overflow: ellipsis;
-  cursor: pointer;
-}
-.assets-filter select:hover:not(:disabled) {
-  background: var(--color-bg-canvas);
-  border-color: var(--color-border-strong);
-}
-.assets-filter-chevron {
-  position: absolute;
-  right: 16px;
-  top: 14px;
-  color: var(--color-text-muted);
-  transform: rotate(90deg);
-  pointer-events: none;
-}
-.assets-results-body {
-  display: flow-root;
-}
-.assets-query-placeholders {
-  pointer-events: none;
-}
-.assets-query-placeholder {
-  aspect-ratio: 340 / 330;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-bg-sunken);
-}
-.assets-guided .assets-card {
-  position: relative;
-  overflow: visible;
-}
-.assets-guided .assets-open {
-  border-radius: calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px) 0 0;
-  overflow: hidden;
-}
-.assets-guided .assets-card .assets-preview {
-  border-radius: 0;
-}
-.assets-guided .assets-card-title {
-  height: 20px;
-}
-.assets-guided .assets-card-title h2 {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.assets-guided .assets-card-title > span {
-  line-height: 20px;
-  flex-shrink: 0;
-}
-.assets-card-context {
-  display: flex;
-  gap: 3px;
-  align-items: center;
-  margin-top: var(--space-1);
-  height: 20px;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-1);
-  line-height: 20px;
-}
-.assets-guided .assets-brand {
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.assets-card-context > span {
-  flex-shrink: 0;
-}
-.assets-open-detail {
+/* Library grids and the loading shape. Private previews remain dynamic account data. */
+.assets-grid {
   display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  margin: -12px -12px -12px auto;
-  min-width: 44px;
-  height: 44px;
-  flex-shrink: 0;
+  gap: var(--grid-gap);
+  grid-template-columns: minmax(0, 1fr);
 }
-.assets-open-detail:hover {
-  background: var(--color-bg-sunken);
-}
-.assets-card-options {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 2;
-}
-.assets-card-options > summary {
-  cursor: pointer;
-  list-style: none;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  background: var(--color-bg-paper);
-  border: 1px solid var(--color-border);
-  border-radius: 50%;
-  color: var(--color-text);
-  font-size: var(--font-size-4);
-  line-height: 1;
-  opacity: 0;
-}
-.assets-card-options > summary::-webkit-details-marker {
-  display: none;
-}
-.assets-card:hover .assets-card-options > summary,
-.assets-card:focus-within .assets-card-options > summary,
-.assets-card-options[open] > summary {
-  opacity: 1;
-}
-.assets-card-options[open] {
-  z-index: 10;
-}
-.assets-card-options-panel {
-  position: absolute;
-  right: 0;
-  top: 44px;
-  width: 220px;
-  max-width: calc(100vw - 56px);
-  background: var(--color-bg-paper);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  box-shadow: 0 8px 24px #19191914;
-  padding: var(--space-3);
-  font-size: var(--font-size-1);
-}
-.assets-card-options-panel p {
-  margin: var(--space-2) 0;
-  color: var(--color-text-muted);
-}
-.assets-card-options-panel > div:last-child {
-  display: flex;
-  gap: var(--space-2);
-}
-@media (hover: none) {
-  .assets-card-options > summary {
-    opacity: 1;
-  }
-}
-@media (max-width: 1100px) {
-  .assets-guided .assets-grid {
+@media (min-width: 640px) {
+  .assets-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-@media (max-width: 760px) {
-  .assets-guided {
-    padding: var(--space-8) var(--space-5) var(--space-10);
+@media (min-width: 1024px) {
+  .assets-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .assets-guided-filters {
-    flex-wrap: wrap;
+  /* Logo concepts in Everything made: six small squares across. */
+  .assets-grid--compact {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
-  .assets-search {
-    flex-basis: 100%;
-  }
-  .assets-filter {
-    flex: 1;
-  }
-  .assets-guided .assets-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .assets-card-options > summary {
-    opacity: 1;
-  }
+}
+
+/* Loading: cards in their final shape, holding nothing that can be read or pressed. */
+.assets-query-placeholders {
+  display: grid;
+  gap: var(--space-5);
+  pointer-events: none;
+}
+.assets-query-placeholder__media.e-skeleton {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px) 0 0;
 }

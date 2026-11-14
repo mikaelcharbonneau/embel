@@ -36,7 +36,7 @@ const deleted: LifecycleProject = {
 };
 const stopping: LifecycleProject = { ...deleted, deletion_state: "stopping" };
 const awaiting: LifecycleProject = { ...deleted, deletion_state: "awaiting_resolution" };
-const confirmLabel = "Stop active work and delete project";
+const confirmLabel = "Delete project";
 const deferred = <T,>() => {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((yes) => {
@@ -148,14 +148,14 @@ describe("project card contextual actions", () => {
     await act(async () =>
       button("Delete").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })),
     );
-    expect(host.querySelector('[role="menu"]')).toBeNull();
+    expect(host.querySelector('[role="menu"]:not([hidden])')).toBeNull();
     expect(document.activeElement).toBe(trigger);
     await act(async () => trigger.click());
     await act(async () => button("Delete").dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true })));
-    expect(host.querySelector('[role="menu"]')).toBeNull();
+    expect(host.querySelector('[role="menu"]:not([hidden])')).toBeNull();
     await act(async () => trigger.click());
     await act(async () => document.body.dispatchEvent(new Event("pointerdown", { bubbles: true })));
-    expect(host.querySelector('[role="menu"]')).toBeNull();
+    expect(host.querySelector('[role="menu"]:not([hidden])')).toBeNull();
     expect(host.querySelector("a button, a a")).toBeNull();
     expect(fetcher).not.toHaveBeenCalled();
   });

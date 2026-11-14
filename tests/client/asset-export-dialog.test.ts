@@ -168,7 +168,9 @@ it("keeps the opened version evidence when a previous version lookup resolves la
   // The library card was loaded before version 2; detail now includes both.
   const host = await mount(client);
   expect(reads.map((read) => read.versionId)).toEqual([version.versionId]);
-  const chooseNewer = Array.from(host.querySelectorAll<HTMLButtonElement>(".assets-history button")).find((button) =>
+  // The version is a menu select: open it, then choose version 2.
+  await act(async () => host.querySelector<HTMLButtonElement>(".assets-version-title")!.click());
+  const chooseNewer = Array.from(host.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')).find((button) =>
     button.textContent?.includes("Version 2"),
   );
   expect(chooseNewer).toBeDefined();

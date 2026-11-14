@@ -12,6 +12,7 @@ import { SESSION_STATE_HEADER } from "@/components/auth/session-state";
 import { SignedOutActions } from "@/components/auth/signed-out-actions";
 import { createAccountDraftMemory } from "./account-draft-memory";
 import { createAccountProfileMemory } from "./account-profile-memory";
+import { createAccountViewCache, type AccountViewCache } from "./account-view-cache";
 import { createIdentityDraftMemory } from "@/components/identity/identity-draft-memory";
 import { createLogoDraftMemory, LogoDraftMemoryProvider } from "@/components/identity/logo-draft-memory";
 
@@ -41,6 +42,8 @@ type AccountSession = {
   logoDrafts: ReturnType<typeof createLogoDraftMemory>;
   homeInputSession: ReturnType<typeof createHomeInputSession>;
   logoInputSession: ReturnType<typeof createLogoInputSession>;
+  /** What the account's lists last showed (D-073). Optional so isolated renders can leave it out. */
+  viewCache?: AccountViewCache;
   signIn: (
     attempt: () => Promise<void | "confirmation_required">,
     mode?: "sign-in" | "sign-up",
@@ -127,6 +130,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
   const [logoDrafts] = useState(createLogoDraftMemory);
   const [homeInputSession] = useState(createHomeInputSession);
   const [logoInputSession] = useState(createLogoInputSession);
+  const [viewCache] = useState(createAccountViewCache);
   const [signingOut, setSigningOut] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
   const [signingUp, setSigningUp] = useState(false);
@@ -147,6 +151,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
       homeInputSession.bind(next.status === "ready" ? next : null);
       logoInputSession.bind(next.status === "ready" ? next : null);
       logoDrafts.bind(next.status === "ready" ? { ownerId: next.userId, generation: next.generation } : null);
+      viewCache.bind(next.status === "ready" ? next : null);
       if (next.status === "ready") {
         if (previousOwner.current && previousOwner.current !== next.userId) {
           drafts.clear();
@@ -166,6 +171,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
       logoDrafts,
       homeInputSession,
       logoInputSession,
+      viewCache,
     ],
   );
   const isCurrent = useCallback(
@@ -423,6 +429,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
       window.removeEventListener("beforeunload", retainEdits);
       document.removeEventListener("visibilitychange", onVisible);
       namingBrainDrafts.bind(null);
+      viewCache.clear();
       request.current?.abort();
       signOutRequest.current?.abort();
       signOutRequest.current = null;
@@ -439,6 +446,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
     logoDrafts,
     homeInputSession,
     logoInputSession,
+    viewCache,
   ]);
 
   return (
@@ -457,6 +465,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
         logoDrafts,
         homeInputSession,
         logoInputSession,
+        viewCache,
         signIn,
         signingIn,
         signingUp,

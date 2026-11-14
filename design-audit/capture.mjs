@@ -65,8 +65,11 @@ const HIDE_CHROME = `
 /** Thrown when a page that must be signed in shows the signed-out screen. Stops the whole run. */
 class LoginWall extends Error {}
 
+/** The round account button in the navigation pill (labelled "Account menu", or "Account menu, checking your account"). */
+const accountButton = (page) => page.locator("[data-account-menu-trigger]").first();
+
 async function signedIn(page) {
-  return page.getByLabel("Account menu").first().isVisible();
+  return accountButton(page).isVisible();
 }
 
 /** Opens a path and checks the account really is signed in (fails loudly otherwise). */
@@ -78,7 +81,7 @@ async function open(page, account, route, { idle = true } = {}) {
 }
 
 async function requireSignedIn(page, account, route) {
-  const menu = page.getByLabel("Account menu").first();
+  const menu = accountButton(page);
   const wall = page.getByText(/Sign in to (see|save|choose|edit)/u).first();
   const result = await Promise.race([
     menu.waitFor({ state: "visible", timeout: 30_000 }).then(() => "ok"),
@@ -103,7 +106,7 @@ async function loaded(page, { extra = 400 } = {}) {
   await page
     .waitForFunction(
       () =>
-        !/(^|\n)\s*(Loading (your )?(projects|project|library|saved preview|assets|account|activity)|Preparing…|Checking account…)/u.test(
+        !/(^|\n)\s*(Loading (your )?(projects|project|library|saved preview|assets|account|activity)|Preparing…|Checking (your )?(account|plan)…)/u.test(
           document.body.innerText,
         ),
       null,
@@ -193,6 +196,32 @@ state("home", "signed-out-sign-up-overlay", null, async (page) => {
   await page.getByRole("link", { name: "Sign in", exact: true }).click();
   await page.getByRole("dialog").getByRole("link", { name: "Create account" }).click();
   await page.getByRole("dialog").getByRole("form", { name: "Create account", exact: true }).waitFor();
+  await loaded(page);
+});
+state("home", "signed-out-sign-in-overlay-error-by-field", null, async (page) => {
+  // The sign-in answer is given by the script (401), so no account is touched.
+  await fail(page, "**/api/auth/sign-in", 401, JSON.stringify({ error: { code: "invalid_credentials" } }));
+  await open(page, null, "/");
+  await page.waitForTimeout(1500);
+  await page.getByRole("link", { name: "Sign in", exact: true }).click();
+  const form = page.getByRole("dialog").getByRole("form", { name: "Sign in", exact: true });
+  await form.getByRole("textbox", { name: "Email" }).fill("ana@fieldnotes.example");
+  await form.getByLabel("Password", { exact: true }).fill("not-the-password-1");
+  await form.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.getByRole("alert").first().waitFor({ timeout: 15_000 });
+  await loaded(page);
+});
+state("home", "signed-out-sign-up-overlay-errors-by-field", null, async (page) => {
+  await open(page, null, "/");
+  await page.waitForTimeout(1500);
+  await page.getByRole("link", { name: "Sign in", exact: true }).click();
+  await page.getByRole("dialog").getByRole("link", { name: "Create account" }).click();
+  const form = page.getByRole("dialog").getByRole("form", { name: "Create account", exact: true });
+  await form.getByRole("textbox", { name: "Email" }).fill("ana@fieldnotes.example");
+  await form.getByLabel("Password", { exact: true }).fill("short-one");
+  await form.getByLabel("Confirm password").fill("different");
+  await form.getByRole("button", { name: "Create account", exact: true }).click();
+  await page.getByRole("alert").first().waitFor({ timeout: 15_000 });
   await loaded(page);
 });
 state("sign-in", "default", null, async (page) => {
@@ -296,8 +325,8 @@ for (const [name, status, body] of [
     await loaded(page);
   });
 for (const [route, slug, text] of [
-  ["/brands", "projects", "Sign in to see your projects."],
-  ["/assets", "library", "Sign in to see your library."],
+  ["/brands", "projects", "Sign in to see your projects"],
+  ["/assets", "library", "Sign in to see your library"],
   ["/plans", "plans", "to see your plan and credits."],
   ["/settings", "settings", "Sign in to edit your profile and preferences."],
   [`/brands/account/${MISSING_PROJECT}`, "project-workspace", "Sign in to see and save your work."],
@@ -366,7 +395,7 @@ for (const [query, name] of [
 // ---- audit-free: 0 credits, eight brands ----------------------------------
 state("home", "recent-brands-free", "audit-free", async (page) => {
   await open(page, "audit-free", "/");
-  await page.getByRole("heading", { name: "Pick up where you left off" }).waitFor({ timeout: 30_000 });
+  await page.getByRole("heading", { name: "Recent projects" }).waitFor({ timeout: 30_000 });
   await loaded(page);
 });
 state("projects", "eight-brands-free", "audit-free", async (page) => {
@@ -381,7 +410,7 @@ state("projects", "search-no-match-free", "audit-free", async (page) => {
     .getByRole("searchbox", { name: /Search projects/u })
     .or(page.getByRole("textbox", { name: /Search projects/u }))
     .fill("zzzz-nothing");
-  await page.getByRole("heading", { name: "No matching projects" }).waitFor({ timeout: 10_000 });
+  await page.getByRole("heading", { name: /^No projects match/u }).waitFor({ timeout: 10_000 });
   await loaded(page);
 });
 state("projects", "options-menu-open-free", "audit-free", async (page) => {
@@ -427,7 +456,7 @@ state("library", "kept-assets-free", "audit-free", async (page) => {
 });
 state("library", "all-generations-free", "audit-free", async (page) => {
   await open(page, "audit-free", "/assets");
-  await page.getByRole("tab", { name: "All generations" }).click();
+  await page.getByRole("tab", { name: "Everything made" }).click();
   await loaded(page);
 });
 state("plans", "free-0-credits-upgrade-free", "audit-free", async (page) => {
@@ -485,7 +514,7 @@ const STAGES = [
 for (const [key, account, label, who] of STAGES) {
   state("brand-conversation", `${key}-${label}-${who}`, account, async (page) => {
     await open(page, account, `/brands/account/${brand(key)}?view=strategy`);
-    await page.getByLabel("Account menu").first().waitFor();
+    await accountButton(page).waitFor();
     await page.waitForTimeout(2500);
     await loaded(page, { extra: 1200 });
   });
@@ -543,7 +572,7 @@ state("project-workspace", "loading-pro", "audit-pro", async (page) => {
 // ---- audit-pro: paid account ---------------------------------------------------
 state("home", "recent-brands-pro", "audit-pro", async (page) => {
   await open(page, "audit-pro", "/");
-  await page.getByRole("heading", { name: "Pick up where you left off" }).waitFor({ timeout: 30_000 });
+  await page.getByRole("heading", { name: "Recent projects" }).waitFor({ timeout: 30_000 });
   await loaded(page);
 });
 state("projects", "three-brands-pro", "audit-pro", async (page) => {
@@ -597,15 +626,16 @@ state("settings", "usage-pro", "audit-pro", async (page) => {
 });
 state("home", "account-menu-open-pro", "audit-pro", async (page) => {
   await open(page, "audit-pro", "/");
-  await page.getByLabel("Account menu").click();
+  await accountButton(page).click();
+  await page.getByRole("menuitem", { name: "Settings", exact: true }).waitFor();
   await loaded(page);
 });
 
 state("home", "generation-activity-dialog-pro", "audit-pro", async (page) => {
   await open(page, "audit-pro", "/");
-  await page.getByLabel("Account menu").click();
-  await page.getByRole("button", { name: "Generation activity" }).click();
-  await page.getByRole("dialog", { name: "Generation activity" }).waitFor({ timeout: 15_000 });
+  await accountButton(page).click();
+  await page.getByRole("menuitem", { name: "Activity", exact: true }).click();
+  await page.getByRole("dialog", { name: "Activity", exact: true }).waitFor({ timeout: 15_000 });
   await loaded(page);
 });
 state("brand-conversation", "kestrel-change-name-open-pro", "audit-pro", async (page) => {
@@ -675,7 +705,7 @@ state("sign-in", "keyboard-focus-submit", null, async (page) => {
   await page.waitForTimeout(1500);
   await page.getByRole("form", { name: "Sign in", exact: true }).getByLabel("Password", { exact: true }).focus();
   await page.keyboard.press("Tab"); // show password
-  await page.keyboard.press("Tab"); // forgot password / submit
+  await page.keyboard.press("Tab"); // submit (Forgot password? sits on the label line, before the field)
   await loaded(page);
 });
 state(

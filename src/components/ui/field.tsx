@@ -64,6 +64,8 @@ export type TextFieldProps = FieldFrame &
   Omit<InputHTMLAttributes<HTMLInputElement>, "className"> & {
     /** Search shows a leading icon; password gets a show/hide toggle. */
     type?: "text" | "email" | "password" | "search" | "number" | "url" | "tel";
+    /** Search only: shows a clear button while the field has text. */
+    onClear?: () => void;
   };
 
 /** A single-line input with its label, hint and error. */
@@ -76,6 +78,7 @@ export function TextField({
   className,
   id,
   type = "text",
+  onClear,
   ...input
 }: TextFieldProps) {
   const generated = useId();
@@ -93,6 +96,9 @@ export function TextField({
             aria-invalid={error ? true : input["aria-invalid"]}
             aria-describedby={[described, input["aria-describedby"]].filter(Boolean).join(" ") || undefined}
           />
+          {type === "search" && onClear && String(input.value ?? "") ? (
+            <IconButton icon="x" label="Clear search" size="sm" tooltip={false} onClick={onClear} />
+          ) : null}
           {type === "password" ? (
             <IconButton
               icon={shown ? "eye-off" : "eye"}

@@ -14,6 +14,7 @@ import {
 import { accountProjectSchema, type AccountProject } from "../../src/domain/project-api";
 import { contextSnapshotSchema, type ProjectScope } from "../../src/domain/projects";
 import { emptyLogoWorkspace } from "../fixtures/empty-logo-workspace";
+import { accountMenu, openAccountMenu } from "./account-check";
 
 // All images, accounts and responses below are synthetic local fixtures. No discovery,
 // provider, database or storage service is contacted or represented as working.
@@ -825,8 +826,8 @@ test("references fixture: confirmed sign-out clears pending intent before the sa
     .getByRole("button", { name: /^Ensemble for/ })
     .click();
   await expect(page.getByRole("heading", { name: "Pending choices · Warm forms · fixture" })).toBeVisible();
-  await page.getByLabel("Account menu", { exact: true }).click();
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await openAccountMenu(page);
+  await accountMenu(page).getByRole("menuitem", { name: "Sign out", exact: true }).click();
   await expect(page.getByRole("article")).toHaveCount(0);
   await expect.poll(() => fixture.sessionStatus).toBe(401);
   await expect(
