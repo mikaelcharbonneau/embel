@@ -460,10 +460,10 @@ state("settings", "delete-account-dialog-free", "audit-free", async (page) => {
 state("settings", "save-error-offline-free", "audit-free", async (page) => {
   await open(page, "audit-free", "/settings");
   await page.waitForTimeout(1500);
-  await page.getByRole("textbox", { name: "Full name" }).fill("Audit Free Person");
+  // The name saves on its own after a pause; offline, the save fails and offers Try again.
   await page.context().setOffline(true);
-  await page.getByRole("button", { name: "Save changes" }).click();
-  await page.getByText(/Saving could not be confirmed/u).waitFor({ timeout: 30_000 });
+  await page.getByRole("textbox", { name: "Full name" }).fill("Audit Free Person");
+  await page.getByText(/Couldn’t save\. Check your connection\./u).waitFor({ timeout: 30_000 });
   await loaded(page);
   await page.context().setOffline(false);
 });

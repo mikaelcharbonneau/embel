@@ -29,14 +29,12 @@ export function SettingsWorkspace() {
     tabs.current[index]?.focus();
   }
   return (
-    <div className="page settings-guided" data-category={category}>
-      <div className="sg-heading">
-        <h1>
-          Settings<span>.</span>
-        </h1>
-        <p>Manage your account and see your usage.</p>
-      </div>
-      <div className="sg-tabs" role="tablist" aria-label="Settings">
+    <div className="settings-guided e-container e-page" data-category={category}>
+      <header className="sg-heading e-stack e-stack--xs">
+        <h1 className="sg-heading__title">Settings</h1>
+        <p className="e-muted">Manage your account and see your usage.</p>
+      </header>
+      <div className="e-tabs sg-tabs" role="tablist" aria-label="Settings">
         {categories.map(([id, label], index) => (
           <button
             key={id}
@@ -45,6 +43,7 @@ export function SettingsWorkspace() {
             }}
             type="button"
             role="tab"
+            className="e-tab"
             id={`settings-tab-${id}`}
             aria-controls={`settings-panel-${id}`}
             aria-selected={category === id}
@@ -76,7 +75,7 @@ export function SettingsWorkspace() {
         return (
           <div
             key={id}
-            className="sg-content"
+            className="sg-content e-focus-inset"
             role="tabpanel"
             id={`settings-panel-${id}`}
             aria-labelledby={`settings-tab-${id}`}
@@ -96,27 +95,34 @@ export function SettingsWorkspace() {
 }
 
 function AccountSettings() {
-  const { session } = useAccountSession();
-  const signedIn = session.status === "ready";
   return (
     <>
       <AccountProfileEditor />
       <PlanCreditsCard />
-      <section className="sg-card sg-session" aria-label={signedIn ? "Sign out" : "Sign in"}>
-        <div className="sg-row">
-          <div className="sg-row-copy">
-            <strong>{signedIn ? "Sign out" : "Sign in"}</strong>
-            <p>
-              {signedIn
-                ? "Sign out of Embel on this device. Your work stays saved in your account."
-                : "Sign in to save your work and settings to your account."}
-            </p>
-          </div>
-          <AccountAccess />
-        </div>
-      </section>
+      <SessionSection />
       <AccountDataControls />
-      {/* Only on a local development server; hosted Embel never renders it. */}
     </>
+  );
+}
+
+/** Sign out (or Sign in) on this device. The controls and the unsaved-edits confirmation come from AccountAccess;
+ * this section gives them the Settings layout. AccountAccess's round "Check account" button is hidden here: when the
+ * account check fails, the Profile section says so with a labelled "Try again". */
+function SessionSection() {
+  const { session, signingOut, signOutError } = useAccountSession();
+  const signedIn =
+    session.status === "ready" || session.status === "checking" || Boolean(signingOut) || Boolean(signOutError);
+  return (
+    <section className="e-section sg-session" aria-label={signedIn ? "Sign out" : "Sign in"}>
+      <h2 className="e-section__title">{signedIn ? "Sign out" : "Sign in"}</h2>
+      <div className="e-setting-row">
+        <p className="e-setting-row__text">
+          {signedIn
+            ? "Sign out of Embel on this device. Your work stays saved in your account."
+            : "Sign in to save your work and settings to your account."}
+        </p>
+        <AccountAccess />
+      </div>
+    </section>
   );
 }

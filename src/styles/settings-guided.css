@@ -1,256 +1,94 @@
-/* Settings page. All rules scoped because global CSS persists across routes. */
-.settings-guided.page {
-  max-width: calc(var(--container-page) + var(--space-gutter) * 2);
-  padding: var(--space-10) var(--space-gutter) var(--space-12);
-  margin: 0 auto;
+/* Settings page. The layout comes from the design system's e- classes; these rules only place them.
+   All rules are scoped because global CSS persists across routes. */
+.settings-guided .sg-heading__title {
+  font: var(--text-title-lg);
+  letter-spacing: var(--tracking-title-lg);
 }
-.settings-guided .sg-heading h1 {
-  margin: 0;
-  font-size: 28px;
-  line-height: 36px;
-  letter-spacing: -0.5px;
-  font-weight: 500;
-}
-.settings-guided .sg-heading h1 span {
-  color: var(--color-accent);
-}
-.settings-guided .sg-heading > p {
-  margin-top: var(--space-1);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-3);
-  line-height: 20px;
-}
-/* Constant weight: the active tab is marked by color and underline so neighbors never shift. */
 .settings-guided .sg-tabs {
-  display: flex;
-  gap: var(--space-6);
-  margin: var(--space-6) 0;
-  border-bottom: 1px solid var(--color-border);
-  overflow-x: auto;
+  margin-block: var(--space-8);
 }
-.settings-guided .sg-tabs button {
-  border: 0;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  background: transparent;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  min-height: 44px;
-  padding: 0 var(--space-0-5);
-  font-size: var(--font-size-3);
-  font-weight: 500;
-  line-height: 20px;
-  flex-shrink: 0;
-}
-.settings-guided .sg-tabs button:hover {
-  color: var(--color-text);
-}
-.settings-guided .sg-tabs button[aria-selected="true"] {
-  border-bottom-color: var(--color-text);
-  color: var(--color-text);
-}
-.settings-guided .sg-tabs button:focus-visible {
-  outline: 2px solid var(--color-text);
-  outline-offset: -2px;
-}
+/* Each panel is a stack of page sections (not cards) under their headings. */
 .settings-guided .sg-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
+  display: grid;
+  gap: var(--space-section);
   min-width: 0;
 }
 .settings-guided .sg-content[hidden] {
   display: none;
 }
-.settings-guided .sg-content:focus-visible {
-  outline: 2px solid var(--color-text);
-  outline-offset: 4px;
-  border-radius: var(--radius-card);
-}
-.settings-guided .sg-card {
-  background: var(--color-bg-paper);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  padding: var(--space-6);
-  min-width: 0;
-}
-.settings-guided .sg-card > header h2 {
-  margin: 0;
-  font-size: var(--font-size-4);
-  font-weight: 500;
-  line-height: 20px;
-  letter-spacing: 0;
-}
-.settings-guided .sg-card > header p {
-  font-size: var(--font-size-2);
-  line-height: 20px;
-  color: var(--color-text-muted);
-  margin-top: var(--space-1);
-}
-.settings-guided .sg-card-body {
-  margin-top: var(--space-4);
-}
-.settings-guided .sg-rows-card {
-  padding-bottom: var(--space-2);
-}
-.settings-guided .sg-row {
+
+/* Under a field: its hint, then Saving, Saved or the failure with Try again. */
+.settings-guided .sg-status {
   display: flex;
-  align-items: center;
-  gap: var(--space-6);
-  min-height: 76px;
-  padding: 15px 0;
-  border-bottom: 1px solid var(--color-border);
-}
-.settings-guided .sg-row:last-child {
-  border-bottom: 0;
-}
-.settings-guided .sg-row-copy {
-  flex: 1;
-  min-width: 0;
-}
-.settings-guided .sg-row-copy strong {
-  display: block;
-  font-size: var(--font-size-3);
-  line-height: 20px;
-  font-weight: 500;
-}
-.settings-guided .sg-row-copy p {
-  font-size: var(--font-size-2);
-  line-height: 20px;
-  color: var(--color-text-muted);
-  margin-top: var(--space-1);
-}
-.settings-guided .sg-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
   flex-wrap: wrap;
-}
-.settings-guided .sg-select-wrap {
-  width: 280px;
-  position: relative;
-  flex-shrink: 0;
-}
-.settings-guided .sg-select-wrap select {
-  width: 100%;
-  height: 44px;
-  padding: 11px 36px 11px var(--space-3);
-  appearance: none;
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-control);
-  background: var(--color-bg-paper);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-3);
-  line-height: 20px;
-  opacity: 1;
-}
-.settings-guided .sg-select-wrap .e-icon {
-  position: absolute;
-  top: 14px;
-  right: 12px;
-  opacity: 0.5;
-  pointer-events: none;
-}
-.settings-guided .sg-fields {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-5);
-}
-.settings-guided .sg-field {
-  display: block;
-  min-width: 0;
-}
-.settings-guided .sg-field > span {
-  display: block;
-  font-size: var(--font-size-2);
-  line-height: 20px;
-  font-weight: 500;
-  margin-bottom: var(--space-2);
-}
-.settings-guided .sg-field input {
-  height: 44px;
-  width: 100%;
-  padding: 10px var(--space-3);
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-control);
-  background: var(--color-bg-paper);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-3);
-  opacity: 1;
-}
-.settings-guided .sg-field input:not(:disabled):not([readonly]),
-.settings-guided .sg-select-wrap select:not(:disabled) {
-  color: var(--color-text);
-}
-.settings-guided .sg-field input:not(:disabled):not([readonly]):focus-visible,
-.settings-guided .sg-select-wrap select:focus-visible {
-  outline: 2px solid var(--color-text);
-  outline-offset: 1px;
-}
-.settings-guided .sg-field input[readonly] {
-  background: var(--color-bg-sunken);
-}
-.settings-guided .sg-save {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-5);
-  min-height: 44px;
+  gap: var(--space-2) var(--space-3);
+  min-block-size: var(--space-5);
 }
-.settings-guided .sg-save > p {
-  font-size: var(--font-size-2);
-  line-height: 20px;
-  color: var(--color-text-muted);
+.settings-guided .sg-status:empty {
+  display: none;
 }
-.settings-guided .sg-save > div {
-  display: flex;
+.settings-guided .sg-status__line {
+  display: inline-flex;
   align-items: center;
-  gap: var(--space-3);
-  flex-shrink: 0;
-}
-.settings-guided .sg-note {
-  font-size: var(--font-size-2);
-  line-height: 20px;
+  gap: var(--space-1-5);
+  font: var(--text-small);
   color: var(--color-text-muted);
 }
-.settings-guided .sg-profile-note {
-  margin-top: var(--space-3);
+.settings-guided .sg-status__line--saved {
+  color: var(--color-text-positive);
 }
-.settings-guided .sg-profile-feedback {
-  padding: 14px var(--space-4);
-  border: 1px solid var(--color-border-danger-soft);
-  background: var(--color-bg-danger-soft);
-  color: var(--color-text-danger);
-  border-radius: var(--radius-control);
-  font-size: var(--font-size-2);
-  line-height: 20px;
+.settings-guided .sg-skeleton-hint {
+  margin-top: var(--space-1);
 }
-.settings-guided .sg-profile-conflict dl {
+.settings-guided .e-setting-row__control .e-skeleton--block {
+  width: 100%;
+}
+
+/* A settings change made in another session: the stored values beside the choice. */
+.settings-guided .sg-saved-values {
   display: grid;
-  gap: var(--space-3);
-  margin: 0 0 var(--space-4);
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
-.settings-guided .sg-profile-conflict dt {
-  font-size: var(--font-size-1);
+.settings-guided .sg-saved-values dt {
+  font: var(--text-small);
   color: var(--color-text-muted);
 }
-.settings-guided .sg-profile-conflict dd {
-  margin: var(--space-1) 0 0;
-  font-size: var(--font-size-3);
+.settings-guided .sg-saved-values dd {
   overflow-wrap: anywhere;
 }
-/* Sign out row: the "Account connected" link would point back to this page. */
-.settings-guided .sg-session {
-  padding-block: var(--space-1);
+
+/* Plan and credits: two labelled numbers side by side. */
+.settings-guided .sg-plan__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
 }
-.settings-guided .sg-session .sg-row {
-  border-bottom: 0;
+.settings-guided .sg-plan__stats dd small {
+  margin-left: var(--space-1);
+  font: var(--text-small);
+  color: var(--color-text-muted);
+  letter-spacing: 0;
 }
+.settings-guided .sg-plan__skeleton {
+  width: calc(var(--space-16) * 1);
+  height: var(--space-6);
+  margin-block: var(--space-1);
+}
+.settings-guided .sg-plan__skeleton--wide {
+  width: calc(var(--space-12) * 2);
+}
+
+/* Sign out: AccountAccess's controls in the Settings layout. Its round "Check account" button and its link back to
+   this page are not shown here (the Profile section offers a labelled "Try again" when the check fails). */
 .settings-guided .sg-session .topbar-account {
+  flex: none;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--space-3);
 }
+.settings-guided .sg-session .account-check,
 .settings-guided .sg-session .preview-badge {
   display: none;
 }
@@ -258,61 +96,31 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
-  padding: var(--space-2) var(--space-4);
+  gap: var(--space-2);
+  min-height: var(--button-height);
+  padding: 0 var(--button-padding-x);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
   background: var(--color-bg-paper);
   color: var(--color-text);
-  font-size: var(--font-size-2);
-  line-height: 20px;
-  font-weight: 450;
+  font: var(--text-label);
   text-decoration: none;
+  transition:
+    background-color var(--duration-fast) ease,
+    border-color var(--duration-fast) ease;
 }
 .settings-guided .sg-session span.auth-session-action {
-  font-size: var(--font-size-2);
+  font: var(--text-small);
   color: var(--color-text-muted);
 }
-.settings-guided .sg-session :is(button, a).auth-session-action:hover:not(:disabled) {
-  background: var(--color-bg-canvas);
-  border-color: var(--color-border-strong);
-}
-@media (max-width: 760px) {
-  .settings-guided.page {
-    padding: var(--space-6) var(--space-5);
-  }
-  .settings-guided .sg-card {
-    padding: var(--space-5);
-  }
-  .settings-guided .sg-rows-card {
-    padding-bottom: var(--space-1);
-  }
-  .settings-guided .sg-fields {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .settings-guided .sg-row {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: var(--space-3);
-  }
-  .settings-guided .sg-select-wrap {
-    width: 100%;
-  }
-  .settings-guided .sg-field input,
-  .settings-guided .sg-select-wrap select {
-    font-size: var(--font-size-4);
-  }
-  .settings-guided .sg-save {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: var(--space-3);
+@media (hover: hover) and (pointer: fine) {
+  .settings-guided .sg-session :is(button, a).auth-session-action:hover:not(:disabled) {
+    background: var(--color-bg-hover);
+    border-color: var(--color-border-strong);
   }
 }
-
-/* Your data: download and delete. */
-.settings-guided .sg-account-data .sg-row .button {
-  flex-shrink: 0;
-}
-.settings-guided .sg-account-data-error {
-  color: var(--color-text-danger);
+.settings-guided .sg-session button.auth-session-action:disabled {
+  background: var(--color-bg-disabled);
+  border-color: transparent;
+  color: var(--color-text-disabled);
 }

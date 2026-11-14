@@ -127,7 +127,7 @@ await recipe("offline", async () => {
   try {
     const name = page.getByRole("textbox").first();
     await name.fill("Offline edit");
-    await page.getByRole("button", { name: "Save changes", exact: true }).click();
+    // The edit saves on its own after a pause.
     await page.waitForTimeout(5000);
     await shot(page, "offline");
   } finally {
