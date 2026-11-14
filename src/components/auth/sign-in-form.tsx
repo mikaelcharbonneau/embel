@@ -264,8 +264,8 @@ export function SignInForm({
     >
       {confirmation === "failed" && (
         <InlineMessage tone="warning">
-          We couldn&rsquo;t confirm your email with this link. Open the newest email link in the browser where you signed
-          up, or send a new confirmation email below. If your email is already confirmed, sign in.
+          We couldn&rsquo;t confirm your email with this link. Open the newest email link in the browser where you
+          signed up, or send a new confirmation email below. If your email is already confirmed, sign in.
         </InlineMessage>
       )}
       {confirmation === "complete" && (
