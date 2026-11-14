@@ -11,7 +11,7 @@
   font-size: var(--font-size-2);
   line-height: 1.65;
 }
-.strategy-provider-note > svg {
+.strategy-provider-note > :is(svg, .e-icon) {
   margin-top: var(--space-0-5);
 }
 .strategy-provider-note strong {
@@ -56,7 +56,7 @@
   font-size: var(--font-size-2);
   line-height: 1.65;
 }
-.strategy-review-notice > svg {
+.strategy-review-notice > :is(svg, .e-icon) {
   margin-top: var(--space-0-5);
 }
 .strategy-review-notice strong {

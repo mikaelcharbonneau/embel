@@ -130,7 +130,7 @@
   font-size: var(--font-size-2);
   color: var(--color-text-muted);
 }
-.guided-thinking > img {
+.guided-thinking > .e-mark {
   animation: guided-thinking-pulse 1.5s ease-in-out infinite;
 }
 .guided-thinking .text-link {
@@ -165,7 +165,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .flow-enter,
-  .guided-thinking > img {
+  .guided-thinking > .e-mark {
     animation: none;
   }
 }

@@ -52,7 +52,7 @@ h3 { font-size: 15px; line-height: 1.4; font-weight: 500; letter-spacing: -.2px;
 .scope-option.selected { border-color: var(--color-text); background: var(--color-text); color: var(--color-bg-paper); }
 .scope-option:focus-within { outline: 2px solid var(--color-text); outline-offset: 3px; }
 .scope-option > input { position: absolute; opacity: 0; height: 1px; width: 1px; margin: 0; }
-.scope-option > svg { margin-top: 1px; }
+.scope-option > :is(svg, .e-icon) { margin-top: 1px; }
 .scope-option strong { font-size: var(--font-size-2); font-weight: 500; }
 .scope-option small { display: block; font-size: var(--font-size-2); color: var(--color-text-muted); line-height: 1.5; margin-top: var(--space-2); }
 .example-dot { width: 5px; height: 5px; background: var(--color-text); border-radius: 50%; }
@@ -116,7 +116,7 @@ h3 { font-size: 15px; line-height: 1.4; font-weight: 500; letter-spacing: -.2px;
   .page { padding-left: var(--space-8); padding-right: var(--space-8); }
   .segment-fields { grid-template-columns: 1fr; }
   .scope-option { padding: var(--space-4) var(--space-3); gap: var(--space-2); }
-  .scope-option > svg { display: none; }
+  .scope-option > :is(svg, .e-icon) { display: none; }
 }
 @media (max-width: 950px) {
   .segment-fields { grid-template-columns: 1fr 1fr; }
@@ -124,13 +124,13 @@ h3 { font-size: 15px; line-height: 1.4; font-weight: 500; letter-spacing: -.2px;
 @media (max-width: 760px) {
   .page { padding: 30px var(--space-6) 36px; }
   .home-page { padding-top: 31px; }
-  .scope-option > svg { display: block; }
+  .scope-option > :is(svg, .e-icon) { display: block; }
   .save-label { font-size: var(--font-size-2); }
 }
 @media (max-width: 540px) {
   .page { padding: 27px var(--space-5) var(--space-8); }
   .scope-option { align-items: center; padding: var(--space-3); }
-  .scope-option > svg { margin: 0; }
+  .scope-option > :is(svg, .e-icon) { margin: 0; }
   .scope-option small { font-size: var(--font-size-2); margin-top: 3px; }
   .empty-panel { padding: var(--space-8) var(--space-5); min-height: 320px; }
   .empty-panel h2 { max-width: 300px; }

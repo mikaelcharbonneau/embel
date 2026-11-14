@@ -588,7 +588,7 @@
   color: var(--color-text-placeholder);
   overflow: hidden;
 }
-.composerThumbnail > :is(img, svg) {
+.composerThumbnail > :is(img, :is(svg, .e-icon)) {
   grid-area: 1 / 1;
 }
 .composerThumbnail img {
@@ -598,7 +598,7 @@
   padding: var(--space-1);
   box-sizing: border-box;
 }
-.composerThumbnail:has(img) > svg {
+.composerThumbnail:has(img) > :is(svg, .e-icon) {
   visibility: hidden;
 }
 .composerThumbnail p {

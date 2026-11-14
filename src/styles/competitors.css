@@ -11,7 +11,7 @@
   font-size: var(--font-size-2);
   line-height: 1.65;
 }
-.competitor-research-note > svg {
+.competitor-research-note > :is(svg, .e-icon) {
   margin-top: var(--space-0-5);
 }
 .competitor-research-note strong {

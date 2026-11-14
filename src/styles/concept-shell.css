@@ -139,7 +139,7 @@
   text-decoration: none;
   justify-content: flex-start;
 }
-.workspace-account-panel :is(.workspace-account-links, .auth-account-menu-actions) svg {
+.workspace-account-panel :is(.workspace-account-links, .auth-account-menu-actions) :is(svg, .e-icon) {
   flex: none;
   color: var(--color-text-muted);
 }

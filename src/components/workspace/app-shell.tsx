@@ -4,6 +4,7 @@ import { usePathname, useSelectedLayoutSegment, useSelectedLayoutSegments } from
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/icon";
+import { ToastProvider } from "@/components/ui/toast";
 import { MainNavContent, NavFrame, type NavItem } from "@/components/journey/floating-nav";
 import { ProjectBarContent, ProjectMenu } from "@/components/journey/project-capsule";
 import { ProjectHeaderContext, type ProjectHeader } from "@/components/journey/project-header";
@@ -25,8 +26,10 @@ export function AppShell({ children, auth }: { children: React.ReactNode; auth: 
   return (
     <AccountSessionProvider>
       <AccountProfileProvider>
-        <WorkspaceShell>{children}</WorkspaceShell>
-        {auth}
+        <ToastProvider>
+          <WorkspaceShell>{children}</WorkspaceShell>
+          {auth}
+        </ToastProvider>
       </AccountProfileProvider>
     </AccountSessionProvider>
   );

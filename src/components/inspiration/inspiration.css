@@ -235,7 +235,7 @@
     transform 120ms,
     opacity 120ms;
 }
-.inspiration-heart svg {
+.inspiration-heart :is(svg, .e-icon) {
   width: 22px;
   height: 22px;
   fill: rgb(25 25 25 / 28%);
@@ -249,12 +249,12 @@
 .inspiration-heart[aria-pressed="true"] {
   color: var(--color-text);
 }
-.inspiration-heart[aria-pressed="true"] svg {
+.inspiration-heart[aria-pressed="true"] :is(svg, .e-icon) {
   fill: var(--color-text-inverse);
   stroke-width: 1.5;
 }
-.inspiration-heart svg,
-.inspiration-overall svg {
+.inspiration-heart :is(svg, .e-icon),
+.inspiration-overall :is(svg, .e-icon) {
   flex-shrink: 0;
 }
 .inspiration-caption {
@@ -781,7 +781,7 @@ button.inspiration-continue {
     opacity 120ms,
     transform 120ms;
 }
-.inspiration-workspace .inspiration-heart.inspiration-part-like svg {
+.inspiration-workspace .inspiration-heart.inspiration-part-like :is(svg, .e-icon) {
   width: 18px;
   height: 18px;
 }
@@ -850,7 +850,7 @@ button.inspiration-continue {
 .inspiration-overlay-step[data-direction="previous"] {
   left: 16px;
 }
-.inspiration-overlay-step[data-direction="previous"] svg {
+.inspiration-overlay-step[data-direction="previous"] :is(svg, .e-icon) {
   transform: rotate(180deg);
 }
 .inspiration-overlay-step[data-direction="next"] {
@@ -910,16 +910,16 @@ button.inspiration-continue {
 .inspiration-detail .inspiration-heart {
   color: var(--color-text);
 }
-.inspiration-workspace .inspiration-heart.inspiration-brand-like svg,
-.inspiration-detail .inspiration-heart svg {
+.inspiration-workspace .inspiration-heart.inspiration-brand-like :is(svg, .e-icon),
+.inspiration-detail .inspiration-heart :is(svg, .e-icon) {
   width: 20px;
   height: 20px;
   fill: none;
   stroke-width: 1.6;
   filter: none;
 }
-.inspiration-workspace .inspiration-heart.inspiration-brand-like[aria-pressed="true"] svg,
-.inspiration-detail .inspiration-heart[aria-pressed="true"] svg {
+.inspiration-workspace .inspiration-heart.inspiration-brand-like[aria-pressed="true"] :is(svg, .e-icon),
+.inspiration-detail .inspiration-heart[aria-pressed="true"] :is(svg, .e-icon) {
   fill: var(--color-text);
 }
 

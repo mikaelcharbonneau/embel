@@ -125,7 +125,7 @@
   font-size: var(--font-size-2);
   line-height: 1.65;
 }
-.auth-unavailable svg {
+.auth-unavailable :is(svg, .e-icon) {
   margin-top: var(--space-0-5);
 }
 .auth-session-action {

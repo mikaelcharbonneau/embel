@@ -139,7 +139,7 @@
   letter-spacing: -0.3px;
   overflow-wrap: anywhere;
 }
-.conversation-project-title > svg {
+.conversation-project-title > :is(svg, .e-icon) {
   color: var(--color-text-muted);
 }
 .conversation-project-title .icon-button {
@@ -294,7 +294,7 @@
   font-size: var(--font-size-2);
   line-height: 1.65;
 }
-.conversation-service-note > svg {
+.conversation-service-note > :is(svg, .e-icon) {
   margin-top: var(--space-0-5);
 }
 .conversation-widget {

@@ -124,9 +124,6 @@
 .project-dock.is-collapsed .project-dock-toggle {
   margin: 0;
 }
-.project-dock.is-collapsed .project-dock-toggle img {
-  transform: rotate(180deg);
-}
 .project-dock-content {
   padding: var(--space-4);
 }

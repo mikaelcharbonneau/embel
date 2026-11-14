@@ -141,11 +141,11 @@
 .options > summary::-webkit-details-marker {
   display: none;
 }
-.options > summary svg {
+.options > summary :is(svg, .e-icon) {
   transform: rotate(90deg);
   transition: transform 0.15s ease;
 }
-.options[open] > summary svg {
+.options[open] > summary :is(svg, .e-icon) {
   transform: rotate(-90deg);
 }
 .actions {
@@ -179,7 +179,7 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .options > summary svg {
+  .options > summary :is(svg, .e-icon) {
     transition: none;
   }
 }
