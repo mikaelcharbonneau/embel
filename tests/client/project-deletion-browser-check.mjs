@@ -175,8 +175,14 @@ try {
     await expect(page.getByRole("menuitem", { name: "Delete", exact: true })).toBeFocused();
     assert.equal(new URL(page.url()).pathname, "/brands");
     assert.equal(await page.locator("a button, a a").count(), 0);
-    const target = await options.boundingBox();
-    assert.ok(target.width >= (name === "desktop" ? 36 : 44));
+    // The small options button keeps a 44 px hit area through its ::after layer.
+    const target = await options.evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      const inset = Number.parseFloat(getComputedStyle(element, "::after").left) || 0;
+      return { width: box.width, hit: box.width - inset * 2 };
+    });
+    assert.ok(target.width >= 36);
+    assert.ok(target.hit >= (name === "desktop" ? 36 : 44));
     await page.screenshot({ path: `${output}/${name}-menu.png`, fullPage: true });
     await page.getByRole("menuitem", { name: "Delete", exact: true }).press("Escape");
     await expect(options).toBeFocused();
@@ -184,9 +190,9 @@ try {
     await page.getByRole("menuitem", { name: "Delete", exact: true }).press("Enter");
     await expect(page.getByRole("dialog")).toContainText("assets and history are kept");
     await expect(page.getByRole("button", { name: "Cancel", exact: true })).toBeFocused();
-    await page.keyboard.press("Shift+Tab");
-    await expect(page.getByRole("button", { name: "Stop active work and delete project", exact: true })).toBeFocused();
     await page.keyboard.press("Tab");
+    await expect(page.getByRole("button", { name: "Delete project", exact: true })).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
     await expect(page.getByRole("button", { name: "Cancel", exact: true })).toBeFocused();
     await page.screenshot({ path: `${output}/${name}-confirmation.png`, fullPage: true });
     await page.keyboard.press("Escape");
@@ -199,7 +205,7 @@ try {
     await options.click();
     await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
     mode = "hold";
-    await page.getByRole("button", { name: "Stop active work and delete project", exact: true }).click();
+    await page.getByRole("button", { name: "Delete project", exact: true }).click();
     await expect(page.getByRole("button", { name: "Moving project…", exact: true })).toBeDisabled();
     await expect(page.getByRole("button", { name: "Cancel", exact: true })).toBeDisabled();
     await page.keyboard.press("Escape");
@@ -227,7 +233,7 @@ try {
     mode = "stopping";
     await options.click();
     await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
-    await page.getByRole("button", { name: "Stop active work and delete project", exact: true }).click();
+    await page.getByRole("button", { name: "Delete project", exact: true }).click();
     await expect(page.locator(".project-card")).toHaveCount(2);
     await expect(page.getByRole("status")).toContainText("Stopping…");
     await page.getByRole("link", { name: "View deleted projects", exact: true }).click();
@@ -244,18 +250,15 @@ try {
     mode = "conflict";
     await options.click();
     await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
-    await page.getByRole("button", { name: "Stop active work and delete project", exact: true }).click();
+    await page.getByRole("button", { name: "Delete project", exact: true }).click();
     await expect(page.getByRole("alert")).toContainText("changed while its status was checked");
-    assert.equal(
-      await page.getByRole("button", { name: "Stop active work and delete project", exact: true }).count(),
-      0,
-    );
+    assert.equal(await page.getByRole("button", { name: "Delete project", exact: true }).count(), 0);
     await page.getByRole("button", { name: "Refresh projects", exact: true }).click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
     mode = "lost_acknowledgement";
     await options.click();
     await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
-    await page.getByRole("button", { name: "Stop active work and delete project", exact: true }).click();
+    await page.getByRole("button", { name: "Delete project", exact: true }).click();
     await expect(page.locator(".project-card")).toHaveCount(2);
     await expect(page.getByRole("status")).toContainText("moved to Deleted projects");
     mode = "success";
@@ -269,7 +272,7 @@ try {
     release = null;
     await options.click();
     await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
-    await page.getByRole("button", { name: "Stop active work and delete project", exact: true }).click();
+    await page.getByRole("button", { name: "Delete project", exact: true }).click();
     await expect.poll(() => typeof release).toBe("function");
     account = other;
     await page.evaluate(() => window.dispatchEvent(new Event("focus")));

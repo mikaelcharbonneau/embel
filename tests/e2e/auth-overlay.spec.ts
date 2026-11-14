@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { accountMenu, accountMenuButton } from "./account-check";
 
 // Synthetic same-origin responses only. No provider authentication or account creation.
 async function signedOut(page: Page) {
@@ -17,7 +18,7 @@ async function openOverlay(page: Page) {
     "href",
     "/sign-up",
   );
-  await expect(page.locator(".workspace-account-menu")).toHaveCount(0);
+  await expect(accountMenuButton(page)).toHaveCount(0);
   await trigger.click();
   const dialog = page.getByRole("dialog", { name: "Sign in to Embel", exact: true });
   await expect(dialog).toBeVisible();
@@ -88,8 +89,8 @@ test("auth overlay: continuation clears the slot; direct visits and reloads use 
   await signedOut(page);
   await page.goto("/settings");
   const { dialog } = await openOverlay(page);
-  await dialog.getByRole("link", { name: "Return to Home", exact: true }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await dialog.getByRole("button", { name: "Close sign-in", exact: true }).click();
+  await expect(page).toHaveURL(/\/settings$/);
   await expect(dialog).toHaveCount(0);
   await openOverlay(page);
   await page.reload();
@@ -99,13 +100,11 @@ test("auth overlay: continuation clears the slot; direct visits and reloads use 
   await expect(card.getByRole("heading", { name: "Sign in to Embel" })).toBeVisible();
   const box = await card.boundingBox();
   if (testInfo.project.name === "desktop") {
-    expect(box?.width).toBe(460);
-    expect(box?.x).toBe(490);
-    // Unavailable-account notice grows the honest card rather than hiding the status.
-    expect(box?.y).toBe(172);
+    // The same 440 px card as the dialog, centred on the page.
+    expect(box?.width).toBe(440);
+    expect(box?.x).toBe(500);
   }
-  await expect(card.locator(".e-mark")).toBeVisible();
-  await expect(card.locator('.e-icon[data-icon="arrow-right"]').first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Return to Home", exact: true })).toHaveAttribute("href", "/");
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
   await page.screenshot({ path: testInfo.outputPath("sign-in-page.png"), scale: "css" });
 });
@@ -158,13 +157,12 @@ test("auth overlay: pending dismissal retains the global cookie-mutation fence a
   await expect(dialog).toHaveCount(0);
   expect(await detachedPassword?.evaluate((element) => (element as HTMLInputElement).value)).toBe("");
   await expect(page).toHaveURL(/\/settings$/);
-  const accountSummary = page.locator(".workspace-account-menu > summary");
-  await expect(accountSummary).toBeVisible();
-  await expect(accountSummary).toBeFocused();
-  await accountSummary.click();
-  await expect(
-    page.locator(".workspace-account-menu").getByRole("button", { name: "Signing in…", exact: true }),
-  ).toBeDisabled();
+  const accountButton = accountMenuButton(page);
+  await expect(accountButton).toBeVisible();
+  await expect(accountButton).toBeFocused();
+  await accountButton.click();
+  await expect(accountMenu(page).getByRole("status")).toHaveText("Signing in…");
+  await expect(accountMenu(page).getByRole("menuitem")).toHaveCount(0);
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   expect(sessionReads).toBe(before);
   const storage = await page.evaluate(() =>
@@ -173,9 +171,7 @@ test("auth overlay: pending dismissal retains the global cookie-mutation fence a
   expect(storage).not.toContain("overlay@example.invalid");
   expect(storage).not.toContain("inert overlay fixture");
   release();
-  await expect(
-    page.locator(".workspace-account-menu").getByRole("button", { name: "Sign out", exact: true }),
-  ).toBeVisible();
+  await expect(accountMenu(page).getByRole("menuitem", { name: "Sign out", exact: true })).toBeVisible();
   await expect(page).toHaveURL(/\/settings$/);
   expect(submissions).toBe(1);
 });

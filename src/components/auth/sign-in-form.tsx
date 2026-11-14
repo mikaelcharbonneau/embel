@@ -3,13 +3,35 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { EmbelMark, Icon } from "@/components/ui/icon";
+import { Button, ButtonLink, IconButton } from "@/components/ui/button";
+import { InlineMessage } from "@/components/ui/message";
 import { useAccountSession } from "@/components/workspace/account-session";
 import { requestSignIn, SignInRequestError, signInErrorMessage } from "./sign-in-request";
 import { requestSignUp, signUpErrorMessage } from "./sign-up-request";
 import { hasPromptRecovery } from "@/components/workspace/prompt-recovery";
 import { readCaptcha, TurnstileWidget, type TurnstileHandle } from "./turnstile-widget";
-import "@/styles/auth.css";
+import { AuthCard } from "./auth-card";
+import { AuthField, fieldDescription } from "./auth-field";
+
+/** Messages shown under their own field; `form` is for answers that belong to no single field. */
+type FormErrors = {
+  email?: string;
+  password?: string;
+  confirm?: string;
+  resendEmail?: string;
+  form?: string;
+  /** The email and password together didn't match an account: both fields are marked. */
+  credentials?: boolean;
+};
+
+const ideaKept = "Your idea is kept. It will be waiting when you're signed in.";
+
+function emailError(input: HTMLInputElement | null): string | undefined {
+  const email = input?.value.trim() ?? "";
+  if (!email) return "Enter your email address.";
+  if (email.length > 320 || input?.validity.typeMismatch) return "Enter a valid email address, like name@example.com.";
+  return undefined;
+}
 
 export function SignInForm({
   configured,
@@ -24,6 +46,14 @@ export function SignInForm({
 }) {
   const router = useRouter();
   const idPrefix = overlay ? "auth-overlay" : "auth-page";
+  const ids = {
+    title: `${idPrefix}-title`,
+    email: `${idPrefix}-email`,
+    password: `${idPrefix}-password`,
+    confirm: `${idPrefix}-confirm-password`,
+    resendEmail: `${idPrefix}-confirmation-email`,
+    error: `${idPrefix}-error`,
+  };
   const { session, signIn, signingIn: submitting, awaitingConfirmation, dismissConfirmation } = useAccountSession();
   const emailInput = useRef<HTMLInputElement>(null);
   const passwordInput = useRef<HTMLInputElement>(null);
@@ -46,7 +76,7 @@ export function SignInForm({
   const requestPending = useRef(false);
   const credentialGeneration = useRef(0);
   const mounted = useRef(true);
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState<FormErrors>({});
   const [resend, setResend] = useState(false);
   const [resent, setResent] = useState(false);
   const [hasPrompt, setHasPrompt] = useState(false);
@@ -57,6 +87,8 @@ export function SignInForm({
   const checking = session.status === "checking";
   const signedIn = session.status === "ready";
   const disabled = !configured || submitting || checking;
+  // Fields stay enabled while a request runs (focus stays put); they are read-only until it answers.
+  const unavailable = !configured || checking;
 
   const clearPasswords = useCallback(() => {
     credentialGeneration.current++;
@@ -64,6 +96,7 @@ export function SignInForm({
     if (confirmPasswordInput.current) confirmPasswordInput.current.value = "";
     setPasswordsShown(false);
   }, []);
+  const clearErrors = () => setErrors({});
 
   useEffect(() => () => clearPasswords(), [mode, clearPasswords]);
 
@@ -83,36 +116,45 @@ export function SignInForm({
     };
   }, []);
 
+  /** The app's own checks, by field. The browser's validation bubble is off (noValidate). */
+  function validate(): FormErrors {
+    const found: FormErrors = {};
+    const password = passwordInput.current?.value ?? "";
+    const repeated = confirmPasswordInput.current?.value ?? "";
+    found.email = emailError(emailInput.current);
+    if (!password) found.password = signingUp ? "Create a password of at least 12 characters." : "Enter your password.";
+    else if (password.length > 1024) found.password = "Use a password of 1,024 characters or fewer.";
+    else if (signingUp && password.length < 12)
+      found.password = `This password has ${password.length} character${password.length === 1 ? "" : "s"}. Use at least 12.`;
+    if (signingUp && password) {
+      if (!repeated) found.confirm = "Enter the same password again.";
+      else if (password !== repeated) found.confirm = "The two passwords don't match. Enter the same password again.";
+    }
+    return Object.fromEntries(Object.entries(found).filter(([, value]) => value)) as FormErrors;
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (disabled || signedIn || requestPending.current) return;
     setPasswordsShown(false);
+    const found = validate();
+    if (Object.keys(found).length > 0) {
+      clearPasswords();
+      setErrors(found);
+      (found.email ? emailInput : found.password ? passwordInput : confirmPasswordInput).current?.focus();
+      return;
+    }
     const email = emailInput.current?.value.trim() ?? "";
     const password = passwordInput.current?.value ?? "";
-    const repeated = confirmPasswordInput.current?.value ?? "";
-    if (!email || email.length > 320 || !password || password.length > 1024 || (signingUp && password.length < 12)) {
-      clearPasswords();
-      setError(
-        signingUp
-          ? "Enter your email and a password of at least 12 characters."
-          : "Enter your email and password to continue.",
-      );
-      return;
-    }
-    if (signingUp && password !== repeated) {
-      clearPasswords();
-      setError("The passwords didn't match. Enter them again.");
-      return;
-    }
     const check = readCaptcha(captcha.current);
     if (!check.ok) {
-      setError(check.message);
+      setErrors({ form: check.message });
       return;
     }
     const body = JSON.stringify({ email, password, ...(check.token ? { captchaToken: check.token } : {}) });
     if (signingUp) clearPasswords();
     const submittedGeneration = credentialGeneration.current;
-    setError("");
+    clearErrors();
     requestPending.current = true;
     const result = await signIn(() => (signingUp ? requestSignUp(body) : requestSignIn(body)), mode);
     requestPending.current = false;
@@ -132,7 +174,10 @@ export function SignInForm({
       router.replace(hasPromptRecovery() ? "/" : "/brands");
       router.refresh();
     } else if (result.reason === "failed") {
-      setError(signingUp ? signUpErrorMessage(result.error) : signInErrorMessage(result.error));
+      if (signingUp) setErrors({ form: signUpErrorMessage(result.error) });
+      else if (result.error instanceof SignInRequestError && [401, 413, 422].includes(result.error.status))
+        setErrors({ password: signInErrorMessage(result.error), credentials: true });
+      else setErrors({ form: signInErrorMessage(result.error) });
     }
   }
 
@@ -140,16 +185,18 @@ export function SignInForm({
     event.preventDefault();
     if (disabled || signedIn || requestPending.current) return;
     const email = resendEmailInput.current?.value.trim() ?? "";
-    if (!email || email.length > 320) {
-      setError("Enter a valid email address.");
+    const invalid = emailError(resendEmailInput.current);
+    if (invalid) {
+      setErrors({ resendEmail: invalid });
+      resendEmailInput.current?.focus();
       return;
     }
     const check = readCaptcha(resendCaptcha.current);
     if (!check.ok) {
-      setError(check.message);
+      setErrors({ form: check.message });
       return;
     }
-    setError("");
+    clearErrors();
     setResent(false);
     requestPending.current = true;
     const result = await signIn(
@@ -166,7 +213,7 @@ export function SignInForm({
     if (result.ok) {
       if (resendEmailInput.current) resendEmailInput.current.value = "";
       setResent(true);
-    } else if (result.reason === "failed") setError(signUpErrorMessage(result.error));
+    } else if (result.reason === "failed") setErrors({ form: signUpErrorMessage(result.error) });
   }
 
   const title = signedIn
@@ -176,305 +223,270 @@ export function SignInForm({
       : signingUp
         ? "Create your Embel account"
         : "Sign in to Embel";
+  const intro = signedIn
+    ? "Continue to your projects and saved work."
+    : confirming
+      ? "Confirm your email to finish setting up your account."
+      : hasPrompt
+        ? ideaKept
+        : signingUp
+          ? "Save your projects and keep your work together."
+          : "Continue with your email and password.";
+  const formMessage = errors.form ? (
+    <InlineMessage id={ids.error} tone="danger">
+      {errors.form}
+    </InlineMessage>
+  ) : null;
   return (
-    <div className={`auth-guided ${overlay ? "auth-guided-modal" : "page auth-guided-page"}`}>
-      <section className="auth-card" aria-labelledby={`${idPrefix}-title`}>
-        <header className="auth-guided-heading">
-          <EmbelMark />
-          <h1 ref={titleElement} tabIndex={-1} id={`${idPrefix}-title`}>
-            {title}
-          </h1>
-          <p className="auth-intro">
-            {signedIn
-              ? "Continue to your projects and saved work."
-              : confirming
-                ? "Confirm your email to finish setting up your account."
-                : signingUp
-                  ? "Save your projects and keep your work together."
-                  : "Continue with your email and password."}
-          </p>
-        </header>
-        {hasPrompt && (
-          <div className="prompt-recovery-notice">
-            <p>
-              Your prompt is kept while you sign in. {signingUp ? "Create an account or sign in" : "Sign in"} to
-              continue, or return to your prompt.
-            </p>
-            <Link className="text-link" href="/">
-              Return to your prompt
-              <Icon name="arrow" size={14} />
-            </Link>
-          </div>
-        )}
-        {confirmation === "failed" && (
-          <p className="auth-confirmation-note" role="alert">
-            We couldn&apos;t complete this email link. Open the newest email link in the browser where you requested it.
-            If your email is already confirmed, sign in below. You can also request another confirmation email or reset
-            your password.
-          </p>
-        )}
-        {confirmation === "complete" && (
-          <p className="auth-confirmation-note" role="status">
-            {signedIn
-              ? "Your email is confirmed."
-              : "Your confirmation link was processed. Check your account or sign in to continue."}
-          </p>
-        )}
-        {signedIn ? (
-          <Link className="button primary auth-continue" href={hasPrompt ? "/" : "/brands"}>
-            {hasPrompt ? "Continue your prompt" : "Go to Projects"}
-            <Icon name="arrow-right" size="sm" />
-          </Link>
-        ) : (
-          <>
-            {!configured && (
-              <div className="auth-unavailable" role="status">
-                <Icon name="offline" size={18} />
-                <p>
-                  {signingUp ? "Account creation" : "Sign-in"} is unavailable right now. Your prompt is kept; please try
-                  again shortly.
-                </p>
-              </div>
-            )}
-            {confirming ? (
-              <div className="auth-confirmation-note" role="status">
+    <AuthCard
+      overlay={overlay}
+      titleId={ids.title}
+      titleRef={titleElement}
+      title={title}
+      intro={intro}
+      onLeave={clearPasswords}
+    >
+      {confirmation === "failed" && (
+        <InlineMessage tone="warning">
+          We couldn&apos;t complete this email link. Open the newest email link in the browser where you requested it.
+          If your email is already confirmed, sign in below. You can also request another confirmation email or reset
+          your password.
+        </InlineMessage>
+      )}
+      {confirmation === "complete" && (
+        <InlineMessage tone="positive">
+          {signedIn
+            ? "Your email is confirmed."
+            : "Your confirmation link was processed. Check your account or sign in to continue."}
+        </InlineMessage>
+      )}
+      {signedIn ? (
+        <ButtonLink variant="primary" block arrow href={hasPrompt ? "/" : "/brands"}>
+          {hasPrompt ? "Continue your prompt" : "Go to Projects"}
+        </ButtonLink>
+      ) : (
+        <>
+          {!configured && (
+            <InlineMessage>
+              {signingUp ? "Account creation" : "Sign-in"} is unavailable right now. Your prompt is kept; please try
+              again shortly.
+            </InlineMessage>
+          )}
+          {confirming ? (
+            <InlineMessage>
+              <div className="e-stack e-stack--sm">
                 <p>
                   If this address is eligible, a confirmation email will arrive shortly. Open its link in this browser.
                   Check your spam folder too.
                 </p>
                 <p>Already have an account? Sign in with your existing password.</p>
+                {hasPrompt && <p>{ideaKept}</p>}
               </div>
-            ) : (
-              <form
-                method="post"
-                action={signingUp ? "/api/auth/sign-up" : "/api/auth/sign-in"}
-                onSubmit={submit}
-                aria-label={signingUp ? "Create account" : "Sign in"}
-                aria-busy={submitting}
-              >
-                <fieldset disabled={disabled}>
-                  <label className="auth-field" htmlFor={`${idPrefix}-email`}>
-                    Email
-                    <input
-                      ref={emailInput}
-                      id={`${idPrefix}-email`}
-                      name="email"
-                      type="email"
-                      placeholder="you@example.com"
-                      autoComplete="username"
-                      autoCapitalize="none"
-                      spellCheck={false}
-                      maxLength={320}
-                      required
-                      onChange={() => {
-                        if (!signingUp) clearPasswords();
-                        setError("");
-                      }}
-                    />
-                  </label>
-                  {/* The toggle sits over the input's right edge; "Forgot password?" aligns with the label. */}
-                  <div className="auth-password-field">
-                    <label className="auth-field" htmlFor={`${idPrefix}-password`}>
-                      Password
-                      <input
-                        ref={bindPasswordInput}
-                        id={`${idPrefix}-password`}
-                        name="password"
-                        type={passwordsShown ? "text" : "password"}
-                        placeholder={signingUp ? "Create a password" : "Enter your password"}
-                        autoComplete={signingUp ? "new-password" : "current-password"}
-                        autoCapitalize="none"
-                        autoCorrect="off"
-                        spellCheck={false}
-                        minLength={signingUp ? 12 : undefined}
-                        maxLength={1024}
-                        required
-                        onChange={() => setError("")}
-                        aria-describedby={
-                          error ? `${idPrefix}-error` : signingUp ? `${idPrefix}-password-guidance` : undefined
-                        }
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      className="auth-password-toggle"
-                      aria-label={signingUp ? "Show passwords" : "Show password"}
-                      aria-pressed={passwordsShown}
-                      aria-controls={
-                        signingUp ? `${idPrefix}-password ${idPrefix}-confirm-password` : `${idPrefix}-password`
-                      }
-                      title={passwordsShown ? "Hide password" : "Show password"}
-                      onClick={() => setPasswordsShown((shown) => !shown)}
-                    >
-                      <Icon name={passwordsShown ? "eye-off" : "eye"} />
-                    </button>
-                    {!signingUp && (
+            </InlineMessage>
+          ) : (
+            <form
+              className="auth-form"
+              method="post"
+              action={signingUp ? "/api/auth/sign-up" : "/api/auth/sign-in"}
+              onSubmit={submit}
+              noValidate
+              aria-label={signingUp ? "Create account" : "Sign in"}
+              aria-busy={submitting}
+            >
+              <fieldset className="auth-form__fields" disabled={unavailable}>
+                <AuthField id={ids.email} label="Email" error={errors.email}>
+                  <input
+                    ref={emailInput}
+                    id={ids.email}
+                    name="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    maxLength={320}
+                    required
+                    readOnly={submitting}
+                    {...fieldDescription(ids.email, { error: errors.email, invalid: errors.credentials })}
+                    onChange={() => {
+                      if (!signingUp) clearPasswords();
+                      clearErrors();
+                    }}
+                  />
+                </AuthField>
+                <AuthField
+                  id={ids.password}
+                  label="Password"
+                  error={errors.password}
+                  hint={signingUp ? "Use at least 12 characters." : undefined}
+                  aside={
+                    signingUp ? undefined : (
                       <Link
-                        className="text-link auth-forgot-link"
+                        className="e-link e-link--standalone"
                         href="/forgot-password"
                         replace={overlay}
                         onClick={clearPasswords}
                       >
                         Forgot password?
                       </Link>
-                    )}
-                  </div>
-                  {signingUp && (
-                    <>
-                      <p className="auth-field-help" id={`${idPrefix}-password-guidance`}>
-                        Use at least 12 characters.
-                      </p>
-                      <label className="auth-field auth-confirm-password" htmlFor={`${idPrefix}-confirm-password`}>
-                        Confirm password
-                        <input
-                          ref={bindConfirmPasswordInput}
-                          id={`${idPrefix}-confirm-password`}
-                          name="confirmPassword"
-                          type={passwordsShown ? "text" : "password"}
-                          placeholder="Enter your password again"
-                          autoComplete="new-password"
-                          autoCapitalize="none"
-                          autoCorrect="off"
-                          spellCheck={false}
-                          minLength={12}
-                          maxLength={1024}
-                          required
-                          onChange={() => setError("")}
-                        />
-                      </label>
-                      <p className="auth-field-help">You&apos;ll need to confirm your email before signing in.</p>
-                    </>
-                  )}
-                  <TurnstileWidget handleRef={captcha} />
-                  <button type="submit" className="button primary auth-submit">
-                    {submitting
-                      ? signingUp
-                        ? "Creating account…"
-                        : "Signing in…"
-                      : signingUp
-                        ? "Create account"
-                        : "Sign in"}
-                    {submitting ? (
-                      <span className="auth-progress" aria-hidden="true" />
-                    ) : (
-                      <Icon name="arrow-right" size="sm" />
-                    )}
-                  </button>
-                </fieldset>
-                {checking && configured && !submitting && (
-                  <p className="auth-status" role="status">
-                    Checking your account…
-                  </p>
-                )}
-                {error && !resend && (
-                  <p className="form-error" id={`${idPrefix}-error`} role="alert">
-                    {error}
-                  </p>
-                )}
-              </form>
-            )}
-            {(confirming || confirmation === "failed") && !resend && (
-              <button
-                type="button"
-                className="text-link auth-resend-toggle"
-                disabled={disabled}
-                onClick={() => {
-                  clearPasswords();
-                  setError("");
-                  setResend(true);
-                }}
-              >
-                Request another confirmation email
-              </button>
-            )}
-            {resend && (
-              <form
-                method="post"
-                action="/api/auth/resend-confirmation"
-                aria-label="Resend confirmation"
-                aria-busy={submitting}
-                onSubmit={resendConfirmation}
-              >
-                <fieldset disabled={disabled}>
-                  <label className="auth-field" htmlFor={`${idPrefix}-confirmation-email`}>
-                    Email
-                    <input
-                      ref={resendEmailInput}
-                      id={`${idPrefix}-confirmation-email`}
-                      name="email"
-                      type="email"
-                      placeholder="you@example.com"
-                      autoComplete="email"
-                      autoCapitalize="none"
-                      maxLength={320}
-                      required
-                      onChange={() => {
-                        setError("");
-                        setResent(false);
-                      }}
-                    />
-                  </label>
-                  <TurnstileWidget handleRef={resendCaptcha} />
-                  <button className="button secondary auth-submit" type="submit">
-                    {submitting ? "Requesting email…" : "Resend confirmation"}
-                  </button>
-                </fieldset>
-                {resent && (
-                  <p className="auth-status" role="status">
-                    If this address is awaiting confirmation, a new email will arrive shortly. Wait a minute before
-                    requesting another.
-                  </p>
-                )}
-                {error && (
-                  <p className="form-error" id={`${idPrefix}-error`} role="alert">
-                    {error}
-                  </p>
-                )}
-              </form>
-            )}
-            <p className="auth-mode-switch">
-              {signingUp ? "Already have an account?" : "New to Embel?"}{" "}
-              {submitting ? (
-                <button type="button" className="text-link" disabled>
-                  {signingUp ? "Sign in" : "Create account"}
-                </button>
-              ) : (
-                <Link
-                  className="text-link"
-                  href={signingUp ? "/sign-in" : "/sign-up"}
-                  replace={overlay}
-                  onClick={clearPasswords}
+                    )
+                  }
                 >
-                  {signingUp ? "Sign in" : "Create account"}
-                </Link>
+                  <input
+                    ref={bindPasswordInput}
+                    id={ids.password}
+                    name="password"
+                    type={passwordsShown ? "text" : "password"}
+                    autoComplete={signingUp ? "new-password" : "current-password"}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    minLength={signingUp ? 12 : undefined}
+                    maxLength={1024}
+                    required
+                    readOnly={submitting}
+                    {...fieldDescription(ids.password, { error: errors.password, hint: signingUp })}
+                    onChange={clearErrors}
+                  />
+                  <IconButton
+                    className="auth-password-toggle"
+                    icon={passwordsShown ? "eye-off" : "eye"}
+                    label={signingUp ? "Show passwords" : "Show password"}
+                    size="sm"
+                    tooltip={false}
+                    pressed={passwordsShown}
+                    aria-controls={signingUp ? `${ids.password} ${ids.confirm}` : ids.password}
+                    onClick={() => setPasswordsShown((shown) => !shown)}
+                  />
+                </AuthField>
+                {signingUp && (
+                  <AuthField id={ids.confirm} label="Confirm password" error={errors.confirm}>
+                    <input
+                      ref={bindConfirmPasswordInput}
+                      id={ids.confirm}
+                      name="confirmPassword"
+                      type={passwordsShown ? "text" : "password"}
+                      autoComplete="new-password"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      minLength={12}
+                      maxLength={1024}
+                      required
+                      readOnly={submitting}
+                      {...fieldDescription(ids.confirm, { error: errors.confirm })}
+                      onChange={clearErrors}
+                    />
+                  </AuthField>
+                )}
+                <TurnstileWidget handleRef={captcha} />
+                {!resend && formMessage}
+                <Button type="submit" variant="primary" block loading={submitting}>
+                  {signingUp ? "Create account" : "Sign in"}
+                </Button>
+              </fieldset>
+              {checking && configured && !submitting && (
+                <p className="auth-card__note" role="status">
+                  Checking your account…
+                </p>
               )}
-            </p>
-            {confirming && (
-              <button
-                type="button"
-                className="text-link auth-resend-toggle"
-                disabled={disabled}
-                onClick={() => {
-                  clearPasswords();
-                  setError("");
-                  setResend(false);
-                  setResent(false);
-                  dismissConfirmation();
-                }}
-              >
-                Use another email
+              {signingUp && <p className="auth-card__note">You&apos;ll confirm your email before you sign in.</p>}
+            </form>
+          )}
+          {(confirming || confirmation === "failed") && !resend && (
+            <button
+              type="button"
+              className="e-link auth-card__action"
+              disabled={disabled}
+              onClick={() => {
+                clearPasswords();
+                clearErrors();
+                setResend(true);
+              }}
+            >
+              Request another confirmation email
+            </button>
+          )}
+          {resend && (
+            <form
+              className="auth-form"
+              method="post"
+              action="/api/auth/resend-confirmation"
+              aria-label="Resend confirmation"
+              aria-busy={submitting}
+              noValidate
+              onSubmit={resendConfirmation}
+            >
+              <fieldset className="auth-form__fields" disabled={unavailable}>
+                <AuthField id={ids.resendEmail} label="Email" error={errors.resendEmail}>
+                  <input
+                    ref={resendEmailInput}
+                    id={ids.resendEmail}
+                    name="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    maxLength={320}
+                    required
+                    readOnly={submitting}
+                    {...fieldDescription(ids.resendEmail, { error: errors.resendEmail })}
+                    onChange={() => {
+                      clearErrors();
+                      setResent(false);
+                    }}
+                  />
+                </AuthField>
+                <TurnstileWidget handleRef={resendCaptcha} />
+                {formMessage}
+                <Button type="submit" variant="secondary" block loading={submitting}>
+                  Resend confirmation
+                </Button>
+              </fieldset>
+              {resent && (
+                <InlineMessage tone="positive">
+                  If this address is awaiting confirmation, a new email will arrive shortly. Wait a minute before
+                  requesting another.
+                </InlineMessage>
+              )}
+            </form>
+          )}
+          <p className="auth-card__switch">
+            {signingUp ? "Already have an account?" : "New to Embel?"}{" "}
+            {submitting ? (
+              <button type="button" className="e-link" disabled>
+                {signingUp ? "Sign in" : "Create account"}
               </button>
+            ) : (
+              <Link
+                className="e-link"
+                href={signingUp ? "/sign-in" : "/sign-up"}
+                replace={overlay}
+                onClick={clearPasswords}
+              >
+                {signingUp ? "Sign in" : "Create account"}
+              </Link>
             )}
-          </>
-        )}
-      </section>
-      <div className="auth-guided-browser">
-        <Link className="auth-browser-link text-link" href="/" onClick={clearPasswords}>
-          Return to Home
-          <Icon name="arrow-right" size="sm" />
-        </Link>
-      </div>
-    </div>
+          </p>
+          {confirming && (
+            <button
+              type="button"
+              className="e-link auth-card__action"
+              disabled={disabled}
+              onClick={() => {
+                clearPasswords();
+                clearErrors();
+                setResend(false);
+                setResent(false);
+                dismissConfirmation();
+              }}
+            >
+              Use another email
+            </button>
+          )}
+        </>
+      )}
+    </AuthCard>
   );
 }
 

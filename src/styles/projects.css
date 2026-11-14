@@ -1,232 +1,38 @@
-/* Projects list. Cards share project-card.module.css with Home. */
+/* Projects and Deleted projects. The page, header, fields, menus, cards and empty states come from the design
+   system (.e-container, .e-page-header, .e-input, .e-menu, .e-grid-cards, .e-empty); this file only places them.
+   Cards share project-card.module.css with Home. */
 .projects-page {
-  max-width: calc(var(--container-page) + var(--space-gutter) * 2);
-  margin: 0 auto;
-  padding: var(--space-10) var(--space-gutter) var(--space-12);
-}
-.projects-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: var(--space-6);
-  margin-bottom: var(--space-6);
-}
-.projects-heading h1 {
-  margin: 0;
-  font-size: 28px;
-  line-height: 40px;
-  font-weight: 500;
-  letter-spacing: -0.6px;
-}
-.projects-heading h1 span {
-  color: var(--color-accent);
+  display: grid;
+  align-content: start;
+  gap: var(--space-8);
 }
 .projects-heading h1:focus {
   outline: none;
+  box-shadow: none;
 }
-.projects-heading p {
-  margin: var(--space-1) 0 0;
-  font-size: var(--font-size-3);
-  line-height: 20px;
-  color: var(--color-text-muted);
-}
-.projects-heading-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-5);
-  padding-top: var(--space-0-5);
-}
-.projects-toolbar {
-  display: flex;
-  gap: var(--space-3);
-  margin-bottom: var(--space-6);
-}
-.projects-search {
-  flex: 1;
-  min-width: 0;
-}
-.projects-search input {
-  width: 100%;
-  height: 44px;
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-pill);
-  padding: 11px 18px;
-  background: var(--color-bg-paper);
-  font-size: var(--font-size-3);
-  line-height: 20px;
-}
-.projects-search input::placeholder {
-  color: var(--color-text-muted);
-  opacity: 1;
-}
-.projects-control {
-  position: relative;
-  flex: 0 0 auto;
-}
-.projects-control > summary {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  height: 44px;
-  padding: 0 18px;
-  list-style: none;
-  cursor: pointer;
-  font-size: var(--font-size-3);
-  line-height: 20px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-paper);
-}
-.projects-control > summary:hover,
-.projects-control[open] > summary {
-  background: var(--color-bg-canvas);
-  border-color: var(--color-border-strong);
-}
-.projects-control > summary::-webkit-details-marker {
-  display: none;
-}
-.projects-control-panel {
-  position: absolute;
-  z-index: 25;
-  right: 0;
-  top: 52px;
-  width: 264px;
-  max-width: calc(100vw - 40px);
-  padding: var(--space-4);
-  background: var(--color-bg-paper);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  box-shadow: 0 8px 24px #19191914;
-}
-.projects-control-panel label {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  font-size: var(--font-size-2);
-  margin-bottom: var(--space-3);
-}
-.projects-control-panel label:last-child {
-  margin-bottom: 0;
-}
-.projects-control-panel select {
-  width: 100%;
-  height: 40px;
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-control);
-  padding-inline: var(--space-3);
-  background: var(--color-bg-paper);
-  font: inherit;
-}
-.projects-control-panel p {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-1);
-  line-height: 18px;
-}
-.projects-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+.projects-heading .e-cluster {
   gap: var(--space-4);
 }
-.projects-empty-panel {
-  min-height: 360px;
-  padding: 72px var(--space-10);
+
+/* Search fills the row; Sort sits at its end. */
+.projects-toolbar {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-5);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-panel);
-  background: var(--color-bg-paper);
-  text-align: center;
+  align-items: flex-end;
+  gap: var(--space-2);
 }
-.projects-empty-panel h2 {
-  margin: 0;
-  font-size: var(--font-size-6);
-  font-weight: 500;
-  line-height: 28px;
-  letter-spacing: -0.3px;
+.projects-search {
+  flex: 1 1 auto;
+  min-width: 0;
 }
-.projects-empty-panel p {
-  margin: 0;
-  max-width: 520px;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-3);
-  line-height: 22px;
+
+.projects-more {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
 }
-.projects-account-status {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-2);
-  line-height: 20px;
-  margin-top: var(--space-6);
+.projects-more:empty {
+  display: none;
 }
-.projects-no-matches {
-  padding: var(--space-10) var(--space-6);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-bg-paper);
-  text-align: center;
-}
-.projects-no-matches h2 {
-  font-size: var(--font-size-6);
-  font-weight: 500;
-}
-.projects-no-matches p {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-3);
-}
-.projects-deleted-empty {
-  padding: var(--space-16) var(--space-6);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-panel);
-  background: var(--color-bg-paper);
-  text-align: center;
-}
-.projects-deleted-empty h2 {
-  margin: 0 0 var(--space-3);
-  font-size: var(--font-size-6);
-  line-height: 28px;
-  font-weight: 500;
-}
-.projects-deleted-empty p {
-  max-width: 440px;
-  margin: 0 auto var(--space-5);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-3);
-  line-height: 22px;
-}
-@media (max-width: 1000px) {
-  .projects-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (max-width: 760px) {
-  .projects-page {
-    padding: var(--space-8) var(--space-5) var(--space-10);
-  }
-  .projects-heading {
-    flex-wrap: wrap;
-    gap: var(--space-4);
-  }
-  .projects-toolbar {
-    flex-wrap: wrap;
-  }
-  .projects-search {
-    flex-basis: 100%;
-  }
-  .projects-control {
-    flex: 1;
-  }
-  .projects-toolbar .projects-control:first-of-type .projects-control-panel {
-    left: 0;
-    right: auto;
-  }
-  .projects-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .projects-empty-panel {
-    padding: var(--space-12) var(--space-5);
-  }
+.projects-more > .e-message {
+  justify-self: stretch;
 }

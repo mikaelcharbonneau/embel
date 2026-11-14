@@ -86,7 +86,7 @@ await recipe("research-failed", async () => {
   const { page } = await as("audit-pro");
   await mode({ text: "fail" });
   await newBrief(page, "Recipe check: a mobile dog grooming van serving Ottawa suburbs.");
-  await expect(page.getByRole("button", { name: "Retry research", exact: true })).toBeVisible({ timeout: 180_000 });
+  await expect(page.getByRole("button", { name: "Try again", exact: true })).toBeVisible({ timeout: 180_000 });
   await shot(page, "research-failed");
 });
 await recipe("logo-concepts-failed", async () => {
@@ -196,7 +196,10 @@ await recipe("delete-account-dialog", async () => {
 await recipe("out-of-credits", async () => {
   const { page } = await as("audit-free");
   await page.goto(`/brands/account/${project("berenice")}?view=strategy`);
-  await page.getByRole("button", { name: "Continue", exact: true }).last().click();
+  await page
+    .getByRole("form", { name: "Reply", exact: true })
+    .getByRole("button", { name: "Continue to Logo" })
+    .click();
   const explore = page.getByRole("button", { name: "Explore six concepts", exact: true });
   await expect(explore).toBeEnabled({ timeout: 120_000 });
   await explore.click();

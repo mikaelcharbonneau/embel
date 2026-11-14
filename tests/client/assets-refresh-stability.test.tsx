@@ -2,7 +2,6 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { readFileSync } from "node:fs";
 import { AssetsWorkspace } from "@/components/assets/assets-workspace";
 import type { useAssetLibrary } from "@/components/assets/use-asset-library";
 
@@ -84,58 +83,58 @@ it("reserves one status slot and retains loaded grid/image nodes through backgro
   expect(host.querySelector(".assets-loading")).toBe(status);
   expect(status?.textContent).toBe("");
   expect(host.querySelector(".assets-grid")).toBe(grid);
-  const css = readFileSync("src/styles/assets.css", "utf8");
-  expect(css).toMatch(/\.assets-loading\s*\{[^}]*min-height:\s*1\.65em/);
 });
 
-it("dismisses the asset actions when clicking outside without stealing focus or writing", async () => {
-  await render();
-  const menu = host.querySelector<HTMLDetailsElement>(".assets-card-options")!;
-  menu.open = true;
-  const search = host.querySelector<HTMLInputElement>('input[type="search"]')!;
-  await act(async () => search.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true })));
-  expect(menu.open).toBe(false);
-  await act(async () => search.focus());
-  expect(document.activeElement).toBe(search);
-  expect(fixture.library.refresh).not.toHaveBeenCalled();
-  expect(fixture.library.changeQuery).not.toHaveBeenCalled();
-});
-
-it("keeps inside actions open and dismisses on keyboard focus leaving the menu", async () => {
-  await render();
-  const menu = host.querySelector<HTMLDetailsElement>(".assets-card-options")!;
-  menu.open = true;
-  const inside = menu.querySelector<HTMLButtonElement>("button")!;
-  await act(async () => {
-    inside.focus();
-    inside.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }));
+it("groups files by brand in the journey's words, marks chosen ones and has no Refresh button", async () => {
+  const [item] = fixture.library.page!.items as unknown as Record<string, unknown>[];
+  const asset = item!.asset as Record<string, unknown>;
+  const row = (
+    id: string,
+    kind: string,
+    createdAt: string,
+    project: { id: string; title: string },
+    active = false,
+  ) => ({
+    ...item,
+    asset: { ...asset, id, kind, createdAt, usage: { active, legacy: false } },
+    project,
   });
-  expect(menu.open).toBe(true);
-  const search = host.querySelector<HTMLInputElement>('input[type="search"]')!;
-  await act(async () => search.focus());
-  expect(menu.open).toBe(false);
-  expect(document.activeElement).toBe(search);
-});
-
-it("retains Escape focus return and removes its dismissal listeners on unmount", async () => {
-  const remove = vi.spyOn(document, "removeEventListener");
+  const launchpad = { id: "launchpad", title: "Launchpad" },
+    orchard = { id: "orchard", title: "Orchard" };
+  fixture.library = {
+    ...fixture.library,
+    query: { tab: "all_generations" },
+    page: {
+      ...fixture.library.page!,
+      items: [
+        row("b2", "logo_identity_system", "2026-11-12T02:00:00Z", launchpad),
+        row("l2", "logo_concept", "2026-11-12T01:00:00Z", launchpad, true),
+        row("l1", "logo_concept", "2026-11-12T00:00:00Z", launchpad),
+        row("o1", "logo_concept", "2026-11-11T00:00:00Z", orchard),
+      ],
+    },
+  } as unknown as typeof fixture.library;
   await render();
-  const menu = host.querySelector<HTMLDetailsElement>(".assets-card-options")!;
-  menu.open = true;
-  const inside = menu.querySelector<HTMLButtonElement>("button")!;
-  await act(async () => {
-    inside.focus();
-    inside.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-  });
-  expect(menu.open).toBe(false);
-  expect(document.activeElement).toBe(menu.querySelector("summary"));
-  await act(async () => root.render(null));
-  for (const event of ["keydown", "pointerdown", "focusin"])
-    expect(remove.mock.calls.some(([name]) => name === event)).toBe(true);
-  remove.mockRestore();
+  const brands = [...host.querySelectorAll<HTMLElement>(".library-brand")];
+  expect(brands.map((brand) => brand.querySelector("h2")?.textContent)).toEqual(["Launchpad3", "Orchard1"]);
+  expect([...brands[0]!.querySelectorAll("h3.library-section__title")].map((node) => node.textContent)).toEqual([
+    "Logo concepts",
+    "Direction boards",
+  ]);
+  // Numbered by their place among the brand's files of that kind, oldest first.
+  expect([...brands[0]!.querySelectorAll("article")].map((card) => card.getAttribute("aria-label"))).toEqual([
+    "Logo concept 2 · Launchpad",
+    "Logo concept 1 · Launchpad",
+    "Direction board 1 · Launchpad",
+  ]);
+  const chosen = [...host.querySelectorAll("article")].filter((card) => card.textContent?.includes("Chosen"));
+  expect(chosen.map((card) => card.getAttribute("aria-label"))).toEqual(["Logo concept 2 · Launchpad"]);
+  expect(brands[0]!.querySelector('a[href="/brands/account/launchpad"]')?.textContent).toBe("Open project");
+  expect(host.textContent).not.toMatch(/logo_identity_system|logo_concept/);
+  expect([...host.querySelectorAll("button")].find((button) => button.textContent === "Refresh")).toBeUndefined();
 });
 
-it("titles cards in plain words with the project's name and uses menu-style filters", async () => {
+it("names a file without a number when other files of its brand may not be loaded", async () => {
   const [item] = fixture.library.page!.items as unknown as Record<string, unknown>[];
   fixture.library = {
     ...fixture.library,
@@ -152,11 +151,8 @@ it("titles cards in plain words with the project's name and uses menu-style filt
   } as unknown as typeof fixture.library;
   await render();
   const card = host.querySelector("article")!;
-  expect(card.getAttribute("aria-label")).toBe("Brand board · Launchpad");
-  expect(card.querySelector("h2")?.textContent).toBe("Brand board");
-  expect(card.querySelector(".assets-brand")?.textContent).toBe("Launchpad");
-  expect(host.textContent).not.toMatch(/logo_identity_system|File checked/);
-  expect(host.querySelectorAll(".assets-filter .e-icon.assets-filter-chevron")).toHaveLength(2);
-  expect(host.querySelector('.assets-filter img[src$="filter.svg"]')).toBeNull();
-  expect([...host.querySelectorAll("button")].find((button) => button.textContent === "Refresh")).toBeDefined();
+  expect(card.getAttribute("aria-label")).toBe("Direction board · Launchpad");
+  expect(card.querySelector("h3")?.textContent).toBe("Direction board");
+  expect(host.querySelector(".library-brand h2")?.textContent).toBe("Launchpad1");
+  expect(host.querySelectorAll(".assets-filter select")).toHaveLength(2);
 });

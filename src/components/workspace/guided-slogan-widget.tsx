@@ -1,161 +1,114 @@
 "use client";
 
-import { useId, useState } from "react";
-import { Icon } from "@/components/ui/icon";
+import { useId } from "react";
+import { Button } from "@/components/ui/button";
+import { ChoiceCard, ChoiceGroup } from "@/components/ui/choice";
+import { TextField } from "@/components/ui/field";
 import type { GuidedReply } from "@/domain/guided-interview";
+import { StepHeading, stageHint } from "./guided-interview-widgets";
 
 type SloganReply = Extract<GuidedReply, { kind: "choices" }>;
 export type SloganDecision = { optionId: string } | { own: string };
+/** What is chosen while the slogan step is open: a suggestion, or the person's own line. */
+export type SloganChoice = { turnId: string; chosen: string | "own" | null; own: string };
 
-/** Voice · Slogan (optional). Choosing a line or writing your own only
- * selects it; Continue saves the decision and Skip for now saves none. */
-export function GuidedSloganWidget({
+export const OWN_SLOGAN_MAX = 120;
+
+/** The decision Send saves, or null while nothing usable is chosen. */
+export function sloganDecision(choice: SloganChoice | null): SloganDecision | null {
+  if (!choice?.chosen) return null;
+  if (choice.chosen === "own") {
+    const own = choice.own.trim();
+    return own ? { own } : null;
+  }
+  return { optionId: choice.chosen };
+}
+/** The chosen line, as the reply box shows it. */
+export function sloganText(reply: SloganReply, choice: SloganChoice | null): string | null {
+  const decision = sloganDecision(choice);
+  if (!decision) return null;
+  if ("own" in decision) return decision.own;
+  const option = reply.options.find((item) => item.id === decision.optionId);
+  return option?.stage === "slogan" ? option.payload.slogan : null;
+}
+
+/** Voice · Slogan (optional), in the work area. Choosing a line or writing your own only selects it; Send saves the
+ * decision and Skip for now saves none. */
+export function GuidedSlogan({
   reply,
   brandName,
+  choice,
+  onChoice,
   disabled = false,
-  answered,
-  answer,
-  onContinue,
   onSkip,
   onMore,
   canMore = false,
-  onRevisit,
 }: {
   reply: SloganReply;
   brandName: string;
+  choice: SloganChoice;
+  onChoice: (choice: SloganChoice) => void;
   disabled?: boolean;
-  /** Set once decided: the saved slogan, null when skipped, undefined when newer suggestions replaced these. */
-  answered?: boolean;
-  answer?: string | null;
-  onContinue: (decision: SloganDecision) => void;
   onSkip: () => void;
   onMore?: () => void;
   canMore?: boolean;
-  onRevisit?: () => void;
 }) {
   const id = useId();
-  const [chosen, setChosen] = useState<string | "own" | null>(null);
-  const [own, setOwn] = useState("");
   const slogans = reply.options.flatMap((option) =>
     option.stage === "slogan" ? [{ id: option.id, text: option.payload.slogan }] : [],
   );
-
-  if (answered)
-    return (
-      <section className="guided-choice-answer" aria-labelledby={`${id}-question`}>
-        <div className="guided-choice-answer-copy">
-          <h3 id={`${id}-question`}>{reply.question}</h3>
-          {answer ? (
-            <ul aria-label="Your answer">
-              <li>
-                <Icon name="check" size={13} />
-                <span>{answer}</span>
-              </li>
-            </ul>
-          ) : (
-            <p>{answer === null ? "Skipped for now. You can add a slogan later." : "Newer suggestions are below."}</p>
-          )}
-        </div>
-        {onRevisit && (
-          <button
-            className="button secondary small"
-            type="button"
-            disabled={disabled}
-            aria-label={`Edit your answer: ${reply.question}`}
-            onClick={onRevisit}
-          >
-            Edit answer
-          </button>
-        )}
-      </section>
-    );
-
-  const ownText = own.trim();
-  const preview = chosen === "own" ? ownText : (slogans.find((item) => item.id === chosen)?.text ?? "");
-  const ready = chosen === "own" ? ownText.length > 0 : Boolean(chosen);
+  const preview = sloganText(reply, choice);
   return (
-    <fieldset className="guided-slogan-widget" aria-describedby={`${id}-hint`}>
-      <legend className="sr-only">{reply.question}</legend>
-      <section className="guided-slogan-preview" aria-label="Preview">
-        <span className="guided-slogan-preview-label">Preview</span>
-        <span className="guided-slogan-preview-name">{brandName}</span>
-        <span className={`guided-slogan-preview-line${preview ? "" : " is-empty"}`} role="status">
-          {preview || (chosen === "own" ? "Your slogan will appear here" : "No slogan yet")}
+    <section className="e-stack e-stack--lg conversation-step" aria-labelledby={`${id}-title`}>
+      <StepHeading title={reply.question} hint={stageHint("slogan", true)} hintId={`${id}-hint`} />
+      <span id={`${id}-title`} hidden>
+        {reply.question}
+      </span>
+      <section className="e-card guided-slogan__preview" aria-label="Preview">
+        <span className="e-section__hint">Preview</span>
+        <span className="guided-slogan__name">{brandName}</span>
+        <span className="guided-slogan__line" role="status" data-empty={preview ? undefined : ""}>
+          {preview || (choice.chosen === "own" ? "Your slogan will appear here" : "No slogan yet")}
         </span>
       </section>
-      <div className="guided-choice-intro">
-        <h3 aria-hidden="true">{reply.question}</h3>
-        <p id={`${id}-hint`}>Choose one, write your own, or skip for now.</p>
-      </div>
-      <div className="guided-slogan-options">
+      <ChoiceGroup legend={reply.question} hideLegend describedBy={`${id}-hint`} className="guided-choices">
         {slogans.map((item) => (
-          <label key={item.id} className={`guided-slogan-option${chosen === item.id ? " is-selected" : ""}`}>
-            <input
-              type="radio"
-              name={`${id}-slogan`}
-              checked={chosen === item.id}
-              disabled={disabled}
-              onChange={() => setChosen(item.id)}
-            />
-            <span>{item.text}</span>
-          </label>
+          <ChoiceCard
+            key={item.id}
+            name={`${id}-slogan`}
+            value={item.id}
+            title={item.text}
+            checked={choice.chosen === item.id}
+            disabled={disabled}
+            onChange={(checked) => {
+              if (checked) onChoice({ ...choice, chosen: item.id });
+            }}
+          />
         ))}
-      </div>
-      <div className={`guided-slogan-own${chosen === "own" ? " is-selected" : ""}`}>
-        <input
-          id={`${id}-own-choice`}
-          type="radio"
-          name={`${id}-slogan`}
-          checked={chosen === "own"}
-          disabled={disabled}
-          onChange={() => setChosen("own")}
-          aria-label="Use your own slogan"
-        />
-        <label htmlFor={`${id}-own`} className="sr-only">
-          Your own slogan
-        </label>
-        <input
-          id={`${id}-own`}
-          type="text"
-          maxLength={120}
-          value={own}
-          disabled={disabled}
-          placeholder="Write your own slogan…"
-          onChange={(event) => {
-            setOwn(event.target.value);
-            setChosen("own");
-          }}
-        />
-      </div>
-      <div className="guided-choice-actions">
+      </ChoiceGroup>
+      <TextField
+        label="Or write your own"
+        className="e-field--bounded"
+        value={choice.own}
+        maxLength={OWN_SLOGAN_MAX}
+        disabled={disabled}
+        placeholder="Write your own slogan…"
+        hint={`${choice.own.length} / ${OWN_SLOGAN_MAX}`}
+        onChange={(event) => {
+          const own = event.target.value;
+          onChoice({ ...choice, own, chosen: own.trim() ? "own" : choice.chosen === "own" ? null : choice.chosen });
+        }}
+      />
+      <div className="e-cluster">
         {onMore && (
-          <button
-            type="button"
-            className="button secondary small guided-slogan-more"
-            disabled={disabled || !canMore}
-            onClick={onMore}
-          >
-            <Icon name="refresh" size={14} />
+          <Button icon="refresh-cw" disabled={disabled || !canMore} onClick={onMore}>
             More slogans
-          </button>
+          </Button>
         )}
-        <span className="guided-choice-count">Next: Identity</span>
-        <button type="button" className="button secondary" disabled={disabled} onClick={onSkip}>
+        <Button variant="quiet" disabled={disabled} onClick={onSkip}>
           Skip for now
-        </button>
-        <button
-          type="button"
-          className="button primary"
-          disabled={disabled || !ready}
-          onClick={() => {
-            if (disabled || !ready) return;
-            onContinue(chosen === "own" ? { own: ownText } : { optionId: chosen! });
-          }}
-        >
-          Continue
-          <Icon name="arrow" size={14} />
-        </button>
+        </Button>
       </div>
-    </fieldset>
+    </section>
   );
 }

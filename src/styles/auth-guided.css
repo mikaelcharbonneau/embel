@@ -1,192 +1,108 @@
-.page.auth-guided-page {
-  max-width: 1088px;
-  padding: 100px var(--space-10) var(--space-10);
-  margin: 0 auto;
+/* Auth screens: sign in, create account, forgot and reset password.
+   Built on the component layer (Dialog, Text field, Button, Inline message, Link); tokens only. */
+
+/* The card. In the overlay the dialog is its surface; on a direct visit it sits on the page. */
+.auth-card {
+  display: grid;
+  grid-auto-rows: max-content;
+  gap: var(--space-5);
+  min-width: 0;
+  padding: var(--space-6);
+  color: var(--color-text);
 }
-.auth-guided .auth-card {
-  width: 460px;
-  max-width: 100%;
-  margin: 0 auto;
-  padding: var(--space-8);
-}
-.auth-guided-heading {
-  display: flex;
-  flex-direction: column;
+.auth-card__header {
+  display: grid;
   gap: var(--space-3);
 }
-.auth-guided .auth-card h1 {
-  font-size: 28px;
-  font-weight: 500;
-  line-height: 36px;
-  letter-spacing: -0.02em;
-  margin: 0;
+.auth-card__title {
+  font: var(--text-title-md);
+  letter-spacing: var(--tracking-title-md);
+  padding-top: var(--space-1);
 }
-.auth-guided .auth-intro {
-  margin: 0;
-  font-size: var(--font-size-3);
-  line-height: 20px;
+.auth-card__title:focus-visible {
+  outline-offset: var(--space-1);
 }
-.auth-guided .auth-field {
-  font-size: var(--font-size-2);
-  line-height: 20px;
+.auth-card__intro {
+  font: var(--text-body);
 }
-.auth-guided .auth-field + .auth-field {
-  margin-top: var(--space-6);
-}
-.auth-guided .auth-field input {
-  height: 44px;
-  min-height: 44px;
-  padding: 10px var(--space-3);
-  border-color: var(--color-border-control);
-  border-radius: var(--radius-control);
-  line-height: 22px;
-}
-.auth-guided .auth-password-field input {
-  padding-right: var(--space-12);
-}
-.auth-guided .auth-field + .auth-password-field {
-  margin-top: var(--space-6);
-}
-.auth-guided .auth-field input::placeholder {
-  color: var(--color-text-placeholder);
-  opacity: 1;
-}
-.auth-guided .auth-submit,
-.auth-guided .auth-continue {
-  height: 44px;
-  min-height: 44px;
-  justify-content: center;
-  gap: var(--space-2);
-  font-size: var(--font-size-3);
-  line-height: 20px;
-}
-/* The switch between signing in and creating an account reads as a link. */
-.auth-guided .auth-mode-switch {
-  margin: var(--space-6) 0 0;
-  font-size: var(--font-size-2);
-  line-height: 20px;
-  text-align: center;
+.auth-card__note {
+  font: var(--text-small);
   color: var(--color-text-muted);
 }
-.auth-mode-switch .text-link {
-  font-size: inherit;
-  color: var(--color-text);
-  font-weight: 500;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-color: var(--color-border-strong);
+.auth-card__switch {
+  font: var(--text-small);
 }
-.auth-mode-switch .text-link:hover {
-  text-decoration-color: currentColor;
+.auth-card__action {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: var(--text-small);
 }
-.auth-guided .auth-field-help {
-  margin: var(--space-2) 0 0;
-  font-size: var(--font-size-1);
-  line-height: 18px;
-  color: var(--color-text-muted);
+.auth-card button.e-link {
+  padding: 0;
+  border: 0;
+  background: none;
 }
-.auth-guided .auth-confirm-password {
-  margin-top: var(--space-6);
+.auth-card button.e-link:disabled {
+  color: var(--color-text-disabled);
+  text-decoration: none;
+  cursor: not-allowed;
 }
-.auth-confirmation-note {
-  margin-top: var(--space-5);
-  font-size: var(--font-size-2);
-  line-height: 21px;
-  color: var(--color-text-muted);
+
+/* Forms: fields, the security check and the one full-width action, in a single column. */
+.auth-form {
+  display: grid;
+  gap: var(--space-3);
 }
-.auth-confirmation-note p + p {
-  margin-top: var(--space-3);
-}
-.auth-resend-toggle {
-  display: flex;
-  margin: var(--space-4) auto 0;
-  font-size: var(--font-size-2);
-  min-height: 36px;
-  text-align: center;
-}
-.auth-guided .text-link:disabled {
-  opacity: 0.55;
-  cursor: wait;
-}
-.auth-guided-browser {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-4);
-  margin-top: var(--space-6);
-}
-.auth-guided .auth-browser-link {
+.auth-form__fields {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
   margin: 0;
   padding: 0;
-  min-height: 20px;
+  border: 0;
+}
+.auth-field__label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-3);
-  font-size: var(--font-size-3);
-  line-height: 20px;
-  color: var(--color-text);
 }
-.auth-guided .prompt-recovery-notice {
-  margin-top: var(--space-6);
-  font-size: var(--font-size-2);
+.auth-field__label-row > .e-link--standalone {
+  min-height: 0;
 }
-/* In the dialog, the dialog itself is the card. */
-.auth-overlay {
-  position: fixed;
-  width: min(502px, calc(100vw - 32px));
-  max-width: none;
-  max-height: calc(100svh - 32px);
-  margin: auto;
-  padding: var(--space-4) var(--space-4) 28px;
-  border: 1px solid var(--color-border);
+
+/* Cloudflare Turnstile (shown only when a site key is configured). */
+.auth-captcha {
+  min-height: calc(var(--space-16) + var(--space-0-5));
+}
+
+/* The overlay: a small Dialog over the page. The close button stays at the top right while the card scrolls. */
+.auth-overlay > .auth-card {
+  overflow: auto;
+  min-height: 0;
+}
+.auth-overlay > .auth-card .auth-card__header {
+  padding-right: var(--space-10);
+}
+.auth-overlay__close {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 1;
+}
+
+/* Direct visits to /sign-in, /sign-up and the password pages: the same card on the page. */
+.auth-page {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-5);
+  padding: calc(var(--nav-height) + var(--nav-offset) + var(--space-12)) var(--space-gutter) var(--space-12);
+}
+.auth-page > .auth-card {
+  width: min(100%, var(--dialog-width-sm));
   border-radius: var(--radius-panel);
   background: var(--color-bg-paper);
-  color: var(--color-text);
-  overflow: auto;
-  box-shadow: 0 24px 80px #00000026;
-}
-.auth-overlay::backdrop {
-  background: #19191955;
-  backdrop-filter: blur(3px);
-}
-.auth-overlay-close {
-  display: flex;
-  margin: 0 0 var(--space-1) auto;
-  border-color: transparent;
-  border-radius: var(--radius-pill);
-}
-.auth-overlay .auth-card {
-  width: 100%;
-  padding: 0 var(--space-5);
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-}
-@media (max-width: 760px) {
-  .page.auth-guided-page {
-    padding: var(--space-12) var(--space-5) var(--space-8);
-  }
-}
-@media (max-width: 540px) {
-  .page.auth-guided-page {
-    padding: 28px var(--space-4);
-  }
-  .auth-guided .auth-card {
-    padding: var(--space-6) var(--space-5);
-  }
-  .auth-guided .auth-field input {
-    font-size: var(--font-size-4);
-  }
-  .auth-guided .auth-browser-link {
-    min-height: 44px;
-  }
-  .auth-overlay {
-    padding: var(--space-3) var(--space-3) var(--space-6);
-  }
-  .auth-overlay .auth-card {
-    padding: 0 var(--space-2);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .auth-guided .auth-progress {
-    animation: none;
-  }
+  box-shadow: var(--shadow-modal);
 }

@@ -1,196 +1,263 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-import { assetTitle } from "./asset-labels";
+import { useRef, useState, type KeyboardEvent } from "react";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { Badge, EmptyState, Skeleton } from "@/components/ui/feedback";
+import { SelectField, TextField } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
+import { InlineMessage } from "@/components/ui/message";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
+import { SignedOutEmptyState } from "@/components/workspace/signed-out-empty-state";
 import { assetFileTypeSchema, type AssetLibraryItem, type AssetLibraryQuery } from "@/domain/asset-library";
+import { assetTitle, groupLibrary, type LibraryEntry } from "./asset-labels";
 import { AssetDetailDialog } from "./asset-detail";
 import { AssetPreview } from "./asset-preview";
 import { useAssetLibrary } from "./use-asset-library";
 
+type Tab = AssetLibraryQuery["tab"];
+const tabs: { id: Tab; label: string }[] = [
+  { id: "my_selection", label: "In your brands" },
+  { id: "all_generations", label: "Everything made" },
+];
+
+/** "Nov 12", with the year when it is not this year. */
+export function shortDate(iso: string, now = new Date()) {
+  const date = new Date(iso);
+  if (!Number.isFinite(date.getTime())) return null;
+  return date.toLocaleDateString("en", {
+    month: "short",
+    day: "numeric",
+    ...(date.getFullYear() === now.getFullYear() ? {} : { year: "numeric" }),
+  });
+}
+
+/** "Version 2 · PNG · Nov 12": the version only when there is more than one. */
+function fileLine(item: AssetLibraryItem) {
+  const version = item.displayedVersion;
+  return [
+    version && item.asset.versionCount > 1 ? `Version ${version.versionNumber}` : null,
+    version ? version.format.toUpperCase() : "No file",
+    shortDate(version?.createdAt ?? item.asset.createdAt),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 export function AssetsWorkspace() {
   const { session } = useAccountSession();
   return (
-    <div className="assets-page assets-guided">
-      <header className="assets-heading">
-        <div>
-          <h1 tabIndex={-1} id="assets-heading">
-            Your visual library<span>.</span>
+    <div className="e-container e-page assets-guided library-page">
+      <header className="e-page-header library-heading">
+        <div className="e-stack e-stack--xs">
+          <h1 className="text-title-lg" tabIndex={-1} id="assets-heading">
+            Library
           </h1>
-          <p>All the pieces of your projects, in one place.</p>
+          <p className="e-muted">Everything Embel has made for you, by brand.</p>
         </div>
       </header>
       {session.status === "ready" ? (
         <OwnedAssetLibrary key={`${session.userId}:${session.generation}`} account={session} />
+      ) : session.status === "checking" ? (
+        <div className="library-checking" aria-busy="true">
+          <span className="e-sr" role="status">
+            Loading your library…
+          </span>
+          <LibrarySkeleton slots={3} />
+        </div>
       ) : (
-        <AccountStatus signedOut="Sign in to see your library." />
+        <SignedOutEmptyState
+          title="Sign in to see your library"
+          text="Your logos, direction boards and brand images are kept in your account."
+          fallback={<AccountStatus signedOut="Sign in to see your library." />}
+        />
       )}
+    </div>
+  );
+}
+
+/** Cards in the final shape while the Library loads; holds no names, pictures or controls. */
+function LibrarySkeleton({ slots }: { slots: number }) {
+  return (
+    <div className="assets-query-placeholders" aria-hidden="true" inert>
+      <Skeleton shape="title" width={25} />
+      <div className="assets-grid">
+        {Array.from({ length: slots }, (_, index) => (
+          <div className="e-card assets-query-placeholder" key={index}>
+            <span className="e-skeleton e-skeleton--block assets-query-placeholder__media" />
+            <div className="e-card__body">
+              <Skeleton shape="title" width={60} />
+              <Skeleton shape="line" width={25} />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
 function OwnedAssetLibrary({ account }: { account: VerifiedAccount }) {
   const library = useAssetLibrary(account);
-  const section = useRef<HTMLElement | null>(null);
-  useEffect(() => {
-    // A retention write temporarily disables its button and can move focus to
-    // the document. Escape must still dismiss this owner's open action menu.
-    const dismiss = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      section.current?.querySelectorAll<HTMLDetailsElement>(".assets-card-options[open]").forEach((menu) => {
-        const containedFocus = menu.contains(document.activeElement);
-        menu.open = false;
-        if (containedFocus) menu.querySelector("summary")?.focus();
-      });
-    };
-    const dismissOutside = (event: Event) => {
-      const target = event.target;
-      if (!(target instanceof Node)) return;
-      section.current?.querySelectorAll<HTMLDetailsElement>(".assets-card-options[open]").forEach((menu) => {
-        if (!menu.contains(target)) menu.open = false;
-      });
-    };
-    document.addEventListener("keydown", dismiss);
-    document.addEventListener("pointerdown", dismissOutside);
-    document.addEventListener("focusin", dismissOutside);
-    return () => {
-      document.removeEventListener("keydown", dismiss);
-      document.removeEventListener("pointerdown", dismissOutside);
-      document.removeEventListener("focusin", dismissOutside);
-    };
-  }, []);
   const [search, setSearch] = useState("");
-  const [opened, setOpened] = useState<AssetLibraryItem | null>(null);
+  const [opened, setOpened] = useState<{ item: AssetLibraryItem; name: string } | null>(null);
   const resultsBody = useRef<HTMLDivElement | null>(null);
   const [geometry, setGeometry] = useState<{ client: typeof library.client; slots: number; height: number } | null>(
     null,
   );
-  const returnFocus = useRef<HTMLElement | null>(null);
-  function close() {
-    setOpened(null);
-    requestAnimationFrame(() => {
-      (returnFocus.current?.isConnected ? returnFocus.current : document.getElementById("assets-heading"))?.focus();
-    });
-  }
+  const tab = library.query.tab;
+  const filtered = Boolean(library.query.projectId || library.query.format);
   const needle = search.trim().toLocaleLowerCase();
-  const visible =
-    library.page?.items.filter(
-      (item) =>
-        !needle ||
-        `${assetTitle(item.asset.kind)} ${item.asset.kind} ${item.project.title} ${item.displayedVersion?.format ?? ""}`
-          .toLocaleLowerCase()
-          .includes(needle),
-    ) ?? [];
+  const items = library.page?.items ?? [];
+  // Numbers ("Logo concept 3") are only given when every file of each brand is loaded and none is filtered out.
+  const brands = groupLibrary(items, tab === "all_generations" && !filtered && !library.page?.nextCursor);
+  const visibleBrands = brands
+    .map((brand) => {
+      const entries = brand.entries.filter(
+        (entry) =>
+          !needle ||
+          `${entry.name} ${assetTitle(entry.item.asset.kind)} ${brand.project.title} ${entry.item.displayedVersion?.format ?? ""}`
+            .toLocaleLowerCase()
+            .includes(needle),
+      );
+      return {
+        ...brand,
+        entries,
+        sections: brand.sections
+          .map((section) => ({ ...section, entries: section.entries.filter((entry) => entries.includes(entry)) }))
+          .filter((section) => section.entries.length > 0),
+      };
+    })
+    .filter((brand) => brand.entries.length > 0);
+  const visibleCount = visibleBrands.reduce((count, brand) => count + brand.entries.length, 0);
+  const libraryEmpty = Boolean(library.page) && !items.length && !filtered && !library.page?.nextCursor;
+
   function captureGeometry() {
     if (!library.page || !library.client.current()) return;
     const height = resultsBody.current?.getBoundingClientRect().height;
     if (height === undefined || !Number.isFinite(height) || height < 0) return;
     // Presentation only: never retain old rows, private previews, or cursors
     // after the hook invalidates the actual query window.
-    setGeometry({ client: library.client, slots: visible.length, height });
+    setGeometry({ client: library.client, slots: visibleCount, height });
   }
   function changeQuery(next: Omit<AssetLibraryQuery, "cursor" | "limit">) {
     captureGeometry();
     library.changeQuery(next);
   }
+  function chooseTab(next: Tab) {
+    changeQuery({ ...library.query, tab: next });
+  }
+  function onTabKey(event: KeyboardEvent<HTMLButtonElement>, current: Tab) {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const next =
+      event.key === "Home"
+        ? "my_selection"
+        : event.key === "End"
+          ? "all_generations"
+          : current === "my_selection"
+            ? "all_generations"
+            : "my_selection";
+    chooseTab(next);
+    document.getElementById(`assets-tab-${next}`)?.focus();
+  }
   // Owner/generation changes unmount this component. A replaced or disposed
   // client cannot expose even the previous owner's numeric display metadata.
   const reservation = geometry && geometry.client === library.client && library.client.current() ? geometry : null;
+  // The open detail follows the list, so a like or save made in it shows at once. "In your brands" drops a file
+  // only after an acknowledged change left nothing keeping it there: then it is neither liked nor saved.
+  const listed = opened ? items.find((row) => row.asset.id === opened.item.asset.id) : undefined;
+  const live = opened
+    ? (listed ??
+      (library.page?.query.tab === "my_selection"
+        ? { ...opened.item, asset: { ...opened.item.asset, liked: false, saved: false } }
+        : opened.item))
+    : null;
+
   return (
-    <section ref={section} aria-label="Account asset library">
+    <section className="library" aria-label="Account asset library">
       <div className="assets-toolbar">
-        <div className="assets-tabs" role="tablist" aria-label="Asset views">
-          {(["my_selection", "all_generations"] as const).map((tab) => (
+        <div className="e-tabs" role="tablist" aria-label="Library views">
+          {tabs.map((option) => (
             <button
-              id={`assets-tab-${tab}`}
-              key={tab}
+              id={`assets-tab-${option.id}`}
+              key={option.id}
               type="button"
               role="tab"
+              className="e-tab"
               aria-controls="assets-results"
-              aria-selected={library.query.tab === tab}
-              tabIndex={library.query.tab === tab ? 0 : -1}
+              aria-selected={tab === option.id}
+              tabIndex={tab === option.id ? 0 : -1}
               disabled={library.busy}
-              onClick={() => changeQuery({ ...library.query, tab })}
-              onKeyDown={(event) => {
-                if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
-                event.preventDefault();
-                const next =
-                  event.key === "Home"
-                    ? "my_selection"
-                    : event.key === "End"
-                      ? "all_generations"
-                      : tab === "my_selection"
-                        ? "all_generations"
-                        : "my_selection";
-                changeQuery({ ...library.query, tab: next });
-                document.getElementById(`assets-tab-${next}`)?.focus();
-              }}
+              onClick={() => chooseTab(option.id)}
+              onKeyDown={(event) => onTabKey(event, option.id)}
             >
-              {tab === "my_selection" ? "Kept assets" : "All generations"}
+              {option.label}
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          className="text-link assets-refresh"
-          disabled={library.busy || library.status === "loading"}
-          onClick={library.refresh}
-        >
-          <Icon name="refresh" size={15} />
-          Refresh
-        </button>
       </div>
-      <div className="assets-guided-filters">
-        <label className="assets-search">
-          <span className="sr-only">Search assets</span>
-          <input
+      {!libraryEmpty && (
+        <div className="assets-filters">
+          <TextField
+            className="assets-search"
+            label="Search your library"
+            hideLabel
             type="search"
-            placeholder="Search assets"
+            placeholder="Search your library"
             maxLength={120}
             value={search}
             onChange={(event) => {
               captureGeometry();
               setSearch(event.target.value);
             }}
+            onClear={() => setSearch("")}
             aria-describedby={needle && library.page?.nextCursor ? "assets-search-note" : undefined}
           />
-        </label>
-        <AssetFilter
-          label="Project"
-          value={library.query.projectId ?? ""}
-          disabled={library.busy}
-          onChange={(value) => changeQuery({ ...library.query, projectId: value || undefined })}
-          options={[
-            { value: "", label: "All projects" },
-            ...library.projects.map((project) => ({ value: project.id, label: project.title })),
-          ]}
-        />
-        <AssetFilter
-          label="File type"
-          value={library.query.format ?? ""}
-          disabled={library.busy}
-          onChange={(value) =>
-            changeQuery({ ...library.query, format: value ? assetFileTypeSchema.parse(value) : undefined })
-          }
-          options={[
-            { value: "", label: "All formats" },
-            ...assetFileTypeSchema.options.map((format) => ({
-              value: format,
-              label: format === "other" ? "Other files" : format.toUpperCase(),
-            })),
-          ]}
-        />
-      </div>
+          <SelectField
+            className="assets-filter"
+            label="Project"
+            hideLabel
+            value={library.query.projectId ?? ""}
+            disabled={library.busy}
+            onChange={(event) => changeQuery({ ...library.query, projectId: event.target.value || undefined })}
+          >
+            <option value="">All projects</option>
+            {library.projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.title}
+              </option>
+            ))}
+          </SelectField>
+          <SelectField
+            className="assets-filter"
+            label="File type"
+            hideLabel
+            value={library.query.format ?? ""}
+            disabled={library.busy}
+            onChange={(event) =>
+              changeQuery({
+                ...library.query,
+                format: event.target.value ? assetFileTypeSchema.parse(event.target.value) : undefined,
+              })
+            }
+          >
+            <option value="">All formats</option>
+            {assetFileTypeSchema.options.map((format) => (
+              <option key={format} value={format}>
+                {format === "other" ? "Other files" : format.toUpperCase()}
+              </option>
+            ))}
+          </SelectField>
+        </div>
+      )}
       <div
         role="tabpanel"
         id="assets-results"
-        aria-labelledby={`assets-tab-${library.query.tab}`}
+        aria-labelledby={`assets-tab-${tab}`}
         aria-busy={library.status === "loading"}
       >
-        <p className="assets-muted assets-loading" role="status">
-          {library.status === "loading" ? (library.page ? "Refreshing…" : "Loading assets…") : ""}
+        <p className="e-sr assets-loading" role="status">
+          {library.status === "loading" ? (library.page ? "Refreshing…" : "Loading your library…") : ""}
         </p>
         <div
           ref={resultsBody}
@@ -198,266 +265,203 @@ function OwnedAssetLibrary({ account }: { account: VerifiedAccount }) {
           style={!library.page && reservation ? { minHeight: reservation.height } : undefined}
         >
           {needle && library.page?.nextCursor && (
-            <p id="assets-search-note" className="assets-muted">
-              Search covers the assets shown. Load more to search the rest.
+            <p id="assets-search-note" className="e-muted">
+              Search covers the files shown. Show more to search the rest.
             </p>
           )}
-          {library.error && (
-            <div role="alert" className="assets-notice">
-              <p>{library.error}</p>
-              <button
-                type="button"
-                className="button secondary small"
-                disabled={library.busy}
-                onClick={library.refresh}
+          {library.error &&
+            (library.page ? (
+              <InlineMessage
+                tone="danger"
+                actions={
+                  <Button size="sm" disabled={library.busy} onClick={library.refresh}>
+                    Try again
+                  </Button>
+                }
               >
-                Try again
-              </button>
-            </div>
-          )}
-          {!library.page && (
-            <div className="assets-grid assets-query-placeholders" aria-hidden="true" inert>
-              {Array.from({ length: reservation?.slots ?? 3 }, (_, index) => (
-                <div className="assets-query-placeholder" key={index} />
-              ))}
-            </div>
-          )}
-          {library.page && (
-            <>
-              {visible.length > 0 ? (
-                <>
-                  <div className="assets-grid">
-                    {visible.map((item) => {
-                      const title = assetTitle(item.asset.kind),
-                        from = `${title} from ${item.project.title}`;
-                      const status =
-                        item.asset.usage.active || item.asset.usage.legacy
-                          ? "Used in brand"
-                          : item.asset.saved
-                            ? "Saved"
-                            : item.asset.liked
-                              ? "Liked"
-                              : null;
-                      return (
-                        <article
-                          className="assets-card"
-                          key={item.asset.id}
-                          aria-label={`${title} · ${item.project.title}`}
-                        >
-                          <button
-                            type="button"
-                            className="assets-open"
-                            aria-label={`Open ${from}`}
-                            onClick={(event) => {
-                              returnFocus.current = event.currentTarget;
-                              setOpened(item);
-                            }}
-                          >
-                            <AssetPreview
-                              version={item.displayedVersion}
-                              client={library.client}
-                              retryable={false}
-                              label={`${title} preview`}
-                            />
-                          </button>
-                          <div className="assets-card-body">
-                            <div className="assets-card-title">
-                              <h2>{title}</h2>
-                              <span>{item.displayedVersion?.format.toUpperCase() ?? ""}</span>
-                            </div>
-                            <div className="assets-card-context">
-                              <Link className="assets-brand" href={`/brands/account/${item.project.id}`}>
-                                {item.project.title}
-                              </Link>
-                              {status && (
-                                <>
-                                  <span aria-hidden="true"> · </span>
-                                  <span>{status}</span>
-                                </>
-                              )}
-                              <button
-                                type="button"
-                                className="assets-open-detail"
-                                aria-label={`View details of ${from}`}
-                                onClick={(event) => {
-                                  returnFocus.current = event.currentTarget;
-                                  setOpened(item);
-                                }}
-                              >
-                                <Icon name="maximize-2" size="sm" />
-                              </button>
-                            </div>
-                          </div>
-                          <details className="assets-card-options" name="asset-card-actions">
-                            <summary aria-label={`Actions for ${from}`}>···</summary>
-                            <div className="assets-card-options-panel">
-                              <div className="assets-badges">
-                                {item.asset.currentSelection && (
-                                  <span>Selected v{item.selectedVersion!.versionNumber}</span>
-                                )}
-                                {item.displayedVersion &&
-                                  item.displayedVersion.versionId !== item.selectedVersion?.versionId && (
-                                    <span>Preview v{item.displayedVersion.versionNumber}</span>
-                                  )}
-                              </div>
-                              <p>
-                                {item.asset.versionCount} {item.asset.versionCount === 1 ? "version" : "versions"}
-                                {library.query.format
-                                  ? ` · ${item.matchingVersions.totalCount} ${library.query.format.toUpperCase()}`
-                                  : ""}
-                              </p>
-                              <div>
-                                <button
-                                  type="button"
-                                  className="assets-retain"
-                                  disabled={library.busy || library.needsCheck}
-                                  aria-pressed={item.asset.liked}
-                                  aria-label={`${item.asset.liked ? "Unlike" : "Like"} ${from}`}
-                                  onClick={() => void library.retain(item, "liked")}
-                                >
-                                  <svg
-                                    aria-hidden="true"
-                                    viewBox="0 0 24 24"
-                                    width="17"
-                                    height="17"
-                                    fill={item.asset.liked ? "currentColor" : "none"}
-                                    stroke="currentColor"
-                                    strokeWidth="1.5"
-                                  >
-                                    <path d="M20.4 4.6a5.5 5.5 0 0 0-7.8 0L12 5.2l-.6-.6a5.5 5.5 0 0 0-7.8 7.8L12 21l8.4-8.6a5.5 5.5 0 0 0 0-7.8Z" />
-                                  </svg>
-                                </button>
-                                <button
-                                  type="button"
-                                  className="assets-retain"
-                                  disabled={library.busy || library.needsCheck}
-                                  aria-pressed={item.asset.saved}
-                                  aria-label={`${item.asset.saved ? "Unsave" : "Save"} ${from}`}
-                                  onClick={() => void library.retain(item, "saved")}
-                                >
-                                  <svg
-                                    aria-hidden="true"
-                                    viewBox="0 0 24 24"
-                                    width="17"
-                                    height="17"
-                                    fill={item.asset.saved ? "currentColor" : "none"}
-                                    stroke="currentColor"
-                                    strokeWidth="1.5"
-                                  >
-                                    <path d="M6 3h12v18l-6-4-6 4Z" />
-                                  </svg>
-                                </button>
-                              </div>
-                            </div>
-                          </details>
-                        </article>
-                      );
-                    })}
-                  </div>
-                </>
-              ) : (
-                library.status !== "loading" && (
-                  <div className="assets-empty">
-                    <span>
-                      <Icon name="assets" size={29} />
-                    </span>
-                    <h2>
-                      {needle || library.query.projectId || library.query.format
-                        ? "No assets match these filters"
-                        : library.query.tab === "my_selection"
-                          ? "No kept assets yet"
-                          : "No saved assets yet"}
+                {library.error}
+              </InlineMessage>
+            ) : (
+              <div role="alert">
+                <EmptyState
+                  danger
+                  icon="circle-alert"
+                  title="Your library couldn’t be loaded"
+                  text="Your files are saved. Check your connection, then try again."
+                  action={
+                    <Button variant="primary" icon="rotate-ccw" disabled={library.busy} onClick={library.refresh}>
+                      Try again
+                    </Button>
+                  }
+                />
+              </div>
+            ))}
+          {!library.page && !library.error && <LibrarySkeleton slots={reservation?.slots ?? 3} />}
+          {library.page &&
+            (visibleCount > 0 ? (
+              visibleBrands.map((brand) => (
+                <section
+                  key={brand.project.id}
+                  className="library-brand"
+                  aria-labelledby={`library-brand-${brand.project.id}`}
+                >
+                  <div className="library-brand__head">
+                    <h2 className="library-brand__title" id={`library-brand-${brand.project.id}`}>
+                      {brand.project.title}
+                      <Badge>{brand.entries.length}</Badge>
                     </h2>
-                    <p>
-                      {needle || library.query.projectId || library.query.format
-                        ? "Change the search, project or format to explore more assets."
-                        : library.query.tab === "my_selection"
-                          ? "Like or save an asset to bring it here. Assets used in a brand appear here too."
-                          : "Your account's visual assets and every saved version will appear here."}
-                    </p>
-                    {library.query.tab === "my_selection" &&
-                    !needle &&
-                    !library.query.projectId &&
-                    !library.query.format ? (
-                      <button
-                        className="button secondary small"
-                        type="button"
-                        onClick={() => changeQuery({ tab: "all_generations" })}
-                      >
-                        Browse all generations
-                        <Icon name="arrow" size={14} />
-                      </button>
-                    ) : (
-                      <Link className="button secondary small" href="/brands">
-                        Open projects
-                        <Icon name="arrow" size={14} />
-                      </Link>
-                    )}
+                    <Link className="e-link e-link--standalone" href={`/brands/account/${brand.project.id}`}>
+                      Open project
+                      <Icon name="arrow-right" size="sm" />
+                    </Link>
                   </div>
-                )
-              )}
-            </>
-          )}
+                  {tab === "all_generations" ? (
+                    brand.sections.map((section) => (
+                      <div key={section.id} className="library-section">
+                        <h3 className="library-section__title">{section.title}</h3>
+                        <div
+                          className={
+                            section.id === "logo-concepts" ? "assets-grid assets-grid--compact" : "assets-grid"
+                          }
+                        >
+                          {section.entries.map((entry) => (
+                            <LibraryCard
+                              key={entry.item.asset.id}
+                              entry={entry}
+                              headingLevel={4}
+                              client={library.client}
+                              onOpen={() => setOpened({ item: entry.item, name: entry.name })}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="assets-grid">
+                      {brand.entries.map((entry) => (
+                        <LibraryCard
+                          key={entry.item.asset.id}
+                          entry={entry}
+                          client={library.client}
+                          onOpen={() => setOpened({ item: entry.item, name: entry.name })}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              ))
+            ) : library.status === "loading" ? null : needle && items.length ? (
+              <div role="status">
+                <EmptyState
+                  variant="results"
+                  icon="search"
+                  title={`No files match “${search.trim()}”`}
+                  text="Check the spelling, or search for a brand or a kind of file."
+                  action={<Button onClick={() => setSearch("")}>Clear search</Button>}
+                />
+              </div>
+            ) : filtered ? (
+              <EmptyState
+                variant="results"
+                icon="sliders-horizontal"
+                title="No files match these filters"
+                text="Choose another project or format to see more of your library."
+                action={<Button onClick={() => changeQuery({ tab })}>Clear filters</Button>}
+              />
+            ) : tab === "my_selection" && library.projects.length > 0 ? (
+              <EmptyState
+                icon="images"
+                title="Nothing in your brands yet"
+                text="The logo and direction you choose, and files you like or save, appear here, grouped by brand."
+                action={<Button onClick={() => chooseTab("all_generations")}>See everything made</Button>}
+              />
+            ) : (
+              <EmptyState
+                icon="images"
+                title="Your library is empty"
+                text="Logo concepts, direction boards and brand images are kept here as you make them, grouped by brand."
+                action={
+                  <ButtonLink variant="primary" href="/" icon="plus">
+                    New project
+                  </ButtonLink>
+                }
+              />
+            ))}
           <div className="assets-pagination">
-            <span className="sr-only">
+            <span className="e-sr">
               {library.page
                 ? needle
-                  ? `${visible.length} matches in ${library.page.items.length} loaded assets`
-                  : `${library.page.items.length} assets loaded`
+                  ? `${visibleCount} matches in ${items.length} loaded assets`
+                  : `${items.length} assets loaded`
                 : library.status === "loading"
                   ? "Matching asset count pending."
                   : "Matching asset count unavailable."}
             </span>
             {library.page?.nextCursor && (
-              <button
-                className="button secondary small"
-                type="button"
-                disabled={library.busy || library.status !== "ready"}
-                onClick={() => void library.loadMore()}
-              >
+              <Button disabled={library.busy || library.status !== "ready"} onClick={() => void library.loadMore()}>
                 Load more assets
-              </button>
+              </Button>
             )}
           </div>
         </div>
       </div>
-      {opened && (
+      {opened && live && (
         <AssetDetailDialog
-          key={opened.asset.id}
-          item={opened}
+          key={opened.item.asset.id}
+          item={live}
+          name={opened.name}
           client={library.client}
-          onClose={close}
+          onClose={() => setOpened(null)}
           onSelected={library.refresh}
+          retention={{
+            busy: library.busy || library.needsCheck,
+            onToggle: (field) => void library.retain(live, field),
+          }}
         />
       )}
     </section>
   );
 }
 
-function AssetFilter({
-  label,
-  value,
-  options,
-  disabled,
-  onChange,
+/** One file: its picture whole in a square (IMG-012), "Chosen" when it is in the brand, its name and file line.
+ * The whole card opens the detail view. */
+function LibraryCard({
+  entry,
+  client,
+  onOpen,
+  headingLevel = 3,
 }: {
-  label: string;
-  value: string;
-  options: { value: string; label: string }[];
-  disabled: boolean;
-  onChange: (value: string) => void;
+  entry: LibraryEntry;
+  /** 4 under a section title (Everything made), 3 directly under the brand. */
+  headingLevel?: 3 | 4;
+  client: ReturnType<typeof useAssetLibrary>["client"];
+  onOpen: () => void;
 }) {
+  const { item, name, chosen } = entry;
+  const Heading = headingLevel === 4 ? "h4" : "h3";
   return (
-    <label className="assets-filter">
-      <span className="sr-only">{label}</span>
-      <select aria-label={label} value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)}>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <Icon name="chevron" size={16} className="assets-filter-chevron" />
-    </label>
+    <article className="e-card e-card--interactive assets-card" aria-label={`${name} · ${item.project.title}`}>
+      <div className="assets-card__media">
+        <AssetPreview
+          version={item.displayedVersion}
+          client={client}
+          retryable={false}
+          label={`${name} for ${item.project.title}`}
+        />
+        {chosen && (
+          <span className="assets-card__chosen">
+            <Badge icon="check">Chosen</Badge>
+          </span>
+        )}
+      </div>
+      <div className="e-card__body">
+        <Heading className="e-card__title e-card__title--two-line">
+          <button type="button" className="e-card__link assets-open" onClick={onOpen}>
+            {name}
+          </button>
+        </Heading>
+        <p className="e-card__meta">{fileLine(item)}</p>
+      </div>
+    </article>
   );
 }

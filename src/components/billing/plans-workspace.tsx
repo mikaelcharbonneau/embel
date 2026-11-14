@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   billingRedirectResponseSchema,
   billingSummaryResponseSchema,
+  PLAN_MONTHLY_CREDITS,
   formatMonthlyPrice,
   PLAN_CATALOG,
   type BillingSummary,
@@ -19,7 +20,6 @@ import "@/styles/plans.css";
 export type PlansReturnState = "checkout_success" | "checkout_cancelled" | "portal_updated" | null;
 
 const ORDER: PlanId[] = ["free", "pro", "studio"];
-const FALLBACK_CREDITS: Record<PlanId, number> = { free: 30, pro: 150, studio: 500 };
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -247,7 +247,7 @@ function PlanGrid({
     <ul className="plans-grid" aria-label="Plans">
       {ORDER.map((id) => {
         const catalog = PLAN_CATALOG[id];
-        const credits = summary?.plans.find((plan) => plan.id === id)?.monthlyCredits ?? FALLBACK_CREDITS[id];
+        const credits = summary?.plans.find((plan) => plan.id === id)?.monthlyCredits ?? PLAN_MONTHLY_CREDITS[id];
         const current = currentPlan === id;
         return (
           <li key={id} className="plans-card" data-current={current || undefined}>

@@ -94,41 +94,60 @@ async function settle() {
 }
 async function open(selector: string) {
   const opener = host.querySelector<HTMLButtonElement>(selector)!;
+  // A real press focuses the button before its click.
+  opener.focus();
   await act(async () => opener.click());
   await settle();
   return opener;
 }
 const detail = () => host.querySelector<HTMLDialogElement>("dialog.assets-detail");
 
-// Development runs each new effect as setup, cleanup, setup (Strict Mode, on in
+// D-034. Development runs each new effect as setup, cleanup, setup (Strict Mode, on in
 // next.config.ts). The cleanup's close() must not dismiss the reopened dialog.
-it.each([
-  ["details arrow", ".assets-open-detail"],
-  ["preview tile", ".assets-open"],
-])("opens asset details from the %s and keeps them open in Strict Mode", async (_name, selector) => {
-  await act(async () =>
-    root.render(
-      <StrictMode>
-        <AssetsWorkspace />
-      </StrictMode>,
-    ),
-  );
-  const opener = await open(selector);
-  expect(detail()?.open).toBe(true);
-  expect(document.activeElement).toBe(host.querySelector("#asset-detail-heading"));
+it.each([["file card", ".assets-open"]])(
+  "opens asset details from the %s and keeps them open in Strict Mode",
+  async (_name, selector) => {
+    await act(async () =>
+      root.render(
+        <StrictMode>
+          <AssetsWorkspace />
+        </StrictMode>,
+      ),
+    );
+    const opener = await open(selector);
+    expect(detail()?.open).toBe(true);
+    // The detail view is named by the file's name and shows its brand.
+    expect(detail()?.querySelector("h2")?.textContent).toBe("Brand board");
+    expect(detail()?.textContent).toContain("Fixture brand");
 
-  // Escape arrives as a native `cancel`.
-  await act(async () => {
-    detail()!.dispatchEvent(new Event("cancel", { cancelable: true }));
-  });
-  await settle();
-  expect(detail()).toBeNull();
-  expect(document.activeElement).toBe(opener);
+    // Escape arrives as a native `cancel`.
+    await act(async () => {
+      detail()!.dispatchEvent(new Event("cancel", { cancelable: true }));
+    });
+    await settle();
+    expect(detail()).toBeNull();
+    expect(document.activeElement).toBe(opener);
 
-  await open(selector);
-  expect(detail()?.open).toBe(true);
-  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Close asset details"]')!.click());
-  await settle();
-  expect(detail()).toBeNull();
-  expect(document.activeElement).toBe(opener);
+    await open(selector);
+    expect(detail()?.open).toBe(true);
+    await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Close asset details"]')!.click());
+    await settle();
+    expect(detail()).toBeNull();
+    expect(document.activeElement).toBe(opener);
+  },
+);
+
+it("offers Like and Save as pressed toggles in the detail view and runs them through the list", async () => {
+  await act(async () => root.render(<AssetsWorkspace />));
+  await open(".assets-open");
+  const like = host.querySelector<HTMLButtonElement>('[aria-label="Like Brand board"]')!;
+  const save = host.querySelector<HTMLButtonElement>('[aria-label="Save Brand board to your library"]')!;
+  expect(like.className).toContain("e-icon-button");
+  expect(like.querySelector('[data-icon="heart"]')).not.toBeNull();
+  expect(like.getAttribute("aria-pressed")).toBe("false");
+  expect(save.getAttribute("aria-pressed")).toBe("true");
+  await act(async () => like.click());
+  expect(fixture.library.retain).toHaveBeenCalledWith(fixture.library.page!.items[0], "liked");
+  // No refresh control: the list updates itself.
+  expect([...host.querySelectorAll("button")].some((button) => button.textContent === "Refresh")).toBe(false);
 });
