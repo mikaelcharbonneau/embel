@@ -22,13 +22,9 @@ export function LogoGenerationAction({
   variant?: "primary" | "secondary";
 }) {
   const description = useId();
-  const status = estimate.busy
-    ? "Request in progress…"
-    : estimate.error
-      ? "Not ready yet."
-      : estimate.canStart
-        ? ""
-        : unavailable;
+  // One message per state: a refusal is explained once, by the message below with its Try again, so the line
+  // beside the button stays empty instead of repeating it ("Not ready yet." used to linger after a refusal).
+  const status = estimate.busy ? "Request in progress…" : estimate.error || estimate.canStart ? "" : unavailable;
   return (
     <div className={styles.generationAction} role="group" aria-label={label}>
       <div className={styles.generationActionRow}>
