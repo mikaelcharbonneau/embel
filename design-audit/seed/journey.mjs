@@ -110,19 +110,15 @@ async function voice(page, b) {
   await page.getByRole("button", { name: "Continue", exact: true }).click();
 
   const names = page.getByRole("region", { name: "Naming exploration", exact: true });
-  await expect(names.getByRole("button", { name: /Choose this name$/u }).first()).toBeVisible({ timeout: GENERATION });
-  const card = names
-    .getByRole("article")
-    .filter({ has: page.getByRole("heading", { level: 3, name: b.name, exact: true }) });
-  if (!(await card.count())) throw new Error(`The planned name "${b.name}" is not among the generated names`);
-  await card
-    .first()
-    .getByRole("button", { name: /Choose this name$/u })
-    .click();
-  await page
-    .getByRole("article", { name: "Names", exact: true })
-    .getByRole("button", { name: "Continue", exact: true })
-    .click();
+  const radios = names.getByRole("radiogroup", { name: "Names", exact: true }).getByRole("radio");
+  await expect(radios.first()).toBeVisible({ timeout: GENERATION });
+  // Only the first 40 names are shown at once; reveal the rest before looking for the planned one.
+  const more = names.getByRole("button", { name: /^Show \d+ more names$/u });
+  while (await more.count()) await more.click();
+  const radio = names.getByRole("radio", { name: b.name, exact: true });
+  if (!(await radio.count())) throw new Error(`The planned name "${b.name}" is not among the generated names`);
+  await radio.first().check({ force: true });
+  await sendNext(page, "Continue to Slogan");
   await expect(
     page
       .locator('[data-journey-section="voice"] details')

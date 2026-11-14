@@ -1309,31 +1309,24 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
   await page.route(namesUrl, feedWithNames);
   await page.reload();
   const namesMessage = page.getByRole("article", { name: "Names", exact: true });
-  await expect(namesMessage.getByRole("heading", { name: "Which name feels right?", exact: true })).toBeVisible();
-  await expect(namesMessage.locator(".naming-feed-card")).toHaveCount(3);
+  const namesWork = page.getByRole("region", { name: "Naming exploration", exact: true });
+  await expect(namesWork.getByRole("heading", { name: "Which name feels right?", exact: true })).toBeVisible();
+  await expect(namesWork.locator(".e-name-card")).toHaveCount(3);
   await expect(namesMessage.getByText("Here are your first names.", { exact: false })).toBeVisible();
   await expect(page.locator("[data-naming-layout]")).toHaveCount(0);
   await expect(page.getByRole("log", { name: "Conversation", exact: true })).toBeVisible();
   await expect(
     page.getByRole("button", { name: `Edit your answer: ${questions.personality}`, exact: true }),
   ).toBeAttached();
-  // As in the design: a click marks a name, and Continue confirms it.
-  const continueName = namesMessage.getByRole("button", { name: "Continue", exact: true });
-  await expect(namesMessage.getByRole("status").filter({ hasText: "Choose a name to continue" })).toBeVisible();
-  await expect(continueName).toBeDisabled();
-  await expect(namesMessage.getByRole("button", { name: "More names", exact: true })).toBeDisabled();
-  await expect(namesMessage.getByRole("button", { name: "Add your own name", exact: true })).toBeVisible();
-  await namesMessage
-    .locator(".naming-feed-card")
-    .filter({ hasText: "Good Measure" })
-    .getByRole("button", { name: /Good Measure/ })
-    .first()
-    .click();
-  await expect(
-    namesMessage.getByRole("status").filter({ hasText: "Your name: Good Measure · Next: Slogan (optional)" }),
-  ).toBeVisible();
+  // As in the design: a click marks a name (the ring alone shows it), and Send in the reply box moves on.
+  const continueName = page.getByRole("button", { name: "Continue to Slogan", exact: true });
+  await expect(continueName).toHaveCount(0);
+  await expect(namesWork.getByRole("button", { name: "Suggest more names", exact: true })).toBeDisabled();
+  await expect(namesWork.getByRole("button", { name: "Add your own name", exact: true })).toBeVisible();
+  await namesWork.getByRole("radio", { name: "Good Measure", exact: true }).check({ force: true });
+  await expect(page.getByText("Name: Good Measure", { exact: true })).toBeVisible();
   await expect(continueName).toBeEnabled();
-  expect((await namesMessage.locator(".naming-feed-card").first().boundingBox())!.height).toBeLessThanOrEqual(66);
+  expect((await namesWork.locator(".e-name-card").first().boundingBox())!.height).toBeLessThanOrEqual(66);
   expect(state.unhandledWrites).toEqual([]);
   await page.screenshot({ path: info.outputPath("guided-interview-names-in-conversation.png"), scale: "css" });
   await page.unroute(namesUrl, feedWithNames);

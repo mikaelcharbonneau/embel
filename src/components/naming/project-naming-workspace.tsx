@@ -6,14 +6,13 @@ import { EmbelIdentity } from "@/components/workspace/embel-identity";
 import { journeyPartLabel } from "@/domain/journey";
 import { z } from "zod";
 import { GuidedThinking } from "@/components/workspace/guided-thinking";
-import { Icon } from "@/components/ui/icon";
 import styles from "./naming-chat.module.css";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { namingStrategyKey, type ProjectNameEntry } from "@/domain/project-naming";
 import { inlineNamingMessage, NamingApproachWidgets, type InlineNamingConversation } from "./naming-approach-widgets";
 import { useNamingFeed } from "./use-naming-feed";
 import { NamingFeedResults, NamingFeedStatus } from "./naming-feed-results";
-import { NamingInspect } from "./naming-inspect";
+import { NameDetails } from "./name-details";
 import { initialNamingView, namingViewNeedsReset, useProjectNaming } from "./use-project-naming";
 import { useCustomProjectNames } from "./use-custom-project-names";
 import { nameValueSchema, type NamingSource } from "@/domain/naming";
@@ -68,21 +67,18 @@ function AccountProjectNaming({
     if (!isCurrent(account)) return;
     const card = document.getElementById(`project-name-${candidateId}`);
     const target =
-      card?.querySelector<HTMLElement>("button[aria-haspopup=dialog], h3 button, .project-naming-actions button") ??
+      card?.querySelector<HTMLElement>("button[aria-haspopup=dialog], input[type=radio]") ??
       card ??
       document.querySelector<HTMLElement>("[data-naming-results-scroll]");
     target?.focus({ preventScroll: true });
   }, [inspectedId, account, isCurrent]);
   function closeInspection() {
     returnFromInspection.current = inspectedId ?? null;
-    setEarlierChoice(null);
-    setAcceptedEarlierFor(null);
     setPreviewEntry(null);
   }
   const [explorationStarted, setExplorationStarted] = useState(false);
-  // In the conversation a card click marks a name; Continue confirms it.
+  // A card (or Choose this name in its details) marks a name; Send in the reply box confirms it.
   const [pendingChoice, setPendingChoice] = useState<string | null>(null);
-  const [manualOpen, setManualOpen] = useState(false);
   const manualNameDraft = useManualProjectNameDraft();
   const feed = useNamingFeed({
     account,
@@ -195,9 +191,21 @@ function AccountProjectNaming({
   const manual = !blocked && (
     <ManualProjectName disabled={pending || blocked} onAdd={importManualName} draft={manualNameDraft} />
   );
+  const chosenEntry =
+    names.find((entry) => entry.candidate.id === (pendingChoice ?? currentSelection?.candidate.id)) ?? null;
+  const confirmName = () => {
+    if (!chosenEntry || pending || blocked) return;
+    if (chosenEntry.candidate.id === currentSelection?.candidate.id) inline.onNameConfirmed?.();
+    else select(chosenEntry);
+  };
   const chat = overview.readiness.ready ? (
     <NamingApproachWidgets
       inline={inline}
+      nameChoice={
+        namesShown && chosenEntry
+          ? { name: chosenEntry.candidate.value, onContinue: confirmName, disabled: pending || blocked }
+          : null
+      }
       manualName={namesShown ? undefined : manual || undefined}
       memory={feed.memory}
       account={account}
@@ -247,7 +255,15 @@ function AccountProjectNaming({
         I have reviewed this name against the current strategy and want to use it.
       </label>
       <div className="project-naming-actions">
-        <button className="button secondary small" type="button" disabled={pending} onClick={closeInspection}>
+        <button
+          className="button secondary small"
+          type="button"
+          disabled={pending}
+          onClick={() => {
+            setEarlierChoice(null);
+            setAcceptedEarlierFor(null);
+          }}
+        >
           Keep browsing
         </button>
         <button
@@ -264,16 +280,17 @@ function AccountProjectNaming({
 
   const seeds = feed.steeringDraft.candidateIds;
   const inspection = inspected && (
-    <NamingInspect
+    <NameDetails
       key={inspected.candidate.id}
       account={account}
       entry={inspected}
-      selected={currentSelection?.candidate.id === inspected.candidate.id}
+      chosen={chosenEntry?.candidate.id === inspected.candidate.id}
+      earlierContext={inspected.candidate.strategyKey !== strategyKey}
       pending={pending}
       blocked={blocked || Boolean(readError)}
+      overlay={inline.overlay}
       onClose={closeInspection}
-      onUse={() => select(inspected)}
-      earlierConfirmation={earlierConfirmation}
+      onChoose={() => setPendingChoice(inspected.candidate.id)}
       error={actionError ?? readError}
       onRefresh={naming.refresh}
       onSave={() => void retain(inspected, "saved")}
@@ -294,13 +311,7 @@ function AccountProjectNaming({
       }
     />
   );
-  const chosenEntry =
-    names.find((entry) => entry.candidate.id === (pendingChoice ?? currentSelection?.candidate.id)) ?? null;
-  const confirmName = () => {
-    if (!chosenEntry || pending || blocked) return;
-    if (chosenEntry.candidate.id === currentSelection?.candidate.id) inline.onNameConfirmed?.();
-    else select(chosenEntry);
-  };
+  const writing = feed.status.kind === "active" || feed.status.kind === "starting";
   return (
     <>
       {readError || actionError
@@ -316,30 +327,23 @@ function AccountProjectNaming({
         : null}
       {overview.readiness.ready ? chat : inlineNamingMessage(inline, chat)}
       {namesShown &&
-        inline.results &&
-        createPortal(
-          <article
-            className={`guided-assistant-message guided-names-message flow-enter ${styles.inlineNames}`}
-            aria-label="Names"
-          >
+        inlineNamingMessage(
+          inline,
+          <article className="guided-assistant-message guided-names-message flow-enter" aria-label="Names">
             <EmbelIdentity label={journeyPartLabel("voice", "Name")} />
             <p className="guided-assistant-copy">
-              {names.length
-                ? "Here are your first names. Save the ones you like and pick one. Tell me what you like about them and I’ll steer the next ones."
-                : "Names appear here as they’re ready."}
+              {writing
+                ? names.length
+                  ? "I’m writing more names. They appear as they’re ready."
+                  : "I’m writing names for your brand. They appear as they’re ready."
+                : names.length
+                  ? "Here are your first names. Save the ones you like and pick one. Tell me what you like about them and I’ll steer the next ones. When you’ve picked, press Send to continue to Slogan."
+                  : "Names appear as they’re ready."}
             </p>
-            {!inspected && earlierConfirmation}
-            <NamingFeedResults
-              entries={names}
-              feed={feed}
-              selectedId={chosenEntry?.candidate.id}
-              strategyKey={strategyKey}
-              pending={pending}
-              blocked={blocked || Boolean(readError)}
-              onRetain={(entry, field) => void retain(entry, field)}
-              onSelect={(entry) => setPendingChoice(entry.candidate.id)}
-              onInspect={setPreviewEntry}
-            />
+            <div className={styles.namesStatus} aria-live="polite" aria-atomic="true">
+              <NamingFeedStatus feed={feed} blocked={blocked || Boolean(readError)} />
+            </div>
+            {earlierConfirmation}
             {custom.error && (
               <div className="project-naming-notice" role="alert">
                 <p>Your own names could not be refreshed. Names already saved are kept.</p>
@@ -348,50 +352,60 @@ function AccountProjectNaming({
                 </button>
               </div>
             )}
-            <div className="guided-names-footer">
-              <button
-                type="button"
-                className="guided-pill-button"
-                disabled={!feed.canMore || blocked || Boolean(readError)}
-                onClick={() => void feed.more()}
-              >
-                <Icon name="refresh" size={13} />
-                More names
-              </button>
-              {manual && (
-                <button
-                  type="button"
-                  className="guided-pill-button"
-                  aria-expanded={manualOpen}
-                  onClick={() => setManualOpen((open) => !open)}
-                >
-                  <Icon name="plus" size={13} />
-                  Add your own name
-                </button>
-              )}
-              <span className="guided-names-footer-gap" />
-              <span role="status" className="guided-names-chosen">
-                {chosenEntry
-                  ? `Your name: ${chosenEntry.candidate.value} · Next: Slogan (optional)`
-                  : "Choose a name to continue"}
-              </span>
-              <button
-                type="button"
-                className="button primary guided-names-continue"
-                disabled={!chosenEntry || pending || blocked}
-                onClick={confirmName}
-              >
-                Continue
-                <Icon name="arrow" size={14} />
-              </button>
-            </div>
-            {manual && manualOpen && <div className="guided-names-manual">{manual}</div>}
           </article>,
+        )}
+      {namesShown &&
+        inline.results &&
+        createPortal(
+          <NamingFeedResults
+            entries={names}
+            feed={feed}
+            selectedId={chosenEntry?.candidate.id}
+            strategyKey={strategyKey}
+            pending={pending}
+            blocked={blocked || Boolean(readError)}
+            onRetain={(entry, field) => void retain(entry, field)}
+            onSelect={(entry) => setPendingChoice(entry.candidate.id)}
+            onInspect={setPreviewEntry}
+            manual={manual || undefined}
+          />,
           inline.results,
         )}
+      <NameChoiceReport
+        choice={
+          namesShown && chosenEntry
+            ? {
+                candidateId: chosenEntry.candidate.id,
+                name: chosenEntry.candidate.value,
+                current: chosenEntry.candidate.id === currentSelection?.candidate.id,
+              }
+            : null
+        }
+        onChoice={inline.onNameChoice}
+      />
       {inspection}
     </>
   );
+}
+
+/** Tells the Workspace which name is chosen, only when that changes. */
+function NameChoiceReport({
+  choice,
+  onChoice,
+}: {
+  choice: { candidateId: string; name: string; current: boolean } | null;
+  onChoice?: InlineNamingConversation["onNameChoice"];
+}) {
+  const report = useRef(onChoice);
+  useLayoutEffect(() => {
+    report.current = onChoice;
+  });
+  const { candidateId, name, current } = choice ?? {};
+  useEffect(() => {
+    report.current?.(candidateId && name ? { candidateId, name, current: Boolean(current) } : null);
+  }, [candidateId, name, current]);
+  useEffect(() => () => report.current?.(null), []);
+  return null;
 }
 
 function useManualProjectNameDraft() {

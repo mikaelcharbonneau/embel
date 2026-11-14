@@ -46,6 +46,8 @@ import "@/styles/guided-interview.css";
 import "@/styles/guided-conversation.css";
 
 /** A saved Strategy conversation already owns the transcript and bottom composer. */
+export type NameChoice = { name: string; onContinue: () => void; disabled: boolean };
+
 export type InlineNamingConversation = {
   messages: HTMLDivElement | null;
   /** Below the naming questions: Embel's message with the names themselves. */
@@ -55,6 +57,16 @@ export type InlineNamingConversation = {
   onCanvas: (visible: boolean) => void;
   /** Continue on the name that was already chosen: close the names again. */
   onNameConfirmed?: () => void;
+  /**
+   * The Workspace's work-area overlay host. Name details open there, not modal, so the chat stays usable; without
+   * it they open as a modal dialog.
+   */
+  overlay?: HTMLElement | null;
+  /**
+   * Reports the chosen name (marked on its card, not yet confirmed) or null, for a reply box that shows it as a chip.
+   * Called only when the choice changes.
+   */
+  onNameChoice?: (choice: { candidateId: string; name: string; current: boolean } | null) => void;
 };
 
 export function inlineNamingMessage(host: InlineNamingConversation, content: ReactNode) {
@@ -179,7 +191,10 @@ export function NamingApproachWidgets({
   conversationHistory,
   inline,
   manualName,
+  nameChoice,
 }: {
+  /** The chosen name: the reply box shows it, and Send with nothing typed moves on with it. */
+  nameChoice?: NameChoice | null;
   memory: NamingBrainMemory;
   account: NamingAccount;
   projectId: string;
@@ -345,6 +360,10 @@ export function NamingApproachWidgets({
     }
   }
   async function send() {
+    if (nameChoice && !instruction.trim() && !seeds.length) {
+      if (!lock.current && !nameChoice.disabled) nameChoice.onContinue();
+      return;
+    }
     if (lock.current || blocked || (!instruction.trim() && !seeds.length) || saveBlocked) return;
     lock.current = true;
     setWorking(true);
@@ -737,6 +756,7 @@ export function NamingApproachWidgets({
       )}
     </>
   );
+  const continuing = Boolean(nameChoice && !instruction.trim() && !seeds.length);
   const composer = (
     <>
       {seeds.length ? (
@@ -765,8 +785,25 @@ export function NamingApproachWidgets({
         }}
         onSend={() => void send()}
         label="Naming message"
-        placeholder={seeds.length ? "What do you like about these names?" : "Add a thought or naming guidance…"}
-        sendLabel={seeds.length || exploring ? "Send naming direction" : "Save naming guidance"}
+        placeholder={
+          seeds.length
+            ? "What do you like about these names?"
+            : nameChoice
+              ? "Tell me what you like, or press Send to continue…"
+              : "Add a thought or naming guidance…"
+        }
+        sendLabel={
+          continuing
+            ? "Continue to Slogan"
+            : seeds.length || exploring
+              ? "Send naming direction"
+              : "Save naming guidance"
+        }
+        inputControls={
+          nameChoice ? (
+            <span className={`e-chip e-chip--static ${styles.nameChip}`}>Name: {nameChoice.name}</span>
+          ) : undefined
+        }
         hint={
           seeds.length || exploring
             ? "Steers the next names"
@@ -775,11 +812,13 @@ export function NamingApproachWidgets({
               : "Saves guidance for upcoming names"
         }
         disabled={
-          blocked ||
-          working ||
-          (!instruction.trim() && !seeds.length) ||
-          saveBlocked ||
-          Boolean((seeds.length || exploring) && !canSteer)
+          continuing
+            ? Boolean(nameChoice?.disabled)
+            : blocked ||
+              working ||
+              (!instruction.trim() && !seeds.length) ||
+              saveBlocked ||
+              Boolean((seeds.length || exploring) && !canSteer)
         }
         error={composerError}
       />
