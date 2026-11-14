@@ -100,8 +100,8 @@ h3 { font-size: 15px; line-height: 1.4; font-weight: 500; letter-spacing: -.2px;
 .inline-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); border-top: 1px solid var(--color-border); margin-top: var(--space-5); padding-top: var(--space-4); font-size: var(--font-size-2); }
 .inline-confirm > div { display: flex; gap: var(--space-2); }
 
-@media (min-width: 1500px) { .page { padding-top: var(--space-12); } .home-page { padding-top: var(--space-12); } }
-@media (max-width: 1190px) {
+/* Breakpoints follow the system's three ranges: compact < 640, medium 640–1023, wide ≥ 1024 (D-052). */
+@media (max-width: 1023px) {
   .page { padding-left: var(--space-8); padding-right: var(--space-8); }
   .segment-fields { grid-template-columns: 1fr; }
   .scope-option { padding: var(--space-4) var(--space-3); gap: var(--space-2); }
@@ -196,8 +196,7 @@ h3 { font-size: 15px; line-height: 1.4; font-weight: 500; letter-spacing: -.2px;
 .home-voice-popover .home-input-popover-panel { left: auto; right: 0; }
 .home-input-popover-panel .field-hint { font-size: var(--font-size-2); margin-top: var(--space-3); }
 .home-input-controls > [role=status] { position: static; flex-basis: 100%; order: 3; min-width: 0; margin: 0; font-size: var(--font-size-2); background: var(--color-bg-paper); padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-small); overflow-wrap: anywhere; }
-@media (min-width: 1500px) { .page { padding-top: var(--space-8); } .home-page { padding-top: var(--space-10); } }
-@media (max-width: 1190px) { .home-page .home-intake { margin-inline: var(--space-5) 0; } }
+@media (max-width: 1023px) { .home-page .home-intake { margin-inline: var(--space-5) 0; } }
 @media (max-width: 760px) { .home-page .home-intake { margin-inline: 0; } }
 @media (max-width: 540px) { .home-files-popover > summary { gap: var(--space-1-5); font-size: var(--font-size-2); } .home-input-controls { gap: var(--space-1); } .conversation-composer-footer .composer-send-icon { min-width: 44px; width: 44px; } }
 .account-notice[aria-label="Brand context and continuation"] { padding: var(--space-6); border: 1px solid var(--color-border); border-radius: var(--radius-small); background: var(--color-bg-paper); }

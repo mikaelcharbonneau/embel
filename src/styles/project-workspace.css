@@ -474,7 +474,7 @@
   outline: 2px solid var(--color-text);
   outline-offset: 3px;
 }
-@media (max-width: 1150px) {
+@media (max-width: 1023px) {
   .project-strategy-workspace .conversation-scroll-area,
   .project-strategy-workspace .conversation-compose-area {
     padding-inline: var(--space-6);
