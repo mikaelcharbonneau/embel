@@ -1,192 +1,72 @@
-/* One project card for Home and Projects (November 6 redesign). */
-.card.card {
-  position: relative;
-  display: block;
-  min-width: 0;
-  overflow: visible;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-bg-paper);
-  scroll-margin-block: 16px 104px;
-}
-.card.card:hover {
-  border-color: var(--color-border-strong);
-}
-.card:has(:global(.project-card-menu)) {
-  z-index: 4;
-}
-.link,
-.content,
-.skeleton {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  height: 100%;
-  overflow: hidden;
-  border-radius: inherit;
-  color: inherit;
-}
-.link:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 3px;
+/* The project card on Home and Projects. The shape comes from the design system's Card (.e-card, .e-card__media,
+   .e-card__body, .e-card__link, .e-card__action) and Journey mark (.e-journey); this file only places them. */
+
+/* While its options menu is open, the card stays above the cards after it. */
+.card:has([role="menu"]:not([hidden])) {
+  z-index: var(--z-popover);
 }
 
-.preview {
-  position: relative;
-  height: 128px;
-  flex: 0 0 128px;
-  overflow: hidden;
-  display: grid;
-  place-items: center;
-  padding: var(--space-5) var(--space-12);
-  background: var(--color-bg-sunken);
-  color: var(--color-text-muted);
-}
-.preview img {
-  display: block;
+/* A picture-area child that fills the 2:1 area: the loading block and the unavailable frame. */
+.fill.fill {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  min-height: 0;
-  object-fit: contain;
-  mix-blend-mode: multiply;
-  filter: contrast(1.08);
+  aspect-ratio: auto;
+  border-radius: 0;
 }
-/* No logo yet: the first words of the idea, or a large initial, and a quiet label. */
-.placeholder {
-  padding: var(--space-4);
+
+/* A chosen logo is contained on paper; the area keeps the design system's inset. */
+.logo {
+  background: var(--color-bg-paper);
 }
-.idea {
-  align-self: start;
-  justify-self: start;
-  margin: 0 36px 0 0;
+
+/* No logo yet: the name set in type. */
+.name {
+  max-width: 100%;
+  padding: var(--space-4) var(--space-6);
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
   overflow: hidden;
   overflow-wrap: anywhere;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-2);
-  line-height: 20px;
-}
-.initial {
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  border: 1px solid var(--color-border);
-  border-radius: 50%;
-  background: var(--color-bg-paper);
-  color: var(--color-text-muted);
-  font-size: 28px;
-  font-weight: 500;
-  line-height: 1;
-}
-.badge {
-  position: absolute;
-  left: 12px;
-  bottom: 12px;
-  padding: 1px var(--space-2);
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-paper);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-1);
-  line-height: 18px;
+  text-align: center;
+  font: var(--text-title-md);
+  letter-spacing: var(--tracking-title-md);
+  color: var(--color-text);
 }
 
-.details {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  gap: var(--space-1);
-  padding: var(--space-3) 14px 14px;
-}
+/* The name and the options button share the first row; the button sits above the card's link. */
 .row {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-2);
   min-width: 0;
 }
-.title {
-  min-width: 0;
-  margin: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  color: var(--color-text);
-  font-size: var(--font-size-3);
-  font-weight: 500;
-  line-height: 20px;
-}
-.date {
-  flex: 0 0 auto;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-1);
-  line-height: 20px;
-}
-.next {
-  display: inline-flex;
+
+.progress {
+  display: flex;
   align-items: center;
-  gap: var(--space-1-5);
+  gap: var(--space-2);
   min-width: 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-2);
-  line-height: 20px;
 }
-.link:hover .next {
-  color: var(--color-text);
+.sentence {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.deletedFooter {
+.pendingStep {
+  margin-block: var(--space-1);
+}
+
+/* A deleted card: when it was deleted, then its Restore button. */
+.footer {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
   padding-top: var(--space-1);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-1);
-  line-height: 20px;
-}
-
-/* Loading: neutral blocks the same size as the content they stand in for. */
-.block {
-  background: var(--color-bg-sunken);
-  animation: pulse 1.6s ease-in-out infinite;
-}
-.skeleton .row {
-  align-items: center;
-}
-.lineTitle {
-  display: block;
-  width: 55%;
-  height: 14px;
-  margin-block: 3px;
-  border-radius: var(--radius-pill);
-}
-.lineDate {
-  display: block;
-  width: 40px;
-  height: 12px;
-  border-radius: var(--radius-pill);
-}
-.lineStep {
-  display: block;
-  width: 45%;
-  height: 12px;
-  margin-block: var(--space-1);
-  border-radius: var(--radius-pill);
-}
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.55;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .block {
-    animation: none;
-  }
 }

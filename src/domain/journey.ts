@@ -98,6 +98,24 @@ export function projectJourney(input: {
   return journeySteps(current, done, hrefs, include);
 }
 
+export type JourneyMarkState = "complete" | "current" | "upcoming";
+/** A project card's journey mark, from the same verified next action the card links to. Steps before the action's
+ * step are complete and its step is current; the brand kit page means all four are complete (`current` is null).
+ * Null when the action is not a step of this project, so no progress is ever guessed. */
+export function projectJourneyMark(
+  projectId: string,
+  nextHref: string,
+): { states: JourneyMarkState[]; current: JourneyStepId | null } | null {
+  const step = journeyStepOfAction(projectId, nextHref);
+  if (!step) return null;
+  if (step === "assets") return { states: ALL_STEPS.map(() => "complete"), current: null };
+  const index = ALL_STEPS.indexOf(step);
+  return {
+    states: ALL_STEPS.map((_, at) => (at < index ? "complete" : at === index ? "current" : "upcoming")),
+    current: step,
+  };
+}
+
 /** "Competitors · 1 of 3", used in Embel's message label. */
 export function journeyPartLabel(step: JourneyStepId, part: string): string {
   const parts: readonly string[] = JOURNEY.find((item) => item.id === step)?.parts ?? [];

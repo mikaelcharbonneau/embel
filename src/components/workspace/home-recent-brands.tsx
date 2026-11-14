@@ -13,9 +13,7 @@ import { useAccountProjectListing } from "./account-projects";
 import { ProjectCardActions } from "./project-card-actions";
 import type { LifecycleProject } from "./project-deletion-client";
 import { ProjectDeletionStatus } from "./project-deletion-status";
-import { ProjectCard, ProjectCardSkeletons, shortDate } from "./project-card";
-
-export { shortDate };
+import { ProjectCard, ProjectCardSkeletons } from "./project-card";
 
 /** Below the prompt. Signed out: the free start and three brands Embel made. Signed in: recent projects, or for an
  * account with none yet, its credits and what it will get. While the account is checked, a neutral frame. */
@@ -135,7 +133,6 @@ function HomeAccountRecentBrands({ account }: { account: VerifiedAccount }) {
               project={brand}
               account={account}
               headingLevel={3}
-              date={shortDate(brand.created_at)}
               actions={(name) => (
                 <ProjectCardActions
                   key={`${brand.id}:${brand.current_revision}:${brand.lifecycle_version}`}

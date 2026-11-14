@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createAccountIdentityClient } from "@/components/identity/account-identity-client";
 import { createAccountLogoClient } from "@/components/identity/account-logo-client";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
-import { accountProjectResponseSchema, type AccountProject } from "@/domain/project-api";
+import { accountProjectResponseSchema } from "@/domain/project-api";
 import { accountRequest, AccountRequestError } from "./account-api";
 import { readProjectCardPreview } from "./project-card-preview";
 import { nextProjectAction, readProjectVisualState, type ProjectAction } from "./project-continuation";
@@ -39,21 +39,11 @@ type PreviewState = {
   identity: string;
   name: string | null;
   selectedName: string | null;
-  idea: string | null;
   url: string | null;
   action: ProjectAction | null;
   status: "loading" | "ready" | "unavailable";
   settled: boolean;
 };
-
-/** The first words of the saved idea, so cards without a logo stay recognizable. */
-function ideaExcerpt(context: Partial<Pick<AccountProject["context"], "description" | "offering" | "activity">>) {
-  const text = [context.description, context.offering, context.activity]
-    .map((value) => (value ?? "").replace(/\s+/g, " ").trim())
-    .find(Boolean);
-  if (!text) return null;
-  return text.length > 140 ? `${text.slice(0, 139).trimEnd()}…` : text;
-}
 
 export function useProjectCardPreview(
   account: VerifiedAccount,
@@ -108,7 +98,6 @@ export function useProjectCardPreview(
       identity,
       name: null,
       selectedName: null,
-      idea: null,
       action: null,
       url: null,
       status: "loading",
@@ -138,7 +127,7 @@ export function useProjectCardPreview(
         if (!live()) return;
         if (project.id !== projectId || project.owner_id !== userId || project.current_revision !== revision)
           throw new AccountRequestError(409);
-        publish({ selectedName: project.context.selectedName?.trim() || null, idea: ideaExcerpt(project.context) });
+        publish({ selectedName: project.context.selectedName?.trim() || null });
         const progress = await readProjectVisualState(project, clients.logo, controller.signal);
         if (!live()) return;
         // A broken thumbnail must not hide the next step, and a slow progress

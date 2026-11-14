@@ -89,8 +89,10 @@ test("Projects reference: populated geometry, native artwork and saved project c
   ).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("link", { name: "New project", exact: true })).toHaveAttribute("href", "/brands/new");
   await expect(page.locator(".project-card").first()).toContainText("Forma");
-  // Projects and Home share one compact card: name, short date and next step.
-  await expect(page.locator(".project-card").first()).toContainText(/Today|Yesterday/);
+  // Projects and Home share one card: name, next step and how long ago it was created.
+  await expect(page.locator(".project-card").first()).toContainText(
+    /Created (just now|\d+ (minutes?|hours?|days) ago|yesterday|[A-Z][a-z]{2} \d+)/,
+  );
   await expect(page.locator(".project-card").first()).not.toContainText("Complete brand");
   await expect(card(page, 1).getByRole("link")).toHaveAttribute("href", `/brands/account/${id(1)}`);
   if (info.project.name === "desktop") {
