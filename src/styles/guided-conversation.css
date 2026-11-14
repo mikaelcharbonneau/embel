@@ -42,10 +42,6 @@
 .guided-assistant-message .guided-choice-answer {
   margin-top: var(--space-4);
 }
-.guided-floating-input {
-  display: contents;
-}
-/* The last message scrolls fully above the message box and its fade. */
 /* Strategy and Voice: each journey step is one section of the conversation,
    spaced like the messages inside it. */
 .guided-conversation-error {

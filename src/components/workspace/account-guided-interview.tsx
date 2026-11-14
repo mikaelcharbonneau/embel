@@ -144,7 +144,6 @@ export function AccountGuidedInterview({
   const [briefOpen, setBriefOpen] = useState(false);
   const [briefFromNaming, setBriefFromNaming] = useState(false);
   const [namingMessages, setNamingMessages] = useState<HTMLDivElement | null>(null);
-  const [namingComposer, setNamingComposer] = useState<HTMLDivElement | null>(null);
   const [namingResults, setNamingResults] = useState<HTMLDivElement | null>(null);
   const closeNaming = useCallback(() => {
     setNamingReopened(false);
@@ -155,7 +154,6 @@ export function AccountGuidedInterview({
     setNamingReopened(false);
     setReopenedFor(null);
   }
-  const [namingQuestionId, setNamingQuestionId] = useState<string | null>(null);
   const lock = useRef(false),
     mounted = useRef(false);
   const attempts = useRef(new Set<string>());
@@ -1603,27 +1601,25 @@ export function AccountGuidedInterview({
   const stepAction =
     (view === "logo" || view === "directions") && stepReply?.step === view ? stepReplyAction(stepReply) : null;
   const action = replyRegistry.action ?? stepAction ?? ownAction ?? replyRegistry.fallback;
-  const namingComposerShown = namingOpen && Boolean(namingQuestionId);
+  // While the names are open, typed text is naming guidance, sent only through the naming step's own handler.
+  const namingText = namingOpen && !action?.onSendText;
   const replyBox = (
     <section className="conversation-reply" aria-label={namingOpen ? "Naming composer" : "Strategy composer"}>
-      <div ref={setNamingComposer} className="guided-floating-input" />
-      {!namingComposerShown && (
-        <WorkspaceReplyBox
-          value={prompt}
-          onChange={setPrompt}
-          onSendText={() => void send()}
-          action={action}
-          label="Message Embel"
-          placeholder={
-            identityShown
-              ? "Describe a change, or press Send to continue…"
-              : "Reply in your own words, or ask a question…"
-          }
-          readOnly={namingOpen || pending}
-          textDisabled={namingOpen || Boolean(blocked)}
-          notice={busy ? <span role="status">{storage.saveLabel}</span> : undefined}
-        />
-      )}
+      <WorkspaceReplyBox
+        value={prompt}
+        onChange={setPrompt}
+        onSendText={() => void send()}
+        action={action}
+        label="Message Embel"
+        placeholder={
+          identityShown
+            ? "Describe a change, or press Send to continue…"
+            : "Reply in your own words, or ask a question…"
+        }
+        readOnly={namingText || pending}
+        textDisabled={namingOpen ? namingText : Boolean(blocked)}
+        notice={busy ? <span role="status">{storage.saveLabel}</span> : undefined}
+      />
     </section>
   );
 
@@ -1644,27 +1640,32 @@ export function AccountGuidedInterview({
           {identityShown && likes === null && view !== "inspiration" && (
             <InspirationLikeCount account={account} projectId={saved.id} onCount={setLikes} />
           )}
+          {namingOpen && (
+            <ProjectNamingWorkspace
+              projectId={saved.id}
+              inline={{
+                messages: namingMessages,
+                results: namingResults,
+                composer: null,
+                reply: "workspace",
+                onQuestion: ignoreNamingQuestion,
+                onCanvas: ignoreNamingCanvas,
+                // Name details open over the work area, not modal, so the chat stays usable.
+                overlay: overlayHost,
+                onNameConfirmed: closeNaming,
+              }}
+            />
+          )}
         </WorkspaceReplyRegistry.Provider>
       </WorkspaceSlotContext.Provider>
-      {namingOpen && (
-        <ProjectNamingWorkspace
-          projectId={saved.id}
-          inline={{
-            messages: namingMessages,
-            results: namingResults,
-            composer: namingComposer,
-            onQuestion: setNamingQuestionId,
-            onCanvas: () => undefined,
-            // Integration with ui/names: pass `overlay: overlayHost` (name details over the work area) here.
-            onNameConfirmed: closeNaming,
-          }}
-        />
-      )}
     </div>
   );
 }
 
 type WorkView = "choices" | "naming" | "slogan" | "inspiration" | "logo" | "directions";
+// The Workspace's reply box serves every naming question, and the names always sit in the work area.
+const ignoreNamingQuestion = () => undefined;
+const ignoreNamingCanvas = () => undefined;
 
 /** The Logo and Creative direction steps hand their reply box to the Workspace (`reply="external"`, from branch
  * ui/logo-direction): their chips, Send and Stop arrive through `onReplyChange`. Until those props exist on main the

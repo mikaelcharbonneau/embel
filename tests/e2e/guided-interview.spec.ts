@@ -692,10 +692,11 @@ async function expectNoLegacyClutter(page: Page) {
   ).toHaveCount(0);
 }
 
-async function expectComposerInViewport(page: Page, naming = false) {
-  const composer = page.getByRole("textbox", { name: naming ? "Naming message" : "Message Embel", exact: true });
+/** The Workspace's one reply box, also while the naming questions are open. */
+async function expectComposerInViewport(page: Page) {
+  const composer = page.getByRole("textbox", { name: "Message Embel", exact: true });
   await expect(composer).toBeVisible();
-  const send = page.getByRole("button", { name: naming ? "Save naming guidance" : "Send prompt", exact: true });
+  const send = page.getByRole("button", { name: "Send prompt", exact: true });
   await expect(send).toBeVisible();
   const bounds = await send.boundingBox();
   expect(bounds).not.toBeNull();
@@ -1123,7 +1124,7 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
   await expect(namingQuestion).toBeInViewport({ ratio: 1 });
   expect(await transcript!.evaluate((node) => node.isConnected)).toBe(true);
   expect(await firstMessage!.evaluate((node) => node.isConnected)).toBe(true);
-  await expect(page.getByRole("textbox", { name: "Naming message", exact: true })).toBeEditable();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeEditable();
   expect(
     await floatingPanel!.evaluate(
       (panel) => panel.isConnected && panel.getAttribute("aria-label") === "Naming composer",
@@ -1134,7 +1135,7 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
       Math.abs(log.getBoundingClientRect().bottom - log.parentElement!.getBoundingClientRect().bottom),
     ),
   ).toBeLessThanOrEqual(1);
-  const after = await page.getByRole("textbox", { name: "Naming message", exact: true }).boundingBox();
+  const after = await page.getByRole("textbox", { name: "Message Embel", exact: true }).boundingBox();
   expect(Math.abs(after!.y - before!.y)).toBeLessThanOrEqual(1);
   // Each approach's check box sits in its own space, clear of the label.
   const overlaps = await page.locator(".naming-approach-options .naming-approach-option").evaluateAll((options) =>
@@ -1211,7 +1212,7 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
   await expect(page.getByRole("button", { name: /View new response/ })).toHaveCount(0);
   // Accessible names come from <label>, not an aria-label attribute. Wait for
   // the completed Strategy handoff before measuring the Naming control.
-  await expectComposerInViewport(page, true);
+  await expectComposerInViewport(page);
   await expectNoLegacyClutter(page);
   expect(state.enqueues.map((item) => item.operation)).toEqual([
     "strategy.audience",
@@ -1223,7 +1224,7 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
     page.getByRole("heading", { name: "Which approaches would you like to explore?", exact: true }),
   ).toBeInViewport({ ratio: 1 });
   await expect(page.getByRole("button", { name: "Continue to Naming", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("textbox", { name: "Naming message", exact: true })).toBeEditable();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeEditable();
   expect(state.project.context.intake.guidedInterview?.answers).toHaveLength(4);
   expect(state.enqueues).toHaveLength(3);
   await page.screenshot({

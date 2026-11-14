@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { act } from "react";
+import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { useReplyRegistry, WorkspaceReplyBox, WorkspaceReplyRegistry } from "@/components/workspace/workspace-reply";
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { installNamePreviewDialog, namePreview } from "../fixtures/name-preview-dialog";
 import { ProjectNamingWorkspace } from "@/components/naming/project-naming-workspace";
@@ -645,5 +646,82 @@ describe("domain checks on the Naming results", () => {
     });
     expect(namePreview(host)!.querySelector("[data-status]")?.textContent).toBe("Not checked");
     expect(domainLookups()).toHaveLength(1);
+  });
+});
+
+describe("in the Workspace's reply box", () => {
+  let overlay: HTMLDivElement;
+  function Harness() {
+    const registry = useReplyRegistry();
+    const [value, setValue] = useState("");
+    return (
+      <WorkspaceReplyRegistry.Provider value={registry.register}>
+        <ProjectNamingWorkspace
+          projectId={projectId}
+          inline={{ ...hosts, reply: "workspace", overlay, onQuestion: vi.fn(), onCanvas: vi.fn(), onNameConfirmed }}
+        />
+        <WorkspaceReplyBox
+          value={value}
+          onChange={setValue}
+          action={registry.action}
+          textDisabled={!registry.action?.onSendText}
+        />
+      </WorkspaceReplyRegistry.Provider>
+    );
+  }
+  async function renderInWorkspace() {
+    overlay = document.createElement("div");
+    host.append(overlay);
+    await act(async () => root.render(<Harness />));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+  }
+  const reply = () => host.querySelector<HTMLFormElement>('form[aria-label="Reply"]')!;
+  const chips = () => [...reply().querySelectorAll(".e-chip")].map((chip) => chip.textContent);
+
+  it("puts Stop in the reply box while names are written, and Send moves on once a name is marked", async () => {
+    server = { ...server, run: run({ savedCount: 2 }), entries: [generated(1), generated(2)] };
+    await renderInWorkspace();
+    // No naming composer of its own: the reply box carries the step.
+    expect(hosts.composer.childElementCount).toBe(0);
+    expect(hosts.messages.querySelector("textarea")).toBeNull();
+    expect(chat()).toContain("Generating names… 2 of 100");
+    expect([...hosts.messages.querySelectorAll("button")].map((item) => item.textContent)).not.toContain("Stop");
+    expect(reply().querySelector('button[type="submit"]')).toBeNull();
+    await act(async () => reply().querySelector<HTMLButtonElement>('button[aria-label="Stop writing names"]')!.click());
+    expect(posts("/feed/stop")).toEqual([expect.objectContaining({ body: {}, account: account.userId })]);
+    server = { ...server, run: run({ state: "succeeded", savedCount: 2, finishedAt: when }) };
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    await act(async () => hosts.results.querySelector<HTMLInputElement>('input[type="radio"]')!.click());
+    expect(chips()).toEqual(["Name: Synthetic 1"]);
+    const send = reply().querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    expect(send.getAttribute("aria-label")).toBe("Continue to Slogan");
+    await act(async () => send.click());
+    expect(state.currentSelection?.candidate.value).toBe("Synthetic 1");
+  });
+
+  it("steers the next names with typed text, then clears the reply box", async () => {
+    server = { ...server, run: run({ state: "succeeded", savedCount: 1, finishedAt: when }), entries: [generated(1)] };
+    await renderInWorkspace();
+    const textarea = reply().querySelector("textarea")!;
+    await type(textarea, "Shorter and warmer");
+    await act(async () => reply().querySelector<HTMLButtonElement>('button[type="submit"]')!.click());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(posts("/steering").map((row) => row.body)).toMatchObject([
+      { kind: "steer", seedIds: [], instruction: "Shorter and warmer" },
+    ]);
+    expect(textarea.value).toBe("");
+  });
+
+  it("opens name details in the work-area overlay, not as a modal", async () => {
+    server = { ...server, run: run({ state: "succeeded", savedCount: 1, finishedAt: when }), entries: [generated(1)] };
+    await renderInWorkspace();
+    await click("Details for Synthetic 1");
+    expect(overlay.querySelector(".e-workspace__overlay dialog[open] h2")?.textContent).toBe("Synthetic 1");
   });
 });

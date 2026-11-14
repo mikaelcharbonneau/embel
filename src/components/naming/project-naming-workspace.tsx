@@ -198,6 +198,10 @@ function AccountProjectNaming({
     if (chosenEntry.candidate.id === currentSelection?.candidate.id) inline.onNameConfirmed?.();
     else select(chosenEntry);
   };
+  // In the Workspace, Stop for the names being written is in the reply box, until a name is marked: Send then
+  // moves on with it and Stop stays beside the progress.
+  const writingNames = ["starting", "active", "stopping"].includes(feed.status.kind);
+  const stopInReplyBox = inline.reply === "workspace" && !(namesShown && chosenEntry);
   const chat = overview.readiness.ready ? (
     <NamingApproachWidgets
       inline={inline}
@@ -205,6 +209,15 @@ function AccountProjectNaming({
         namesShown && chosenEntry
           ? { name: chosenEntry.candidate.value, onContinue: confirmName, disabled: pending || blocked }
           : null
+      }
+      working={
+        writingNames
+          ? {
+              label: "Stop writing names",
+              onStop: feed.canStop ? () => void feed.stop() : undefined,
+              stopping: feed.status.kind === "stopping",
+            }
+          : undefined
       }
       manualName={namesShown ? undefined : manual || undefined}
       memory={feed.memory}
@@ -225,7 +238,7 @@ function AccountProjectNaming({
       generationStatus={
         namesShown ? undefined : (
           <div className="naming-generation-status" role="status">
-            <NamingFeedStatus feed={feed} blocked={blocked} />
+            <NamingFeedStatus feed={feed} blocked={blocked} stopInReplyBox={stopInReplyBox} />
           </div>
         )
       }
@@ -341,7 +354,7 @@ function AccountProjectNaming({
                   : "Names appear as they’re ready."}
             </p>
             <div className={styles.namesStatus} aria-live="polite" aria-atomic="true">
-              <NamingFeedStatus feed={feed} blocked={blocked || Boolean(readError)} />
+              <NamingFeedStatus feed={feed} blocked={blocked || Boolean(readError)} stopInReplyBox={stopInReplyBox} />
             </div>
             {earlierConfirmation}
             {custom.error && (
