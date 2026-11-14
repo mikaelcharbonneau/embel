@@ -79,6 +79,16 @@ export function Dialog({
         event.preventDefault();
         dismiss();
       }}
+      onClose={(event) => {
+        // A native close that skipped cancel (a dialog form, a repeated browser close request) still ends the
+        // dialog, so the owner's state never says open over a closed dialog. A queued close from an earlier
+        // dismissal finds the dialog open again and is ignored; while busy the dialog shows itself again.
+        const dialog = event.currentTarget;
+        if (dialog.open) return;
+        if (!blocked.current) close.current();
+        else if (modal) dialog.showModal();
+        else dialog.show();
+      }}
       onClick={(event) => {
         if (modal && isDialogBackdropClick(event)) dismiss();
       }}
