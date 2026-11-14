@@ -1,6 +1,6 @@
 # Embel design audit: the merged brief
 
-Status: **complete** (the recap at the end lists what is still open).
+Status: **complete** (the recap at the end lists what is still open). Code references were refreshed on November 14, 2026 after the cleanup in PR 258: line numbers follow each item's selector, component or function, and references to code that PR removed say so.
 Date: 2026-11-12. Merged from `README.md`, `00_inventory.md`, `01_experience_review.md`, `02_motion_interaction.md`, `03_accessibility_technical.md`, `04_image_needs.md` and `05_design_system.md`, all in `design-audit/`. The app was not opened for this merge and no application file was changed.
 
 **What this file is for.** It is the brief for Claude Design (the design system first, then the screens), the worklist for implementation, and later the checklist for reviewing the result. It is written to stand alone: a reader does not need the pass files to act on it, although each finding names its sources.
@@ -259,7 +259,7 @@ These are the 15 design-system items that need a design decision, in ranked orde
 - What's wrong: The token `--border` (`#e4e3df`) is both the decorative hairline and the outline of every field. It measures 1.28:1 on white and 1.19:1 on the page canvas; the minimum for the edge of a control is 3:1. The stronger token `--border-strong` is 1.67:1. The token `--placeholder` (`#82817b`) measures 3.9:1 on white and 3.64:1 on the canvas; the minimum for text is 4.5:1. Three placeholder colours are in use. On the brand page the placeholder is the only visible instruction for the reply box.
 - Why it matters: People with low vision, and anyone on a dim or sunlit screen, cannot see where to type. Faint boxes also undercut the "precise" feel in the Direction.
 - Suggested direction: Split the role. Keep the hairline for cards and dividers. Add a control-outline role that reaches 3:1 on paper and canvas, and one placeholder colour that reaches 4.5:1 on all three surfaces. The grey values are chosen in Claude Design within those minimums (candidates and calculated ratios are in `05_design_system.md` section 3b). Decide the outline of secondary buttons at the same time.
-- Where in the code: `--border`, `--border-strong`, `--placeholder` in `src/styles/tokens.css:8-12`; `.field-label input` in `src/styles/globals.css:140-142`.
+- Where in the code: `--border`, `--border-strong`, `--placeholder` in `src/styles/tokens.css:8-12`; `.field-label input` in `src/styles/globals.css:77-79`.
 - Screen findings merged into this item: A-001, A-002
 - Evidence: `a11y/sign-in__default__1440.json`, `a11y/settings__account-pro__1440.json`, `a11y/brand-conversation__kestrel-complete-pro__1440.json`, `design-system/contrast.md`, `screens/sign-in__default__1440.png`, `screens/settings__account-pro__1440.png`
 - Systemic? Yes: one token with 253 uses; over 100 measured fields.
@@ -272,7 +272,7 @@ These are the 15 design-system items that need a design decision, in ranked orde
 - What's wrong: The focus ring (the outline that shows which control the keyboard is on) is a 2 px ink outline. It measures 15.4:1 or better on light surfaces and 1.02:1 to 1.11:1 on dark gallery artwork. 59 rules in 25 files override it with eleven offsets from -6 to 4 px, and 14 declarations remove it. On inspiration tiles, which are 40 of the 141 keyboard stops on a finished brand, the ring is cut off by the tile's rounded box, so nothing shows at all. The Home prompt's only focus cue is a border at 2.35:1, and the "own slogan" field removes the outline with no replacement (found in code).
 - Why it matters: A keyboard user loses their place exactly where the page has the most controls, and on the first control anyone uses.
 - Suggested direction: A two-part ring defined as tokens (ink with a paper halo) that holds 3:1 on any background. Two offsets only: outside for free-standing controls, inside for controls that fill a clipped box. No component removes the ring without the standard replacement. Text entry frames show it whenever the field inside has focus.
-- Where in the code: Global `:focus-visible` rule in `src/styles/globals.css:22`; gallery tile rule in `src/components/inspiration/inspiration.css:796-800`; Home composer in `src/styles/home-concept.css:60-63`; slogan field in `src/styles/journey-conversation.css:581-590`; good model: gallery search in `src/components/inspiration/inspiration.css:158-160`.
+- Where in the code: Global `:focus-visible` rule in `src/styles/globals.css:22`; gallery tile rule in `src/components/inspiration/inspiration.css:724-728`; Home composer in `src/styles/home-concept.css:60-63`; slogan field in `src/styles/journey-conversation.css:581-590`; good model: gallery search in `src/components/inspiration/inspiration.css:114-116`.
 - Screen findings merged into this item: A-004, A-005, A-012
 - Screen findings this fixes: D-040 (E-003)
 - Evidence: `annotated/A-kbd-tile-unfocused.png`, `annotated/A-kbd-tile-focused.png`, `annotated/A-kbd-home-composer-focus.png`, `screens/home__signed-out-prompt-focus__1440.png`, `design-system/drift.md`, `design-system/contrast.md`
@@ -285,7 +285,7 @@ These are the 15 design-system items that need a design decision, in ranked orde
 - What's wrong: Besides the shared `.button` class there are two copies in component stylesheets (`primaryButton`, `secondaryButton`) and an `.identity-*-button` family; 136 of 338 `<button>` elements use no shared class. There is no pressed style anywhere: the probe forced 59 kinds of enabled control into their pressed state and none changed. Loading is a spinner on sign-in, a label change on four screens and nothing elsewhere. Primary buttons are full width on some cards and hug their label on others, an arrow is added to some labels, and disabled appears two ways.
 - Why it matters: The button is the most used control on the paid journey, and its states are how the app answers a click. On actions that take a second or more to show a result, nothing confirms the press. Heuristic: visibility of system status; consistency and standards.
 - Suggested direction: One Button (primary, secondary, quiet, danger, and danger-filled for the last step of a destructive confirmation; 44 px and 36 px) with six states, a width rule and an arrow rule (only on buttons that go to another page), designed once in Claude Design. Pressed: scale to 0.97 over 160 ms with the ease-out token, removed under reduced motion. Loading keeps the label, adds a spinner and stays focusable.
-- Where in the code: `.button`, `.icon-button` in `src/styles/globals.css:41-58`; module copies in `src/components/logo-creation/logo-creation.module.css:134-167` and `src/components/visual-directions/visual-directions-view.module.css:113-168`; `.identity-*-button` in `src/styles/identity.css:33-57`. Plan: `design-audit/animation-plans/001-motion-tokens-and-press-feedback.md`.
+- Where in the code: `.button`, `.icon-button` in `src/styles/globals.css:35-52`; module copies in `src/components/logo-creation/logo-creation.module.css:116-149` and `src/components/visual-directions/visual-directions-view.module.css:113-168`; `.identity-*-button` in `src/styles/identity.css:33-57`. Plan: `design-audit/animation-plans/001-motion-tokens-and-press-feedback.md`.
 - Screen findings merged into this item: M-001
 - Screen findings this fixes: D-010 (A-003, M-011); D-076 (E-027); D-082 (E-039); D-086 (E-015)
 - Evidence: `design-system/components.md`, `motion/probe-summary.md`, `design-audit/animation-plans/001-motion-tokens-and-press-feedback.md`
@@ -299,7 +299,7 @@ These are the 15 design-system items that need a design decision, in ranked orde
 - What's wrong: A chosen item is shown by an ink fill, an ink border with a soft fill, a 1 px ring, an inset ring with a shadow, a thick radio border, a left bar, a green "Chosen" label or an underline, depending on the step, and the checkbox or radio moves between the left and the far right. A logo concept is a blank white card with no label, no "Choose" button and no hover change; clicking the picture commits the choice. Each logo card contains "Select concept" and "Compare concept" buttons with zero size, so comparing is unreachable for everyone. Direction cards are articles given a radio role with a real button nested inside them, with no radio group, and arrow keys do nothing (the axe rule engine reports "nested-interactive", serious). Logo concepts are `div` elements given a button role. The larger view of a direction has only a Close button.
 - Why it matters: Choosing is the product. A first-time user discovers by accident that clicking a picture commits a choice, and a screen-reader user gets a confused picture of the two most consequential controls. Heuristic: recognition rather than recall; consistency and standards.
 - Suggested direction: One Choice card with one selected treatment (design-system decision 7; the mark must reach 3:1 and not rely on colour alone), a fixed position for the control, a visible label on every card ("Concept 2"), and for image choices a real, labelled "Choose" button with enlarge and compare as secondary actions. The larger view gains "Choose this direction" and next and previous. Compare becomes a visible feature or is removed. Build choices as real buttons (pressed or not pressed), or as real radio inputs inside a named group.
-- Where in the code: `ConceptGrid` in `src/components/logo-creation/concept-grid.tsx:297-310`; `VisualDirectionsView` in `src/components/visual-directions/visual-directions-view.tsx:234-254`; selected styles in `src/components/logo-creation/logo-creation.module.css:509`, `src/components/visual-directions/visual-directions-view.module.css:214`, `src/components/naming/naming-chat.module.css:684, 715`.
+- Where in the code: `ConceptGrid` in `src/components/logo-creation/concept-grid.tsx:297-310`; `VisualDirectionsView` in `src/components/visual-directions/visual-directions-view.tsx:234-254`; selected styles in `src/components/logo-creation/logo-creation.module.css:454`, `src/components/visual-directions/visual-directions-view.module.css:214`, `src/components/naming/naming-chat.module.css:567, 598`.
 - Screen findings merged into this item: E-051, A-006, A-007
 - Screen findings this fixes: D-013 (E-033, IMG-018, IMG-021); D-058 (M-015); D-070 (E-038); D-082 (E-039)
 - Evidence: `annotated/E-051.png`, `annotated/E-051-larger-view.png`, `annotated/A-kbd-direction-card-focus.png`, `screens/brand-conversation__quill-logos-generated-free__1440.png`, `screens/brand-conversation__kestrel-complete-showcase-pro__1440.png`, `a11y/brand-conversation__kestrel-complete-pro__1440.json`, `a11y/keyboard.json`
@@ -312,7 +312,7 @@ These are the 15 design-system items that need a design decision, in ranked orde
 - What's wrong: Errors, warnings, successes and notices are styled by about 20 separate classes. Seven looks were captured: a square pink strip (Projects), a rounded pink strip with a border (Settings), a pink box under a button (Sign in), bare red text (Plans), a strip docked to the reply box (research failed), a green strip (Plans success), and plain grey paragraphs used for both success and failure (Sign in notices). Danger text is spelled five ways and its background three. There is no component for a brief confirmation (a toast), so "copied", "downloaded" and "moved to Deleted" have no common place, and the out-of-credits prompt is a one-off floating card. Recovery actions are often faint grey text. The empty Deleted projects page shows "Back to projects" twice.
 - Why it matters: When something goes wrong, the person has to work out each time whether what they are looking at is an error. Heuristic: help users recognise, diagnose and recover from errors; consistency and standards.
 - Suggested direction: One Inline message in four tones (neutral, positive, warning, danger) and three forms (under a field, a block in a card or section, a page banner), always an icon plus text, with the recovery action as a real button. Plus one narrow Toast for confirmations, with Undo where the action can be reversed. Errors are never toasts and never bare coloured text. The patterns are in `05_design_system.md` section 3g.
-- Where in the code: `.form-error`, `.form-success` in `src/styles/globals.css:170-171`; Plans notices in `src/styles/plans.css:145-156`; `.guided-conversation-error` in `src/styles/guided-conversation.css:112`.
+- Where in the code: `.form-error`, `.form-success` in `src/styles/globals.css:90-91`; Plans notices in `src/styles/plans.css:145-156`; `.guided-conversation-error` in `src/styles/guided-conversation.css:112`.
 - Screen findings merged into this item: E-022
 - Screen findings this fixes: D-014 (E-037, A-017); D-016 (E-009); D-027 (E-012); D-030 (E-040); D-057 (M-007); D-072 (E-013, E-014, A-013); D-076 (E-027); D-081 (E-030); D-095 (E-016, IMG-009)
 - Evidence: `screens/projects__error-api-500-free__1440.png`, `screens/settings__save-error-offline-free__1440.png`, `screens/sign-in__error-wrong-password__1440.png`, `screens/plans__upgrade-unavailable-free__1440.png`, `screens/home__research-failed-pro__1440.png`, `screens/plans__return-checkout-success-fresh__1440.png`, `screens/sign-in__email-confirmed-notice__1440.png`, `screens/projects-deleted__empty-free__1440.png`
@@ -349,7 +349,7 @@ These are the 15 design-system items that need a design decision, in ranked orde
 - What's wrong: A global rule fades any disabled button to 48%, while `.button:disabled` sets a muted fill with the same grey as ordinary secondary text (4.84:1), so a disabled label does not look disabled; disabled text measured elsewhere is 1.92:1. Forms set `disabled` on fields and buttons while a request runs, which drops keyboard focus. Disabled buttons give no reason: the Usage "Refresh" while loading, plan buttons before the plan has loaded, a permanently disabled "Check request".
 - Why it matters: People cannot tell "not available", "working" and "secondary" apart, and keyboard users lose their place on the main journey.
 - Suggested direction: One disabled treatment with its own text colour (candidates and ratios in `05_design_system.md` section 3b), a separate loading state that keeps focus, and a visible reason next to any disabled control.
-- Where in the code: `button:disabled` and `.button:disabled` in `src/styles/globals.css:9, 50`.
+- Where in the code: `button:disabled` and `.button:disabled` in `src/styles/globals.css:9, 44`.
 - Screen findings this fixes: D-010 (A-003, M-011); D-040 (E-003); D-081 (E-030); D-093 (A-030)
 - Evidence: `design-system/contrast.md`, `screens/settings__account-pro__1440.png`, `screens/settings__save-error-offline-free__1440.png`
 - Systemic? Yes.
@@ -412,7 +412,7 @@ These are the 15 design-system items that need a design decision, in ranked orde
 - What's wrong: Text fields do not change on hover. An invalid field has no standard look: sign-in shows a pink box under the button, sign-up shows the browser's own validation bubble, the legacy composer turns its border red. Drop-downs are the browser's control with an overlaid chevron in some places and the bare browser control in others (the logo version drop-down); the refine box shows the browser's resize handle. Checkboxes and radios are the browser's own, 16 to 18 px, with uncontrolled outline contrast.
 - Why it matters: Forms are where non-designers need the clearest signals. Heuristic: error prevention; consistency and standards.
 - Suggested direction: Text field, Textarea and composer, Select, Checkbox, Radio and Switch with the states listed in `05_design_system.md` section 3f, and the form-validation pattern in section 3g (labels always visible, a message under its field, the app's own messages in place of the browser bubble).
-- Where in the code: `.field-label` in `src/styles/globals.css:63-129`; version drop-down in `ConceptGrid`.
+- Where in the code: `.field-label` in `src/styles/globals.css:57-69`; version drop-down in `ConceptGrid`.
 - Screen findings this fixes: D-040 (E-003); D-069 (E-035); D-072 (E-013, E-014, A-013); D-081 (E-030); D-093 (A-030)
 - Evidence: `screens/sign-up__validation-password-mismatch__1440.png`, `screens/sign-in__error-wrong-password__1440.png`, `screens/settings__account-pro__1440.png`, `motion/probe-summary.md`
 - Systemic? Yes.
@@ -425,7 +425,7 @@ These are the 15 design-system items that need a design decision, in ranked orde
 - What's wrong: There are no motion tokens: nine durations and four easing keywords are written per file. Of 71 kinds of control, 3 carry a transition of their own; most change colour in a single frame, a few ease over 120 ms, and 17 show no hover change at all, including the "Continue" link that leads to Assets and the tabs in Library and Settings. Three pulse loops run at 1.5, 1.6 and 2.8 seconds. One global rule switches off every animation and transition under reduced motion, including the spinner, the progress bar and the skeleton pulse, so a one-minute wait looks like a frozen page. Finished logos and boards replace their placeholders in a single frame, while the one entrance animation replays on all saved sections every time a brand is opened.
 - Why it matters: Pass 2 judged the restraint right: it found nothing over-animated and nothing that drops frames. But when one part of the screen eases and the next snaps, the product feels assembled from parts, and people who ask for less movement lose all feedback.
 - Suggested direction: Adopt pass 2's token set, which the design-system spec takes unchanged (`05_design_system.md` section 3e): durations of 120, 160, 200 and 300 ms; an ease-out of `cubic-bezier(0.23, 1, 0.32, 1)`; press and entrance scale 0.97; entrance shift 4 px; stagger 40 ms. Rules: hover changes colour, border or background in 120 ms; only opacity and transform move; entrances animate and exits are instant; hover effects only where a pointer can hover; under reduced motion, movement is removed and opacity feedback stays (a slow pulse from 1 to 0.55 over 1.6 s; the spinner pulses). Limit the section entrance to content added after the page has loaded. Two choices are left to Claude Design. (1) How finished results arrive: the restrained option is a 300 ms fade, the six concepts 40 ms apart, no bounce. (2) Hover on cards: colour and border only (pass 2, kept by the design-system pass) or a slight lift (pass 1's example); the Direction's "calm" leans to the first. These values are pass 2's proposal; Claude Design may propose others within the rules in section 8.
-- Where in the code: Global reduced-motion rule in `src/styles/globals.css:332`; `embel-flow-enter` in `src/styles/guided-conversation.css:174-187`; `a.identity-primary-button` (no hover). Plans: `design-audit/animation-plans/` 001, 003, 004 and 005.
+- Where in the code: Global reduced-motion rule in `src/styles/globals.css:159`; `embel-flow-enter` in `src/styles/guided-conversation.css:143-156`; `a.identity-primary-button` (no hover). Plans: `design-audit/animation-plans/` 001, 003, 004 and 005.
 - Screen findings merged into this item: M-002, M-004, M-017, E-056
 - Screen findings this fixes: D-061 (M-005, A-020)
 - Evidence: `annotated/M-004.png`, `annotated/E-051.png`, `motion/probe-summary.md`, `design-system/drift.md`, `design-audit/animation-plans/README.md`
@@ -602,7 +602,7 @@ Execution fixes on the same screens, listed in section 7: D-003, D-004, D-011, D
 - What's wrong: Three things in the gallery are invisible until the pointer is over them: the heart that likes one part of a brand, the label naming that part, and the "Open brand" hint. On a touch device they were measured as fully transparent and never appear, so a phone user cannot discover that parts can be liked. When shown, the heart (a white stroke with a 28% ink fill, drawn straight on the artwork) measures 1.13:1 and 1.84:1 on pale images. The stylesheets hold 85 hover rules and no check that the device can hover, so on a phone a tap leaves a hover style stuck.
 - Why it matters: Liking parts is how the person steers the logo and direction steps. A control that cannot be seen cannot be used. (The owner's priority is desktop first, which is why this is P2.)
 - Suggested direction: Give the heart a small backing (a chip or a scrim) so it reaches 3:1 on any artwork, and decide whether it is always visible; always-visible hearts are the simplest answer on touch. How the labels and the hint appear on touch is the design decision. Limit hover movement to devices that can hover.
-- Where in the code: `src/components/inspiration/inspiration.css:285-298, 820-822, 846-865`. Plan: `design-audit/animation-plans/004-hover-transitions-and-touch-gating.md`.
+- Where in the code: `src/components/inspiration/inspiration.css:234-247, 748-750, 774-793`. Plan: `design-audit/animation-plans/004-hover-transitions-and-touch-gating.md`.
 - Fixed by: D-048 (motion tokens; DS-019)
 - Evidence: `annotated/M-005.png`, `annotated/A-kbd-inspiration-heart-focus.png`, `annotated/A-kbd-tile-focused.png`
 - Systemic? Partly: the hidden controls are in Inspiration only (about 280 hearts when all 56 brands are shown); the missing hover check is everywhere.
@@ -797,7 +797,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: A person who asks to delete their data and cannot is a trust and legal problem at scale. Heuristic: user control and freedom.
 - Suggested direction: Fix the purge, then check that the failure message says what happens next and who to contact.
 - Where in the code: Database function `account_deletion_purge`; tables `name_candidates`, `name_selections`, `naming_sessions.current_selection_id`. Dialog: `AccountDataControls` in `src/components/workspace/account-data-controls.tsx`.
-- Status: A fix was merged to `main` on 2026-11-12, after the passes ran (PR 254 in mikaelcharbonneau/embel, "Let account deletion get past foreign-key loops between tables"). This audit has not verified it. The seed script has its own workaround, which hides the bug during reseeds, so verify by deleting a test account through the Settings dialog.
+- Status: **Done, verified November 14, 2026.** The fix is PR 254 in mikaelcharbonneau/embel ("Let account deletion get past foreign-key loops between tables"). Verified on the local stack without the seed's workaround: a new test account built one brand through Voice with the stand-in AI (76-character name chosen), then was deleted through Settings → Delete account. The request answered 200, the deletion receipt reads `completed` after one attempt (138 rows), and no auth user, project or naming row of that account is left.
 - Evidence: `design-audit/README.md`, `screens/settings__delete-account-dialog-free__1440.png`
 - Systemic? No.
 
@@ -1007,7 +1007,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - What's wrong: 189 hand-written colours in 90 values bypass the 23 tokens. 69 of them repeat a token's own value. 30 near-grey values exist once or twice each, mostly hover borders one shade apart. Danger text has five spellings and danger backgrounds three; warning has hand-written copies beside its tokens. One value, `#cbacc5`, survives from the retired magenta accent.
 - Why it matters: Hover and error states look slightly different on every screen, and the owner's "no magenta" decision is not fully applied.
 - Suggested direction: Replace by the map in `05_design_system.md` section 5.2. No design decision is needed.
-- Where in the code: `.form-error` in `src/styles/globals.css:170`; `.segment-card.is-selected` (`#cbacc5`) in `src/styles/conversation.css:366`; `.guided-conversation-error` in `src/styles/guided-conversation.css:112`; `.strategy-review-notice` in `src/styles/strategy.css:56`; second text colour `#3a3a37` in `src/styles/journey-conversation.css:134`.
+- Where in the code: `.form-error` in `src/styles/globals.css:90`; `.segment-card.is-selected` (`#cbacc5`) in `src/styles/conversation.css:366`; `.guided-conversation-error` in `src/styles/guided-conversation.css:112`; `.strategy-review-notice` in `src/styles/strategy.css:46`; second text colour `#3a3a37` in `src/styles/journey-conversation.css:134`.
 - Evidence: `design-system/drift.md`
 - Systemic? Yes: 26 of 41 stylesheets.
 
@@ -1065,7 +1065,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - What's wrong: 203 of 414 radius declarations are hand-written, in 18 values. Every size from 4 to 10 px is in use because no token exists below 12. `.icon-button` (6 px), `.small-badge` (4 px) and `.preview-badge` (5 px) are from an older, squarer look.
 - Why it matters: The owner's November 6 direction is "rounder corners"; the leftovers contradict it on the same screen.
 - Suggested direction: The six-step scale and the nested-corner rule in `05_design_system.md` section 3d; map in section 5.4. Whether buttons are pills is decision 4 and does not block this.
-- Where in the code: `.icon-button`, `.small-badge`, `.preview-badge` in `src/styles/globals.css:30, 54, 58`; `.menu` in `src/components/journey/journey.module.css:93`; `.project-card-menu` in `src/styles/project-card-actions.css:31`.
+- Where in the code: `.icon-button`, `.small-badge`, `.preview-badge` in `src/styles/globals.css:30, 48, 52`; `.menu` in `src/components/journey/journey.module.css:93`; `.project-card-menu` in `src/styles/project-card-actions.css:31`.
 - Evidence: `design-system/drift.md`
 - Systemic? Yes.
 
@@ -1087,7 +1087,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - What's wrong: Layout rules switch at 21 different screen widths, so one layout changes at 700 px and its neighbour at 760 or 850. Page containers are 792, 1056, 1088, 1120, 1160, 1260, 1360 and 1440 px. There is no column grid.
 - Why it matters: Between 600 and 900 px, parts of a page are in their narrow layout while others are still wide, and page edges do not line up when moving between pages.
 - Suggested direction: Three named ranges, two containers (792 and 1,056 px) and the grid in `05_design_system.md` section 3d. Keep the gallery's container queries, which are the cleanest responsive code in the app. Plans and the project bar need layout work beyond the replacement (D-033, D-054).
-- Where in the code: `src/styles/tokens.css:43-46`; `.page` in `src/styles/globals.css:34-40, 211, 405`; gallery container queries in `src/components/inspiration/inspiration.css:218-233`.
+- Where in the code: `src/styles/tokens.css:43-46`; `.page` in `src/styles/globals.css:32-38` (other lines removed in PR #258); gallery container queries in `src/components/inspiration/inspiration.css:174-189`.
 - Screen findings this fixes: D-033 (E-025, A-014); D-054 (E-053, A-015)
 - Evidence: `design-system/drift.md`, `screens/plans__pro-current-pro__390.png`
 - Systemic? Yes.
@@ -1100,6 +1100,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: Dead styles make every later change riskier and inflate every measurement in the audit.
 - Suggested direction: Delete after checking each one (a class name assembled while the app runs would not be detected). Organise styles by component once the component layer exists. The code cleanup planned before implementation should take these out first.
 - Where in the code: `src/styles/globals.css`, `src/styles/project-naming.css`, `src/styles/project-workspace.css`; full list in `design-audit/evidence/design-system/components.json`.
+- Status: **Done** (PR 258 in mikaelcharbonneau/embel, "Remove unused style rules found by the design audit"). Re-run on November 14, 2026: `tools/ds-components.mjs` finds 1,061 class selectors and 5 not mentioned in code. Three are built from template strings and are in use (`project-stage-strategy` twice, `guided-choice-widget-positioning`); `identity-reference-tags` and `project-workbench-heading` are left for the design-system rewrite, which replaces those stylesheets. The 35 `!important` declarations are also handled there.
 - Evidence: `design-system/components.md`, `design-system/components.json`
 - Systemic? Yes.
 
@@ -1158,7 +1159,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - What's wrong: Padding, margin and gap use 53 distinct values in 2,355 declarations. 56% sit on a ten-step 4 px scale; the rest include 5, 7, 9, 11, 13, 15, 17 and 19 px and a parallel 10 / 14 / 18 set (406 uses). Card padding ranges from 8 to 28 px.
 - Why it matters: Alignment between neighbouring elements is off by one to three pixels throughout, which is exactly what reads as "not quite precise".
 - Suggested direction: The 14-step scale and the rounding rule in `05_design_system.md` sections 3d and 5.4. Re-check layouts with `capture.mjs` after the replacement.
-- Where in the code: `.draft-card`, `.form-panel`, `.segment-card`, `.settings-panel` in `src/styles/globals.css:108, 164, 191, 215`.
+- Where in the code: `.draft-card`, `.form-panel`, `.segment-card`, `.settings-panel` in `src/styles/globals.css:85, 100` (other lines removed in PR #258).
 - Evidence: `design-system/drift.md`
 - Systemic? Yes: 36 of 41 stylesheets.
 
@@ -1279,9 +1280,10 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - What's wrong: The identity page predates the four-step journey: it calls Kestrel Analytics "Untitled brand", has a Chat / Controls side panel, square-cornered buttons, and messages such as "Reference discovery is not connected." It is linked from the fallback project editor. The recover page is plain text on a white page with "Back to projects" twice.
 - Why it matters: A customer who lands on either sees a different, rougher product.
 - Suggested direction: Retire the identity page (redirect it to the Inspiration step, like its sibling routes), and give the recover page the standard Empty state.
-- Where in the code: `src/app/brands/account/[projectId]/identity/page.tsx`; link "Saved references and systems" in `AccountProjectEditor`, `src/components/workspace/account-project-editor.tsx:562`; `.identity-reference-indicators`; `src/app/brands/[projectId]/page.tsx`.
+- Where in the code: `src/app/brands/account/[projectId]/identity/page.tsx`; link "Saved references and systems" in `AccountProjectEditor`, `src/components/workspace/account-project-editor.tsx` (lines removed in PR #258); `.identity-reference-indicators`; `src/app/brands/[projectId]/page.tsx`.
+- Status: **Identity half done** (PR 258 in mikaelcharbonneau/embel, "Retire the old Identity page and redirect it to Inspiration"): `/brands/account/<id>/identity` now redirects to the Inspiration step and the "Saved references and systems" link is gone. **Open:** the recover page `/brands/<id>` still needs the standard Empty state (D-038).
 - Fixed by: D-038 (Empty state; DS-016)
-- Needs the owner: Retiring a route is a route change, which the implementation rules leave to the owner. It fits the code cleanup planned before implementation.
+- Needs the owner: Settled; the owner approved retiring the route in the code cleanup.
 - Evidence: `screens/brand-identity__kestrel-pro__1440.png`, `screens/brand-recover__owner-no-unsaved-project-pro__1440.png`, `screens/recover-project__signed-out-none-available__1440.png`
 - Systemic? No.
 
@@ -1329,7 +1331,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - What's wrong: No fault was measured. Four details are risks. (1) Each loading card runs four separate pulse animations, up to 32 on Projects, and they fall out of step. (2) The inspiration card's hover animates its shadow, which repaints the card every frame. (3) Two dialog backdrops use a blur. (4) The floating reply box writes its height into a CSS variable on the whole workspace container when it or the window resizes, which makes the browser re-check the style of everything inside. None of this was tested on a real phone.
 - Why it matters: Smoothness is what lets good motion register at all, and a fast laptop hides nearly every such problem.
 - Suggested direction: Pulse one wrapper per card. Keep hover changes to border and background. Fade overlays with opacity only, never the blur. Never update the reply box variable on every scroll frame. Before launch, record the logo-drawing screen and the finished brand page on a mid-range phone.
-- Where in the code: `src/components/workspace/project-card.module.css:151-155`; `src/components/inspiration/inspiration.css:725-732`; `src/components/workspace/floating-composer.tsx:98-101`.
+- Where in the code: `src/components/workspace/project-card.module.css:151-155`; `src/components/inspiration/inspiration.css:653-660`; `src/components/workspace/floating-composer.tsx:98-101`.
 - Evidence: `motion/walk-live.json`
 - Systemic? No.
 
@@ -1341,7 +1343,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - What's wrong: 125 declarations set a 44 px height, but 32 set 40 px, 24 set 36 px, and others 28 to 48 px. Standalone text links are 19.5 to 23 px tall next to 44 px buttons ("Edit" on Assets, brand links in Library, "Return to Home"). On Sign in, the 44 px box of "Forgot password?" overlaps the top 4 px of the password field, so its focus ring cuts into the field. Gallery hearts are 30 and 36 px.
 - Why it matters: Rows of controls do not line up, and small links are hard to hit on touch screens.
 - Suggested direction: A minimum target token and the two control sizes in `05_design_system.md` sections 3d and 3f; a minimum box for standalone links; lay out "Forgot password?" so its box does not overlap the field.
-- Where in the code: `.button`, `.icon-button`, `.text-link` in `src/styles/globals.css:41-58`.
+- Where in the code: `.button`, `.icon-button`, `.text-link` in `src/styles/globals.css:35-52`.
 - Screen findings merged into this item: A-021
 - Evidence: `a11y/sign-in__default__1440.json`, `design-system/drift.md`
 - Systemic? Yes (text links).
@@ -1462,7 +1464,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - What's wrong: Straight apostrophes in about 20 strings while the rest of the app uses curly ones. Headings do not balance their line breaks. The Embel wordmark and generated brand names are not protected from browser translation. Controls do not set `touch-action: manipulation`. A dead `.brief-composer` rule remains. The gallery overlay's image counter does not announce when the image changes.
 - Why it matters: Each is small; together they are the difference between finished and nearly finished.
 - Suggested direction: Fix each: curly apostrophes, `text-wrap: balance` on headings, `translate="no"` on names, `touch-action: manipulation` on controls, remove the dead rule, announce the counter.
-- Where in the code: `.brief-composer` in `src/styles/globals.css:69-74`; image counter in `src/components/inspiration/inspiration-brands.tsx:283-313`.
+- Where in the code: `.brief-composer` in `src/styles/globals.css` (lines removed in PR #258); image counter in `src/components/inspiration/inspiration-brands.tsx:283-313`.
 - Evidence: `screens/sign-in__error-wrong-password__1440.png`
 - Systemic? Yes, in small ways.
 
@@ -1811,7 +1813,7 @@ Where they are: 15 design-system items needing a decision in Part A (section 5),
 
 **Left unresolved.**
 
-1. **Two fixes to verify.** PR 254 (account deletion, D-001) and PR 255 (Library detail view, D-034) were merged to `main` on 2026-11-12, after the passes ran. This audit verified neither. The Library detail view has still never been seen open, so its design is unreviewed.
+1. **Two fixes to verify.** PR 254 (account deletion, D-001) and PR 255 (Library detail view, D-034) were merged to `main` on 2026-11-12, after the passes ran. D-001 was verified on November 14, 2026 (see its entry); D-034 is still unverified. The Library detail view has still never been seen open, so its design is unreviewed.
 2. **Taste decisions for Claude Design and the owner.** The look as a whole is open, by the owner's decision of 2026-11-12. The named choices are: the seven design-system decisions and three colour values in section 3; the icon family (D-049); how results arrive and how cards respond to hover (D-048); what a new account's Home shows (D-060); the picture area of a card with no logo (D-068).
 3. **Findings that need the owner (18).** Each touches behaviour, data, legal text, a setting only the owner controls, or a real AI generation:
 
