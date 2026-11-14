@@ -14,6 +14,14 @@ export type ProjectHeader = {
   unavailable?: boolean;
 };
 
+/** The browser tab's title on a brand page: "Kestrel Analytics · Identity · Embel". Null until the name is known. */
+export function projectDocumentTitle(header: Pick<ProjectHeader, "projectName" | "steps">) {
+  const name = header.projectName.trim();
+  if (!name) return null;
+  const step = header.steps.find((item) => item.status === "current")?.label;
+  return [name, step, "Embel"].filter(Boolean).join(" · ");
+}
+
 export const ProjectHeaderContext = createContext<(header: ProjectHeader | null) => void>(() => undefined);
 
 /** A project page publishes its header to the app shell, which owns the bar.

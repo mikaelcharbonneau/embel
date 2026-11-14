@@ -6,6 +6,21 @@ import { AppShell } from "@/components/workspace/app-shell";
 import { useAccountSession } from "@/components/workspace/account-session";
 import { DEFAULT_PROFILE_VALUES } from "@/domain/account-profile";
 import { ProjectAccountState, ProjectUnavailable } from "@/components/workspace/project-page-state";
+import { projectDocumentTitle, useProjectHeader } from "@/components/journey/project-header";
+import type { JourneyStepView } from "@/domain/journey";
+
+function BrandHeader({ projectId }: { projectId: string }) {
+  useProjectHeader({
+    projectId,
+    projectName: "Kestrel Analytics",
+    steps: [
+      { id: "strategy", label: "Strategy", status: "done", number: 1 },
+      { id: "identity", label: "Identity", status: "current", number: 3 },
+    ] as JourneyStepView[],
+    saveState: null,
+  });
+  return null;
+}
 
 const route = vi.hoisted(() => ({ pathname: "/", auth: null as string | null, background: [] as string[] }));
 vi.mock("next/navigation", () => ({
@@ -197,6 +212,21 @@ describe("persistent workspace shell", () => {
       [...host.querySelectorAll<HTMLAnchorElement>('[role="alert"] a')].map((link) => link.getAttribute("href")),
     ).toEqual(["/brands"]);
     route.pathname = "/";
+  });
+
+  it("names the tab after the brand and its step, and gives the route its title back on leaving", async () => {
+    expect(projectDocumentTitle({ projectName: " ", steps: [] })).toBeNull();
+    expect(projectDocumentTitle({ projectName: "Mosswood", steps: [] })).toBe("Mosswood · Embel");
+    document.title = "Strategy · Embel";
+    await render();
+    await until(() => expect(trigger().textContent).toBe("PN"));
+    const projectId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    route.pathname = `/brands/account/${projectId}`;
+    await render(<BrandHeader projectId={projectId} />);
+    expect(document.title).toBe("Kestrel Analytics · Identity · Embel");
+    route.pathname = "/";
+    await render();
+    expect(document.title).toBe("Strategy · Embel");
   });
 
   it("opens a brand page on a neutral frame while the account is checked, never on signed-out wording", async () => {

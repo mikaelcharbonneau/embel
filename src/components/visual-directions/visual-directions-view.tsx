@@ -127,14 +127,16 @@ export function VisualDirectionsView({
           : "Creative directions";
   const subtitle = chosen && !unresolved ? `${chosen.title} · ${ready.length} directions` : `${completed} of 3 ready`;
 
+  // In the project conversation the brand's name is the page's heading and the step is a second-level heading.
+  const StepHeading = variant === "conversation" ? "h2" : "h1";
   return (
     <section
       className={variant === "conversation" ? styles.workspace : `${styles.page} ${styles.workspace}`}
       aria-labelledby={titleId}
     >
-      <h1 className="sr-only" id={titleId} tabIndex={-1}>
+      <StepHeading className="sr-only" id={titleId} tabIndex={-1}>
         Creative direction
-      </h1>
+      </StepHeading>
       {!external && (
         <div className="guided-assistant-message identity-conversation-message">
           <EmbelIdentity label={journeyPartLabel("identity", "Creative direction")} />
@@ -477,7 +479,6 @@ export function ChosenBrandView({
   const overlay = useWorkspaceOverlayHost();
   return (
     <section className={styles.workspace} aria-labelledby={titleId}>
-      <h1 className="sr-only">Creative direction</h1>
       <h2 className={styles.title} id={titleId} tabIndex={-1}>
         Your brand
       </h2>

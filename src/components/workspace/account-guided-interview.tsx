@@ -1650,6 +1650,9 @@ export function AccountGuidedInterview({
 
   return (
     <div ref={root} className="guided-interview" data-composer={hasComposer ? "workspace" : undefined}>
+      <h1 className="e-sr" translate="no">
+        {brandName}
+      </h1>
       <WorkspaceSlotContext.Provider value={slots}>
         <WorkspaceReplyRegistry.Provider value={replyRegistry.register}>
           <Workspace

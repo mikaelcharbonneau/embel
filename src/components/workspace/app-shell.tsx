@@ -7,7 +7,7 @@ import { Menu, type MenuItem } from "@/components/ui/menu";
 import { ToastProvider } from "@/components/ui/toast";
 import { MainNavContent, NavFrame, type NavItem } from "@/components/journey/floating-nav";
 import { ProjectBarContent, ProjectMenu } from "@/components/journey/project-capsule";
-import { ProjectHeaderContext, type ProjectHeader } from "@/components/journey/project-header";
+import { ProjectHeaderContext, projectDocumentTitle, type ProjectHeader } from "@/components/journey/project-header";
 import { AccountSessionProvider, useAccountSession } from "./account-session";
 import { AccountProfileProvider, useAccountProfile } from "./account-profile-provider";
 import { AccountAccessNotice, useSignOutFlow } from "./account-access";
@@ -68,6 +68,8 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
         : { projectId: accountProjectId, projectName: "", steps: [], saveState: null }
       : null;
   const account = <WorkspaceAccount pathname={currentPathname} />;
+  const documentTitle = header ? projectDocumentTitle(header) : null;
+  useBrandDocumentTitle(documentTitle);
   // Page classes scope each route's existing layout rules.
   const pageClass = projectWorkspace
     ? "concept-project-workspace"
@@ -127,6 +129,26 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
       {session.status === "ready" && <OutOfCreditsPrompt pathname={pathname} />}
     </div>
   );
+}
+
+/** Names the tab after the brand and its step while a brand page is open. The route's own title can be written again
+ * after this runs (metadata streams in), so a change to <head> puts the brand's title back; leaving the brand restores
+ * the route's title. */
+function useBrandDocumentTitle(title: string | null) {
+  useEffect(() => {
+    if (!title) return;
+    const previous = document.title;
+    const apply = () => {
+      if (document.title !== title) document.title = title;
+    };
+    apply();
+    const observer = typeof MutationObserver === "undefined" ? null : new MutationObserver(apply);
+    observer?.observe(document.head, { subtree: true, childList: true, characterData: true });
+    return () => {
+      observer?.disconnect();
+      if (document.title === title) document.title = previous;
+    };
+  }, [title]);
 }
 
 function initials(name: string) {

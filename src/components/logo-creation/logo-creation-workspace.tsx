@@ -1321,19 +1321,21 @@ function OwnedLogoCreation({
   ) : inChat ? null : (
     <LogoTypesSummary value={logoTypes} disabled={!canChangeTypes} onChange={() => setChangingTypes(true)} />
   );
+  // In the project conversation the brand's name is the page's heading and the step is a second-level heading.
+  const StepHeading = onContinue ? "h2" : "h1";
   return (
     <div className={`project-logo-creation ${styles.conceptsScreen}`} aria-label="Logo creation workspace">
       {chatStatus}
       <div className={styles.stepStack}>
         {external ? (
           <>
-            <h1 className="sr-only">Logo</h1>
+            <StepHeading className="sr-only">Logo</StepHeading>
             {typesQuestion}
           </>
         ) : (
           <div className="guided-assistant-message logo-conversation-message" aria-label="Embel">
             <EmbelIdentity label={journeyPartLabel("identity", "Logo")} />
-            <h1 className="sr-only">Logo</h1>
+            <StepHeading className="sr-only">Logo</StepHeading>
             <p className="guided-assistant-copy">
               {activeBatch
                 ? `Here are six concepts for ${brandName}. Pick the one you like most. To change it, tell me what to adjust below.`
