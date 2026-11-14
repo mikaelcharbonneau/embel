@@ -46,11 +46,11 @@ export function useCreditBalance(account: VerifiedAccount): CreditBalance {
   };
 }
 
-/** At 0 credits, marked before the click (D-014): one quiet line at the control, with the way to Plans. */
+/** At 0 credits, marked before the click (D-014): one quiet line at the control, with the way to Plans. It is a status, so a screen reader hears it once when the balance arrives. */
 export function NoCreditsNote({ periodEnd }: { periodEnd: string | null }) {
   const date = creditsRenewDate(periodEnd);
   return (
-    <InlineMessage form="field" live={false}>
+    <InlineMessage form="field">
       You have no credits left this month.{date ? ` New credits arrive on ${date}.` : ""}{" "}
       <Link className="e-link" href="/plans">
         See plans

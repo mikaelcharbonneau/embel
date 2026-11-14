@@ -814,6 +814,13 @@ export function AccountGuidedInterview({
         ? "slogan"
         : "choices";
   const [reopened, setReopened] = useState<WorkView | null>(null);
+  // A "Change …" button on a folded step disappears once the step reopens; focus then moves to the work panel
+  // that now shows the step, instead of falling to the page.
+  const focusWorkAfterReopen = useRef(false);
+  const reopenStep = (step: WorkView) => {
+    focusWorkAfterReopen.current = true;
+    setReopened(step);
+  };
   // A link to the Logo step opens it even when the project has moved past it.
   const [linkedLogo, setLinkedLogo] = useState(logoLinked);
   if (logoLinked && !linkedLogo) setLinkedLogo(true);
@@ -896,6 +903,11 @@ export function AccountGuidedInterview({
 
   // The project bar's steps open their part of the chat.
   const root = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!focusWorkAfterReopen.current) return;
+    focusWorkAfterReopen.current = false;
+    root.current?.querySelector<HTMLElement>(".e-workspace__main")?.focus();
+  }, [view, reopened, namingReopened]);
   const showSection = useEffectEvent((step: JourneyStepId) => {
     const section = document.getElementById(journeySectionId(step));
     if (!section || !root.current?.contains(section)) return;
@@ -1064,6 +1076,7 @@ export function AccountGuidedInterview({
   );
   const nameFolded = nameChosen && !namingReopened;
   const changeName = () => {
+    focusWorkAfterReopen.current = true;
     setNamingReopened(true);
     setReopenedFor(context.selectedName ?? "");
   };
@@ -1140,7 +1153,7 @@ export function AccountGuidedInterview({
             likes === null ? [{ text: "Your likes", icon: "heart" }] : [{ text: `${likes} liked`, icon: "heart" }]
           }
           editLabel="Change inspiration"
-          onEdit={() => setReopened("inspiration")}
+          onEdit={() => reopenStep("inspiration")}
         />
       )}
       {directionsShown && view !== "logo" && (
@@ -1149,7 +1162,7 @@ export function AccountGuidedInterview({
           thumbnail={thumbnail(summaries.logo)}
           answers={[{ text: summaries.logo?.answer ?? "Chosen" }]}
           editLabel="Change logo"
-          onEdit={() => setReopened("logo")}
+          onEdit={() => reopenStep("logo")}
         />
       )}
       {finished && summaries.directions && (view !== "directions" || brandShown) && (
@@ -1158,7 +1171,7 @@ export function AccountGuidedInterview({
           thumbnail={thumbnail(summaries.directions)}
           answers={[{ text: summaries.directions.answer }]}
           editLabel="Change direction"
-          onEdit={() => setReopened("directions")}
+          onEdit={() => reopenStep("directions")}
         />
       )}
     </>

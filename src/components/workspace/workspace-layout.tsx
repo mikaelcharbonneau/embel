@@ -289,9 +289,11 @@ export function Workspace({
         )}
         <div
           ref={main}
-          className={`e-workspace__main conversation-work${rowsClass}`}
+          className={`e-workspace__main conversation-work e-focus-inset${rowsClass}`}
           aria-label={workLabel}
           role="region"
+          // Focusable from code only: reopening a finished step moves focus here once its button is gone.
+          tabIndex={-1}
         >
           {notices?.notices}
           {work}

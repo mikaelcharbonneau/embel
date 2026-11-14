@@ -36,6 +36,8 @@
 }
 .conversation-composer textarea:focus-visible {
   outline: none;
+  /* The box around it shows the focus ring; a halo here would paint over that box's border. */
+  box-shadow: none;
 }
 .conversation-composer textarea::placeholder {
   color: var(--color-text-muted);

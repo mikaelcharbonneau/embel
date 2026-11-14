@@ -484,16 +484,21 @@ export function useAccountStrategyStart({
           </Link>
         )
       )}
-      {!pending && (message || !guidedAllowance(currentRuntime?.availability, "strategy.competitors")) && (
-        <button
-          type="button"
-          className="text-link"
-          disabled={checkingAvailability === identity}
-          onClick={() => void recheck()}
-        >
-          {checkingAvailability === identity ? "Checking AI availability…" : "Check AI availability"}
-        </button>
-      )}
+      {/* Only when a message needs it or AI is known to be unavailable: not while signed out or still checking (D-026). */}
+      {!pending &&
+        (message ||
+          (session.status === "ready" &&
+            currentRuntime &&
+            !guidedAllowance(currentRuntime.availability, "strategy.competitors"))) && (
+          <button
+            type="button"
+            className="text-link"
+            disabled={checkingAvailability === identity}
+            onClick={() => void recheck()}
+          >
+            {checkingAvailability === identity ? "Checking AI availability…" : "Check AI availability"}
+          </button>
+        )}
     </div>
   );
   function detachPrompt() {
