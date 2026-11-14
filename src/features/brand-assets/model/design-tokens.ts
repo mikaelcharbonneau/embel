@@ -27,7 +27,8 @@ const ROLE_USE: Record<keyof BrandAssetSnapshot["palette"], string> = {
 };
 
 /** A text color on `background` with at least 4.5:1 contrast, preferring the
- * palette's own roles; otherwise the palette color with the most contrast. */
+ * palette's own roles. When no palette color passes, dark or light text,
+ * whichever has more contrast, so the preview never demonstrates a failing pair. */
 export function readableBrandColor(
   snapshot: BrandAssetSnapshot,
   background: string,
@@ -42,7 +43,7 @@ export function readableBrandColor(
   ];
   return (
     choices.find((hex) => contrast(hex, background) >= 4.5) ??
-    choices.reduce((best, hex) => (contrast(hex, background) > contrast(best, background) ? hex : best))
+    (contrast("#FFFFFF", background) >= contrast("#000000", background) ? "#FFFFFF" : "#000000")
   );
 }
 
