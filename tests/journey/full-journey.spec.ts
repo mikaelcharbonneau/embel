@@ -114,17 +114,15 @@ test("a new brand goes from the first prompt to downloadable assets", async ({ p
     await page.getByRole("button", { name: "Continue", exact: true }).click();
 
     const names = page.getByRole("region", { name: "Naming exploration", exact: true });
-    const choose = names.getByRole("button", { name: /Choose this name$/u });
+    const choose = names.getByRole("radiogroup", { name: "Names", exact: true }).getByRole("radio");
     await expect(choose.first()).toBeVisible({ timeout: GENERATION });
     await expect(names.getByRole("alert")).toHaveCount(0);
     expect(await choose.count()).toBeGreaterThanOrEqual(20);
     await expectNoCostEstimate(page);
-    const chosen = (await names.getByRole("article").first().getByRole("heading", { level: 3 }).innerText()).trim();
-    await choose.first().click();
-    await page
-      .getByRole("article", { name: "Names", exact: true })
-      .getByRole("button", { name: "Continue", exact: true })
-      .click();
+    const chosen = (await names.locator(".e-name-card__name").first().innerText()).trim();
+    // The ring marks the chosen name; Send in the reply box moves on with it.
+    await choose.first().check({ force: true });
+    await page.getByRole("button", { name: "Continue to Slogan", exact: true }).click();
     await expect(page.getByRole("article", { name: "Your name", exact: true }).getByRole("listitem")).toHaveText(
       chosen,
     );
