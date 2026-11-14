@@ -104,13 +104,17 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 
-it("checks repeated passwords and clears both fields without sending a mismatched signup", async () => {
+it("checks repeated passwords, keeps both fields and selects the confirmation without sending a mismatched signup", async () => {
   await render();
   const inputs = fill("different synthetic password");
   await submit();
   expect(host.querySelector('[role="alert"]')?.textContent).toContain("passwords don’t match");
-  expect(inputs.password.value).toBe("");
-  expect(inputs.confirm.value).toBe("");
+  // Owner decision (D-072): both passwords stay; the confirmation is focused with its text selected.
+  expect(inputs.password.value).not.toBe("");
+  expect(inputs.confirm.value).toBe("different synthetic password");
+  expect(document.activeElement).toBe(inputs.confirm);
+  expect(inputs.confirm.selectionStart).toBe(0);
+  expect(inputs.confirm.selectionEnd).toBe(inputs.confirm.value.length);
   expect(requestBodies).toEqual([]);
 });
 it("clears credentials immediately, admits one request, preserves recovery and announces pending confirmation", async () => {
