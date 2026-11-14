@@ -151,7 +151,7 @@ export function ProjectCardActions({
           }
           description={
             action === "delete"
-              ? "It moves to Deleted projects, where you can restore it. Its assets and history are kept. Deleting requests cancellation of active work. Work already started may still finish or incur usage. Restoring won’t restart cancelled AI work."
+              ? "It moves to Deleted projects with its files and history. You can restore it any time. If Embel is still working on it, that work is asked to stop; work already started may still finish and use credits."
               : "This returns the project to Projects. Restoring won’t restart cancelled AI work."
           }
           busy={busy}
