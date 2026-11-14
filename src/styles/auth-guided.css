@@ -1,7 +1,3 @@
-.auth-artwork {
-  display: block;
-  flex: none;
-}
 .page.auth-guided-page {
   max-width: 1088px;
   padding: 100px var(--space-10) var(--space-10);

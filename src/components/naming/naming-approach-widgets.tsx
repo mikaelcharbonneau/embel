@@ -15,7 +15,6 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 import { GuidedThinking } from "@/components/workspace/guided-thinking";
 import { projectStrategyHref } from "@/domain/project-handoff";
-import { ProjectArtwork } from "@/components/ui/project-artwork";
 import { Icon } from "@/components/ui/icon";
 import { FloatingComposer } from "@/components/workspace/floating-composer";
 import { ConversationComposer } from "@/components/workspace/conversation-composer";
@@ -615,7 +614,7 @@ export function NamingApproachWidgets({
                 {state.status === "saved" ? (
                   state.saved?.preferences.version === 2 ? (
                     <>
-                      <ProjectArtwork name="check" />
+                      <Icon name="check" size="sm" />
                       Saved
                     </>
                   ) : (

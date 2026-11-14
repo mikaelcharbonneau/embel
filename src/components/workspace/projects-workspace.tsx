@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { compareProjectCursors } from "@/domain/project-pages";
 import { Icon } from "@/components/ui/icon";
-import { ProjectsArtwork } from "@/components/ui/projects-artwork";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "./account-session";
 import { useAccountProjectListing } from "./account-projects";
 import { UnsavedProjectRecovery } from "./unsaved-project-recovery";
@@ -66,7 +65,7 @@ function ProjectControl({ kind, children }: { kind: "Sort"; children: React.Reac
       }}
     >
       <summary aria-label={`${kind} projects`}>
-        <ProjectsArtwork name="sort" />
+        <Icon name="arrow-up-down" size="sm" />
         {kind}
       </summary>
       <div className="projects-control-panel">{children}</div>
@@ -254,7 +253,7 @@ function ProjectsLibrary({
           </section>
         ) : (
           <section className="projects-empty-panel" aria-labelledby="first-project-heading">
-            <ProjectsArtwork name="empty-projects" />
+            <Icon name="folder" size="lg" />
             <h2 id="first-project-heading">Your first project starts with an idea</h2>
             <p>Start with a complete brand, a name, or a visual identity. Your work will be waiting here.</p>
             <Link className="button primary" href="/">

@@ -2,9 +2,9 @@
 
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
-import { ProjectArtwork } from "@/components/ui/project-artwork";
 import { ConversationComposer } from "./conversation-composer";
 import { FloatingComposer } from "./floating-composer";
+import { EmbelMark } from "@/components/ui/icon";
 
 export function GuidedThinking({
   onStop,
@@ -25,7 +25,7 @@ export function GuidedThinking({
       role="status"
       aria-label={stopping ? "Stopping…" : label === "Thinking…" ? "Embel is thinking" : label}
     >
-      <ProjectArtwork name="mark" />
+      <EmbelMark />
       <span>{stopping ? "Stopping…" : label}</span>
       {action}
       {onStop && (

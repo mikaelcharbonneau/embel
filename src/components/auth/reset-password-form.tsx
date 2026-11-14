@@ -2,10 +2,8 @@
 
 import Link from "next/link";
 import { useRef, useState, type FormEvent } from "react";
-import { AuthArtwork } from "@/components/ui/auth-artwork";
-import { Icon } from "@/components/ui/icon";
+import { EmbelMark, Icon } from "@/components/ui/icon";
 import { useAccountSession } from "@/components/workspace/account-session";
-import { HidePasswordIcon, ShowPasswordIcon } from "./auth-icons";
 import { newPasswordErrorMessage, PasswordResetRequestError, saveNewPassword } from "./password-reset-request";
 import "@/styles/auth.css";
 
@@ -65,7 +63,7 @@ export function ResetPasswordForm({ configured }: { configured: boolean }) {
     <div className="auth-guided page auth-guided-page">
       <section className="auth-card" aria-labelledby="auth-page-title">
         <header className="auth-guided-heading">
-          <AuthArtwork name="card-mark" />
+          <EmbelMark />
           <h1 id="auth-page-title" tabIndex={-1}>
             {title}
           </h1>
@@ -86,7 +84,7 @@ export function ResetPasswordForm({ configured }: { configured: boolean }) {
         {saved ? (
           <Link className="button primary auth-continue" href="/brands">
             Go to Projects
-            <AuthArtwork name="submit-arrow" />
+            <Icon name="arrow-right" size="sm" />
           </Link>
         ) : expired ? (
           <>
@@ -95,7 +93,7 @@ export function ResetPasswordForm({ configured }: { configured: boolean }) {
             </p>
             <Link className="button primary auth-continue" href="/forgot-password">
               Request a new link
-              <AuthArtwork name="submit-arrow" />
+              <Icon name="arrow-right" size="sm" />
             </Link>
           </>
         ) : (
@@ -136,7 +134,7 @@ export function ResetPasswordForm({ configured }: { configured: boolean }) {
                   title={shown ? "Hide password" : "Show password"}
                   onClick={() => setShown((value) => !value)}
                 >
-                  {shown ? <HidePasswordIcon /> : <ShowPasswordIcon />}
+                  <Icon name={shown ? "eye-off" : "eye"} />
                 </button>
               </div>
               <p className="auth-field-help" id="auth-page-password-guidance">
@@ -165,7 +163,7 @@ export function ResetPasswordForm({ configured }: { configured: boolean }) {
                 {submitting ? (
                   <span className="auth-progress" aria-hidden="true" />
                 ) : (
-                  <AuthArtwork name="submit-arrow" />
+                  <Icon name="arrow-right" size="sm" />
                 )}
               </button>
             </fieldset>
@@ -180,7 +178,7 @@ export function ResetPasswordForm({ configured }: { configured: boolean }) {
       <div className="auth-guided-browser">
         <Link className="auth-browser-link text-link" href="/">
           Return to Home
-          <AuthArtwork name="browser-arrow" />
+          <Icon name="arrow-right" size="sm" />
         </Link>
       </div>
     </div>

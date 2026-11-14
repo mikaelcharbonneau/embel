@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { AssetsArtwork } from "@/components/ui/assets-artwork";
 import { assetTitle } from "./asset-labels";
 import { Icon } from "@/components/ui/icon";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
@@ -285,7 +284,7 @@ function OwnedAssetLibrary({ account }: { account: VerifiedAccount }) {
                                   setOpened(item);
                                 }}
                               >
-                                <AssetsArtwork name="open" />
+                                <Icon name="maximize-2" size="sm" />
                               </button>
                             </div>
                           </div>

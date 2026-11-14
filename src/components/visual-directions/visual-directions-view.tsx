@@ -8,6 +8,7 @@ import { EmbelIdentity } from "@/components/workspace/embel-identity";
 import { journeyPartLabel } from "@/domain/journey";
 import stage from "@/styles/branding-stage.module.css";
 import styles from "./visual-directions-view.module.css";
+import { Icon } from "@/components/ui/icon";
 
 export type VisualDirectionCard = {
   id: string;
@@ -260,7 +261,7 @@ export function VisualDirectionsView({
                 ) : (
                   card.selected && (
                     <span className={styles.selectedBadge}>
-                      <CheckIcon /> Chosen
+                      <Icon name="check" size="sm" /> Chosen
                     </span>
                   )
                 )}
@@ -278,7 +279,7 @@ export function VisualDirectionsView({
                     }}
                     onClick={() => setExpandedId(card.id)}
                   >
-                    <ExpandIcon />
+                    <Icon name="maximize-2" size="sm" />
                   </button>
                 </div>
               </header>
@@ -410,26 +411,6 @@ export function VisualDirectionsView({
   );
 }
 
-function CheckIcon() {
-  return (
-    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path d="m3.5 8 3 3 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-function ExpandIcon() {
-  return (
-    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none">
-      <path
-        d="M10.5 3.5h4v4m0-4L10 8M7.5 14.5h-4v-4m0 4L8 10"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 function BoardIcon() {
   return (
     <svg aria-hidden="true" width="52" height="52" viewBox="0 0 52 52" fill="none">

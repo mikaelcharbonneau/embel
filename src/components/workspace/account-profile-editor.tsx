@@ -1,6 +1,5 @@
 "use client";
 
-import { SettingsArtwork } from "@/components/ui/settings-artwork";
 import {
   DEFAULT_PROFILE_VALUES,
   PROFILE_TIME_ZONES,
@@ -10,6 +9,7 @@ import {
 import { useAccountSession } from "./account-session";
 import { useAccountProfile } from "./account-profile-provider";
 import { profileHasEdits } from "./account-profile-memory";
+import { Icon } from "@/components/ui/icon";
 
 // Display names only; the saved value stays the time zone identifier.
 const timeZoneLabels: Record<AccountProfileValues["timeZone"], string> = {
@@ -103,7 +103,7 @@ export function AccountProfileEditor() {
                   </option>
                 ))}
               </select>
-              <SettingsArtwork name="chevron-down" />
+              <Icon name="chevron-down" size="sm" />
             </div>
           </div>
           <div className="sg-row">
@@ -124,7 +124,7 @@ export function AccountProfileEditor() {
                 <option value="friendly">Month, day, year</option>
                 <option value="iso">YYYY-MM-DD</option>
               </select>
-              <SettingsArtwork name="chevron-down" />
+              <Icon name="chevron-down" size="sm" />
             </div>
           </div>
         </div>

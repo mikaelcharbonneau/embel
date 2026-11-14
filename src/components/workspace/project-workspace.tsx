@@ -33,7 +33,7 @@ import {
 } from "@/components/journey/project-header";
 import type { SaveState } from "@/components/journey/project-capsule";
 import { projectJourney, type JourneyStepView } from "@/domain/journey";
-import { ProjectArtwork } from "@/components/ui/project-artwork";
+import { Icon } from "@/components/ui/icon";
 
 type Stage = "strategy" | "naming" | "identity" | "files";
 type EvidenceReporter = (value: ProjectStageEvidence) => void;
@@ -318,7 +318,7 @@ export function ProjectDock({ title, context, children }: { title: string; conte
           aria-expanded={open}
           onClick={() => setOpen((value) => !value)}
         >
-          <ProjectArtwork name="collapse" />
+          <Icon name={open ? "chevron-up" : "chevron-down"} size="sm" />
         </button>
       </div>
       <div hidden={!open} className="project-dock-content">

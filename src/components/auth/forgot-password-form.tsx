@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useRef, useState, type FormEvent } from "react";
-import { AuthArtwork } from "@/components/ui/auth-artwork";
-import { Icon } from "@/components/ui/icon";
+import { EmbelMark, Icon } from "@/components/ui/icon";
 import { requestPasswordResetEmail, resetEmailErrorMessage } from "./password-reset-request";
 import { readCaptcha, TurnstileWidget, type TurnstileHandle } from "./turnstile-widget";
 import "@/styles/auth.css";
@@ -50,7 +49,7 @@ export function ForgotPasswordForm({ configured, overlay = false }: { configured
     <div className={`auth-guided ${overlay ? "auth-guided-modal" : "page auth-guided-page"}`}>
       <section className="auth-card" aria-labelledby={`${idPrefix}-title`}>
         <header className="auth-guided-heading">
-          <AuthArtwork name="card-mark" />
+          <EmbelMark />
           <h1 id={`${idPrefix}-title`} tabIndex={-1}>
             {sent ? "Check your email" : "Reset your password"}
           </h1>
@@ -108,7 +107,7 @@ export function ForgotPasswordForm({ configured, overlay = false }: { configured
                 {submitting ? (
                   <span className="auth-progress" aria-hidden="true" />
                 ) : (
-                  <AuthArtwork name="submit-arrow" />
+                  <Icon name="arrow-right" size="sm" />
                 )}
               </button>
             </fieldset>
@@ -129,7 +128,7 @@ export function ForgotPasswordForm({ configured, overlay = false }: { configured
       <div className="auth-guided-browser">
         <Link className="auth-browser-link text-link" href="/">
           Return to Home
-          <AuthArtwork name="browser-arrow" />
+          <Icon name="arrow-right" size="sm" />
         </Link>
       </div>
     </div>

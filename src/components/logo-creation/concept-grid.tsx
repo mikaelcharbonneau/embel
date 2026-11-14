@@ -8,6 +8,7 @@ import { acceptedConceptAttempt, CONCEPT_ORDINALS, LOGO_TYPE_LABELS } from "./pr
 import styles from "./logo-creation.module.css";
 import stage from "@/styles/branding-stage.module.css";
 import type { LogoCardVersion } from "./concept-versions";
+import { Icon } from "@/components/ui/icon";
 
 /** No polling, persistence or generation lives in this view. */
 export function LogoConceptGridView({
@@ -291,7 +292,7 @@ export function LogoConceptGridView({
                 )}
                 {gallery && isSelected && (
                   <span className={styles.chosenBadge}>
-                    <CheckIcon /> Chosen
+                    <Icon name="check" size="sm" /> Chosen
                   </span>
                 )}
                 <div
@@ -479,13 +480,5 @@ export function LogoConceptGridView({
         )}
       </div>
     </section>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
-      <path d="m3.5 8 3 3 6-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }

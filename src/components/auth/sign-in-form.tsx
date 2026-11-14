@@ -3,14 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { Icon } from "@/components/ui/icon";
-import { AuthArtwork } from "@/components/ui/auth-artwork";
+import { EmbelMark, Icon } from "@/components/ui/icon";
 import { useAccountSession } from "@/components/workspace/account-session";
 import { requestSignIn, SignInRequestError, signInErrorMessage } from "./sign-in-request";
 import { requestSignUp, signUpErrorMessage } from "./sign-up-request";
 import { hasPromptRecovery } from "@/components/workspace/prompt-recovery";
 import { readCaptcha, TurnstileWidget, type TurnstileHandle } from "./turnstile-widget";
-import { HidePasswordIcon, ShowPasswordIcon } from "./auth-icons";
 import "@/styles/auth.css";
 
 export function SignInForm({
@@ -182,7 +180,7 @@ export function SignInForm({
     <div className={`auth-guided ${overlay ? "auth-guided-modal" : "page auth-guided-page"}`}>
       <section className="auth-card" aria-labelledby={`${idPrefix}-title`}>
         <header className="auth-guided-heading">
-          <AuthArtwork name="card-mark" />
+          <EmbelMark />
           <h1 ref={titleElement} tabIndex={-1} id={`${idPrefix}-title`}>
             {title}
           </h1>
@@ -225,7 +223,7 @@ export function SignInForm({
         {signedIn ? (
           <Link className="button primary auth-continue" href={hasPrompt ? "/" : "/brands"}>
             {hasPrompt ? "Continue your prompt" : "Go to Projects"}
-            <AuthArtwork name="submit-arrow" />
+            <Icon name="arrow-right" size="sm" />
           </Link>
         ) : (
           <>
@@ -308,7 +306,7 @@ export function SignInForm({
                       title={passwordsShown ? "Hide password" : "Show password"}
                       onClick={() => setPasswordsShown((shown) => !shown)}
                     >
-                      {passwordsShown ? <HidePasswordIcon /> : <ShowPasswordIcon />}
+                      <Icon name={passwordsShown ? "eye-off" : "eye"} />
                     </button>
                     {!signingUp && (
                       <Link
@@ -359,7 +357,7 @@ export function SignInForm({
                     {submitting ? (
                       <span className="auth-progress" aria-hidden="true" />
                     ) : (
-                      <AuthArtwork name="submit-arrow" />
+                      <Icon name="arrow-right" size="sm" />
                     )}
                   </button>
                 </fieldset>
@@ -473,7 +471,7 @@ export function SignInForm({
       <div className="auth-guided-browser">
         <Link className="auth-browser-link text-link" href="/" onClick={clearPasswords}>
           Return to Home
-          <AuthArtwork name="browser-arrow" />
+          <Icon name="arrow-right" size="sm" />
         </Link>
       </div>
     </div>

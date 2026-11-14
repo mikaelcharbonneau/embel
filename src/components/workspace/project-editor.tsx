@@ -18,7 +18,7 @@ import type { ContextSnapshot, ProjectScope } from "@/domain/projects";
 import type { NamingSource } from "@/domain/naming";
 import { getNamingReadiness } from "@/domain/project-naming";
 import { initialConversation, type ConversationWidget } from "@/domain/conversation";
-import { Icon } from "@/components/ui/icon";
+import { EmbelMark, Icon } from "@/components/ui/icon";
 import { UnsavedProjectRecovery } from "./unsaved-project-recovery";
 import { useAccountStrategyStart } from "./account-strategy-start";
 import {
@@ -47,7 +47,6 @@ import { CompetitorReview } from "./competitor-review";
 import { PersonalityReview, PositioningReview } from "./strategy-review";
 import { ConversationComposer } from "./conversation-composer";
 import { OpeningGuidedConversation } from "./guided-thinking";
-import { ProjectArtwork } from "@/components/ui/project-artwork";
 import { AudienceConversationWidget, WidgetSummary, widgetLabels } from "./conversation-widgets";
 import {
   competitorReviewKey,
@@ -1136,7 +1135,7 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
                       <section className="conversation-widget" aria-labelledby={`widget-${event.id}`}>
                         <div className="conversation-widget-heading">
                           <span className="conversation-tool-avatar" aria-hidden="true">
-                            <ProjectArtwork name="mark" />
+                            <EmbelMark />
                           </span>
                           <h2
                             id={`widget-${event.id}`}
