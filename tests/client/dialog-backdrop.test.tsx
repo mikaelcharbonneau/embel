@@ -210,6 +210,34 @@ it.each(kinds)("preserves %s explicit close or keep-editing action", async (kind
   expect(wasDismissed()).toBe(true);
   expect(mocks.signOut.mock.calls).toEqual(kind === "sign-out" ? [[false]] : []);
 });
+it("opens the sign-in overlay with focus in its first field, and on Close while the form is unavailable", async () => {
+  await act(async () =>
+    root.render(
+      <SignInDialog>
+        <h2 id="auth-overlay-title">Sign in</h2>
+        <form>
+          <input type="hidden" name="flow" value="sign-in" />
+          <input name="email" type="email" />
+        </form>
+      </SignInDialog>,
+    ),
+  );
+  expect(document.activeElement).toBe(host.querySelector('input[name="email"]'));
+  await act(async () => root.render(<></>));
+  await act(async () =>
+    root.render(
+      <SignInDialog>
+        <h2 id="auth-overlay-title">Sign in</h2>
+        <form>
+          <fieldset disabled>
+            <input name="email" type="email" />
+          </fieldset>
+        </form>
+      </SignInDialog>,
+    ),
+  );
+  expect(document.activeElement?.getAttribute("aria-label")).toBe("Close sign-in");
+});
 it("only the explicit discard action confirms unsaved-edit sign-out", async () => {
   await mount("sign-out");
   await act(async () =>

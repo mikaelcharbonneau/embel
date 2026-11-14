@@ -99,6 +99,8 @@ it("puts a credential mismatch under the password and marks both fields", async 
   expect(input("password").getAttribute("aria-invalid")).toBe("true");
   expect(messageFor("password")).toContain("We couldn't sign you in with those details");
   expect(input("password").value).toBe("");
+  // Focus lands on the field to fix, not on the page.
+  expect(document.activeElement).toBe(input("password"));
 });
 
 it("explains a short and a mismatched new password under their own fields", async () => {

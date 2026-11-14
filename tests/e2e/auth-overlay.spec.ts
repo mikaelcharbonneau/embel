@@ -22,7 +22,8 @@ async function openOverlay(page: Page) {
   await trigger.click();
   const dialog = page.getByRole("dialog", { name: "Sign in to Embel", exact: true });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Close sign-in" })).toBeFocused();
+  // Focus starts in Email, the first field (D-010).
+  await expect(dialog.getByLabel("Email", { exact: true })).toBeFocused();
   return { dialog, trigger };
 }
 

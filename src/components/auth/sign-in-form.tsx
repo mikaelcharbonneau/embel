@@ -175,9 +175,11 @@ export function SignInForm({
       router.refresh();
     } else if (result.reason === "failed") {
       if (signingUp) setErrors({ form: signUpErrorMessage(result.error) });
-      else if (result.error instanceof SignInRequestError && [401, 413, 422].includes(result.error.status))
+      else if (result.error instanceof SignInRequestError && [401, 413, 422].includes(result.error.status)) {
         setErrors({ password: signInErrorMessage(result.error), credentials: true });
-      else setErrors({ form: signInErrorMessage(result.error) });
+        // The person fixes the password next; the message under it is read with the field.
+        passwordInput.current?.focus();
+      } else setErrors({ form: signInErrorMessage(result.error) });
     }
   }
 
