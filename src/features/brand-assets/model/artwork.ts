@@ -459,7 +459,7 @@ export const DEFAULT_DIRECTION_CROPS: readonly BrandCrop[] = [0, 1, 2].map((inde
   height: 0.25,
 }));
 /** Picks three details of the chosen direction board to show "in practice": the
- * most colourful 4:3 windows that hold no pale page (photographs and graphics
+ * most colorful 4:3 windows that hold no pale page (photographs and graphics
  * rather than panels of text or swatch rows), not overlapping, in reading order.
  * `pixels` is RGBA of a small copy of the board. */
 export function directionCrops(pixels: Uint8ClampedArray, width: number, height: number, count = 3): BrandCrop[] {
@@ -518,7 +518,7 @@ export function directionCrops(pixels: Uint8ClampedArray, width: number, height:
   return crops.length === count ? crops : [...DEFAULT_DIRECTION_CROPS];
 }
 
-/** The brand board (1600 × 2200): the logo on light and dark, the colour roles,
+/** The brand board (1600 × 2200): the logo on light and dark, the color roles,
  * the type pair set in saved words and three details of the chosen direction. */
 export function createFinalBrandBoard(
   snapshot: BrandAssetSnapshot,
@@ -584,7 +584,7 @@ export function createFinalBrandBoard(
   });
   y += tileH + u + small * 1.2 + section;
 
-  // Colour palette: the four roles with their values and use.
+  // Color palette: the four roles with their values and use.
   nodes.push(heading("Color palette", y));
   y += title * 1.2 + 1.6 * u;
   const colW = (inner - gap * 3) / 4,

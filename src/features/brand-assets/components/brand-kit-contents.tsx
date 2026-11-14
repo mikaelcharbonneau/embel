@@ -80,7 +80,7 @@ export function ManualCopy({ failed }: { failed: Failed | null }) {
   );
 }
 
-/** The brand's colors with their use and a copy action each (Colour swatch). */
+/** The brand's colors with their use and a copy action each (ColorSwatch). */
 export function ColorSwatches({
   colors,
 }: {
