@@ -16,7 +16,8 @@
 .project-workspace-content {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  /* Pages scroll down, never sideways: a hover label at the right edge must not make the page pan. */
+  overflow: hidden auto;
   background: var(--color-bg-canvas);
 }
 .project-read-notice {
@@ -534,7 +535,7 @@
     margin-top: 0;
   }
   .project-workspace-content {
-    overflow: auto;
+    overflow: hidden auto;
   }
   .project-workbench,
   .project-strategy-columns {

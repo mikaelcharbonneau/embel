@@ -19,7 +19,8 @@
 .concept-shell #main-content {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  /* Pages scroll down, never sideways (a hover label near the right edge must not make the page pan). */
+  overflow: hidden auto;
   scrollbar-width: none;
   scroll-padding-block: 24px 104px;
 }
