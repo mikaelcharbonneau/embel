@@ -10,7 +10,7 @@ import { DomainPanels, DomainsPanel, useDomainSearch } from "./name-domains";
 import { HandlesPanel } from "./name-handles";
 import { TrademarksPanel } from "./name-trademarks";
 import { useLiveChecks } from "./use-live-checks";
-import { WorkAreaLayer } from "./work-area-layer";
+import { WorkAreaLayer } from "@/components/workspace/work-area-layer";
 import styles from "./name-details.module.css";
 
 const tabs = ["Domains", "Handles", "Trademarks"] as const;

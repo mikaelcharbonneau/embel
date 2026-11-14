@@ -14,7 +14,10 @@ async function selectDirection(page: Page) {
   await expect.poll(() => fixture.admissions.length).toBe(1);
   fixture.complete(1);
   await page.getByRole("button", { name: "Check progress", exact: true }).click();
-  await page.getByRole("radio", { name: /^Direction 1:/ }).click();
+  await page
+    .getByRole("article", { name: /^Direction 1:/ })
+    .getByRole("button", { name: "Choose", exact: true })
+    .click();
   await expect(page.getByRole("link", { name: "Continue", exact: true })).toBeVisible();
   return { fixture, health };
 }

@@ -45,10 +45,13 @@ export function IdentitySystemBoard({
   board,
   name,
   client,
+  onUrl,
 }: {
   board: IdentityBoardPreview;
   name: string;
   client: AccountIdentityClient;
+  /** Hears the verified preview's object URL while it is shown (a folded entry draws a small copy of it). */
+  onUrl?: (url: string | null) => void;
 }) {
   const node = useRef<HTMLDivElement>(null);
   const key = privatePreviewIdentity(board.asset, [board.asset.mimeType, board.asset.purpose]);
@@ -107,6 +110,14 @@ export function IdentitySystemBoard({
     };
   }, [client, key, retry]);
   const shown = preview?.client === client && preview.key === key && client.current() ? preview : null;
+  const shownUrl = shown?.url ?? null;
+  const tellUrl = useEffectEvent((url: string | null) => onUrl?.(url));
+  // Report the picture when it changes, and also when a listener appears: a board chosen after its picture loaded
+  // must still hand that picture to the folded Creative direction entry.
+  const listening = Boolean(onUrl);
+  useEffect(() => {
+    if (listening) tellUrl(shownUrl);
+  }, [shownUrl, listening]);
   return (
     <figure className="identity-board">
       <div className="identity-board-image" ref={node}>

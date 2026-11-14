@@ -314,6 +314,34 @@ describe("Choice cards", () => {
     await render(<ArtworkChoice label="Concept 3" state="drawing" selected={false} onChoose={choose} />);
     expect(host.querySelector(".e-choice__hit")).toBeNull();
     expect(host.querySelector('[role="img"]')?.getAttribute("aria-label")).toBe("Concept 3 is being drawn");
+
+    await render(
+      <ArtworkChoice
+        label="Concept 5"
+        state="failed"
+        failedText="Concept 5 couldn't be drawn."
+        selected={false}
+        onChoose={choose}
+      />,
+    );
+    expect(host.querySelector(".e-choice__hit")).toBeNull();
+    expect(host.querySelector(".e-media")?.textContent).toBe("Concept 5 couldn't be drawn.");
+
+    await render(
+      <ArtworkChoice
+        label="Concept 1"
+        src="/logo.png"
+        selected={false}
+        onChoose={choose}
+        disabled
+        mediaClassName="e-media--revealing"
+        overlay={<span className="e-media__status">Sketch</span>}
+      />,
+    );
+    const frame = host.querySelector(".e-media")!;
+    expect(frame.classList.contains("e-media--revealing")).toBe(true);
+    expect(frame.querySelector(".e-media__status")?.textContent).toBe("Sketch");
+    expect(host.querySelector<HTMLButtonElement>(".e-choice__hit")?.disabled).toBe(true);
   });
 });
 

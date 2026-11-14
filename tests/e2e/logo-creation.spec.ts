@@ -747,7 +747,7 @@ test("a project without a saved brand name is guided back before any logo write"
 
 test("clicking a logo selects it in place and persists without an inspection screen", async ({ page }) => {
   const f = await setup(page, "partial");
-  const first = page.getByRole("button", { name: "Select concept 1", exact: true });
+  const first = page.getByRole("button", { name: "Concept 1", exact: true });
   await first.click();
   await expect(first).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByText("Logo chosen. Continue, or describe a change below.", { exact: true })).toBeVisible();
@@ -760,12 +760,9 @@ test("clicking a logo selects it in place and persists without an inspection scr
   );
   await page.reload();
   await expect(first).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "Select concept 2", exact: true }).focus();
+  await page.getByRole("button", { name: "Concept 2", exact: true }).focus();
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("button", { name: "Select concept 2", exact: true })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await expect(page.getByRole("button", { name: "Concept 2", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(first).toHaveAttribute("aria-pressed", "false");
   expect(f.selections).toHaveLength(2);
 });
@@ -774,7 +771,7 @@ test("composer refines the saved selected concept in place with the entered chan
   const f = await setup(page, "partial");
   const send = page.getByRole("button", { name: "Refine", exact: true });
   await expect(send).toBeHidden();
-  await page.getByRole("button", { name: "Select concept 2", exact: true }).click();
+  await page.getByRole("button", { name: "Concept 2", exact: true }).click();
   await expect(page.getByText("Refinement target: Concept 2", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Refine logo", exact: true }).click();
   await page
@@ -871,7 +868,7 @@ test("a saved refinement can be selected and edited again without leaving concep
   const refinement = syntheticRasterRefinement();
   f.refinements.push(refinement);
   await page.reload();
-  await page.getByRole("button", { name: "Select concept 1", exact: true }).click();
+  await page.getByRole("button", { name: "Concept 1", exact: true }).click();
   await expect(page.getByText("Refinement target: Concept 1 · Version 2", { exact: true })).toBeVisible();
   await expect(page.locator(`a[href$="/logo/directions"]`, { hasText: /^Continue$/ })).toHaveAttribute(
     "href",
@@ -896,7 +893,7 @@ test("a saved refinement can be selected and edited again without leaving concep
 
 test("a running chat edit becomes a selectable saved refinement without reloading", async ({ page }) => {
   const f = await setup(page, "partial");
-  await page.getByRole("button", { name: "Select concept 1", exact: true }).click();
+  await page.getByRole("button", { name: "Concept 1", exact: true }).click();
   await page.getByRole("button", { name: "Refine logo", exact: true }).click();
   await page
     .getByRole("textbox", { name: "Describe a change to this logo" })

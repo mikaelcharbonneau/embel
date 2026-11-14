@@ -196,16 +196,13 @@ await recipe("delete-account-dialog", async () => {
 await recipe("out-of-credits", async () => {
   const { page } = await as("audit-free");
   await page.goto(`/brands/account/${project("berenice")}?view=strategy`);
-  await page
-    .getByRole("form", { name: "Reply", exact: true })
-    .getByRole("button", { name: "Continue to Logo" })
-    .click();
-  const explore = page.getByRole("button", { name: "Explore six concepts", exact: true });
-  await expect(explore).toBeEnabled({ timeout: 120_000 });
-  await explore.click();
-  await expect(
-    page.getByText("You're out of credits for this month").or(page.getByText("You’re out of credits for this month")),
-  ).toBeVisible({ timeout: 30_000 });
+  const reply = page.getByRole("form", { name: "Reply", exact: true });
+  await reply.getByRole("button", { name: "Continue to Logo" }).click();
+  // At 0 credits the Logo step marks it before the click (D-014): the note in the chat, Send off.
+  const draw = reply.getByRole("button", { name: "Draw six concepts", exact: true });
+  await expect(draw).toBeVisible({ timeout: 120_000 });
+  await expect(page.getByText("You have no credits left this month.").first()).toBeVisible({ timeout: 30_000 });
+  await expect(draw).toBeDisabled();
   await shot(page, "out-of-credits");
 });
 await recipe("upgrade-payments-unavailable", async () => {
