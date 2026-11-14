@@ -381,7 +381,8 @@ test("auth fixture: configured sign-in retains only transient retries, rejects u
   };
   await submit();
   await fixture.signInRequested;
-  await expect(form.getByRole("button", { name: "Signing in…", exact: true })).toBeDisabled();
+  // The button keeps its label while busy and ignores further presses.
+  await expect(form.getByRole("button", { name: "Sign in", exact: true })).toHaveAttribute("aria-busy", "true");
   await expect(password).toHaveValue(" local-fixture-only password ");
   await form.dispatchEvent("submit");
   expect(fixture.state.signInRequests).toBe(1);

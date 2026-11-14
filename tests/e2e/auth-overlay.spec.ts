@@ -88,8 +88,8 @@ test("auth overlay: continuation clears the slot; direct visits and reloads use 
   await signedOut(page);
   await page.goto("/settings");
   const { dialog } = await openOverlay(page);
-  await dialog.getByRole("link", { name: "Return to Home", exact: true }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await dialog.getByRole("button", { name: "Close sign-in", exact: true }).click();
+  await expect(page).toHaveURL(/\/settings$/);
   await expect(dialog).toHaveCount(0);
   await openOverlay(page);
   await page.reload();
@@ -99,13 +99,11 @@ test("auth overlay: continuation clears the slot; direct visits and reloads use 
   await expect(card.getByRole("heading", { name: "Sign in to Embel" })).toBeVisible();
   const box = await card.boundingBox();
   if (testInfo.project.name === "desktop") {
-    expect(box?.width).toBe(460);
-    expect(box?.x).toBe(490);
-    // Unavailable-account notice grows the honest card rather than hiding the status.
-    expect(box?.y).toBe(172);
+    // The same 440 px card as the dialog, centred on the page.
+    expect(box?.width).toBe(440);
+    expect(box?.x).toBe(500);
   }
-  await expect(card.locator(".e-mark")).toBeVisible();
-  await expect(card.locator('.e-icon[data-icon="arrow-right"]').first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Return to Home", exact: true })).toHaveAttribute("href", "/");
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
   await page.screenshot({ path: testInfo.outputPath("sign-in-page.png"), scale: "css" });
 });

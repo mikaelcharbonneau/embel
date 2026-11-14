@@ -90,7 +90,7 @@ test("signup: direct form validates passwords and waits for email without invent
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Create your Embel account", exact: true })).toBeVisible();
   const form = await fillSignup(page, "different inert password");
-  await expect(form.getByRole("alert")).toContainText("passwords didn't match");
+  await expect(form.getByRole("alert")).toContainText("passwords don't match");
   await expect(form.getByLabel("Password", { exact: true })).toHaveValue("");
   await expect(form.getByLabel("Confirm password", { exact: true })).toHaveValue("");
   expect(state.signupCount).toBe(0);
@@ -163,7 +163,9 @@ test("signup: prompt and scope survive signup, email waiting and subsequent sign
   await page.getByLabel("Account menu", { exact: true }).click();
   await page.locator(".workspace-account-menu").getByRole("link", { name: "Sign in", exact: true }).click();
   await page.getByRole("dialog").getByRole("link", { name: "Create account", exact: true }).click();
-  await expect(page.getByText("Your prompt is kept while you sign in.", { exact: false })).toBeVisible();
+  await expect(
+    page.getByText("Your idea is kept. It will be waiting when you're signed in.", { exact: false }),
+  ).toBeVisible();
   await fillSignup(page);
   await expect(page.getByRole("heading", { name: "Check your email", exact: true })).toBeVisible();
   await page.getByRole("dialog").getByRole("link", { name: "Sign in", exact: true }).click();
@@ -246,7 +248,7 @@ test("signup: a modal above direct sign-in has distinct accessible controls and 
   await expect(dialog.getByLabel("Password", { exact: true })).toHaveCount(1);
   expect(
     await page.evaluate(() => {
-      const ids = [...document.querySelectorAll(".auth-guided [id]")].map((element) => element.id);
+      const ids = [...document.querySelectorAll(".auth-card [id]")].map((element) => element.id);
       return ids.length === new Set(ids).size;
     }),
   ).toBe(true);
