@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { z } from "zod";
+import { ACTIVE_RUN_STATUSES } from "@/domain/generation-run";
 import { getVerifiedAccountContext } from "../auth/context";
 import { ApiError, logServerError } from "../http/errors";
 import { cancelSubscriptionsForDeletion } from "../billing/account-deletion";
@@ -162,7 +163,7 @@ async function cancelActiveGenerations(client: SupabaseClient, ownerId: string) 
     .from("generation_runs")
     .select("id")
     .eq("owner_id", ownerId)
-    .in("status", ["queued", "running"])
+    .in("status", ACTIVE_RUN_STATUSES)
     .limit(200);
   if (error) {
     logServerError("account_deletion_cancel_list", error);

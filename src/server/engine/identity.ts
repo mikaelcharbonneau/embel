@@ -1,9 +1,10 @@
 import "server-only";
 import { z } from "zod";
+import { generationRunStatusSchema } from "@/domain/generation-run";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 import { IDENTITY_DIRECTIONS_KIND } from "./identity-input";
-import { enabledGenerationKinds, type GenerationRunRow } from "./runs";
+import { enabledGenerationKinds, runAwaitsWorkflow, type GenerationRunRow } from "./runs";
 
 // Creative directions on the generation engine (docs/generation-engine.md, step 5).
 // The Creative direction screens keep their routes (/identity/batches); while the
@@ -26,7 +27,7 @@ const runRowSchema = z.object({
   owner_id: z.uuid(),
   project_id: z.uuid(),
   kind: z.literal(IDENTITY_DIRECTIONS_KIND),
-  status: z.enum(["queued", "running", "succeeded", "failed", "cancelled"]),
+  status: generationRunStatusSchema,
   workflow_run_id: z.string().nullable(),
   created_at: z.string(),
   input: z.object({ batchId: z.uuid() }).passthrough(),
@@ -82,5 +83,5 @@ export async function findIdentityDirectionsRun(
  * between admission and start) is started again; a duplicate start loses the claim. */
 const START_GRACE_MS = 15_000;
 export function identityRunNeedsStart(run: IdentityDirectionsRun, now = Date.now(), graceMs = START_GRACE_MS): boolean {
-  return run.status === "queued" && run.workflow_run_id === null && now - Date.parse(run.created_at) >= graceMs;
+  return runAwaitsWorkflow(run) && now - Date.parse(run.created_at) >= graceMs;
 }

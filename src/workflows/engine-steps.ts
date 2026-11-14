@@ -1,9 +1,10 @@
 import { FatalError } from "workflow";
+import type { GenerationRunStatus } from "@/domain/generation-run";
 
 // Step functions only. Server modules load inside each step body so nothing
 // Node-specific (pg, fs, the server-only guard) enters the workflow sandbox bundle.
 
-export type RunStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
+export type RunStatus = GenerationRunStatus;
 export type ClaimedRun = {
   id: string;
   ownerId: string;

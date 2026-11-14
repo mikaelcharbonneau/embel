@@ -30,7 +30,9 @@ import {
   type AccountWorkspace,
   type GuidedInterviewInput,
 } from "./account-draft-memory";
+import { accountSaveLabel, accountSaveStatus } from "./account-save-status";
 const emptyWorkspace = () => null;
+type Operation = { generation: number; projectId: string; busy: boolean; task?: "save" | "load"; error?: string };
 
 export function AccountProjectEditor({ projectId, navigation }: { projectId: string; navigation?: ReactNode }) {
   const { session, isCurrent, expire, drafts } = useAccountSession();
@@ -49,12 +51,18 @@ export function AccountProjectEditor({ projectId, navigation }: { projectId: str
     },
     [drafts, projectId],
   );
-  const [operation, setOperation] = useState<{
-    generation: number;
-    projectId: string;
-    busy: boolean;
-    error?: string;
-  } | null>(null);
+  const [operation, setOperationState] = useState<Operation | null>(null);
+  // The project bar reads the same save facts as this page, at the moment they change.
+  const setOperation = useCallback(
+    (next: Operation | null) => {
+      setOperationState(next);
+      drafts.setActivity(projectId, {
+        busy: next?.busy ? (next.task ?? "save") : null,
+        failed: Boolean(next?.error),
+      });
+    },
+    [drafts, projectId],
+  );
   const [confirmLatest, setConfirmLatest] = useState(false);
   const [browserCopy, setBrowserCopy] = useState<{ generation: number; id: string; persisted: boolean } | null>(null);
   const mutation = useRef<AbortController | null>(null);
@@ -86,8 +94,10 @@ export function AccountProjectEditor({ projectId, navigation }: { projectId: str
     () => () => {
       mutation.current?.abort();
       mutation.current = null;
+      // A request this page abandons is no longer saving anything.
+      drafts.setActivity(projectId, { busy: null, failed: false });
     },
-    [session.generation, projectId],
+    [session.generation, projectId, drafts],
   );
   const dirty = Boolean(workspace && changed(workspace));
   // Loading, signed-out and error states stand alone: their own card offers the way back (D-009, D-030).
@@ -154,11 +164,11 @@ export function AccountProjectEditor({ projectId, navigation }: { projectId: str
       setOperation({ generation: account.generation, projectId, busy: false });
     } else setOperation({ generation: account.generation, projectId, busy: false, error: accountErrorMessage(error) });
   }
-  function begin() {
+  function begin(task: "save" | "load" = "save") {
     const controller = new AbortController();
     mutation.current?.abort();
     mutation.current = controller;
-    setOperation({ generation: account.generation, projectId, busy: true });
+    setOperation({ generation: account.generation, projectId, busy: true, task });
     return controller;
   }
   async function save(
@@ -331,7 +341,7 @@ export function AccountProjectEditor({ projectId, navigation }: { projectId: str
   }
   async function loadLatest() {
     if (!isCurrent(account) || busy || mutation.current) return;
-    const controller = begin();
+    const controller = begin("load");
     try {
       const { project } = await boundedAccountRequest(`/api/projects/${projectId}`, accountProjectResponseSchema, {
         signal: controller.signal,
@@ -391,19 +401,19 @@ export function AccountProjectEditor({ projectId, navigation }: { projectId: str
 
   const hasSaveError =
     operation?.generation === account.generation && operation.projectId === projectId && Boolean(operation.error);
+  // One derivation for the page and the project bar (docs/state-machines.md, J3).
+  const saveStatus = accountSaveStatus({
+    workspace: active,
+    activity: { autosave: true, busy: busy ? (operation?.task ?? "save") : null, failed: hasSaveError },
+  });
+  const saveLabel = accountSaveLabel(saveStatus);
   const showActions =
     changed(active) || busy || active.conflict || hasSaveError || browserCopy?.generation === account.generation;
   const actions = showActions ? (
     <div className="account-edit-controls">
       {(changed(active) || busy) && (
         <div className="account-actions">
-          <p role="status">
-            {busy
-              ? "Saving…"
-              : hasSaveError || active.conflict || active.pendingGuidedContext || active.pendingDraftSave
-                ? "Changes not saved"
-                : "Saving changes…"}
-          </p>
+          <p role="status">{saveStatus === "queued" ? "Saving changes…" : saveLabel}</p>
           {(hasSaveError || active.pendingGuidedContext || active.pendingDraftSave) && !active.conflict && (
             <button
               className="button primary small"
@@ -562,7 +572,12 @@ export function AccountProjectEditor({ projectId, navigation }: { projectId: str
   );
   return (
     <>
-      <AccountDraftAutosave workspace={active} blocked={Boolean(busy || hasSaveError)} save={save} />
+      <AccountDraftAutosave
+        workspace={active}
+        blocked={Boolean(busy || hasSaveError)}
+        save={save}
+        announce={(autosave) => drafts.setActivity(projectId, { autosave })}
+      />
       <AccountGuidedInterview
         key={`${projectId}:${account.userId}:${account.generation}`}
         account={account}
@@ -573,13 +588,7 @@ export function AccountProjectEditor({ projectId, navigation }: { projectId: str
         onInputChange={updateGuidedInput}
         storage={{
           kind: "account",
-          saveLabel: busy
-            ? "Saving…"
-            : changed(active)
-              ? hasSaveError || active.conflict || active.pendingDraftSave
-                ? "Changes not saved"
-                : "Saving…"
-              : "Saved",
+          saveLabel,
           onUpdate: update,
           actions,
           projectLinks,
@@ -596,12 +605,20 @@ function AccountDraftAutosave({
   workspace,
   blocked,
   save,
+  announce,
 }: {
   workspace: AccountWorkspace;
   blocked: boolean;
   save: () => Promise<AccountWorkspace | null>;
+  announce: (autosave: boolean) => void;
 }) {
   const saveCurrent = useEffectEvent(() => void save());
+  // While this is mounted an edit is saved without anyone asking; the project bar may then say "Saving…".
+  const announceAutosave = useEffectEvent(announce);
+  useEffect(() => {
+    announceAutosave(true);
+    return () => announceAutosave(false);
+  }, []);
   useEffect(() => {
     if (
       blocked ||

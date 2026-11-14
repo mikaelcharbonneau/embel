@@ -12,7 +12,13 @@ import { IDENTITY_DIRECTIONS_KIND } from "./identity-input";
 import { buildLogoConceptsRunInput, buildLogoRefineRunInput, buildLogoStyleNoteRunInput } from "./logo";
 import { LOGO_CONCEPTS_KIND, LOGO_REFINE_KIND, LOGO_STYLE_NOTE_KIND } from "./logo-input";
 import { buildNamingRunInput, NAMING_KIND } from "./naming";
-import { admitGeneration, findGeneration, type GenerationRunRow, type startGenerationSchema } from "./runs";
+import {
+  admitGeneration,
+  findGeneration,
+  runAwaitsWorkflow,
+  type GenerationRunRow,
+  type startGenerationSchema,
+} from "./runs";
 import { buildStrategyRunInput, STRATEGY_OPERATIONS } from "./strategy";
 
 type InputBuilder = (auth: AuthenticatedContext, projectId: string, input: unknown) => Promise<Record<string, unknown>>;
@@ -76,7 +82,7 @@ export async function startGeneration(
     ? { ...request, input: existing ? {} : await build(auth, projectId, request.input ?? {}) }
     : request;
   const run = await admitGeneration(auth, projectId, admission);
-  if (run.status === "queued" && run.workflow_run_id === null) {
+  if (runAwaitsWorkflow(run)) {
     try {
       await start(workflow, [run.id]);
     } catch {

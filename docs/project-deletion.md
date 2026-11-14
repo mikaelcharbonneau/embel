@@ -4,6 +4,11 @@ _Status, November 10, 2026: "Product behavior" and "API and UI contract" describ
 The lock-order, job, reservation and rollout sections were written for the retired worker system and
 are kept as a record of the design; the retired worker objects they mention no longer exist._
 
+_November 14, 2026: deleting a project also stops its generation engine runs (migration
+`20261114130000_project_deletion_stops_generation_runs`). A run no workflow has picked up ends at once
+with its credits returned; a working run is asked to stop and ends within seconds. See R4 in
+[state-machines.md](state-machines.md)._
+
 ## Product behavior
 
 The three-dot menu on Projects and Home cards contains Delete. One confirmation,

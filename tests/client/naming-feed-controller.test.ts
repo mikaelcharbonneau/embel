@@ -415,6 +415,95 @@ describe("Try again", () => {
   });
 });
 
+describe("leaving the step while a request is in flight", () => {
+  /** A reply that never arrives: the request is still in flight when the person leaves. */
+  const unanswered = (call: Call) => (call.method === "POST" ? new Promise(() => {}) : { feed: page(call.path) });
+  it("forgets a Stop in flight, so coming back shows what the server says and can work again", async () => {
+    server = feed({ run: run("running", { savedCount: 40 }) });
+    const first = controller();
+    await first.load();
+    reply = unanswered;
+    void first.stop();
+    await settle();
+    expect(state().stopping).toBe(true);
+    first.dispose();
+    expect(state().stopping).toBe(false);
+    // The Stop never arrived and the run has since finished.
+    server = feed({ run: run("succeeded", { savedCount: 100, finishedAt: at(9) }) });
+    const second = controller();
+    await second.load();
+    expect(namingStatus(state())).toEqual({ kind: "idle" });
+    reply = () => {
+      server = { ...server, run: run("queued", { kind: "more" }) };
+      return { feed: page(base), run: server.run, reused: false };
+    };
+    expect(await second.more()).toBe(true);
+  });
+  it("shows a Stop the server received as stopping through the run itself", async () => {
+    server = feed({ run: run("running", { savedCount: 40 }) });
+    const first = controller();
+    await first.load();
+    reply = unanswered;
+    void first.stop();
+    await settle();
+    first.dispose();
+    server = feed({ run: run("cancel_requested", { savedCount: 40 }) });
+    reply = (call) => ({ feed: page(call.path) });
+    await controller().load();
+    expect(state().stopping).toBe(false);
+    expect(namingStatus(state())).toEqual({ kind: "stopping", message: "Stopping… 40 names saved." });
+  });
+  it("keeps an unanswered start for Try again with the same key when no run shows up", async () => {
+    const first = controller();
+    await first.load();
+    reply = unanswered;
+    void first.start();
+    await settle();
+    expect(namingStatus(state())).toEqual({ kind: "starting", message: "Generating names…" });
+    first.dispose();
+    const second = controller();
+    reply = (call) => ({ feed: page(call.path) });
+    await second.load();
+    expect(state().pending?.idempotencyKey).toBe("synthetic-key-0001");
+    expect(namingStatus(state())).toEqual({
+      kind: "error",
+      message: "Name generation couldn’t be confirmed. Try again.",
+    });
+    reply = () => {
+      server = { ...server, run: run("queued") };
+      return { feed: page(base), run: server.run, reused: true };
+    };
+    expect(await second.retry()).toBe(true);
+    expect(writes("/feed/ensure").map((call) => (call.body as { idempotencyKey: string }).idempotencyKey)).toEqual([
+      "synthetic-key-0001",
+      "synthetic-key-0001",
+    ]);
+    expect(state()).toMatchObject({ pending: null, error: null, retry: null });
+    expect(namingStatus(state()).kind).toBe("active");
+  });
+  it("settles an unanswered start when coming back shows the run it started", async () => {
+    const first = controller();
+    await first.load();
+    reply = unanswered;
+    void first.start();
+    await settle();
+    first.dispose();
+    server = feed({ run: run("running", { savedCount: 5 }) });
+    reply = (call) => ({ feed: page(call.path) });
+    await controller().load();
+    expect(state()).toMatchObject({ pending: null, error: null, retry: null });
+    expect(namingStatus(state())).toMatchObject({ kind: "active", message: "Generating names… 5 of 100" });
+    expect(writes("/feed/ensure")).toHaveLength(1);
+  });
+  it("leaves the state alone when nothing was in flight", async () => {
+    const first = controller();
+    await first.load();
+    const before = state();
+    first.dispose();
+    expect(state()).toBe(before);
+  });
+});
+
 describe("status copy", () => {
   const view = (patch: Partial<NamingFeedState>) =>
     namingStatus({

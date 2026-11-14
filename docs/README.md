@@ -11,6 +11,9 @@ the document.
 - [architecture.md](architecture.md): short map of the system and how one AI request flows.
 - [generation-engine.md](generation-engine.md): how AI runs: workflows, credits, limits, per-step notes.
 - [environment-variables.md](environment-variables.md): every variable the app reads, and where it is set.
+- [state-machines.md](state-machines.md): every mode-and-rules system in the app (run status, journey
+  progress, save status, each AI screen), where its rules live and its known defects. Read before
+  changing how a screen or a run moves between modes.
 
 ## Plans and status
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { generationRunStatusSchema } from "./generation-run";
 
 /** What the browser sees of a generation run: status, timing and outputs.
  * Never the frozen input, the workflow id or any cost (docs/generation-engine.md). */
@@ -8,7 +9,7 @@ export const generationRunSchema = z.strictObject({
     .string()
     .regex(/^[a-z]+(\.[a-z_]+)+$/u)
     .max(64),
-  status: z.enum(["queued", "running", "succeeded", "failed", "cancelled"]),
+  status: generationRunStatusSchema,
   credits: z.number().int().nonnegative(),
   errorCode: z.string().max(64).nullable(),
   cancelRequested: z.boolean(),

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isRunStopping } from "@/domain/generation-run";
 import type { GenerationRun } from "@/domain/generations";
 import {
   strategyJobResultSchema,
@@ -159,14 +160,13 @@ export function engineStrategyJob(run: GenerationRun, ownerId: string, projectId
             : [];
         })
       : [];
-  const active = run.status === "queued" || run.status === "running";
   const job = strategyJobSchema.safeParse({
     id: run.id,
     owner_id: ownerId,
     project_id: projectId,
     operation: operation.data,
     input_revision: run.inputRevision,
-    state: active && run.cancelRequested ? "cancel_requested" : run.status,
+    state: isRunStopping(run) ? "cancel_requested" : run.status,
     progress: run.status === "succeeded" ? 100 : 0,
     error_code: run.errorCode && /^[a-z][a-z0-9_]{0,79}$/.test(run.errorCode) ? run.errorCode : null,
     cancel_requested_at: run.cancelRequested ? (run.finishedAt ?? run.createdAt) : null,

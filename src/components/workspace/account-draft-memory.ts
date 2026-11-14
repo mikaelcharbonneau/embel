@@ -23,6 +23,16 @@ export type AccountWorkspace = {
     submittedInput?: Partial<GuidedInterviewInput>;
   };
 };
+/** What the open project page is doing about saving, shared so the project bar reads the same facts as the
+ * page. Session memory only; null when no project page is open, so nothing is saving on its own. */
+export type AccountSaveActivity = {
+  /** The page saves edits automatically shortly after they are made. */
+  autosave: boolean;
+  /** A request in flight: saving this tab's edits, or loading the latest saved version. */
+  busy: "save" | "load" | null;
+  /** The last save attempt ended in an error the person has not yet corrected or retried. */
+  failed: boolean;
+};
 export function accountDraftChanged(workspace: AccountWorkspace) {
   return (
     Boolean(workspace.pendingGuidedContext || workspace.pendingDraftSave) ||
@@ -126,6 +136,7 @@ export function reconcileAccountWorkspace(
 /** Lives only in the mounted session provider. Never writes browser storage. */
 export function createAccountDraftMemory() {
   const entries = new Map<string, AccountWorkspace>();
+  const activities = new Map<string, AccountSaveActivity>();
   const listeners = new Set<() => void>();
   const notify = () => {
     for (const listener of listeners) listener();
@@ -144,6 +155,17 @@ export function createAccountDraftMemory() {
     },
     clear: () => {
       entries.clear();
+      activities.clear();
+      notify();
+    },
+    /** The open project page's save activity, or null when no page is saving this project. */
+    activity: (projectId: string) => activities.get(projectId) ?? null,
+    setActivity: (projectId: string, patch: Partial<AccountSaveActivity>) => {
+      const previous = activities.get(projectId) ?? { autosave: false, busy: null, failed: false };
+      const next = { ...previous, ...patch };
+      if (next.autosave === previous.autosave && next.busy === previous.busy && next.failed === previous.failed) return;
+      if (next.autosave || next.busy || next.failed) activities.set(projectId, next);
+      else activities.delete(projectId);
       notify();
     },
     hasUnsaved: () => [...entries.values()].some(hasUnsaved),

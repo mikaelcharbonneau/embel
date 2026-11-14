@@ -99,6 +99,82 @@ const engine = {
     ),
 };
 
+describe("deleting a project with AI work in progress", () => {
+  const requestDeletion = (owner: string, project: { id: string; current_revision: number }, lifecycle = 0) =>
+    asRole(
+      db,
+      "authenticated",
+      owner,
+      async () =>
+        (
+          await db.query<{ summary: { deletion_state: string } }>(
+            "select public.request_project_deletion($1, $2, $3) as summary",
+            [project.id, project.current_revision, lifecycle],
+          )
+        ).rows[0]!.summary,
+    );
+  const run = async (id: string) =>
+    (
+      await db.query<Run & { cancel_requested_at: Date | null }>("select * from public.generation_runs where id = $1", [
+        id,
+      ])
+    ).rows[0]!;
+
+  it("ends a run no workflow has picked up and returns its credits", async () => {
+    const project = await seedProject(db);
+    const queued = await start(OWNER_A, project.id, "test.paid");
+    expect(await balance(OWNER_A)).toMatchObject({ balance: 20 });
+    expect((await requestDeletion(OWNER_A, project)).deletion_state).toBe("deleted");
+    expect(await run(queued.id)).toMatchObject({ status: "cancelled", error_code: "cancelled" });
+    expect(await balance(OWNER_A)).toMatchObject({ balance: 30 });
+  });
+
+  it("asks a working run to stop, so the workflow ends it and the credits come back", async () => {
+    const project = await seedProject(db);
+    const working = await start(OWNER_A, project.id, "test.paid");
+    await engine.claim(working.id);
+    await requestDeletion(OWNER_A, project);
+    expect(await run(working.id)).toMatchObject({ status: "running", cancel_requested_at: expect.any(Date) });
+    // What every workflow reads between paid steps.
+    const check = await asEngine(
+      async () =>
+        (
+          await db.query<{ c: { cancelRequested: boolean } }>("select fluid_private.engine_check($1) as c", [
+            working.id,
+          ])
+        ).rows[0]!.c,
+    );
+    expect(check.cancelRequested).toBe(true);
+    expect((await engine.finish(working.id, "cancelled", "cancelled")).status).toBe("cancelled");
+    expect(await balance(OWNER_A)).toMatchObject({ balance: 30 });
+  });
+
+  it("leaves finished runs and other projects' runs alone", async () => {
+    const deleted = await seedProject(db);
+    const kept = await seedProject(db);
+    const finished = await start(OWNER_A, deleted.id, "test.paid", key(1));
+    await engine.claim(finished.id);
+    await engine.finish(finished.id, "succeeded");
+    const elsewhere = await start(OWNER_A, kept.id, "test.paid", key(2));
+    await engine.claim(elsewhere.id, "wrun_fixture_2");
+    await requestDeletion(OWNER_A, deleted);
+    expect(await run(finished.id)).toMatchObject({ status: "succeeded", cancel_requested_at: null });
+    expect(await run(elsewhere.id)).toMatchObject({ status: "running", cancel_requested_at: null });
+  });
+
+  it("does not restart stopped work when the project is restored", async () => {
+    const project = await seedProject(db);
+    const queued = await start(OWNER_A, project.id, "test.paid");
+    await requestDeletion(OWNER_A, project);
+    await asRole(db, "authenticated", OWNER_A, () =>
+      db.query("select public.restore_project_deletion($1, $2, 1)", [project.id, project.current_revision]),
+    );
+    expect((await run(queued.id)).status).toBe("cancelled");
+    // The restored project can start fresh work.
+    expect((await start(OWNER_A, project.id, "test.paid", key(2))).status).toBe("queued");
+  });
+});
+
 describe("starting a generation", () => {
   it("creates one run per idempotency key and refuses a conflicting replay", async () => {
     const project = await seedProject(db);

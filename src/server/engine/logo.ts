@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { brandTextReadiness } from "@/domain/brand-board-fonts";
+import { generationRunStatusSchema, isActiveRun } from "@/domain/generation-run";
 import { IMAGE_INPUT_LIMITS } from "@/domain/logo-image-limits";
 import type { LogoUploadNoteStatus } from "@/domain/logo-saved-inputs";
 import { LOGO_STYLE_NOTE_VERSION, logoStyleNoteSchema, type LogoStyleNote } from "@/domain/logo-style-notes";
@@ -211,7 +212,7 @@ export type LikedUploadNote = { referenceId: string; status: LogoUploadNoteStatu
 const STYLE_NOTE_ATTEMPT_LIMIT = 2;
 const runSchema = z.object({
   id: z.uuid(),
-  status: z.enum(["queued", "running", "succeeded", "failed", "cancelled"]),
+  status: generationRunStatusSchema,
   input: z.unknown(),
 });
 const noteOutputSchema = z.object({ run_id: z.uuid(), output_key: z.string(), output: z.unknown() });
@@ -289,8 +290,7 @@ export async function engineUploadNotes(
     const asked = rows.filter((run) =>
       run.input.references.some((ref) => ref.referenceId === referenceId && ref.asset.contentHash === hash),
     );
-    if (asked.some((run) => run.status === "queued" || run.status === "running"))
-      return { referenceId, status: "pending" as const };
+    if (asked.some(isActiveRun)) return { referenceId, status: "pending" as const };
     // A request whose outcome is unknown is never repeated automatically.
     if (mine.some((note) => note.code === "send_interrupted") || asked.length >= STYLE_NOTE_ATTEMPT_LIMIT)
       return { referenceId, status: "unavailable" as const };

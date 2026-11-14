@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { ACTIVE_RUN_STATUSES, isRunStopping } from "@/domain/generation-run";
 import {
   namingFeedCursorSchema,
   namingGenerationFeedSchema,
@@ -49,12 +50,12 @@ export async function getNamingEngineFeed(
 
 /** An engine run in the feed's run shape. Engine runs have no separate job: jobId repeats the run id. */
 function namingRun(row: GenerationRunRow, kind: NamingRun["kind"]): NamingRun {
-  const active = row.status === "queued" || row.status === "running";
+  const stopping = isRunStopping({ status: row.status, cancelRequested: row.cancel_requested_at !== null });
   const parsed = namingRunSchema.safeParse({
     runId: row.id,
     jobId: row.id,
     kind,
-    state: active && row.cancel_requested_at ? "cancel_requested" : row.status,
+    state: stopping ? "cancel_requested" : row.status,
     target: 100,
     savedCount: 0,
     errorCode: row.error_code,
@@ -107,7 +108,7 @@ export async function stopNamingEngineRun(
     .eq("owner_id", auth.userId)
     .eq("project_id", project)
     .eq("kind", NAMING_KIND)
-    .in("status", ["queued", "running"])
+    .in("status", ACTIVE_RUN_STATUSES)
     .order("created_at", { ascending: false })
     .limit(1);
   if (active.error) throw new ApiError("integration_unavailable");

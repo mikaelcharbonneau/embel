@@ -51,6 +51,8 @@ import {
   GuidedChoices,
   GuidedChoicesEmpty,
   GuidedChoicesLoading,
+  GuidedStrategyReview,
+  type StrategyReviewStep,
   selectedOptions,
   stageQuestions,
 } from "./guided-interview-widgets";
@@ -758,6 +760,21 @@ export function AccountGuidedInterview({
     !workspace.pendingGuidedContext &&
     saved.scope === "complete_brand" &&
     getNamingReadiness(saved.context, saved.scope).ready;
+  // "Is Strategy done?" is saved twice: the conversation's stage and the review marks on the brief (J1 in
+  // docs/state-machines.md). A brief edit clears the marks and leaves the stage, so past Personality the
+  // names close with no slogan to wait for. Name the first unconfirmed step so the work area can offer it.
+  const strategyReview: StrategyReviewStep | null = (() => {
+    if (
+      saved.scope !== "complete_brand" ||
+      (state?.stage !== "slogan" && state?.stage !== "complete") ||
+      context.selectedName ||
+      state.turns.some((item) => item.stage === "slogan")
+    )
+      return null;
+    const readiness = getNamingReadiness(saved.context, saved.scope);
+    const first = readiness.ready ? undefined : readiness.missing[0];
+    return !first ? null : first === "description" || first === "reformulation" ? "brief" : first;
+  })();
   // On a cold reopen, let the saved Strategy answers load before the first Naming question.
   const historyChecked = Boolean(strategy.overview || strategy.readError);
   const showNaming = (briefOpen ? briefFromNaming : namingReady) && historyChecked;
@@ -1519,7 +1536,20 @@ export function AccountGuidedInterview({
         onMore={() => void moreSlogans()}
         canMore={!requestBlocked && Boolean(guidedAllowance(availability, "strategy.reformulate"))}
       />
-    ) : embelWorking || !problem ? (
+    ) : embelWorking ? (
+      <GuidedChoicesLoading stage="slogan" />
+    ) : strategyReview ? (
+      <GuidedStrategyReview
+        step={strategyReview}
+        disabled={Boolean(blocked)}
+        onReview={() => {
+          if (strategyReview === "brief") {
+            setBriefFromNaming(false);
+            setBriefOpen(true);
+          } else void revisit(strategyReview, turnOf(strategyReview)?.userMessageId ?? null);
+        }}
+      />
+    ) : !problem ? (
       <GuidedChoicesLoading stage="slogan" />
     ) : (
       <GuidedChoicesEmpty stage="slogan" />

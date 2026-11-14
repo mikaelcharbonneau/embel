@@ -26,7 +26,8 @@ import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { ProjectAccountState, ProjectOpening, ProjectPageErrorContext } from "./project-page-state";
 import { Button } from "@/components/ui/button";
 import { InlineMessage } from "@/components/ui/message";
-import { accountDraftChanged, reconcileAccountWorkspace } from "./account-draft-memory";
+import { reconcileAccountWorkspace } from "./account-draft-memory";
+import { accountBarSaveState, accountSaveStatus } from "./account-save-status";
 import { useProjectNextStep } from "./use-project-next-step";
 import { ProjectProgressContext, type ProjectProgress } from "./project-progress";
 import {
@@ -35,7 +36,6 @@ import {
   useProjectHeader,
   type ConversationSteps,
 } from "@/components/journey/project-header";
-import type { SaveState } from "@/components/journey/project-capsule";
 import { projectJourney, type JourneyStepView } from "@/domain/journey";
 import { WorkspaceNoticeContext } from "./workspace-layout";
 import { Icon } from "@/components/ui/icon";
@@ -134,6 +134,7 @@ function OwnedProjectShell({
   const { drafts, isCurrent, expire } = useAccountSession();
   const pathname = usePathname();
   const workspace = useSyncExternalStore(drafts.subscribe, () => drafts.get(projectId), empty);
+  const activity = useSyncExternalStore(drafts.subscribe, () => drafts.activity(projectId), empty);
   const [error, setError] = useState<string | null>(null);
   // The page below shows its own "We couldn’t open this brand" card; the strip then stays out of the way.
   const [pageError, setPageError] = useState(false);
@@ -189,18 +190,11 @@ function OwnedProjectShell({
       : null;
   const project = current?.saved ?? null;
   const nextHref = useProjectNextStep(account, project);
-  // "Saved" only reflects a project head confirmed by the server with no
-  // pending edits; read failures and conflicts are reported, not hidden.
-  const saveState: SaveState | null =
-    error || current?.conflict
-      ? "error"
-      : current
-        ? accountDraftChanged(current)
-          ? current.pendingDraftSave
-            ? "saving"
-            : "unsaved"
-          : "saved"
-        : null;
+  // The same derivation as the project page (docs/state-machines.md, J3). "Saved" only reflects a project
+  // head confirmed by the server with no pending edits; a failed read shows its notice instead of a status.
+  const saveState = accountBarSaveState(
+    accountSaveStatus({ workspace: current, activity: current ? activity : null, readFailed: Boolean(error) }),
+  );
   useProjectHeader(
     project
       ? {
