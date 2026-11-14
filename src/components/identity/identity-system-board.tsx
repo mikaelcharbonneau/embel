@@ -135,8 +135,9 @@ export function IdentitySystemBoard({
             }}
           />
         ) : (
-          <div className="identity-board-state">
-            <span>{shown?.loading ? "Checking private preview…" : (shown?.error ?? "Private board preview")}</span>
+          <div className="identity-board-state" data-state={shown?.error ? "failed" : "loading"}>
+            {/* While the board loads its frame stays empty (a skeleton); words only when something went wrong. */}
+            <span className={shown?.error ? undefined : "e-sr"}>{shown?.error ?? "Loading board"}</span>
             {shown?.error && (
               <button className="text-link" type="button" onClick={() => setRetry((value) => value + 1)}>
                 Retry preview

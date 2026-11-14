@@ -158,6 +158,16 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 
+it("keeps a loading board's frame wordless, with no 'private' wording, and names it for assistive technology", async () => {
+  const value = fixture();
+  const source = client();
+  await show("board", value, source);
+  const state = host.querySelector(".identity-board-state")!;
+  expect(state.getAttribute("data-state")).toBe("loading");
+  expect(host.textContent).not.toMatch(/private/i);
+  expect(state.querySelector(".e-sr")?.textContent).toBe("Loading board");
+});
+
 describe.each<Kind>(["asset", "reference", "logo", "board"])("%s private preview continuity", (kind) => {
   it("hands a board's already loaded picture to a listener that appears later (a board chosen after it loaded)", async () => {
     const value = fixture();
