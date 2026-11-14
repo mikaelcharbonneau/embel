@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import {
   brandBoardFont,
   brandTextDirection,
@@ -56,10 +56,28 @@ function LoadedSample({ font, weight, brandName }: { font: BrandBoardFont; weigh
     <bdi
       className={styles.sample}
       dir={brandTextDirection(brandName)}
-      style={{ fontFamily: family, fontWeight: weight }}
+      style={
+        {
+          fontFamily: family,
+          fontWeight: weight,
+          "--sample-longest-word": longestWordLength(brandName),
+        } as CSSProperties
+      }
     >
       {brandName}
     </bdi>
+  );
+}
+
+/** The longest word's length in characters, so the sample can shrink until that word fits on one line: the
+ * brand name breaks only between words, never inside one ("Kestrel Analytic / s"). */
+export function longestWordLength(name: string) {
+  return Math.max(
+    1,
+    ...name
+      .trim()
+      .split(/\s+/u)
+      .map((word) => [...word].length),
   );
 }
 
