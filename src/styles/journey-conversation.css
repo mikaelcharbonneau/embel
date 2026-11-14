@@ -399,7 +399,7 @@
 .inspiration-continue-row {
   position: sticky;
   bottom: 16px;
-  z-index: 5;
+  z-index: var(--z-sticky);
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -421,7 +421,7 @@
   text-decoration: none;
   font-size: var(--font-size-3);
   font-weight: 500;
-  box-shadow: 0 12px 28px -14px rgb(25 25 25 / 45%);
+  box-shadow: var(--shadow-raised);
 }
 .concept-project-workspace .workspace-main:has(.inspiration-message) {
   background-color: var(--color-bg-canvas);

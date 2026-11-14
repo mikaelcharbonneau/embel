@@ -2,7 +2,7 @@
 
 .navWrap {
   position: relative;
-  z-index: 30;
+  z-index: var(--z-nav);
   flex: 0 0 auto;
   display: flex;
   justify-content: center;
@@ -31,7 +31,7 @@
   background: var(--chip-on-artwork-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
-  box-shadow: 0 12px 32px -16px rgb(25 25 25 / 28%);
+  box-shadow: var(--shadow-raised);
 }
 .brand {
   display: inline-flex;
@@ -105,7 +105,7 @@
 }
 .menu {
   position: absolute;
-  z-index: 40;
+  z-index: var(--z-popover);
   top: calc(100% + 8px);
   left: 0;
   display: flex;
@@ -118,7 +118,7 @@
   background: var(--color-bg-paper);
   border: 1px solid var(--color-border);
   border-radius: 14px;
-  box-shadow: 0 16px 40px -16px rgb(25 25 25 / 30%);
+  box-shadow: var(--shadow-overlay);
 }
 .menu a {
   display: flex;

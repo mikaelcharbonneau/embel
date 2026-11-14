@@ -1,7 +1,7 @@
 .host {
   position: absolute;
   inset: 0;
-  z-index: 5;
+  z-index: var(--z-sticky);
   box-sizing: border-box;
   min-width: 0;
   pointer-events: none;
@@ -50,9 +50,7 @@
   background: var(--color-bg-paper);
   border: 1px solid var(--color-border);
   border-radius: var(--fc-radius, var(--radius-panel));
-  box-shadow:
-    0 2px 5px #1919190a,
-    0 6px 24px #19191914;
+  box-shadow: var(--shadow-raised);
 }
 
 .panel[data-placed="true"] {

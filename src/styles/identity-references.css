@@ -17,12 +17,12 @@
   right: 0;
   width: 295px;
   max-width: calc(100vw - 40px);
-  z-index: 5;
+  z-index: var(--z-popover);
   padding: 15px;
   background: var(--color-bg-paper);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
-  box-shadow: 0 7px 20px rgb(0 0 0 / 5%);
+  box-shadow: var(--shadow-overlay);
 }
 .identity-reference-tags > div > label {
   display: block;

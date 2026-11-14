@@ -2,7 +2,7 @@
    editing screens keep their layouts while the shared design is rolled out. */
 .concept-home .home-bottom-fade {
   position: absolute;
-  z-index: 10;
+  z-index: var(--z-sticky);
   left: 0;
   right: 0;
   bottom: 0;
@@ -50,7 +50,7 @@
 }
 .concept-home .home-composer.conversation-composer:focus-within {
   border-color: var(--color-border-control);
-  box-shadow: 0 16px 40px -16px rgb(25 25 25 / 20%);
+  box-shadow: var(--shadow-raised);
 }
 .concept-home .home-composer.conversation-composer.has-error {
   border-color: var(--color-border-danger);
@@ -136,7 +136,7 @@
   margin-left: auto;
 }
 .concept-home .home-input-popover-panel {
-  z-index: 40;
+  z-index: var(--z-popover);
 }
 .concept-home .home-examples {
   margin-top: var(--space-6);

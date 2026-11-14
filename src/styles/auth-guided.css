@@ -90,7 +90,7 @@
   position: absolute;
   top: var(--space-4);
   right: var(--space-4);
-  z-index: 1;
+  z-index: var(--z-raised);
 }
 
 /* Direct visits to /sign-in, /sign-up and the password pages: the same card on the page. */

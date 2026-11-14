@@ -123,7 +123,7 @@
 .inspiration-browse .inspiration-continue-bar {
   position: sticky;
   bottom: 16px;
-  z-index: 5;
+  z-index: var(--z-sticky);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -133,7 +133,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   background: var(--color-bg-paper);
-  box-shadow: 0 12px 32px -16px rgb(25 25 25 / 35%);
+  box-shadow: var(--shadow-raised);
   color: var(--color-text-muted);
   font-size: var(--font-size-2);
 }
@@ -392,10 +392,10 @@
   border-radius: var(--radius-panel);
   color: var(--color-text);
   background: var(--color-bg-paper);
-  box-shadow: 0 24px 100px rgb(0 0 0 / 20%);
+  box-shadow: var(--shadow-modal);
 }
 .inspiration-detail::backdrop {
-  background: rgb(25 25 25 / 40%);
+  background: var(--color-bg-scrim);
 }
 .inspiration-detail-layout {
   display: grid;
