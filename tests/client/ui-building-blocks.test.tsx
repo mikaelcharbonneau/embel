@@ -161,6 +161,27 @@ describe("Dialog", () => {
     await press(host.querySelector('dialog button[aria-label="Close"]'));
     expect(host.querySelector("dialog")).not.toBeNull();
   });
+
+  it("keeps a badge beside the title out of its name and puts header actions before Close", async () => {
+    const favorite = vi.fn();
+    await render(
+      <Dialog
+        title="Kestrel Analytics"
+        size="xl"
+        aside={<span className="e-badge">Your name</span>}
+        actions={<IconButton icon="heart" label="Favorite Kestrel Analytics" tooltip={false} onClick={favorite} />}
+        onClose={() => {}}
+      />,
+    );
+    const dialog = host.querySelector("dialog")!;
+    expect(dialog.className).toContain("e-dialog--xl");
+    expect(document.getElementById(dialog.getAttribute("aria-labelledby")!)?.textContent).toBe("Kestrel Analytics");
+    expect(dialog.querySelector("header")!.textContent).toContain("Your name");
+    const headerButtons = [...dialog.querySelectorAll("header button")].map((b) => b.getAttribute("aria-label"));
+    expect(headerButtons).toEqual(["Favorite Kestrel Analytics", "Close"]);
+    await press(dialog.querySelector('button[aria-label="Favorite Kestrel Analytics"]'));
+    expect(favorite).toHaveBeenCalledOnce();
+  });
 });
 
 describe("Menu", () => {
