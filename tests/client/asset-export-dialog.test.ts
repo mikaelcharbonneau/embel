@@ -203,12 +203,12 @@ it("does not publish delayed export evidence after the account becomes invalid",
   const host = await mount(client);
   expect(signal).toBeDefined();
   expect(signal?.aborted).toBe(false);
-  expect(host.textContent).toContain("Legacy record · provider unverified");
+  expect(host.textContent).not.toContain("unverified");
   current = false;
   await act(async () => pending.resolve(manifest));
   // Keep the component mounted and the signal live to isolate the account fence.
   expect(signal?.aborted).toBe(false);
-  expect(host.textContent).toContain("Legacy record · provider unverified");
+  expect(host.textContent).not.toContain("unverified");
   expect(host.textContent).not.toContain("Approved logo export");
   expect(host.textContent).not.toContain("Verified vector logo geometry");
   expect(host.querySelector(`a[href="/brands/account/${id(2)}/logo/deliverables"]`)).toBeNull();

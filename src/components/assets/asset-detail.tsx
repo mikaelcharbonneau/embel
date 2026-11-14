@@ -315,7 +315,8 @@ export function AssetDetailDialog({
                 <dd>{fileState ? `${version.format.toUpperCase()} · ${fileState}` : version.format.toUpperCase()}</dd>
               </div>
             )}
-            {evidence && (
+            {/* Origin, rights and vector rows describe an approved logo export; other images have nothing to state. */}
+            {evidence?.approvedExportId && (
               <>
                 <div>
                   <dt>Origin</dt>

@@ -404,8 +404,8 @@ test("assets fixture: stale restore needs explicit exact-context acknowledgment"
   const row = fixture.rows.find((row) => row.asset.id === id(10))!;
   expect(row.asset.usage).toEqual({ active: false, legacy: false });
   expect(row.versions.items).toHaveLength(3);
-  await expect(dialog.getByText("Legacy record · provider unverified", { exact: true })).toBeVisible();
-  await expect(dialog.getByText("License unverified", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Legacy record · provider unverified", { exact: true })).toHaveCount(0);
+  await expect(dialog.getByText("License unverified", { exact: true })).toHaveCount(0);
 });
 test("assets fixture: acknowledgment resets when a version changes", async ({ page }) => {
   await setup(page);
@@ -529,7 +529,7 @@ test("assets fixture: missing download is factual and never reports success", as
   await dialog.getByRole("button", { name: "Check and download" }).click();
   await expect(dialog.getByRole("status")).toContainText("file is unavailable");
   await expect(page.getByText("Synthetic private failure must not be rendered")).toHaveCount(0);
-  await expect(dialog.getByText("License unverified", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("License unverified", { exact: true })).toHaveCount(0);
 });
 test("assets fixture: metadata-only file never presents a working download", async ({ page }) => {
   await setup(page);
