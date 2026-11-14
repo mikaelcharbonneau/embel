@@ -313,6 +313,26 @@ describe("Brand bento", () => {
   });
 });
 
+describe("Failed gallery images", () => {
+  it("never put a Retry button inside a tile's open button; the large view keeps Retry", async () => {
+    await render("conversation");
+    const tileImages = [...host.querySelectorAll<HTMLImageElement>(".inspiration-brand-open img")];
+    await act(async () => tileImages[0]!.dispatchEvent(new Event("error")));
+    expect(host.querySelector(".inspiration-brand-open .inspiration-image-error")?.textContent).toBe(
+      "Image unavailable",
+    );
+    expect(host.querySelector("button button")).toBeNull();
+    const opener = host.querySelector<HTMLButtonElement>(".inspiration-brand-open")!;
+    await act(async () => opener.click());
+    const large = host.querySelector<HTMLImageElement>("dialog .inspiration-overlay-art img")!;
+    await act(async () => large.dispatchEvent(new Event("error")));
+    expect(
+      [...host.querySelectorAll<HTMLButtonElement>("dialog button")].some((item) => item.textContent === "Retry image"),
+    ).toBe(true);
+    expect(host.querySelector("button button")).toBeNull();
+  });
+});
+
 describe("Brand overlay", () => {
   it("says the choices stay with the brand by its real name, not the project's working title", async () => {
     await act(async () =>

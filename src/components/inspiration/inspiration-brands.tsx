@@ -77,12 +77,23 @@ function BrandImage({
   image,
   size,
   eager = false,
+  inButton = false,
 }: {
   image: InspirationPartImage;
   size: "small" | "large";
   eager?: boolean;
+  /** Drawn inside the tile's open button: a failed image shows no Retry of its own (no button inside a button);
+   * opening the brand loads it again in the large view, which has Retry. */
+  inButton?: boolean;
 }) {
   const [failed, setFailed] = useState(false);
+  if (failed && inButton)
+    return (
+      <span className="inspiration-image-error">
+        <Icon name="assets" />
+        <span>Image unavailable</span>
+      </span>
+    );
   if (failed)
     return (
       <span className="inspiration-image-error">
@@ -175,7 +186,7 @@ export function BrandCard({
                     aria-label={`Open ${brand.brand}: ${partLabel(image.part)}`}
                     onClick={() => onOpen(image.part)}
                   >
-                    <BrandImage image={image} size="small" />
+                    <BrandImage image={image} size="small" inButton />
                   </button>
                   <span className="inspiration-tile-label" aria-hidden="true">
                     {inspirationPartLabels[image.part]}
@@ -219,7 +230,7 @@ export function PartCard({
           aria-label={`Open ${brand.brand}: ${partLabel(image.part)}`}
           onClick={onOpen}
         >
-          <BrandImage image={image} size="small" />
+          <BrandImage image={image} size="small" inButton />
         </button>
         <LikeButton
           liked={liked}
