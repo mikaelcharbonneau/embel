@@ -23,7 +23,7 @@ vi.mock("@/components/workspace/account-session", () => ({
 vi.mock("@/components/workspace/account-profile-editor", () => ({ AccountProfileEditor: () => null }));
 // The plan card reads /api/billing; its own behavior is covered with the Plans page.
 vi.mock("@/components/billing/plan-credits-card", () => ({ PlanCreditsCard: () => null }));
-vi.mock("@/components/workspace/account-access", () => ({ AccountAccess: () => null }));
+vi.mock("@/components/workspace/account-access", () => ({ useSignOutFlow: () => ({ start: vi.fn(), dialog: null }) }));
 vi.mock("@/components/workspace/browser-local-date", () => ({
   BrowserLocalDate: ({ dateTime }: { dateTime: string }) => createElement("time", { dateTime }, dateTime),
 }));

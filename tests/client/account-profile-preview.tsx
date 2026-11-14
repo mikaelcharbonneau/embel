@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { AccountSessionProvider, useAccountSession } from "@/components/workspace/account-session";
 import { AccountProfileProvider, useAccountProfile } from "@/components/workspace/account-profile-provider";
-import { AccountAccess, AccountAccessNotice } from "@/components/workspace/account-access";
+import { AccountAccessNotice } from "@/components/workspace/account-access";
 import { SettingsWorkspace } from "@/components/workspace/settings-workspace";
 import { BrowserLocalDate } from "@/components/workspace/browser-local-date";
 import "@/styles/tokens.css";
@@ -19,7 +19,6 @@ function Preview() {
       </aside>
       <header style={{ padding: 16, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
         <span data-profile-name>{profile?.workspace?.saved.values.fullName || "My account"}</span>
-        <AccountAccess />
         <button type="button" onClick={refresh}>
           Recheck fixture account
         </button>

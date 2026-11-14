@@ -77,12 +77,22 @@ async function until(assert: () => void) {
   throw error;
 }
 const fullName = () => host.querySelector<HTMLInputElement>('input[autocomplete="name"]')!;
+// While the account is rechecked the fields are not drawn at all; when drawn they must not show the old edits.
+const shownName = () => host.querySelector<HTMLInputElement>('input[autocomplete="name"]')?.value ?? "";
 async function edit(patch: Partial<AccountProfile["values"]>) {
   await act(async () => profile.edit({ ...profile.workspace!.values, ...patch }));
 }
 async function click(label: string) {
   await act(async () => [...host.querySelectorAll("button")].find((button) => button.textContent === label)!.click());
 }
+// Edits save on their own after a pause (650 ms for the name). Wait past it in real time.
+async function autosave() {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 700));
+  });
+}
+const patches = () => fetcher.mock.calls.filter(([, init]) => init.method === "PATCH");
+const nameStatus = () => host.querySelector("#profile-fullName-status")!;
 beforeEach(async () => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   ownerId = ownerA;
@@ -129,7 +139,7 @@ describe("real profile and account providers", () => {
     ownerId = ownerB;
     saved = fixture(ownerB);
     expect(account.session).toMatchObject({ status: "ready", userId: ownerA });
-    await click("Save changes");
+    await autosave();
     await until(() => expect(account.session.status).toBe("signed_out"));
     const writes = fetcher.mock.calls.filter(([, init]) => init.method === "PATCH");
     expect(writes).toHaveLength(1);
@@ -143,8 +153,10 @@ describe("real profile and account providers", () => {
     expect(host.querySelector<HTMLInputElement>('input[autocomplete="email"]')?.readOnly).toBe(true);
     await edit({ fullName: "Renée Example", timeZone: "Asia/Tokyo", dateFormat: "iso" });
     expect(host.querySelector("[data-saved-name]")?.textContent).toBe("Saved A");
-    await click("Save changes");
-    await until(() => expect(host.textContent).toContain("Profile and date preferences saved"));
+    // Nothing claims "Saved" before the server confirms.
+    expect(nameStatus().textContent).toBe("Your name appears in the account menu.");
+    await autosave();
+    await until(() => expect(nameStatus().textContent).toBe("Saved"));
     expect(host.querySelector("[data-saved-name]")?.textContent).toBe("Renée Example");
     expect(host.querySelector("[data-date]")?.textContent).toBe("2026-10-13");
     expect(saved.revision).toBe(2);
@@ -171,7 +183,7 @@ describe("real profile and account providers", () => {
     expect(account.profileDrafts.hasUnsaved()).toBe(true);
     expect(profile.workspace).toBeNull();
     expect(host.textContent).not.toContain("Saved A");
-    expect(fullName().value).not.toBe("Unsaved private name");
+    expect(shownName()).not.toBe("Unsaved private name");
     await act(async () => account.refresh());
     await until(() => expect(fullName().value).toBe("Unsaved private name"));
     logoutStatus = 200;
@@ -197,7 +209,8 @@ describe("real profile and account providers", () => {
     await edit({ fullName: "Private draft A" });
     const pending = deferred<Response>();
     saveOverride = () => pending.promise;
-    await click("Save changes");
+    await autosave();
+    expect(nameStatus().textContent).toBe("Saving");
     const old = account.session as VerifiedAccount;
     const request = fetcher.mock.calls.find(([, init]) => init.method === "PATCH")![1];
     ownerId = ownerB;
@@ -205,7 +218,7 @@ describe("real profile and account providers", () => {
     saveOverride = null;
     await act(async () => account.refresh());
     expect(host.textContent).not.toContain("Saved A");
-    expect(fullName().value).not.toContain("Private draft A");
+    expect(shownName()).not.toContain("Private draft A");
     await until(() => expect(fullName().value).toBe("Saved B"));
     expect(request.signal.aborted).toBe(true);
     await act(async () =>
@@ -220,22 +233,24 @@ describe("real profile and account providers", () => {
     expect(account.profileDrafts.get(old)).toBeNull();
     expect(account.profileDrafts.hasUnsaved()).toBe(false);
   });
-  it("keeps a conflict draft, reads the latest settings, and requires an explicit overwrite choice", async () => {
+  it("reads the latest settings itself after a conflict and requires an explicit overwrite choice", async () => {
     await edit({ fullName: "My edit" });
     saved = { ...saved, revision: 2, values: { ...saved.values, fullName: "Another session" } };
-    await click("Save changes");
-    await until(() => expect(host.textContent).toContain("changed in another session"));
-    expect(fullName().value).toBe("My edit");
-    expect(fullName().disabled).toBe(true);
-    await click("Check saved settings");
-    await until(() => expect(host.textContent).toContain("Another session"));
+    await autosave();
+    await until(() => expect(host.textContent).toContain("Your settings changed in another session"));
+    expect(host.textContent).toContain("Another session");
     expect(saved.values.fullName).toBe("Another session");
     expect(fullName().value).toBe("My edit");
+    expect(fullName().disabled).toBe(true);
+    // No overwrite until the person chooses.
+    await autosave();
+    expect(patches()).toHaveLength(1);
     await click("Keep my edits");
     expect(fullName().disabled).toBe(false);
-    await click("Save changes");
+    await autosave();
     await until(() => expect(saved.values.fullName).toBe("My edit"));
     expect(saved.revision).toBe(3);
+    await until(() => expect(nameStatus().textContent).toBe("Saved"));
   });
   it("recovers a lost save acknowledgement by reading the stored values without repeating the mutation", async () => {
     await edit({ fullName: "Committed but response lost" });
@@ -243,15 +258,56 @@ describe("real profile and account providers", () => {
       saved = { ...saved, revision: 2, values: input.values };
       throw new Error("synthetic network failure");
     };
-    await click("Save changes");
-    await until(() => expect(host.textContent).toContain("Saving could not be confirmed"));
-    expect(fullName().disabled).toBe(true);
+    await autosave();
+    await until(() => expect(nameStatus().textContent).toBe("Couldn’t save. Check your connection.Try again"));
     expect(account.profileDrafts.hasUnsaved()).toBe(true);
-    await click("Check saved settings");
-    await until(() => expect(host.textContent).toContain("Saved settings checked"));
+    // A failed save is never retried on its own: it may have landed.
+    await autosave();
+    expect(patches()).toHaveLength(1);
+    await click("Try again");
+    await until(() => expect(nameStatus().textContent).toBe("Saved"));
     expect(fullName().value).toBe("Committed but response lost");
     expect(account.profileDrafts.hasUnsaved()).toBe(false);
-    expect(fetcher.mock.calls.filter(([, init]) => init.method === "PATCH")).toHaveLength(1);
+    await autosave();
+    expect(patches()).toHaveLength(1);
+  });
+  it("saves again after Try again when the read shows the failed save did not land", async () => {
+    await edit({ fullName: "Offline edit" });
+    saveOverride = async () => {
+      throw new Error("synthetic network failure");
+    };
+    await autosave();
+    await until(() => expect(nameStatus().textContent).toContain("Couldn’t save"));
+    // Typing stays possible after a failure; the edits wait for Try again.
+    await edit({ fullName: "Offline edit, longer" });
+    await autosave();
+    expect(patches()).toHaveLength(1);
+    expect(nameStatus().textContent).toContain("Couldn’t save");
+    saveOverride = null;
+    await click("Try again");
+    await autosave();
+    await until(() => expect(saved.values.fullName).toBe("Offline edit, longer"));
+    expect(patches()).toHaveLength(2);
+    expect(patches()[1]![1].body).toContain('"expectedRevision":1');
+    await until(() => expect(nameStatus().textContent).toBe("Saved"));
+  });
+  it("keeps edits typed while a save runs and saves them next", async () => {
+    await edit({ fullName: "First" });
+    const pending = deferred<Response>();
+    saveOverride = () => pending.promise;
+    await autosave();
+    expect(nameStatus().textContent).toBe("Saving");
+    expect(fullName().disabled).toBe(false);
+    await edit({ fullName: "First and second" });
+    saveOverride = null;
+    saved = { ...saved, revision: 2, values: { ...saved.values, fullName: "First" } };
+    await act(async () => pending.resolve(Response.json({ profile: saved })));
+    expect(fullName().value).toBe("First and second");
+    expect(nameStatus().textContent).not.toBe("Saved");
+    await autosave();
+    await until(() => expect(saved.values.fullName).toBe("First and second"));
+    expect(saved.revision).toBe(3);
+    await until(() => expect(nameStatus().textContent).toBe("Saved"));
   });
   it("rejects a foreign profile response and hides saved names when the profile API rejects the session", async () => {
     readOverride = async () => Response.json({ profile: fixture(ownerB) });
@@ -266,12 +322,14 @@ describe("real profile and account providers", () => {
     await edit({ fullName: "Pending" });
     const pending = deferred<Response>();
     saveOverride = () => pending.promise;
-    await click("Save changes");
-    expect(host.textContent).toContain("Saving your profile");
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(700);
+    });
+    expect(nameStatus().textContent).toBe("Saving");
     await act(async () => {
       await vi.advanceTimersByTimeAsync(30_000);
     });
-    expect(host.textContent).toContain("Saving could not be confirmed");
+    expect(nameStatus().textContent).toContain("Couldn’t save. Check your connection.");
     expect(profile.workspace?.mustReload).toBe(true);
     await act(async () =>
       pending.resolve(

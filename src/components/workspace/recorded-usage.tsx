@@ -2,6 +2,10 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { RECORDED_USAGE_LIMIT, recordedUsageSchema, type RecordedUsage } from "@/domain/recorded-usage";
+import { buttonClass } from "@/components/ui/button";
+import { EmptyState, Skeleton } from "@/components/ui/feedback";
+import { Icon } from "@/components/ui/icon";
+import { InlineMessage } from "@/components/ui/message";
 import { accountRequest, AccountRequestError } from "./account-api";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { BrowserLocalDate } from "./browser-local-date";
@@ -27,7 +31,7 @@ function tokensUsed(tokens: Entry["tokens"]) {
 }
 function usageSummary(usage: RecordedUsage) {
   const count = usage.entries.length;
-  if (!count) return "No requests yet. Your usage appears here after Embel completes a step for you.";
+  if (!count) return "No requests yet.";
   const used = usage.entries
     .map((entry) => tokensUsed(entry.tokens))
     .filter((value): value is number => value !== null);
@@ -40,7 +44,7 @@ function usageSummary(usage: RecordedUsage) {
 export function RecordedUsageSection({ active = true }: { active?: boolean }) {
   const { session } = useAccountSession();
   return (
-    <section className="recorded-usage" aria-labelledby="recorded-usage-title">
+    <section className="recorded-usage e-card" aria-labelledby="recorded-usage-title">
       {session.status === "ready" ? (
         <OwnedRecordedUsage key={`${session.userId}:${session.generation}`} account={session} active={active} />
       ) : (
@@ -70,9 +74,13 @@ export function RecordedUsageSection({ active = true }: { active?: boolean }) {
 function UsageHeader({ summary, action }: { summary?: string; action?: ReactNode }) {
   return (
     <header className="recorded-usage-header">
-      <div>
-        <h2 id="recorded-usage-title">Recent requests</h2>
-        <p className="recorded-usage-summary">{summary ?? "Requests Embel completed for you, newest first."}</p>
+      <div className="e-stack e-stack--xs">
+        <h2 id="recorded-usage-title" className="e-section__title">
+          Recent requests
+        </h2>
+        <p className="recorded-usage-summary e-section__hint">
+          {summary ?? "Requests Embel completed for you, newest first."}
+        </p>
       </div>
       {action}
     </header>
@@ -86,12 +94,24 @@ function CoverageNote() {
 function PendingUsageFrame() {
   // Public page capacity only: never carry private row counts, text or measured
   // geometry through account verification. Terminal states remove this frame.
+  // The column names are public too; the skeleton rows have the table's row height.
   return (
-    <div className="recorded-usage-pending-frame" aria-hidden="true" inert>
-      {Array.from({ length: RECORDED_USAGE_LIMIT }, (_, index) => (
-        <div key={index} className="recorded-usage-pending-slot" />
-      ))}
-    </div>
+    <>
+      <div className="recorded-usage-pending-head" aria-hidden="true">
+        <span>Step</span>
+        <span>Date</span>
+        <span>Tokens used</span>
+      </div>
+      <div className="recorded-usage-pending-frame" aria-hidden="true" inert>
+        {Array.from({ length: RECORDED_USAGE_LIMIT }, (_, index) => (
+          <div key={index} className="recorded-usage-pending-slot">
+            <Skeleton width={40} />
+            <Skeleton width={40} />
+            <Skeleton width={60} />
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -99,12 +119,15 @@ function UsageTable({ entries }: { entries: RecordedUsage["entries"] }) {
   const unrecorded = entries.some((entry) => tokensUsed(entry.tokens) === null);
   return (
     <>
-      <table className="recorded-usage-table">
+      <table className="e-table recorded-usage-table">
+        <caption className="sr-only">Recent requests</caption>
         <thead>
           <tr>
             <th scope="col">Step</th>
             <th scope="col">Date</th>
-            <th scope="col">Tokens used</th>
+            <th scope="col" className="is-num">
+              Tokens used
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -116,7 +139,7 @@ function UsageTable({ entries }: { entries: RecordedUsage["entries"] }) {
                 <td>
                   <BrowserLocalDate dateTime={entry.completedAt} />
                 </td>
-                <td>
+                <td className="is-num">
                   {used === null ? (
                     <>
                       <span aria-hidden="true">—</span>
@@ -217,13 +240,15 @@ function OwnedRecordedUsage({ account, active }: { account: VerifiedAccount; act
       <UsageHeader
         summary={snapshot ? usageSummary(snapshot) : undefined}
         action={
+          // aria-disabled, not disabled, while reading: the button keeps focus through a refresh.
           <button
             type="button"
-            className="button secondary small recorded-usage-refresh"
+            className={buttonClass({ size: "sm" }, "recorded-usage-refresh")}
             disabled={!active}
             aria-disabled={!active || pending}
             onClick={refresh}
           >
+            <Icon name="refresh-cw" size="sm" />
             Refresh
           </button>
         }
@@ -233,14 +258,22 @@ function OwnedRecordedUsage({ account, active }: { account: VerifiedAccount; act
         {pending ? (snapshot ? "Refreshing usage…" : "Loading usage…") : error ? "" : "Usage loaded."}
       </p>
       {error && (
-        <p className="recorded-usage-error" role="alert">
+        <InlineMessage tone="danger" className="recorded-usage-error">
           {snapshot
-            ? "Usage couldn’t be refreshed. The list shows the last results. Check your connection and try again."
-            : "Usage couldn’t be loaded. Check your connection and try again."}
-        </p>
+            ? "Usage couldn’t be refreshed. The list shows the last results. Check your connection, then press Refresh."
+            : "Usage couldn’t be loaded. Check your connection, then press Refresh."}
+        </InlineMessage>
       )}
       {!snapshot && pending && <PendingUsageFrame />}
       {snapshot && snapshot.entries.length > 0 && <UsageTable entries={snapshot.entries} />}
+      {snapshot && snapshot.entries.length === 0 && (
+        <EmptyState
+          icon="clock"
+          headingLevel={3}
+          title="No requests yet"
+          text="Your usage appears here after Embel completes a step for you."
+        />
+      )}
       <CoverageNote />
     </>
   );

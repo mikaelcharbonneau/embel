@@ -59,12 +59,18 @@ export function createAccountProfileMemory() {
   };
 }
 
+/**
+ * Reconciles a fresh read with the edits in memory. Every stored write moves the revision, so an unchanged
+ * revision after an interrupted save proves that save did not land: the edits stay and may be saved again
+ * (still against that revision, so a late landing is refused as a conflict). A moved revision with different
+ * values is shown for an explicit choice.
+ */
 export function receiveAccountProfile(previous: ProfileWorkspace | null, saved: AccountProfile): ProfileWorkspace {
   if (!previous || !profileHasEdits(previous) || sameProfileValues(previous.values, saved.values)) {
     return { saved, values: saved.values, latest: null, mustReload: false };
   }
-  if (previous.mustReload || previous.saved.revision !== saved.revision || previous.latest) {
+  if (previous.saved.revision !== saved.revision || previous.latest) {
     return { ...previous, latest: saved, mustReload: false };
   }
-  return { ...previous, saved };
+  return { ...previous, saved, mustReload: false };
 }

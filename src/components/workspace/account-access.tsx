@@ -1,12 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { useState, type ReactNode } from "react";
 import { useAccountSession } from "./account-session";
-import { preparePromptForSignIn } from "./prompt-recovery";
 import "@/styles/auth.css";
 
 /** Signing out, with the confirmation shown when unsaved account edits would be lost. Render `dialog`
@@ -43,72 +40,6 @@ export function useSignOutFlow(): { start: (discardUnsaved?: boolean) => Promise
     />
   ) : null;
   return { start, dialog };
-}
-
-/** Settings' sign-out and recovery controls: an explicit account check beside Sign out. The account menu
- * builds its own rows from `useSignOutFlow`. */
-export function AccountAccess() {
-  const { session, refresh, signingIn, signingUp, signingOut, signOutError } = useAccountSession();
-  const { start: startSignOut, dialog } = useSignOutFlow();
-
-  const signOutAvailable = session.status === "ready" || signingOut || Boolean(signOutError);
-  const signOutLabel = signingOut ? "Signing out…" : signOutError ? "Retry sign-out" : "Sign out";
-  const signInLink = (
-    <Link
-      className="text-link auth-session-action"
-      href="/sign-in"
-      onClick={(event) => {
-        if (!preparePromptForSignIn()) event.preventDefault();
-      }}
-    >
-      Sign in
-    </Link>
-  );
-
-  return (
-    <>
-      <div className="topbar-account auth-account-access">
-        <button
-          type="button"
-          className="icon-button subtle account-check"
-          aria-label={session.status === "checking" ? "Checking account…" : "Check account"}
-          title="Check account"
-          onClick={refresh}
-          disabled={session.status === "checking" || signingIn || signingOut}
-        >
-          <Icon name="refresh" size={18} />
-        </button>
-        {signingIn ? (
-          <button type="button" className="text-link auth-session-action" disabled>
-            {signingUp ? "Creating account…" : "Signing in…"}
-          </button>
-        ) : signOutAvailable ? (
-          <button
-            type="button"
-            className="text-link auth-session-action"
-            onClick={() => void startSignOut()}
-            disabled={signingOut}
-          >
-            {signOutLabel}
-          </button>
-        ) : session.status === "checking" ? (
-          <span className="text-link auth-session-action" role="status">
-            Checking account…
-          </span>
-        ) : (
-          signInLink
-        )}
-        <Link className="preview-badge" href="/settings">
-          {session.status === "ready"
-            ? "Account connected"
-            : session.status === "checking"
-              ? "Checking account…"
-              : "Sign in to save"}
-        </Link>
-      </div>
-      {dialog}
-    </>
-  );
 }
 
 export function AccountAccessNotice() {

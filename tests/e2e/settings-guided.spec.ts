@@ -30,7 +30,7 @@ async function open(page: Page, authenticated = false, fullName = "", path = "/s
     return route.fulfill({ status: 401, json: { error: "Synthetic signed-out fixture" } });
   });
   await page.goto(path);
-  await expect(page.getByRole("heading", { name: "Settings.", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
   return { paths, errors };
 }
 async function tab(page: Page, label: string) {
@@ -41,8 +41,8 @@ const usageStatus = (page: Page) => page.locator('.recorded-usage [role="status"
 test("Account and Usage are the only tabs, use honest states and trigger no mutations", async ({ page }) => {
   const state = await open(page);
   await expect(page.getByRole("tab")).toHaveText(labels);
-  await expect(page.getByLabel("Full name", { exact: true })).toBeDisabled();
-  await expect(page.getByLabel("Full name", { exact: true })).toHaveValue("Unavailable");
+  await expect(page.getByText("Sign in to edit your profile and preferences.", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Full name", { exact: true })).toHaveCount(0);
   for (const label of labels) {
     await tab(page, label);
     await expect(page.getByRole("tabpanel")).toHaveAttribute(
@@ -53,9 +53,8 @@ test("Account and Usage are the only tabs, use honest states and trigger no muta
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       page.viewportSize()!.width,
     );
-    if (label === "Account")
-      await expect(page.getByRole("button", { name: "Save changes", exact: true })).toBeDisabled();
-    else await expect(page.getByRole("tabpanel").locator(".sg-save")).toHaveCount(0);
+    // Changes save automatically: there is no Save button on either tab.
+    await expect(page.getByRole("button", { name: "Save changes", exact: true })).toHaveCount(0);
     await expect(page.getByText("Not available yet", { exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "View unavailable features", exact: true })).toHaveCount(0);
   }
@@ -99,8 +98,8 @@ test("Account sign-out reuses browser sign-out and keeps a failed sign-out visib
     expect(route.request().postDataJSON()).toEqual({});
     return route.fulfill({ status, json: status === 200 ? { authenticated: false } : { error: "Synthetic failure" } });
   });
-  const controls = page.locator(".sg-content .auth-account-access");
-  await expect(controls.locator(".preview-badge")).toBeHidden();
+  const controls = page.locator(".sg-content .sg-session");
+  await expect(controls.locator('a[href="/settings"]')).toHaveCount(0);
   await controls.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Sign-out couldn't be confirmed" })).toBeVisible();
   await expect(controls.getByRole("button", { name: "Retry sign-out", exact: true })).toBeVisible();
@@ -179,22 +178,18 @@ test("artwork, shared type, card shape and content width stay consistent", async
     expect(profile.x).toBeGreaterThanOrEqual(0);
     expect(profile.x + profile.width).toBeLessThanOrEqual(page.viewportSize()!.width);
     expect(profile.width).toBeLessThanOrEqual(1056);
-    const preferences = (await page.getByRole("region", { name: "Preferences", exact: true }).boundingBox())!;
+    // Signed out, the next section is "Sign in".
+    const preferences = (await page.getByRole("region", { name: "Sign in", exact: true }).boundingBox())!;
     expect(preferences.x).toBe(profile.x);
     expect(preferences.width).toBe(profile.width);
     expect(preferences.y).toBeGreaterThan(profile.y + profile.height);
+    // Page sections sit on the canvas under their headings; they are not cards.
     const appearance = await page.getByRole("region", { name: "Profile", exact: true }).evaluate((element) => ({
       family: getComputedStyle(element).fontFamily,
       border: getComputedStyle(element).borderTopWidth,
-      radius: getComputedStyle(element).borderTopLeftRadius,
     }));
     expect(appearance.family).toContain("Geist");
-    expect(appearance.border).toBe("1px");
-    expect(appearance.radius).toBe("16px");
-    const input = await page
-      .getByLabel("Full name", { exact: true })
-      .evaluate((element) => getComputedStyle(element).borderTopLeftRadius);
-    expect(input).toBe("12px");
+    expect(appearance.border).toBe("0px");
   }
   // Switching tabs keeps every tab in place: the active one does not change weight.
   const before = await page.getByRole("tab").evaluateAll((tabs) => tabs.map((tab) => tab.getBoundingClientRect().x));
@@ -286,7 +281,7 @@ test("Settings shows editable account options first and loads usage on demand", 
   await expect(page.getByLabel("Full name", { exact: true })).toHaveValue(longName);
   await expect(page.getByLabel("Full name", { exact: true })).toBeEditable();
   await expect(page.getByLabel("Email address", { exact: true })).not.toBeEditable();
-  await expect(page.getByText("You sign in with this email.", { exact: true })).toBeVisible();
+  await expect(page.getByText("You sign in with this email. It can’t be changed here.", { exact: true })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Time zone", exact: true })).toBeEnabled();
   await expect(page.getByRole("combobox", { name: "Time zone", exact: true })).toHaveValue("America/Toronto");
   await expect(page.getByRole("combobox", { name: "Time zone", exact: true }).locator("option:checked")).toHaveText(

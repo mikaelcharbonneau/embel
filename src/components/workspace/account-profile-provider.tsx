@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { accountProfileValuesSchema, type AccountProfileValues } from "@/domain/account-profile";
+import { accountProfileValuesSchema, sameProfileValues, type AccountProfileValues } from "@/domain/account-profile";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { AccountRequestError } from "./account-api";
 import { loadProfile, saveProfile } from "./account-profile-client";
@@ -9,17 +9,23 @@ import { profileHasEdits, receiveAccountProfile, type ProfileWorkspace } from ".
 
 type ProfileContext = {
   workspace: ProfileWorkspace | null;
+  /** Reading or saving. Reading locks the fields; edits made while a save runs are kept for the next save. */
   busy: boolean;
+  /** A save request is in flight. */
+  saving: boolean;
+  /** The server confirmed the values shown. Cleared by the next edit. */
+  confirmed: boolean;
   error: string | null;
-  notice: string | null;
   edit: (values: AccountProfileValues) => void;
+  /** Reads the stored settings; after a failed save this is "Try again" (an unlanded save then runs again). */
   reload: () => void;
   save: () => void;
   discard: () => void;
   keepEdits: () => void;
 };
 const ProfileContext = createContext<ProfileContext | null>(null);
-const emptyStatus = { busy: false, error: null, notice: null };
+const emptyStatus = { busy: false, saving: false, confirmed: false, error: null };
+export const PROFILE_SAVE_FAILED = "Couldn’t save. Check your connection.";
 
 export function AccountProfileProvider({ children }: { children: React.ReactNode }) {
   const { session, profileDrafts, isCurrent, expire } = useAccountSession();
@@ -31,17 +37,21 @@ export function AccountProfileProvider({ children }: { children: React.ReactNode
   const [status, setStatus] = useState<{
     generation: number;
     busy: boolean;
+    saving: boolean;
+    confirmed: boolean;
     error: string | null;
-    notice: string | null;
   }>({ generation: -1, ...emptyStatus });
   const request = useRef<AbortController | null>(null);
+  // The controller of the save in flight, if any.
+  const saving = useRef<AbortController | null>(null);
 
   const read = useCallback(
     (account: VerifiedAccount) => {
       request.current?.abort();
+      saving.current = null;
       const controller = new AbortController();
       request.current = controller;
-      setStatus({ generation: account.generation, busy: true, error: null, notice: null });
+      setStatus({ generation: account.generation, ...emptyStatus, busy: true });
       void loadProfile(controller.signal)
         .then((saved) => {
           if (controller.signal.aborted || !isCurrent(account)) return;
@@ -54,13 +64,9 @@ export function AccountProfileProvider({ children }: { children: React.ReactNode
           profileDrafts.set(account, next);
           setStatus({
             generation: account.generation,
-            busy: false,
-            error: null,
-            notice: next.latest
-              ? null
-              : previous?.mustReload
-                ? "Saved settings checked. The current saved values are shown."
-                : null,
+            ...emptyStatus,
+            // An interrupted save that the read shows was stored is confirmed by the server.
+            confirmed: Boolean(previous?.mustReload && !profileHasEdits(next)),
           });
         })
         .catch((error) => {
@@ -71,10 +77,8 @@ export function AccountProfileProvider({ children }: { children: React.ReactNode
           }
           setStatus({
             generation: account.generation,
-            busy: false,
-            notice: null,
-            error:
-              "Your profile could not be loaded. Your edits are kept in this tab. Check your connection and try again.",
+            ...emptyStatus,
+            error: "Your profile couldn’t be loaded. Check your connection, then try again.",
           });
         })
         .finally(() => {
@@ -92,6 +96,7 @@ export function AccountProfileProvider({ children }: { children: React.ReactNode
       clearTimeout(timer);
       request.current?.abort();
       request.current = null;
+      saving.current = null;
     };
   }, [session, read]);
 
@@ -100,11 +105,12 @@ export function AccountProfileProvider({ children }: { children: React.ReactNode
       ? status
       : { ...emptyStatus, busy: session.status === "ready" };
   function edit(values: AccountProfileValues) {
-    if (session.status !== "ready" || !isCurrent(session) || visibleStatus.busy) return;
+    if (session.status !== "ready" || !isCurrent(session) || (visibleStatus.busy && !saving.current)) return;
     const current = profileDrafts.get(session);
-    if (!current || current.mustReload || current.latest) return;
+    if (!current || current.latest) return;
     profileDrafts.set(session, { ...current, values });
-    setStatus({ generation: session.generation, ...emptyStatus });
+    // A running save keeps its status; a failed one keeps its message until "Try again".
+    if (!saving.current && !current.mustReload) setStatus({ generation: session.generation, ...emptyStatus });
   }
   function save() {
     if (session.status !== "ready" || !isCurrent(session) || request.current || visibleStatus.busy) return;
@@ -116,34 +122,28 @@ export function AccountProfileProvider({ children }: { children: React.ReactNode
       setStatus({
         generation: account.generation,
         ...emptyStatus,
-        error:
-          "Use a full name of up to 100 characters without control characters, and choose the supported date settings.",
+        error: "Use a full name of up to 100 characters, without control characters.",
       });
       return;
     }
+    const sent = values.data;
     const controller = new AbortController();
     request.current = controller;
+    saving.current = controller;
     profileDrafts.set(account, { ...current, mustReload: true });
-    setStatus({
-      generation: account.generation,
-      busy: true,
-      error: null,
-      notice: "Saving your profile and preferences…",
-    });
-    void saveProfile(account, { expectedRevision: current.saved.revision, values: values.data }, controller.signal)
+    setStatus({ generation: account.generation, ...emptyStatus, busy: true, saving: true });
+    void saveProfile(account, { expectedRevision: current.saved.revision, values: sent }, controller.signal)
       .then((saved) => {
         if (controller.signal.aborted || !isCurrent(account)) return;
         if (saved.ownerId !== account.userId) {
           expire(account);
           return;
         }
-        profileDrafts.set(account, { saved, values: saved.values, latest: null, mustReload: false });
-        setStatus({
-          generation: account.generation,
-          busy: false,
-          error: null,
-          notice: "Profile and date preferences saved to your account.",
-        });
+        // Edits typed while the save ran stay in memory for the next save.
+        const draft = profileDrafts.get(account)?.values;
+        const values = draft && !sameProfileValues(draft, sent) ? draft : saved.values;
+        profileDrafts.set(account, { saved, values, latest: null, mustReload: false });
+        setStatus({ generation: account.generation, ...emptyStatus, confirmed: true });
       })
       .catch((error) => {
         if (controller.signal.aborted || !isCurrent(account)) return;
@@ -151,18 +151,18 @@ export function AccountProfileProvider({ children }: { children: React.ReactNode
           expire(account);
           return;
         }
-        const conflict = error instanceof AccountRequestError && error.status === 409;
-        setStatus({
-          generation: account.generation,
-          busy: false,
-          notice: null,
-          error: conflict
-            ? "Your settings changed in another session. Check the saved settings before choosing which version to keep. Your edits are still here."
-            : "Saving could not be confirmed. Your edits are still here. Check the saved settings before trying another save.",
-        });
+        if (error instanceof AccountRequestError && error.status === 409) {
+          // Changed in another session: read the stored version so the choice can be shown.
+          if (request.current === controller) request.current = null;
+          read(account);
+          return;
+        }
+        // The edits stay; "Try again" reads first, so a save that did land is never sent twice.
+        setStatus({ generation: account.generation, ...emptyStatus, error: PROFILE_SAVE_FAILED });
       })
       .finally(() => {
         if (request.current === controller) request.current = null;
+        if (saving.current === controller) saving.current = null;
       });
   }
   function resolve(keep: boolean) {
@@ -176,11 +176,7 @@ export function AccountProfileProvider({ children }: { children: React.ReactNode
       latest: null,
       mustReload: false,
     });
-    setStatus({
-      generation: session.generation,
-      ...emptyStatus,
-      notice: keep ? "Your edits are ready to save over the version shown." : "Saved settings loaded.",
-    });
+    setStatus({ generation: session.generation, ...emptyStatus });
   }
   return (
     <ProfileContext.Provider

@@ -2,7 +2,9 @@
 
 import { useRef, useState } from "react";
 import { useAccountSession } from "./account-session";
-import { AccountAccess } from "./account-access";
+import { useSignOutFlow } from "./account-access";
+import { preparePromptForSignIn } from "./prompt-recovery";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { RecordedUsageSection } from "./recorded-usage";
 import { AccountProfileEditor } from "./account-profile-editor";
 import { AccountDataControls } from "./account-data-controls";
@@ -29,14 +31,12 @@ export function SettingsWorkspace() {
     tabs.current[index]?.focus();
   }
   return (
-    <div className="page settings-guided" data-category={category}>
-      <div className="sg-heading">
-        <h1>
-          Settings<span>.</span>
-        </h1>
-        <p>Manage your account and see your usage.</p>
-      </div>
-      <div className="sg-tabs" role="tablist" aria-label="Settings">
+    <div className="settings-guided e-container e-page" data-category={category}>
+      <header className="sg-heading e-stack e-stack--xs">
+        <h1 className="sg-heading__title">Settings</h1>
+        <p className="e-muted">Manage your account and see your usage.</p>
+      </header>
+      <div className="e-tabs sg-tabs" role="tablist" aria-label="Settings">
         {categories.map(([id, label], index) => (
           <button
             key={id}
@@ -45,6 +45,7 @@ export function SettingsWorkspace() {
             }}
             type="button"
             role="tab"
+            className="e-tab"
             id={`settings-tab-${id}`}
             aria-controls={`settings-panel-${id}`}
             aria-selected={category === id}
@@ -76,7 +77,7 @@ export function SettingsWorkspace() {
         return (
           <div
             key={id}
-            className="sg-content"
+            className="sg-content e-focus-inset"
             role="tabpanel"
             id={`settings-panel-${id}`}
             aria-labelledby={`settings-tab-${id}`}
@@ -96,27 +97,69 @@ export function SettingsWorkspace() {
 }
 
 function AccountSettings() {
-  const { session } = useAccountSession();
-  const signedIn = session.status === "ready";
   return (
     <>
       <AccountProfileEditor />
       <PlanCreditsCard />
-      <section className="sg-card sg-session" aria-label={signedIn ? "Sign out" : "Sign in"}>
-        <div className="sg-row">
-          <div className="sg-row-copy">
-            <strong>{signedIn ? "Sign out" : "Sign in"}</strong>
-            <p>
-              {signedIn
-                ? "Sign out of Embel on this device. Your work stays saved in your account."
-                : "Sign in to save your work and settings to your account."}
-            </p>
-          </div>
-          <AccountAccess />
-        </div>
-      </section>
+      <SessionSection />
       <AccountDataControls />
-      {/* Only on a local development server; hosted Embel never renders it. */}
     </>
+  );
+}
+
+/** Sign out (or Sign in) on this device, with the unsaved-edits confirmation from `useSignOutFlow`. A failed
+ * sign-out stays here as "Retry sign-out". The account check has no visible control here: when it fails, the
+ * Profile section says so with a labelled "Try again". The hidden check button keeps the explicit check
+ * reachable for the recorded-usage browser test, as before. */
+function SessionSection() {
+  const { session, refresh, signingIn, signingUp, signingOut, signOutError } = useAccountSession();
+  const { start, dialog } = useSignOutFlow();
+  const signedIn =
+    session.status === "ready" || session.status === "checking" || Boolean(signingOut) || Boolean(signOutError);
+  const signOutAvailable = session.status === "ready" || signingOut || Boolean(signOutError);
+  return (
+    <section className="e-section sg-session" aria-label={signedIn ? "Sign out" : "Sign in"}>
+      <h2 className="e-section__title">{signedIn ? "Sign out" : "Sign in"}</h2>
+      <div className="e-setting-row">
+        <p className="e-setting-row__text">
+          {signedIn
+            ? "Sign out of Embel on this device. Your work stays saved in your account."
+            : "Sign in to save your work and settings to your account."}
+        </p>
+        {signingIn ? (
+          <Button variant="secondary" disabled>
+            {signingUp ? "Creating account…" : "Signing in…"}
+          </Button>
+        ) : signOutAvailable ? (
+          <Button icon="log-out" variant="secondary" onClick={() => void start()} disabled={signingOut}>
+            {signingOut ? "Signing out…" : signOutError ? "Retry sign-out" : "Sign out"}
+          </Button>
+        ) : session.status === "checking" ? (
+          <span className="e-muted" role="status">
+            Checking account…
+          </span>
+        ) : (
+          <ButtonLink
+            variant="secondary"
+            href="/sign-in"
+            onClick={(event) => {
+              if (!preparePromptForSignIn()) event.preventDefault();
+            }}
+          >
+            Sign in
+          </ButtonLink>
+        )}
+        <button
+          type="button"
+          className="account-check"
+          hidden
+          onClick={refresh}
+          disabled={session.status === "checking" || signingIn || signingOut}
+        >
+          Check account
+        </button>
+        {dialog}
+      </div>
+    </section>
   );
 }

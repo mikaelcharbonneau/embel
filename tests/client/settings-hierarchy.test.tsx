@@ -20,17 +20,20 @@ const fixture = vi.hoisted(() => ({
   usageMount: vi.fn(),
   usageUnmount: vi.fn(),
   localAI: vi.fn(),
-  checkAccount: vi.fn(),
+  signOut: vi.fn(),
 }));
 vi.mock("@/components/workspace/account-session", () => ({
   useAccountSession: () => ({ session: fixture.session }),
   AccountStatus: () => createElement("p", null, "Synthetic account status"),
 }));
-vi.mock("@/components/workspace/account-profile-provider", () => ({ useAccountProfile: () => fixture.profile }));
+vi.mock("@/components/workspace/account-profile-provider", () => ({
+  useAccountProfile: () => fixture.profile,
+  PROFILE_SAVE_FAILED: "Couldn’t save. Check your connection.",
+}));
 // The plan card reads /api/billing; its own behavior is covered with the Plans page.
 vi.mock("@/components/billing/plan-credits-card", () => ({ PlanCreditsCard: () => null }));
 vi.mock("@/components/workspace/account-access", () => ({
-  AccountAccess: () => createElement("button", { type: "button", onClick: fixture.checkAccount }, "Sign out"),
+  useSignOutFlow: () => ({ start: fixture.signOut, dialog: null }),
 }));
 vi.mock("@/components/workspace/recorded-usage", () => ({
   RecordedUsageSection: ({ active }: { active: boolean }) => {
@@ -70,8 +73,9 @@ function setProfile(revision = 1) {
   fixture.profile = {
     workspace: { saved, values: saved.values, latest: null, mustReload: false },
     busy: false,
+    saving: false,
+    confirmed: false,
     error: null,
-    notice: null,
     edit: fixture.edit,
     save: fixture.save,
     discard: fixture.discard,
@@ -103,7 +107,7 @@ afterEach(async () => {
     fixture.discard,
     fixture.reload,
     fixture.keepEdits,
-    fixture.checkAccount,
+    fixture.signOut,
   ])
     expect(action).not.toHaveBeenCalled();
   await act(async () => root.unmount());
@@ -144,26 +148,31 @@ describe("Settings keeps only working options", () => {
     expect(email.readOnly).toBe(true);
     expect(email.value).toBe("fixture@example.invalid");
     expect(account.querySelector(`#${email.getAttribute("aria-describedby")}`)?.textContent).toBe(
-      "You sign in with this email.",
+      "You sign in with this email. It can’t be changed here.",
     );
     expect(account.querySelectorAll('select[aria-label="Language"], select[aria-label="Appearance"]')).toHaveLength(0);
     expect(account.textContent).not.toContain("Account connection");
-    expect(account.querySelector(".sg-save [role=status]")?.textContent).toBe("Your settings are saved.");
+    // Changes save on their own: no Save or Cancel buttons, and the profile says so.
+    expect(account.textContent).toContain("Changes on this page save automatically.");
+    expect(account.querySelector(`#${name.getAttribute("aria-describedby")}`)?.textContent).toBe(
+      "Your name appears in the account menu.",
+    );
     const signOut = account.querySelector('[aria-label="Sign out"]')!;
     expect(signOut.querySelector("button")?.textContent).toBe("Sign out");
-    expect(
-      account.querySelector(".sg-save")!.compareDocumentPosition(signOut) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).not.toBe(0);
-    expect([...account.querySelectorAll("button")].map((button) => button.textContent)).toEqual([
-      "Cancel",
-      "Save changes",
+    expect([...account.querySelectorAll("button:not([hidden])")].map((button) => button.textContent)).toEqual([
       "Sign out",
       "Download",
       "Delete account",
     ]);
+    expect([...account.querySelectorAll("h2")].map((heading) => heading.textContent)).toEqual([
+      "Profile",
+      "Preferences",
+      "Sign out",
+      "Your data",
+    ]);
     const data = account.querySelector('[aria-labelledby="account-data-title"]')!;
     expect(data.textContent).toContain("Download my data");
-    expect(data.querySelector("button.danger")?.textContent).toBe("Delete account");
+    expect(data.querySelector("button.e-button--danger")?.textContent).toBe("Delete account");
     fixture.profile = { ...fixture.profile, busy: true };
     await render();
     expect(account.querySelector('input[autocomplete="name"]')).toBe(name);
@@ -172,17 +181,53 @@ describe("Settings keeps only working options", () => {
     expect(format.disabled).toBe(true);
   });
 
-  it("does not claim saved settings before anything was saved", async () => {
+  it("shows Saved only after the server confirms, and one Try again after a failed save", async () => {
     setProfile(0);
     await render();
-    expect(panel("account").querySelector(".sg-save [role=status]")?.textContent).toBe("");
-    fixture.session = { status: "signed_out", generation: 2 };
-    fixture.profile = { workspace: null, busy: false, error: null, notice: null };
+    const status = () => panel("account").querySelector("#profile-fullName-status")!;
+    expect(status().textContent).toBe("Your name appears in the account menu.");
+    fixture.profile = { ...fixture.profile, busy: true, saving: true };
     await render();
-    expect(panel("account").querySelector(".sg-save [role=status]")?.textContent).toBe(
+    expect(status().textContent).toBe("Saving");
+    // A running save leaves the field editable.
+    expect(panel("account").querySelector<HTMLInputElement>('input[autocomplete="name"]')!.disabled).toBe(false);
+    fixture.profile = { ...fixture.profile, busy: false, saving: false, confirmed: true };
+    await render();
+    expect(status().textContent).toBe("Saved");
+    const workspace = (fixture.profile as { workspace: Record<string, unknown> }).workspace;
+    fixture.profile = {
+      ...fixture.profile,
+      confirmed: false,
+      error: "Couldn’t save. Check your connection.",
+      workspace: { ...workspace, mustReload: true },
+    };
+    await render();
+    expect(status().textContent).toBe("Couldn’t save. Check your connection.Try again");
+    expect(status().querySelectorAll("button")).toHaveLength(1);
+    await act(async () => status().querySelector("button")!.click());
+    expect(fixture.reload).toHaveBeenCalledOnce();
+    fixture.reload.mockClear();
+  });
+
+  it("asks to sign in instead of drawing empty fields when signed out", async () => {
+    fixture.session = { status: "signed_out", generation: 2 };
+    fixture.profile = { workspace: null, busy: false, error: null };
+    await render();
+    expect(panel("account").querySelector('input[autocomplete="name"]')).toBeNull();
+    expect(panel("account").querySelector("[role=status]")?.textContent).toBe(
       "Sign in to edit your profile and preferences.",
     );
-    expect(panel("account").querySelector('[aria-label="Sign in"] strong')?.textContent).toBe("Sign in");
+    expect(panel("account").querySelector('[aria-label="Sign in"] h2')?.textContent).toBe("Sign in");
+  });
+
+  it("holds the place of the fields with skeletons while the account is checked", async () => {
+    fixture.session = { status: "checking", generation: 2 };
+    fixture.profile = { workspace: null, busy: false, error: null };
+    await render();
+    const loading = panel("account").querySelector('[aria-busy="true"]')!;
+    expect(loading.getAttribute("role")).toBe("status");
+    expect(loading.querySelectorAll(".e-skeleton").length).toBeGreaterThan(0);
+    expect(panel("account").querySelector("input, select")).toBeNull();
   });
 
   it("labels time zones by city while keeping the saved identifier", async () => {

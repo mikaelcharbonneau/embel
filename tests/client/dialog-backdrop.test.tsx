@@ -4,7 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AssetDetailDialog } from "@/components/assets/asset-detail";
 import { GenerationActivity } from "@/components/workspace/generation-activity";
-import { AccountAccess } from "@/components/workspace/account-access";
+import { useSignOutFlow } from "@/components/workspace/account-access";
 import { SignInDialog } from "@/components/auth/sign-in-dialog";
 import type { AssetLibraryItem } from "@/domain/asset-library";
 import type { AccountAssetsClient } from "@/components/assets/account-assets-client";
@@ -64,6 +64,19 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 
+/** Settings' sign-out control: a button that starts the shared sign-out flow, with its confirmation. */
+function SignOutHarness() {
+  const { start, dialog } = useSignOutFlow();
+  return (
+    <>
+      <button type="button" onClick={() => void start()}>
+        Sign out
+      </button>
+      {dialog}
+    </>
+  );
+}
+
 const kinds = ["asset", "activity", "sign-out", "sign-in"] as const;
 type Kind = (typeof kinds)[number];
 async function mount(kind: Kind) {
@@ -79,7 +92,7 @@ async function mount(kind: Kind) {
         />,
       );
     else if (kind === "activity") root.render(<GenerationActivity />);
-    else if (kind === "sign-out") root.render(<AccountAccess />);
+    else if (kind === "sign-out") root.render(<SignOutHarness />);
     else
       root.render(
         <SignInDialog>

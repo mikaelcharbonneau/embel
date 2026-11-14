@@ -42,7 +42,11 @@ describe("owner-scoped profile edit memory", () => {
   });
   it("resolves uncertainty only with a fresh read and clears all retained data on logout", () => {
     const pending = { ...draft(), mustReload: true };
-    expect(receiveAccountProfile(pending, saved).latest).toEqual(saved);
+    // An unchanged revision proves the interrupted write did not land: keep the edits for another save.
+    expect(receiveAccountProfile(pending, saved)).toEqual({ ...pending, mustReload: false });
+    // A moved revision with other values still asks for an explicit choice.
+    const other = { ...saved, revision: 2, values: { ...saved.values, fullName: "Other session" } };
+    expect(receiveAccountProfile(pending, other).latest).toEqual(other);
     const current = { ...saved, revision: 2, values: pending.values };
     expect(receiveAccountProfile(pending, current)).toEqual({
       saved: current,

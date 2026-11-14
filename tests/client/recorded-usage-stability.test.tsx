@@ -136,7 +136,7 @@ describe("Recorded usage presentation", () => {
   it.each([
     [1, true, "1 request · 2 tokens used"],
     [2, false, "2 requests · tokens not recorded"],
-    [0, true, "No requests yet. Your usage appears here after Embel completes a step for you."],
+    [0, true, "No requests yet."],
   ] as const)("summarizes %i recorded requests plainly (recorded=%s)", async (count, recorded, expected) => {
     await render();
     const data = snapshot(count);
@@ -147,6 +147,10 @@ describe("Recorded usage presentation", () => {
     await settle(0, data);
     expect(summary()).toBe(expected);
     expect(host.querySelector("table")).toBe(count ? host.querySelector(".recorded-usage-table") : null);
+    // An empty account shows the empty state in place of the table.
+    expect(host.querySelector(".e-empty")?.textContent ?? null).toBe(
+      count ? null : "No requests yetYour usage appears here after Embel completes a step for you.",
+    );
   });
 
   it("shows complete long labels, dates and token values without padding a sparse result to the public capacity", async () => {
@@ -177,8 +181,9 @@ describe("Recorded usage presentation", () => {
         .filter((match) => match[1]!.split(",").some((item) => item.trim() === selector))
         .map((match) => match[2])
         .join(" ");
-    expect(declarations(".recorded-usage-entry > *")).toMatch(/block-size:\s*45px;/);
-    expect(declarations(".recorded-usage-pending-slot")).toMatch(/min-block-size:\s*45px;/);
+    // One row height for table rows and loading slots: the design system's table row.
+    expect(declarations(".recorded-usage-entry > *")).toMatch(/block-size:\s*var\(--table-row-height\);/);
+    expect(declarations(".recorded-usage-pending-slot")).toMatch(/min-block-size:\s*var\(--table-row-height\);/);
     expect(declarations(".recorded-usage-entry > *")).toMatch(/border-bottom:\s*1px solid var\(--color-border\);/);
     expect(declarations(".recorded-usage-pending-slot")).toMatch(/border-bottom:\s*1px solid var\(--color-border\);/);
     expect(declarations(".recorded-usage")).toMatch(/border-radius:\s*var\(--radius-card\);/);
@@ -256,7 +261,7 @@ describe("Recorded usage refresh continuity", () => {
     await settle(0, snapshot(), 503);
     expect(host.querySelector(".recorded-usage-pending-frame")).toBeNull();
     expect(host.querySelector('[role="alert"]')?.textContent).toBe(
-      "Usage couldn’t be loaded. Check your connection and try again.",
+      "Usage couldn’t be loaded. Check your connection, then press Refresh.",
     );
     expect(host.textContent).not.toContain("No requests yet");
   });
@@ -302,9 +307,9 @@ describe("Recorded usage refresh continuity", () => {
     expect(live()).toBe(status);
     expect(status.textContent).toBe("");
     const alert = host.querySelector('[role="alert"]')!;
-    expect(alert.className).toBe("recorded-usage-error");
+    expect(alert.classList.contains("recorded-usage-error")).toBe(true);
     expect(alert.textContent).toBe(
-      "Usage couldn’t be refreshed. The list shows the last results. Check your connection and try again.",
+      "Usage couldn’t be refreshed. The list shows the last results. Check your connection, then press Refresh.",
     );
     expect(host.querySelector(".recorded-usage-header")).toBe(header);
     expect(refresh()).toBe(button);
