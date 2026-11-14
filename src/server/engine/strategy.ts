@@ -216,6 +216,39 @@ async function engineReplies(auth: AuthenticatedContext, projectId: string, revi
     });
 }
 
+/** The results of this project's competitor research runs on the engine, so the
+ * competitor-icon route can check which websites the project's research named.
+ * Owner-scoped reads only; nothing is started or changed. */
+export async function engineCompetitorResults(auth: AuthenticatedContext, projectId: string): Promise<unknown[]> {
+  const runs = await auth.client
+    .from("generation_runs")
+    .select("id")
+    .eq("owner_id", auth.userId)
+    .eq("project_id", projectId)
+    .eq("status", "succeeded")
+    .eq("kind", "strategy.competitors")
+    .order("finished_at", { ascending: false })
+    .limit(20);
+  readFailure(runs.error);
+  const ids = z
+    .array(z.object({ id: z.uuid() }))
+    .parse(runs.data ?? [])
+    .map((run) => run.id);
+  if (!ids.length) return [];
+  const outputs = await auth.client
+    .from("generation_outputs")
+    .select("output")
+    .eq("owner_id", auth.userId)
+    .eq("output_key", "result")
+    .in("run_id", ids)
+    .limit(20);
+  readFailure(outputs.error);
+  return z
+    .array(z.object({ output: z.unknown() }))
+    .parse(outputs.data ?? [])
+    .map((row) => row.output);
+}
+
 // start_generation accepts at most 64 KiB of input. Leave room for the jsonb encoding.
 const INPUT_BUDGET_BYTES = 56_000;
 const bytes = (value: unknown) => new TextEncoder().encode(JSON.stringify(value)).byteLength;

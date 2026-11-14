@@ -7,6 +7,7 @@ import {
   type CompetitorIcon,
 } from "@/server/competitor-icons";
 import { getProject } from "@/server/data/projects";
+import { engineCompetitorResults } from "@/server/engine/strategy";
 import { getStrategyOverview } from "@/server/data/strategy-jobs";
 import { ApiError, errorResponse } from "@/server/http/errors";
 
@@ -49,7 +50,10 @@ export async function GET(request: Request, context: RouteContext) {
     const host = competitorIconHost(new URL(request.url).searchParams.get("host"));
     if (!projectId.success || !host) throw new ApiError("not_found");
     const project = await getProject(auth, projectId.data);
+    // Saved competitors first, then the research shown in the chat: engine runs
+    // today, and the old job system for projects that started there.
     let allowed = competitorHosts([project.context.competitors]);
+    if (!allowed.has(host)) allowed = competitorHosts([await engineCompetitorResults(auth, projectId.data)]);
     if (!allowed.has(host)) {
       const overview = await getStrategyOverview(auth, projectId.data);
       allowed = competitorHosts([overview.jobs.map((job) => job.results.map((result) => result.output))]);
