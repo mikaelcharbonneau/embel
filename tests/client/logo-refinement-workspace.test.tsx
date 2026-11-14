@@ -63,9 +63,9 @@ async function until(check: () => void) {
 const refinementQuotes = (f: Awaited<ReturnType<typeof syntheticRefinementWorkspaceHttp>>) =>
   f.quotes.filter((quote) => quote.operation === "refine_preview");
 const button = (label: string) => [...host.querySelectorAll("button")].find((node) => node.textContent === label);
-/** Concept 1 shows its saved refinement; choosing that card's image selects it. */
+/** Concept 1 shows its saved refinement; choosing that card's picture selects it (null while it cannot be chosen). */
 const selection = () =>
-  host.querySelector<HTMLElement>('[aria-label="Logo concepts"] [role="button"][aria-label="Select concept 1"]');
+  host.querySelector<HTMLElement>('[aria-label="Logo concepts"] button[aria-label="Concept 1"]:not(:disabled)');
 async function click(label: string) {
   await until(() => expect(button(label)?.disabled).toBe(false));
   await act(async () => button(label)!.click());

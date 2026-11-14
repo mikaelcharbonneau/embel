@@ -1,484 +1,345 @@
-import { GenerationAnimation } from "./generation-animation";
-import type { ReactNode } from "react";
-import type { LogoConceptBatch, LogoConceptPlan, LogoRequestState } from "../../domain/logo-jobs";
-import type { IdentityAssetReceipt } from "../../domain/logo-deliverables";
-import type { LogoCapability, LogoConceptSource, LogoRasterSource } from "../../domain/logo-workspace";
-import { logoCandidateKey } from "./candidate-review";
-import { acceptedConceptAttempt, CONCEPT_ORDINALS, LOGO_TYPE_LABELS } from "./presentation";
-import styles from "./logo-creation.module.css";
-import stage from "@/styles/branding-stage.module.css";
-import type { LogoCardVersion } from "./concept-versions";
-import { Icon } from "@/components/ui/icon";
+"use client";
 
-/** No polling, persistence or generation lives in this view. */
-export function LogoConceptGridView({
-  batch = null,
-  plan = null,
-  selected = null,
-  request = null,
-  generation,
-  refinement = generation,
-  savedBatchUnavailable = false,
-  savedBatchLoading = false,
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import type { LogoConceptBatch } from "../../domain/logo-jobs";
+import type { IdentityAssetReceipt } from "../../domain/logo-deliverables";
+import type { LogoRasterSource } from "../../domain/logo-workspace";
+import type { AccountLogoClient } from "../identity/account-logo-client";
+import { ArtworkChoice } from "@/components/ui/choice";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { WorkAreaLayer } from "@/components/workspace/work-area-layer";
+import { useWorkspaceOverlayHost, useWorkspaceResultRows } from "@/components/workspace/workspace-slots";
+import { Icon } from "@/components/ui/icon";
+import { MediaFrame } from "@/components/ui/media-frame";
+import { useLogoReveal } from "@/features/logo-reveal/use-logo-reveal";
+import { logoCandidateKey } from "./candidate-review";
+import type { LogoCardVersion } from "./concept-versions";
+import { acceptedConceptAttempt, CONCEPT_ORDINALS } from "./presentation";
+import { useVerifiedPreview } from "./verified-preview";
+import styles from "./logo-creation.module.css";
+
+/** What one of the six tiles shows. Display only: the workspace owns requests and saving. */
+type ConceptTile = {
+  ordinal: number;
+  slotId: string | null;
+  /** The version the tile shows (the chosen one, the one picked in the version menu, or the latest). */
+  version: LogoCardVersion | null;
+  preview: IdentityAssetReceipt | null;
+  source: LogoRasterSource | null;
+  state: "ready" | "drawing" | "waiting" | "failed" | "loading" | "unavailable";
+  selected: boolean;
+};
+
+/** The tile's version: the one viewed in the menu, else the chosen one when it is the newest choice, else the latest. */
+export function shownVersion(
+  history: readonly LogoCardVersion[],
+  viewed: { key: string; count: number } | undefined,
+  selectedVersion: LogoRasterSource | null,
+  selectionAt: string | undefined,
+): LogoCardVersion | undefined {
+  const latest = history.at(-1);
+  const saved = selectedVersion
+    ? history.find((version) => version.key === logoCandidateKey(selectedVersion))
+    : undefined;
+  return (
+    (viewed?.count === history.length ? history.find((item) => item.key === viewed.key) : undefined) ??
+    (saved && selectionAt && latest && Date.parse(selectionAt) >= Date.parse(latest.createdAt) ? saved : latest)
+  );
+}
+
+function conceptTiles({
+  batch,
+  versions,
+  viewedVersions,
+  selectedVersion,
+  selectionAt,
   drawingSlotIds,
   undrawnSlotIds,
-  gallery = false,
+  savedBatchLoading,
+  savedBatchUnavailable,
+}: {
+  batch: LogoConceptBatch | null;
+  versions: Record<string, LogoCardVersion[]>;
+  viewedVersions: Record<string, { key: string; count: number }>;
+  selectedVersion: LogoRasterSource | null;
+  selectionAt?: string;
+  drawingSlotIds?: ReadonlySet<string>;
+  undrawnSlotIds?: ReadonlySet<string>;
+  savedBatchLoading: boolean;
+  savedBatchUnavailable: boolean;
+}): ConceptTile[] {
+  return CONCEPT_ORDINALS.map((ordinal) => {
+    const slot = batch?.slots.find((item) => item.ordinal === ordinal);
+    const attempt = slot?.attempts.at(-1);
+    const accepted = slot ? acceptedConceptAttempt(slot) : null;
+    const history = slot ? (versions[slot.id] ?? []) : [];
+    const version =
+      (slot ? shownVersion(history, viewedVersions[slot.id], selectedVersion, selectionAt) : undefined) ?? null;
+    const source: LogoRasterSource | null =
+      version?.source ??
+      (batch && slot && accepted
+        ? { kind: "concept", batchId: batch.id, slotId: slot.id, attemptId: accepted.id }
+        : null);
+    const preview = version?.preview ?? accepted?.preview ?? null;
+    const drawing = Boolean(slot && drawingSlotIds?.has(slot.id)) || attempt?.state === "running";
+    const state: ConceptTile["state"] =
+      preview && accepted
+        ? "ready"
+        : drawing
+          ? "drawing"
+          : attempt?.state === "queued"
+            ? "waiting"
+            : attempt?.state === "failed" ||
+                attempt?.state === "cancelled" ||
+                attempt?.state === "needs_reconciliation" ||
+                (slot && undrawnSlotIds?.has(slot.id))
+              ? "failed"
+              : savedBatchUnavailable
+                ? "unavailable"
+                : batch && slot && !attempt
+                  ? "waiting"
+                  : "loading";
+    return {
+      ordinal,
+      slotId: slot?.id ?? null,
+      version,
+      preview,
+      source,
+      state: savedBatchLoading && !batch ? "loading" : state,
+      selected: Boolean(source && selectedVersion && logoCandidateKey(source) === logoCandidateKey(selectedVersion)),
+    };
+  });
+}
+
+/**
+ * The six logo concepts (decision 4): artwork only, the whole picture chooses it, Enlarge in the corner, the logo
+ * inset 12%. Two rows of three, sized from their own container so all six stay in view (decision 1). A concept being
+ * made is a drawing frame; one that arrives while on screen draws itself from its own pixels (decision 5).
+ * No polling, persistence or generation lives in this view.
+ */
+export function LogoConceptGridView({
+  batch = null,
+  client = null,
+  title,
+  subtitle,
+  actions,
+  notice,
+  drawingSlotIds,
+  undrawnSlotIds,
+  savedBatchUnavailable = false,
+  savedBatchLoading = false,
   versions = {},
-  selectedVersion = selected,
+  selectedVersion = null,
   selectionAt,
   viewedVersions = {},
-  onViewVersion,
   onSelectVersion,
-  filter = "all",
-  allowInputPreparation = false,
-  renderPreview,
-  onSelect,
-  onInspect,
-  comparison = [],
-  onCompare,
-  onRequestConcepts,
-  onRequestMore,
-  onRequestRefine,
-  onRequestRetryFailed,
-  onCheckRequest,
-  generationActions,
-  status,
 }: {
-  gallery?: boolean;
+  batch?: LogoConceptBatch | null;
+  /** Verifies and loads each private preview as a blob URL. */
+  client?: AccountLogoClient | null;
+  title: ReactNode;
+  /** The ready count or the chosen concept, under the title. */
+  subtitle: ReactNode;
+  /** The heading row's actions: the version menu, Download PNG, More concepts, Retry. */
+  actions?: ReactNode;
+  /** One message between the heading and the tiles (a failure with its retry, an out-of-credits message). */
+  notice?: ReactNode;
   /** Slots a running round is still drawing (generation engine). */
   drawingSlotIds?: ReadonlySet<string>;
   /** Slots its round ended without drawing (stopped or timed out). */
   undrawnSlotIds?: ReadonlySet<string>;
-  generationActions?: ReactNode;
-  /** Gallery only: a short selection status shown with the ready count. */
-  status?: ReactNode;
-  versions?: Record<string, LogoCardVersion[]>;
-  selectedVersion?: LogoRasterSource | null;
-  selectionAt?: string;
-  viewedVersions?: Record<string, { key: string; count: number }>;
-  onViewVersion?: (slotId: string, key: string, count: number) => void;
-  onSelectVersion?: (source: LogoRasterSource) => void;
-  /** Preparing saved inputs can reveal a setup blocker without admitting work. */
-  allowInputPreparation?: boolean;
-  filter?: "all" | "saved";
-  batch?: LogoConceptBatch | null;
-  plan?: LogoConceptPlan | null;
-  selected?: LogoConceptSource | null;
-  request?: LogoRequestState | null;
-  generation?: LogoCapability;
-  refinement?: LogoCapability;
   /** Saved concepts could not be verified; this is not a confirmed empty workspace. */
   savedBatchUnavailable?: boolean;
   /** Saved reads are incomplete; absence is not yet a confirmed empty workspace. */
   savedBatchLoading?: boolean;
-  /** The owning client wrapper must provide and release only verified image previews. */
-  renderPreview?: (receipt: IdentityAssetReceipt) => ReactNode;
-  onSelect?: (source: LogoConceptSource) => void;
-  onInspect?: (source: LogoConceptSource) => void;
-  comparison?: LogoRasterSource[];
-  onCompare?: (source: LogoConceptSource) => void;
-  onRequestConcepts?: () => void;
-  onRequestMore?: () => void;
-  onRequestRefine?: (source: LogoConceptSource) => void;
-  onRequestRetryFailed?: (slotIds: string[]) => void;
-  /** Supplied only when the owner retains an original request identity for read-only recovery. */
-  onCheckRequest?: () => void;
+  versions?: Record<string, LogoCardVersion[]>;
+  selectedVersion?: LogoRasterSource | null;
+  selectionAt?: string;
+  viewedVersions?: Record<string, { key: string; count: number }>;
+  /** Choosing is not final: Send (or Continue) commits it. Absent while a choice cannot be saved. */
+  onSelectVersion?: (source: LogoRasterSource) => void;
 }) {
-  const activePlan = batch?.plan ?? plan;
-  const readyCount = batch?.slots.filter((slot) => acceptedConceptAttempt(slot)).length ?? 0;
-  const failedSlotIds =
-    batch?.slots
-      .filter(
-        (slot) =>
-          !acceptedConceptAttempt(slot) &&
-          slot.attempts.at(-1)?.state === "failed" &&
-          slot.attempts.at(-1)?.billing.status === "recorded",
-      )
-      .map((slot) => slot.id) ?? [];
-  const canGenerate = generation?.status === "available";
-  const selectedSlot =
-    batch?.id === selected?.batchId ? batch?.slots.find((slot) => slot.id === selected?.slotId) : undefined;
-  const acceptedSelection = selectedSlot ? acceptedConceptAttempt(selectedSlot) : null;
-  const validSelection = Boolean(selected && acceptedSelection?.id === selected.attemptId);
-  const recoveryPending = Boolean(onCheckRequest && !batch && (!request || request.status === "not_found"));
-  const uncertain =
-    recoveryPending ||
-    request?.status === "needs_reconciliation" ||
-    batch?.slots.some((slot) => {
-      const attempt = slot.attempts.at(-1);
-      return (
-        attempt?.state === "needs_reconciliation" ||
-        (attempt?.state === "failed" && attempt.billing.status === "unknown")
-      );
-    });
-  const progressMessage = savedBatchUnavailable
-    ? "Saved concept details unavailable"
-    : savedBatchLoading
-      ? "Loading saved concepts…"
-      : readyCount + " of 6 concepts ready";
-  const stateLabel = {
-    queued: "Waiting",
-    running: "Creating",
-    succeeded: "Ready",
-    failed: "Failed",
-    cancelled: "Cancelled",
-    needs_reconciliation: "Outcome uncertain",
-  };
+  const tiles = conceptTiles({
+    batch,
+    versions,
+    viewedVersions,
+    selectedVersion,
+    selectionAt,
+    drawingSlotIds,
+    undrawnSlotIds,
+    savedBatchLoading,
+    savedBatchUnavailable,
+  });
+  const [urls, setUrls] = useState<Record<number, string>>({});
+  const [enlarged, setEnlarged] = useState<number | null>(null);
+  // In the Workspace the larger view opens over the work area only, so the chat stays usable beside it.
+  const overlay = useWorkspaceOverlayHost();
+  // In the Workspace the work column narrows so both rows of three stay in view (decision 1).
+  useWorkspaceResultRows(2);
+  const viewable = tiles.filter((tile) => tile.state === "ready" && urls[tile.ordinal]);
+  const shown = enlarged === null ? null : (viewable.find((tile) => tile.ordinal === enlarged) ?? null);
+  const position = shown ? viewable.indexOf(shown) : -1;
   return (
-    <section
-      className={gallery ? styles.gallery : styles.panel}
-      aria-label="Logo concepts"
-      aria-busy={savedBatchLoading}
-    >
-      {!gallery && (
-        <>
-          <div className={styles.heading}>
-            <div>
-              <p className={styles.eyebrow}>03 / Explore</p>
-              <h2 className={stage.sectionHeading}>Six starting points</h2>
-            </div>
-            <span className={styles.badge}>Black and white</span>
-          </div>
-          <p className={styles.muted}>Six total concepts, with the logo type shown on each card.</p>
-          {activePlan && (
-            <p className={styles.note}>
-              Included: {activePlan.coveredTypes.map((type) => LOGO_TYPE_LABELS[type]).join(", ")}.
-              {activePlan.uncoveredTypes.length > 0 && (
-                <>
-                  {" "}
-                  Not included in this batch:{" "}
-                  {activePlan.uncoveredTypes.map((type) => LOGO_TYPE_LABELS[type]).join(", ")}. A later batch can cover
-                  these types.
-                </>
-              )}
-            </p>
-          )}
-        </>
-      )}
-      {/* Before the first set, the conversation shows the question, not six empty frames. */}
-      {gallery && !batch && !savedBatchLoading && !savedBatchUnavailable ? (
-        <>
-          {generationActions && <div className={styles.generationActions}>{generationActions}</div>}
-          {!generationActions && (
-            <div className={styles.generationActions}>
-              <button
-                className={styles.primaryButton}
-                type="button"
-                disabled={(!canGenerate && !allowInputPreparation) || !onRequestConcepts}
-                onClick={onRequestConcepts}
-              >
-                Generate six concepts
-              </button>
-            </div>
-          )}
-        </>
-      ) : gallery ? (
-        <div className={styles.galleryToolbar}>
-          {/* One row: the selection status and ready count on the left, More concepts on the right. */}
-          <p className={styles.galleryProgress} role="status" aria-live="polite">
-            {status && <span>{status}</span>}
-            <span>{progressMessage}</span>
+    <section className={styles.step} aria-label="Logo concepts" aria-busy={savedBatchLoading}>
+      <header className={styles.stepHeader}>
+        <div className="e-stack e-stack--xs">
+          <h2 className={styles.stepTitle}>{title}</h2>
+          <p className="e-muted" role="status" aria-live="polite">
+            {subtitle}
           </p>
-          {generationActions && batch && <div className={styles.generationActions}>{generationActions}</div>}
         </div>
-      ) : (
-        <>
-          {generationActions && (batch || (!savedBatchLoading && !savedBatchUnavailable)) && (
-            <div className={styles.generationActions}>{generationActions}</div>
-          )}
-          <p className={styles.progress} role="status" aria-live="polite">
-            {progressMessage}
-          </p>
-        </>
-      )}
-      {uncertain && (
-        <p className={styles.warning}>
-          {onCheckRequest
-            ? "Outcome uncertain. Check the existing request before trying again. Completed concepts stay available."
-            : "An earlier concept's outcome was never confirmed. Completed concepts stay available."}
-        </p>
-      )}
-      {(!gallery || batch || savedBatchLoading || savedBatchUnavailable) && (
-        <ol className={styles.concepts}>
-          {CONCEPT_ORDINALS.map((ordinal) => {
-            const slot = batch?.slots.find((item) => item.ordinal === ordinal);
-            const planned = activePlan?.slots.find((item) => item.ordinal === ordinal);
-            const attempt = slot?.attempts.at(-1);
-            const accepted = slot ? acceptedConceptAttempt(slot) : null;
-            const drawing = Boolean(slot && drawingSlotIds?.has(slot.id)),
-              undrawn = Boolean(slot && undrawnSlotIds?.has(slot.id));
-            const imageUnavailable =
-              !accepted && attempt?.state === "failed" && attempt.reason === "logo_image_unavailable";
-            const source: LogoConceptSource | null =
-              batch && slot && accepted
-                ? { kind: "concept", batchId: batch.id, slotId: slot.id, attemptId: accepted.id }
-                : null;
-            const history = slot ? (versions[slot.id] ?? []) : [];
-            const latest = history.at(-1);
-            const viewed = slot ? viewedVersions[slot.id] : undefined;
-            const savedVersion = selectedVersion
-              ? history.find((version) => version.key === logoCandidateKey(selectedVersion))
-              : undefined;
-            const version =
-              (viewed?.count === history.length ? history.find((item) => item.key === viewed.key) : undefined) ??
-              (savedVersion && selectionAt && latest && Date.parse(selectionAt) >= Date.parse(latest.createdAt)
-                ? savedVersion
-                : latest);
-            const displayedSource = gallery ? (version?.source ?? source) : source;
-            const preview = gallery ? (version?.preview ?? accepted?.preview) : accepted?.preview;
-            const selectDisplayed = displayedSource
-              ? onSelectVersion
-                ? () => onSelectVersion(displayedSource)
-                : displayedSource.kind === "concept" && onSelect
-                  ? () => onSelect(displayedSource)
-                  : undefined
-              : undefined;
-            const isSelected = Boolean(
-              displayedSource &&
-              selectedVersion &&
-              logoCandidateKey(displayedSource) === logoCandidateKey(selectedVersion),
-            );
-            const isCompared = Boolean(
-              source && comparison.some((item) => logoCandidateKey(item) === logoCandidateKey(source)),
-            );
-            return (
-              <li
-                className={gallery ? styles.galleryCard : styles.conceptCard}
-                key={ordinal}
-                hidden={filter === "saved" && !savedBatchLoading && !isSelected && !savedVersion}
-                data-concept-ordinal={ordinal}
-                data-concept-slot={slot?.id}
-                data-selected={isSelected || undefined}
-              >
-                {!gallery && (
-                  <>
-                    <div className={styles.cardHeading}>
-                      <h3 className={stage.subheading}>Concept {ordinal + 1}</h3>
-                      <span className={styles.badge}>
-                        {attempt ? stateLabel[attempt.state] : savedBatchUnavailable ? "Unavailable" : "Not requested"}
-                      </span>
-                    </div>
-                    <p className={styles.typeLabel}>
-                      {planned
-                        ? LOGO_TYPE_LABELS[planned.type]
-                        : savedBatchUnavailable
-                          ? "Saved logo type unavailable"
-                          : "Choose logo types to begin"}
-                    </p>
-                  </>
-                )}
-                {gallery && history.length > 1 && (
-                  <label className={styles.versionPicker}>
-                    <select
-                      aria-label={`Versions for concept ${ordinal + 1}`}
-                      value={version?.key}
-                      disabled={!onSelectVersion}
-                      onChange={(event) => {
-                        const chosen = history.find((item) => item.key === event.target.value);
-                        if (chosen && slot) {
-                          onViewVersion?.(slot.id, chosen.key, history.length);
-                          onSelectVersion?.(chosen.source);
-                        }
-                      }}
-                    >
-                      {history.map((item) => (
-                        <option key={item.key} value={item.key}>
-                          {item.label}
-                          {item === latest ? " · Latest" : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
-                {gallery && isSelected && (
-                  <span className={styles.chosenBadge}>
-                    <Icon name="check" size="sm" /> Chosen
-                  </span>
-                )}
-                <div
-                  className={gallery ? styles.galleryPreview : styles.preview}
-                  role={gallery && selectDisplayed ? "button" : undefined}
-                  tabIndex={gallery && selectDisplayed ? 0 : undefined}
-                  aria-label={gallery ? `Select concept ${ordinal + 1}` : undefined}
-                  aria-pressed={gallery && displayedSource ? isSelected : undefined}
-                  onClick={gallery ? selectDisplayed : undefined}
-                  onKeyDown={(event) => {
-                    if (gallery && selectDisplayed && (event.key === "Enter" || event.key === " ")) {
-                      event.preventDefault();
-                      selectDisplayed();
-                    }
+        {actions ? <div className={styles.stepActions}>{actions}</div> : null}
+      </header>
+      {notice}
+      <div className={styles.results}>
+        <ol className={`${styles.resultGrid} e-grid-results`}>
+          {tiles.map((tile) => (
+            <li key={tile.ordinal} data-concept-ordinal={tile.ordinal} data-concept-slot={tile.slotId ?? undefined}>
+              <ConceptTileView
+                tile={tile}
+                client={client}
+                onUrl={(url) =>
+                  setUrls((previous) =>
+                    previous[tile.ordinal] === url
+                      ? previous
+                      : url
+                        ? { ...previous, [tile.ordinal]: url }
+                        : Object.fromEntries(
+                            Object.entries(previous).filter(([ordinal]) => Number(ordinal) !== tile.ordinal),
+                          ),
+                  )
+                }
+                onChoose={tile.source && onSelectVersion ? () => onSelectVersion(tile.source!) : undefined}
+                onEnlarge={() => setEnlarged(tile.ordinal)}
+              />
+            </li>
+          ))}
+        </ol>
+      </div>
+      {shown ? (
+        <WorkAreaLayer host={overlay} onEscape={() => setEnlarged(null)}>
+          <Dialog
+            size="lg"
+            media
+            modal={!overlay}
+            title={`Concept ${shown.ordinal + 1}`}
+            onClose={() => setEnlarged(null)}
+            footer={
+              <>
+                <Button
+                  icon="chevron-left"
+                  disabled={viewable.length < 2}
+                  onClick={() => setEnlarged(viewable[(position - 1 + viewable.length) % viewable.length]!.ordinal)}
+                >
+                  Previous
+                </Button>
+                <Button
+                  disabled={viewable.length < 2}
+                  onClick={() => setEnlarged(viewable[(position + 1) % viewable.length]!.ordinal)}
+                >
+                  Next
+                  <Icon name="chevron-right" size="sm" />
+                </Button>
+                <Button
+                  variant={shown.selected ? "secondary" : "primary"}
+                  aria-pressed={shown.selected}
+                  disabled={!onSelectVersion || !shown.source}
+                  onClick={() => {
+                    if (shown.source && !shown.selected) onSelectVersion?.(shown.source);
+                    setEnlarged(null);
                   }}
                 >
-                  {preview && renderPreview ? (
-                    renderPreview(preview)
-                  ) : drawing || (attempt && (attempt.state === "queued" || attempt.state === "running")) ? (
-                    <GenerationAnimation variant={ordinal} queued={!drawing && attempt?.state === "queued"} />
-                  ) : (
-                    <p>
-                      {imageUnavailable
-                        ? "This image could not be saved."
-                        : accepted
-                          ? "Image preview unavailable"
-                          : attempt
-                            ? "No image preview yet"
-                            : undrawn
-                              ? "This concept was not drawn."
-                              : savedBatchLoading
-                                ? "Loading saved preview…"
-                                : savedBatchUnavailable
-                                  ? "Saved preview unavailable"
-                                  : "Your concept will appear here"}
-                    </p>
-                  )}
-                </div>
-                {/* Logo cards show only the image (user request 2026-11-06); the state is
-              announced while a concept is not ready, and the number stays for screen readers. */}
-                {gallery && (
-                  <div className={styles.galleryCaption}>
-                    <h3 className="sr-only">Concept {ordinal + 1}</h3>
-                    {(!accepted || savedBatchLoading || savedBatchUnavailable) && (
-                      <p>
-                        {savedBatchLoading
-                          ? "Loading saved exploration…"
-                          : savedBatchUnavailable
-                            ? "Saved exploration unavailable"
-                            : drawing
-                              ? stateLabel.running
-                              : undrawn
-                                ? "Not drawn"
-                                : attempt
-                                  ? stateLabel[attempt.state]
-                                  : planned
-                                    ? "Waiting to start"
-                                    : "Awaiting your first exploration"}
-                      </p>
-                    )}
-                  </div>
-                )}
-                {imageUnavailable && (
-                  <p className={styles.note}>
-                    AI usage for this attempt is still recorded. You can use a ready concept or retry the failed
-                    concept.
-                  </p>
-                )}
-                <div hidden={gallery}>
-                  {accepted && <p className={styles.note}>Image preview</p>}
-                  {!gallery && onInspect && (
-                    <button
-                      className={styles.secondaryButton}
-                      type="button"
-                      aria-label={`Inspect concept ${ordinal + 1}`}
-                      disabled={!source}
-                      onClick={() => {
-                        if (source) onInspect(source);
-                      }}
-                    >
-                      Inspect concept
-                    </button>
-                  )}
-                  {onCompare && (
-                    <button
-                      className={styles.secondaryButton}
-                      type="button"
-                      aria-label={`Compare concept ${ordinal + 1}`}
-                      aria-pressed={isCompared}
-                      disabled={!source || (!isCompared && comparison.length >= 2)}
-                      onClick={() => {
-                        if (source) onCompare(source);
-                      }}
-                    >
-                      {isCompared ? "Remove from comparison" : "Add to comparison"}
-                    </button>
-                  )}
-                  <button
-                    className={styles.secondaryButton}
-                    type="button"
-                    aria-label={`Select concept ${ordinal + 1}`}
-                    aria-pressed={isSelected}
-                    disabled={!source || !onSelect}
-                    onClick={() => {
-                      if (source) onSelect?.(source);
-                    }}
-                  >
-                    {isSelected ? "Selected for review" : "Use this version"}
-                  </button>
-                </div>
-              </li>
-            );
-          })}
-        </ol>
-      )}
-      {filter === "saved" &&
-        !savedBatchLoading &&
-        !savedBatchUnavailable &&
-        !validSelection &&
-        !Object.values(versions).some(
-          (history) => selectedVersion && history.some((version) => version.key === logoCandidateKey(selectedVersion)),
-        ) && <p className={styles.note}>No concept selected in this batch. Open a concept to review and select it.</p>}
-      {!canGenerate && (
-        <p className={styles.note}>
-          Generation is unavailable. You can keep reviewing the brief and any saved results.
-        </p>
-      )}
-      <div className={styles.actions}>
-        {!generationActions && !gallery && !batch && (
-          <button
-            className={styles.primaryButton}
-            type="button"
-            aria-label="Explore six concepts"
-            disabled={!canGenerate || !onRequestConcepts}
-            onClick={onRequestConcepts}
+                  {shown.selected ? "Chosen" : "Choose this concept"}
+                </Button>
+              </>
+            }
           >
-            Explore six concepts
-          </button>
-        )}
-        {!generationActions && (
-          <button
-            className={styles.secondaryButton}
-            type="button"
-            aria-label="More concepts"
-            disabled={!batch || !canGenerate || !onRequestMore}
-            onClick={onRequestMore}
-          >
-            More concepts
-          </button>
-        )}
-        {!gallery && (
-          <button
-            className={styles.secondaryButton}
-            type="button"
-            aria-label="Refine selected"
-            disabled={!validSelection || refinement?.status !== "available" || !onRequestRefine}
-            onClick={() => {
-              if (validSelection && selected) onRequestRefine?.(selected);
-            }}
-          >
-            Refine selected
-          </button>
-        )}
-        {!generationActions && failedSlotIds.length > 0 && (
-          <button
-            className={styles.secondaryButton}
-            type="button"
-            aria-label={`Retry ${failedSlotIds.length} failed concept${failedSlotIds.length === 1 ? "" : "s"}`}
-            disabled={!canGenerate || !onRequestRetryFailed}
-            onClick={() => onRequestRetryFailed?.(failedSlotIds)}
-          >
-            Retry {failedSlotIds.length} failed concept{failedSlotIds.length === 1 ? "" : "s"}
-          </button>
-        )}
-        {(!gallery || onCheckRequest) && (
-          <button
-            className={styles.secondaryButton}
-            type="button"
-            aria-label="Check request"
-            disabled={!onCheckRequest}
-            onClick={onCheckRequest}
-          >
-            Check request
-          </button>
-        )}
-      </div>
+            <MediaFrame ratio="16x9" contain src={urls[shown.ordinal]} alt={`Concept ${shown.ordinal + 1}, enlarged`} />
+            <p className="e-muted">
+              {position + 1} of {viewable.length} concepts
+            </p>
+          </Dialog>
+        </WorkAreaLayer>
+      ) : null}
     </section>
+  );
+}
+
+function ConceptTileView({
+  tile,
+  client,
+  onUrl,
+  onChoose,
+  onEnlarge,
+}: {
+  tile: ConceptTile;
+  client: AccountLogoClient | null;
+  onUrl: (url: string | null) => void;
+  onChoose?: () => void;
+  onEnlarge: () => void;
+}) {
+  const label = `Concept ${tile.ordinal + 1}`;
+  const preview = useVerifiedPreview(client, tile.state === "ready" ? tile.preview : null);
+  const report = useRef(onUrl);
+  useEffect(() => {
+    report.current = onUrl;
+  });
+  useEffect(() => {
+    report.current(preview.url);
+  }, [preview.url]);
+  const host = useRef<HTMLDivElement>(null);
+  const drawing = tile.state === "drawing" || tile.state === "waiting";
+  // A concept that has arrived keeps its drawing frame until its picture is loaded, so it reveals in one movement.
+  const ready = tile.state === "ready" && Boolean(preview.url);
+  const reveal = useLogoReveal(host, drawing, ready);
+  const frameState =
+    tile.state === "ready"
+      ? preview.url
+        ? "loaded"
+        : preview.failed
+          ? "failed"
+          : reveal.arriving
+            ? "drawing"
+            : "loading"
+      : tile.state === "drawing" || tile.state === "waiting"
+        ? "drawing"
+        : tile.state === "failed" || tile.state === "unavailable"
+          ? "failed"
+          : "loading";
+  return (
+    <div ref={host} className={styles.tile}>
+      <ArtworkChoice
+        label={label}
+        src={preview.url ?? undefined}
+        state={frameState}
+        status={tile.state === "waiting" ? "Waiting" : "Drawing"}
+        failedText={
+          tile.state === "ready"
+            ? `${label} couldn’t be shown. It is still saved.`
+            : tile.state === "unavailable"
+              ? `${label} is unavailable right now.`
+              : `${label} couldn’t be drawn.`
+        }
+        selected={tile.selected}
+        disabled={!onChoose}
+        onChoose={() => onChoose?.()}
+        onEnlarge={onEnlarge}
+        mediaClassName={reveal.className}
+        overlay={
+          reveal.revealing ? (
+            <>
+              <span className="e-media__handles" aria-hidden="true" />
+              <span className="e-media__label" aria-hidden="true">
+                {label}
+              </span>
+              <span className="e-media__status" aria-hidden="true">
+                {reveal.status}
+              </span>
+            </>
+          ) : null
+        }
+      />
+    </div>
   );
 }

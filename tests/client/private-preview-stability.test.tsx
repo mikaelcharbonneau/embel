@@ -159,6 +159,24 @@ afterEach(async () => {
 });
 
 describe.each<Kind>(["asset", "reference", "logo", "board"])("%s private preview continuity", (kind) => {
+  it("hands a board's already loaded picture to a listener that appears later (a board chosen after it loaded)", async () => {
+    const value = fixture();
+    const source = client();
+    await show("board", value, source);
+    await settle(source, 0, preview("board"));
+    const onUrl = vi.fn();
+    await render(
+      <IdentitySystemBoard
+        client={source as unknown as AccountIdentityClient}
+        board={value.board}
+        name="Saved brand"
+        onUrl={onUrl}
+      />,
+    );
+    expect(onUrl).toHaveBeenCalledWith("blob:fixture-board");
+    expect(source.read).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps the same image and verified blob for deep-cloned equivalent snapshots", async () => {
     const source = client(),
       value = fixture(),

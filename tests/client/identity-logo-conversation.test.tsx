@@ -74,11 +74,29 @@ vi.mock("@/components/logo-creation/logo-creation-workspace", () => ({
     </div>
   ),
 }));
-vi.mock("@/components/visual-directions/visual-directions-page", () => ({
-  VisualDirectionsPage: ({ projectId, variant }: { projectId: string; variant?: string }) => (
-    <div data-directions={projectId} data-variant={variant} />
-  ),
-}));
+// The direction step reports the folded answers and Embel's words for its state through the Workspace slots.
+vi.mock("@/components/visual-directions/visual-directions-page", async () => {
+  const slots = await import("@/components/workspace/workspace-slots");
+  return {
+    VisualDirectionsPage: ({
+      projectId,
+      variant,
+      presentation,
+    }: {
+      projectId: string;
+      variant?: string;
+      presentation?: string;
+    }) => {
+      slots.useWorkspaceStepSummary("logo", {
+        answer: "Concept 1, version 2",
+        thumbnail: { src: "data:image/png;base64,AA==", alt: "Chosen logo concept" },
+      });
+      slots.useWorkspaceStepSummary("directions", { answer: "Editorial Soft Shapes" });
+      slots.useWorkspaceStepMessage("directions", "Here are three directions for Cedar.");
+      return <div data-directions={projectId} data-variant={variant} data-presentation={presentation} />;
+    },
+  };
+});
 
 const account = { status: "ready" as const, userId: "aaaaaaaa-2222-4222-8222-222222222222", generation: 1 };
 const projectId = "bbbbbbbb-2222-4222-8222-222222222222",
@@ -242,7 +260,10 @@ describe("Creative direction inside the Identity conversation", () => {
     expect(work()!.querySelector("#journey-directions [data-directions]")).not.toBeNull();
     await act(async () => buttonNamed("Change logo")!.click());
     expect(work()!.querySelector("#journey-logo [data-logo-workspace]")).not.toBeNull();
-    expect(logoContinue()).toBeNull();
+    // The reopened step's Send (onContinue) goes back on to Creative direction.
+    await act(async () => logoContinue()!.click());
+    expect(work()!.querySelector("#journey-directions [data-directions]")).not.toBeNull();
+    expect(work()!.querySelector("#journey-logo")).toBeNull();
   });
 
   it("opens at Creative direction from a #journey-directions link", async () => {
@@ -250,6 +271,33 @@ describe("Creative direction inside the Identity conversation", () => {
     window.history.replaceState(null, "", "#journey-directions");
     await render();
     expect(work()!.querySelector("#journey-directions [data-directions]")).not.toBeNull();
+  });
+
+  it("folds the chosen logo with its picture and words Embel's message from the step", async () => {
+    progressAt("logo/directions");
+    await render();
+    const logo = [...identity()!.querySelectorAll("details")].find((entry) =>
+      entry.querySelector(".e-answer__question")?.textContent?.includes("Logo"),
+    )!;
+    expect(logo.querySelector("summary")!.textContent).toContain("Concept 1, version 2");
+    expect(logo.querySelector("img")?.getAttribute("alt")).toBe("Chosen logo concept");
+    expect(host.querySelector(".e-workspace__log")!.textContent).toContain("Here are three directions for Cedar.");
+    expect(work()!.querySelector("[data-directions]")!.getAttribute("data-presentation")).toBe("choose");
+  });
+
+  it("shows a finished brand as the brand, with Creative direction folded and reopenable", async () => {
+    fixture.progress = { projectId, nextHref: `/brands/account/${projectId}/logo/deliverables` };
+    await render();
+    expect(work()!.querySelector("[data-directions]")!.getAttribute("data-presentation")).toBe("brand");
+    const log = host.querySelector(".e-workspace__log")!;
+    expect(log.textContent).toContain(
+      "You chose Concept 1, version 2 as your logo and Editorial Soft Shapes as your direction.",
+    );
+    expect(log.textContent).not.toContain("Here are three directions for Cedar.");
+    await act(async () => buttonNamed("Change direction")!.click());
+    expect(work()!.querySelector("[data-directions]")!.getAttribute("data-presentation")).toBe("choose");
+    expect(buttonNamed("Change direction")).toBeUndefined();
+    expect(log.textContent).toContain("Here are three directions for Cedar.");
   });
 
   it("sends a finished brand on to Assets with Send", async () => {
