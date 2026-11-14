@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { EmptyState, LoadingRegion, Skeleton } from "@/components/ui/feedback";
 import { useProjectHeader } from "@/components/journey/project-header";
@@ -29,6 +29,10 @@ export function ProjectOpening() {
 
 /** The page error for a brand that can't be opened: what happened, the one way to try again and the way back. The
  * project bar returns to the app's navigation, since there is no brand to show in it. */
+/** The project workspace listens here: while this page shows its own error card, the workspace's read-failure strip
+ * would say the same thing twice (D-030), so it steps aside. */
+export const ProjectPageErrorContext = createContext<((shown: boolean) => void) | null>(null);
+
 export function ProjectUnavailable({
   projectId,
   reason,
@@ -45,6 +49,11 @@ export function ProjectUnavailable({
   retryLabel?: string;
 }) {
   useProjectHeader({ projectId, projectName: "", steps: [], saveState: null, unavailable: true });
+  const reportPageError = useContext(ProjectPageErrorContext);
+  useEffect(() => {
+    reportPageError?.(true);
+    return () => reportPageError?.(false);
+  }, [reportPageError]);
   return (
     <div className="page e-container e-page project-unavailable" role="alert">
       <EmptyState
