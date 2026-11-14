@@ -80,23 +80,25 @@ async function save(label, click) {
   console.log(`  downloaded ${download.suggestedFilename()}  (${label})`);
   return file;
 }
-const zipFile = await save("Download brand kit as a ZIP file", () =>
-  page.getByRole("button", { name: "Download brand kit as a ZIP file" }).click(),
+// The delivery page has three tabs; each download lives on its own tab.
+const tab = (name) => page.getByRole("tab", { name, exact: true }).click();
+const zipFile = await save("Download brand kit", () =>
+  page.getByRole("button", { name: "Download brand kit", exact: true }).click(),
 );
-await save("Download guidelines", () => page.getByRole("button", { name: "Download guidelines" }).click()).catch((e) =>
-  console.log(`  skipped guidelines: ${e.message.split("\n")[0]}`),
-);
+await save("Download brand board as PNG", async () => {
+  await tab("Brand images");
+  await page.getByRole("button", { name: "Download brand board as PNG", exact: true }).click();
+}).catch((e) => console.log(`  skipped brand board: ${e.message.split("\n")[0]}`));
+await save("Download guidelines", async () => {
+  await tab("Brand guidelines");
+  await page.getByRole("button", { name: "Download guidelines" }).click();
+}).catch((e) => console.log(`  skipped guidelines: ${e.message.split("\n")[0]}`));
 for (const format of ["CSS", "JSON"])
   await save(`Download ${format}`, async () => {
+    await tab("Design system");
     await page.getByRole("group", { name: "Format" }).getByRole("button", { name: format, exact: true }).click();
     await page.getByRole("button", { name: `Download ${format}`, exact: true }).click();
   }).catch((e) => console.log(`  skipped ${format}: ${e.message.split("\n")[0]}`));
-await save("Download brand board as PNG", () =>
-  page
-    .getByRole("button", { name: /^Download .*board.* as PNG/iu })
-    .first()
-    .click(),
-).catch((e) => console.log(`  skipped brand board: ${e.message.split("\n")[0]}`));
 await context.close();
 
 // ---- unpack the kit
