@@ -48,8 +48,7 @@
   font-weight: 500;
   letter-spacing: -0.01em;
 }
-.frame .eyebrow,
-.frame .intro {
+.frame .eyebrow {
   color: var(--secondary, #696965);
   font-weight: 400;
   line-height: 1.5;
@@ -58,10 +57,6 @@
 .frame .eyebrow {
   margin: 0 0 6px;
   font-size: 12px;
-}
-.frame .intro {
-  margin: 8px 0 0;
-  font-size: 14px;
 }
 
 .frame button,

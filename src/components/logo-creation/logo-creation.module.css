@@ -1,6 +1,5 @@
 /* Feature-local presentation; uses the approved Embel tokens with readable fallbacks. */
-.panel,
-.costPanel {
+.panel {
   box-sizing: border-box;
   min-width: 0;
   background: var(--paper);
@@ -11,8 +10,7 @@
   margin-bottom: 24px;
   overflow-wrap: anywhere;
 }
-.panel h2,
-.costPanel h2 {
+.panel h2 {
   margin: 0;
   font-size: var(--branding-section-size, 19px);
   line-height: 1.35;
@@ -80,22 +78,6 @@
 }
 .field input[aria-invalid="true"] {
   border-color: var(--accent-ink, #191919);
-}
-.typeChoices {
-  margin: 24px 0;
-  padding: 0;
-  border: 0;
-  min-width: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 9px;
-}
-.typeChoices legend {
-  margin: 0 0 12px;
-  font-size: 14px;
-}
-.typeChoices legend span {
-  margin-left: 8px;
 }
 .choice {
   display: inline-flex;
@@ -170,30 +152,15 @@
   color: var(--secondary, #696965);
   border-color: var(--border, #e4e3df);
 }
-.panel :is(button, input, textarea):focus-visible,
-.costPanel button:focus-visible {
+.panel :is(button, input, textarea):focus-visible {
   outline: 2px solid var(--accent-ink, #191919);
   outline-offset: 3px;
 }
-.referenceSources,
 .references {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   margin-top: 20px;
-}
-.sourcePanel,
-.referenceCard {
-  box-sizing: border-box;
-  min-width: 0;
-  padding: 18px;
-  border: 1px solid var(--border, #e4e3df);
-  border-radius: 8px;
-  margin: 0;
-}
-.referenceCard legend {
-  padding: 0 6px;
-  font-size: 14px;
 }
 .aspects {
   display: flex;
@@ -296,9 +263,6 @@
   background: var(--accent-soft, #f1f0ee);
   border-color: var(--accent-ink, #191919);
 }
-.costPanel {
-  background: var(--canvas, #f7f7f5);
-}
 .costs {
   display: flex;
   flex-wrap: wrap;
@@ -320,12 +284,10 @@
   }
 }
 @media (max-width: 600px) {
-  .panel,
-  .costPanel {
+  .panel {
     padding: 18px;
   }
   .fields,
-  .referenceSources,
   .references,
   .concepts {
     grid-template-columns: minmax(0, 1fr);
@@ -343,23 +305,6 @@
   .preview {
     aspect-ratio: 4 / 3;
   }
-}
-
-.workspaceHeader {
-  margin: 0 0 28px;
-  min-width: 0;
-}
-.workspaceHeader h1 {
-  font-size: 24px;
-  font-weight: 500;
-  margin-bottom: 12px;
-}
-.workspaceHeader > .muted {
-  max-width: 680px;
-  font-size: var(--font-ui, 13px);
-}
-.workspaceHeader > button {
-  margin-top: 14px;
 }
 .conceptCard .cardHeading,
 .conceptCard > p {
@@ -760,12 +705,6 @@
 }
 .generationEstimate:empty {
   display: none;
-}
-.estimateNote {
-  margin: 7px 0 0;
-  color: var(--secondary);
-  font-size: 12px;
-  line-height: 1.5;
 }
 .estimateRecovery {
   margin-top: 8px;

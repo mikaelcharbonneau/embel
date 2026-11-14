@@ -1,13 +1,3 @@
-.project-intake-navigation {
-  position: relative;
-  min-width: 0;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: thin;
-}
-.project-intake-navigation button {
-  flex: 0 0 auto;
-}
 .strategy-provider-note {
   display: flex;
   align-items: flex-start;
@@ -285,9 +275,6 @@
   margin-top: 8px;
   color: var(--secondary);
   font-size: var(--font-ui);
-}
-.audience-next-step {
-  margin-top: 13px;
 }
 
 @media (max-width: 540px) {

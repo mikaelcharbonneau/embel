@@ -19,40 +19,6 @@
   max-width: none;
   margin: 0 0 20px;
 }
-.inspiration-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 24px 24px 0;
-}
-.inspiration-heading h1 {
-  margin: 0;
-  font-size: 24px;
-  line-height: 32px;
-  font-weight: 500;
-  letter-spacing: -0.5px;
-}
-.inspiration-heading p {
-  color: var(--secondary);
-  font-size: 13px;
-  line-height: 18px;
-  margin: 4px 0 0;
-}
-.inspiration-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 8px 14px;
-  background: var(--paper);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  min-height: 36px;
-  white-space: nowrap;
-  font-size: 13px;
-  line-height: 18px;
-}
 .inspiration-toolbar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(150px, 430px) minmax(0, 1fr);
@@ -119,16 +85,6 @@
 .inspiration-categories button[aria-pressed="true"] {
   background: var(--text);
   color: var(--paper);
-}
-.inspiration-elements button {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  background: var(--paper);
-  min-height: 34px;
-  padding: 7px 16px;
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--secondary);
 }
 .inspiration-search {
   box-sizing: border-box;
@@ -255,13 +211,6 @@
   display: block;
   width: 100%;
   height: auto;
-  border-radius: var(--radius-card);
-}
-.inspiration-image {
-  display: block;
-  width: 100%;
-  height: auto;
-  object-fit: contain;
   border-radius: var(--radius-card);
 }
 /* Hearts are just the heart, with no circle. Over artwork: a white outline with a
@@ -500,9 +449,6 @@
   font-size: 13px;
   line-height: 18px;
 }
-.inspiration-detail-body > .inspiration-action {
-  align-self: flex-start;
-}
 .inspiration-detail-body hr {
   width: 100%;
   border: 0;
@@ -520,16 +466,10 @@
   min-height: 42px;
   text-align: left;
 }
-.inspiration-overall[aria-pressed="true"],
-.inspiration-elements button[aria-pressed="true"] {
+.inspiration-overall[aria-pressed="true"] {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--on-accent);
-}
-.inspiration-elements {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 .inspiration-detail-body .inspiration-detail-footer {
   margin-top: auto;
@@ -579,17 +519,6 @@
   }
 }
 @media (max-width: 760px) {
-  .inspiration-heading {
-    padding: 24px 16px 0;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  .inspiration-heading h1 {
-    font-size: 22px;
-  }
-  .inspiration-heading p {
-    max-width: 235px;
-  }
   .inspiration-toolbar {
     grid-template-columns: 1fr auto;
     padding: 4px 0 20px;
@@ -642,7 +571,6 @@
   }
   .inspiration-detail :is(button, a),
   .inspiration-icon-button,
-  .inspiration-action,
   .inspiration-views button {
     min-height: 44px;
   }

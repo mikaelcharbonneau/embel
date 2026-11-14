@@ -137,39 +137,8 @@
   margin-left: auto;
   font-size: 13px;
 }
-.guided-complete {
-  padding: 16px 0;
-  color: var(--secondary);
-  font-size: 13px;
-  line-height: 20px;
-}
-.guided-interview-loading {
-  height: 100%;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  background: var(--paper);
-}
-.guided-interview-loading .guided-research-screen {
-  flex: 1;
-  min-height: 0;
-}
-.guided-loading-recovery {
-  flex-shrink: 0;
-  max-height: 35%;
-  overflow-y: auto;
-  text-align: center;
-  padding: 0 24px 24px;
-  color: var(--secondary);
-  font-size: 13px;
-}
 .home-page:has(.guided-research-screen) .home-recent {
   display: none;
-}
-.workspace-account-settings {
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 /* Entry motion never delays a result or changes its allocated layout. */
 .flow-enter {
