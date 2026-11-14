@@ -260,7 +260,10 @@ describe("Creative direction inside the Identity conversation", () => {
     expect(work()!.querySelector("#journey-directions [data-directions]")).not.toBeNull();
     await act(async () => buttonNamed("Change logo")!.click());
     expect(work()!.querySelector("#journey-logo [data-logo-workspace]")).not.toBeNull();
-    expect(logoContinue()).toBeNull();
+    // The reopened step's Send (onContinue) goes back on to Creative direction.
+    await act(async () => logoContinue()!.click());
+    expect(work()!.querySelector("#journey-directions [data-directions]")).not.toBeNull();
+    expect(work()!.querySelector("#journey-logo")).toBeNull();
   });
 
   it("opens at Creative direction from a #journey-directions link", async () => {

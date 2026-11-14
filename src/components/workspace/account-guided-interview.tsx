@@ -1522,7 +1522,7 @@ export function AccountGuidedInterview({
       <div id="journey-logo" className="conversation-slot" tabIndex={-1}>
         <LogoCreationWorkspace
           projectId={saved.id}
-          continueHidden={directionsShown}
+          // Send continues to Creative direction, also from a Logo step reopened from its folded entry.
           onContinue={() => {
             continueLatest();
             setDirectionsOpened(true);
