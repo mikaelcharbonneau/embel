@@ -314,6 +314,23 @@ describe("Brand bento", () => {
 });
 
 describe("Brand overlay", () => {
+  it("says the choices stay with the brand by its real name, not the project's working title", async () => {
+    await act(async () =>
+      root.render(
+        <InspirationView
+          controller={controller}
+          projectId={projectId}
+          variant="workspace"
+          brandName="Kestrel Analytics"
+        />,
+      ),
+    );
+    await act(async () => button(`Open ${first!.brand}: typefaces`).click());
+    const footer = host.querySelector(".inspiration-detail-footer")!;
+    expect(footer.textContent).toBe("Your choices stay with Kestrel Analytics. Change them anytime.");
+    expect(footer.textContent).not.toContain("Local fixture");
+  });
+
   it("opens from a brand container at the clicked image, steps through all five and saves likes from inside", async () => {
     await render();
     const trigger = button(`Open ${first!.brand}: typefaces`);

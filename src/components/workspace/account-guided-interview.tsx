@@ -1517,7 +1517,13 @@ export function AccountGuidedInterview({
     ) : view === "slogan" ? (
       sloganWork
     ) : view === "inspiration" ? (
-      <InspirationWorkspace projectId={saved.id} variant="workspace" continueHidden onLikes={setLikes} />
+      <InspirationWorkspace
+        projectId={saved.id}
+        variant="workspace"
+        continueHidden
+        onLikes={setLikes}
+        brandName={brandName}
+      />
     ) : view === "logo" ? (
       <div id="journey-logo" className="conversation-slot" tabIndex={-1}>
         <LogoCreationWorkspace

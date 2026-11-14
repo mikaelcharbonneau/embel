@@ -169,6 +169,8 @@ type InspirationProps = {
   continueHidden?: boolean;
   /** The number of likes (brands, parts and your own images) once saved choices are read. */
   onLikes?: (count: number) => void;
+  /** The brand's name as the conversation shows it (the chosen name), which the project's title may not be yet. */
+  brandName?: string;
 };
 export function InspirationWorkspace({
   projectId,
@@ -177,6 +179,7 @@ export function InspirationWorkspace({
   onContinue,
   continueHidden,
   onLikes,
+  brandName,
 }: InspirationProps) {
   const { session } = useAccountSession();
   if (session.status !== "ready")
@@ -196,6 +199,7 @@ export function InspirationWorkspace({
       onContinue={onContinue}
       continueHidden={continueHidden}
       onLikes={onLikes}
+      brandName={brandName}
     />
   );
 }
@@ -207,6 +211,7 @@ function OwnedInspiration({
   onContinue,
   continueHidden,
   onLikes,
+  brandName,
 }: InspirationProps & { account: Extract<ReturnType<typeof useAccountSession>["session"], { status: "ready" }> }) {
   const controller = useInspiration(account, projectId),
     references = useYourReferences(account, projectId);
@@ -236,6 +241,7 @@ function OwnedInspiration({
       continueHidden={continueHidden}
       references={references}
       onLikes={onLikes}
+      brandName={brandName}
     />
   );
 }
@@ -253,6 +259,7 @@ export function InspirationView({
   continueHidden = false,
   references,
   onLikes,
+  brandName,
 }: {
   controller: InspirationController;
   projectId: string;
@@ -262,6 +269,7 @@ export function InspirationView({
   continueHidden?: boolean;
   references?: YourReferences;
   onLikes?: (count: number) => void;
+  brandName?: string;
 }) {
   const conversation = variant === "conversation";
   const workspace = variant === "workspace";
@@ -527,7 +535,9 @@ export function InspirationView({
           onClose={() => setOpen(null)}
           footer={
             <p className="inspiration-detail-footer">
-              Your choices stay with {controller.overview?.projectTitle ?? "this project"}. Change them anytime.
+              Your choices stay with{" "}
+              <span translate="no">{brandName?.trim() || controller.overview?.projectTitle || "this brand"}</span>.
+              Change them anytime.
             </p>
           }
         />
