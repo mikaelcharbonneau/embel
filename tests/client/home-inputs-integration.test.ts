@@ -97,7 +97,9 @@ async function render() {
 }
 async function click(label: string) {
   await act(async () =>
-    [...host.querySelectorAll("button")].find((button) => button.textContent?.includes(label))!.click(),
+    [...host.querySelectorAll("button")]
+      .find((button) => (button.getAttribute("aria-label") ?? button.textContent)?.includes(label))!
+      .click(),
   );
 }
 beforeEach(() => {
@@ -273,7 +275,9 @@ describe("mounted Home attached brief integration", () => {
     await render();
     expect(host.textContent).not.toContain(file.name);
     expect(host.textContent).toContain("Verify the same account");
-    const send = [...host.querySelectorAll("button")].find((button) => button.textContent?.includes("Send prompt"))!;
+    const send = [...host.querySelectorAll("button")].find((button) =>
+      (button.getAttribute("aria-label") ?? button.textContent)?.includes("Send prompt"),
+    )!;
     expect(send.disabled).toBe(true);
     await act(async () =>
       host.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })),
@@ -313,7 +317,9 @@ describe("mounted Home attached brief integration", () => {
     expect(mock.strategy).not.toHaveBeenCalled();
     expect(mock.push).not.toHaveBeenCalled();
     expect(
-      [...host.querySelectorAll("button")].find((button) => button.textContent?.includes("Send prompt"))!.disabled,
+      [...host.querySelectorAll("button")].find((button) =>
+        (button.getAttribute("aria-label") ?? button.textContent)?.includes("Send prompt"),
+      )!.disabled,
     ).toBe(true);
     await act(async () => {
       release(new TextEncoder().encode("brief").buffer);
@@ -375,7 +381,9 @@ describe("mounted Home attached brief integration", () => {
     await render();
     expect(mock.memory!.hasUnsaved()).toBe(true);
     expect(
-      [...host.querySelectorAll("button")].find((button) => button.textContent?.includes("Send prompt"))!.disabled,
+      [...host.querySelectorAll("button")].find((button) =>
+        (button.getAttribute("aria-label") ?? button.textContent)?.includes("Send prompt"),
+      )!.disabled,
     ).toBe(true);
     expect(host.textContent).toContain("File selection was interrupted");
     await act(async () =>
@@ -594,9 +602,13 @@ describe("mounted Home attached brief integration", () => {
     );
     await render();
     expect(
-      [...host.querySelectorAll("button")].find((button) => button.textContent === "Save project"),
+      [...host.querySelectorAll("button")].find(
+        (button) => (button.getAttribute("aria-label") ?? button.textContent) === "Save project",
+      ),
     ).toBeUndefined();
-    expect(host.querySelector<HTMLButtonElement>('button[type="submit"]')!.textContent).toBe("Save brief with files");
+    expect(host.querySelector<HTMLButtonElement>('button[type="submit"]')!.getAttribute("aria-label")).toBe(
+      "Save brief with files",
+    );
   });
 
   it("does not turn a stale Save project click into attached-file transmission", async () => {
@@ -606,7 +618,9 @@ describe("mounted Home attached brief integration", () => {
     await click("Send prompt");
     mock.create.mockClear();
     mock.strategy.mockClear();
-    const save = [...host.querySelectorAll("button")].find((button) => button.textContent === "Save project")!;
+    const save = [...host.querySelectorAll("button")].find(
+      (button) => (button.getAttribute("aria-label") ?? button.textContent) === "Save project",
+    )!;
     await act(async () => {
       selectFiles();
       save.click();

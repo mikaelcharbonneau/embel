@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useLayoutEffect, useRef, type FormEvent } from "react";
+import { IconButton } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 
 type ConversationComposerProps = {
@@ -113,15 +114,25 @@ export function ConversationComposer({
             {hint ?? "Shift + Enter for a new line"}
           </span>
         )}
-        <button
-          className={`button primary ${project || home || sendLabel === "Send prompt" ? "composer-send-icon" : ""}`}
-          type="submit"
-          disabled={disabled}
-          title={sendLabel}
-        >
-          <span className={project || home || sendLabel === "Send prompt" ? "sr-only" : undefined}>{sendLabel}</span>
-          {project ? <Icon name="arrow-up" size="sm" /> : <Icon name="arrow-up" size={home ? 16 : 18} />}
-        </button>
+        {project || home || sendLabel === "Send prompt" ? (
+          // The system's icon button (hover, press, focus and disabled looks); the footer lays it out directly, so it
+          // carries its name as a native title rather than a wrapping tooltip.
+          <IconButton
+            className="composer-send-icon"
+            variant="primary"
+            icon="arrow-up"
+            label={sendLabel}
+            type="submit"
+            disabled={disabled}
+            tooltip={false}
+            title={sendLabel}
+          />
+        ) : (
+          <button className="button primary" type="submit" disabled={disabled} title={sendLabel}>
+            <span>{sendLabel}</span>
+            <Icon name="arrow-up" size={18} />
+          </button>
+        )}
       </div>
       {error && (
         <p className="form-error" id={`${id}-error`} role="alert">

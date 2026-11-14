@@ -59,7 +59,9 @@ async function signInLink() {
 }
 async function click(label: string) {
   await act(async () =>
-    [...host.querySelectorAll("button")].find((button) => button.textContent?.includes(label))!.click(),
+    [...host.querySelectorAll("button")]
+      .find((button) => (button.getAttribute("aria-label") ?? button.textContent)?.includes(label))!
+      .click(),
   );
 }
 const mutations = () => fetcher.mock.calls.filter(([, init]) => init.method === "POST");

@@ -52,6 +52,13 @@
   border-color: var(--color-border-control);
   box-shadow: var(--shadow-raised);
 }
+/* Typing in the prompt shows the system's composer focus ring around the whole box (as .e-composer does). */
+.concept-home .home-composer.conversation-composer:has(textarea:focus-visible) {
+  border-color: var(--color-border-selected);
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+  box-shadow: var(--focus-ring-shadow), var(--shadow-raised);
+}
 .concept-home .home-composer.conversation-composer.has-error {
   border-color: var(--color-border-danger);
 }
@@ -97,8 +104,6 @@
   margin: 0;
   align-items: center;
   justify-content: center;
-  background: var(--color-accent);
-  color: var(--color-on-accent);
 }
 /* While the box is empty the send button takes the system's disabled look; pressing it still explains why. */
 .concept-home .home-composer:has(textarea:placeholder-shown) .composer-send-icon {
@@ -153,6 +158,7 @@
 }
 .concept-home .home-intake .conversation-start-notice {
   margin-top: var(--space-4);
+  text-align: center;
 }
 .concept-home .home-draft-actions {
   margin-block: var(--space-3);

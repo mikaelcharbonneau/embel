@@ -27,7 +27,7 @@ describe("original Embel composer presentation", () => {
       ),
     );
     const submit = host.querySelector<HTMLButtonElement>('button[type="submit"]')!;
-    expect(submit.querySelector(".sr-only")?.textContent).toBe("Send prompt");
+    expect(submit.getAttribute("aria-label")).toBe("Send prompt");
     expect(host.querySelector(".conversation-composer-footer")?.textContent).toContain("Files");
     await act(async () => submit.click());
     expect(send).toHaveBeenCalledOnce();
@@ -112,7 +112,7 @@ describe("Home composer narrow-layout source contract (not rendered geometry)", 
         ),
       );
       const submit = host.querySelector<HTMLButtonElement>('button[type="submit"]')!;
-      expect(submit.textContent).toBe(sendLabel);
+      expect(submit.getAttribute("aria-label") ?? submit.textContent).toBe(sendLabel);
       expect(host.querySelector(".home-input-controls [role=status]")?.textContent).toBe(
         "File selection was interrupted.",
       );
