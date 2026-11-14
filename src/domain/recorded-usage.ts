@@ -4,7 +4,7 @@ import { strategyOperationSchema } from "./strategy-jobs";
 export const RECORDED_USAGE_LIMIT = 20;
 export const recordedUsageOperationSchema = z.union([strategyOperationSchema, z.literal("naming.generate")]);
 const tokenCount = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
-export const recordedTokensSchema = z
+const recordedTokensSchema = z
   .strictObject({ inputTokens: tokenCount, outputTokens: tokenCount, totalTokens: tokenCount.nullable() })
   .refine((tokens) => tokens.totalTokens === null || tokens.inputTokens + tokens.outputTokens === tokens.totalTokens, {
     message: "Recorded total must match input and output",

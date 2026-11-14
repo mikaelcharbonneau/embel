@@ -7,7 +7,7 @@ import { createAccountIdentityClient } from "./account-identity-client";
 import { createAccountLogoClient } from "./account-logo-client";
 import type { IdentityReferenceUploadDraft } from "./identity-draft-memory";
 
-export type ReferenceUploadMetadata = {
+type ReferenceUploadMetadata = {
   label: string;
   creator: string | null;
   sourceUrl: string | null;
@@ -15,7 +15,7 @@ export type ReferenceUploadMetadata = {
   relevantElements: ReferenceElement[];
   tags: string[];
 };
-export type ReferenceUploadRetry = "upload" | "registration" | "rejected" | null;
+type ReferenceUploadRetry = "upload" | "registration" | "rejected" | null;
 
 /** Explicit owned uploads use the same verified raster publication as Logo.
  * Finishing a publication never chooses reference reactions for the customer.
@@ -198,4 +198,3 @@ export function useReferenceUpload({
   }
   return { retained, busy, notice, setNotice, retry, upload, check, cancel, discardRejected, retryOriginal };
 }
-export type ReferenceUploadController = ReturnType<typeof useReferenceUpload>;

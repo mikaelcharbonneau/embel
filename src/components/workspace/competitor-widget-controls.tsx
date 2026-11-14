@@ -1,7 +1,7 @@
 "use client";
 import { useId, useState } from "react";
 import { Icon } from "@/components/ui/icon";
-export type CompetitorDraft = { name: string; website: string };
+type CompetitorDraft = { name: string; website: string };
 export function CompetitorWidgetControls({
   draft,
   onDraft,

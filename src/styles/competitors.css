@@ -1,13 +1,3 @@
-.project-intake-navigation {
-  gap: 6px;
-}
-.project-intake-navigation button {
-  padding-inline: 14px;
-  white-space: nowrap;
-}
-.project-intake-navigation button:first-child {
-  padding-left: 0;
-}
 .competitor-research-note {
   display: flex;
   align-items: flex-start;
@@ -97,27 +87,6 @@
 }
 .competitor-remove-confirm {
   scroll-margin-block: 20px;
-}
-
-@media (max-width: 700px) {
-  .project-intake-navigation {
-    gap: 0;
-    justify-content: flex-start;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: thin;
-    padding-bottom: 2px;
-  }
-  .project-intake-navigation button {
-    flex: 0 0 auto;
-    min-height: 48px;
-    padding: 14px 10px;
-    gap: 6px;
-    font-size: var(--font-ui);
-  }
-  .project-intake-navigation button:first-child {
-    padding-left: 0;
-  }
 }
 @media (max-width: 540px) {
   .competitor-input {

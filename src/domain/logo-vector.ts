@@ -7,7 +7,7 @@ export const LOGO_MUTATION_MAX_BYTES = 32_768;
 export const LOGO_GEOMETRY_MAX_BYTES = 8_388_608;
 // Stored source records carry up to 64 complete six-digest locks plus 100 inputs.
 // Their allowance does not enlarge commands or the joint vector-detail ceiling.
-export const LOGO_VECTOR_REVISION_MAX_BYTES = 65_536;
+const LOGO_VECTOR_REVISION_MAX_BYTES = 65_536;
 export const LOGO_VECTOR_MAX_PATHS = 20_000;
 export const LOGO_VECTOR_MAX_COMMANDS = 200_000;
 export const LOGO_VECTOR_MAX_COMPONENTS = 64;
@@ -149,8 +149,7 @@ const scale = z.number().min(0.01).max(100);
 const rotation = z.number().min(-180).max(180);
 const color = z.string().regex(/^#[0-9A-F]{6}$/);
 const viewBox = z.tuple([coordinate, coordinate, dimension, dimension]);
-export const logoTransformSchema = z.strictObject({ x: coordinate, y: coordinate, scale, rotation });
-export type LogoTransform = z.infer<typeof logoTransformSchema>;
+const logoTransformSchema = z.strictObject({ x: coordinate, y: coordinate, scale, rotation });
 
 /** Canonical absolute grammar; deliberately does not parse SVG/XML or convert paths. */
 function canonicalPathCommandCount(d: string): number | null {
@@ -191,7 +190,7 @@ function canonicalPathCommandCount(d: string): number | null {
   }
   return first || remaining ? null : count;
 }
-export const logoVectorPathSchema = z.strictObject({
+const logoVectorPathSchema = z.strictObject({
   id: logoIdentifierSchema,
   d: z
     .string()
@@ -212,8 +211,7 @@ export const logoVectorPathSchema = z.strictObject({
   fillRule: z.enum(["nonzero", "evenodd"]),
 });
 export type LogoVectorPath = z.infer<typeof logoVectorPathSchema>;
-export const logoComponentRoleSchema = z.enum(["symbol", "lettering", "illustration", "border", "whole_artwork"]);
-export type LogoComponentRole = z.infer<typeof logoComponentRoleSchema>;
+const logoComponentRoleSchema = z.enum(["symbol", "lettering", "illustration", "border", "whole_artwork"]);
 const text = z
   .string()
   .min(1)
@@ -242,14 +240,13 @@ export const logoTextSourceSchema = boundedLogoJson(
     shapingEngine: z.strictObject({ id: logoIdentifierSchema, version: logoIdentifierSchema }),
   }),
 );
-export type LogoTextSource = z.infer<typeof logoTextSourceSchema>;
 const componentShape = {
   id: logoIdentifierSchema,
   role: logoComponentRoleSchema,
   paths: z.array(logoVectorPathSchema).min(1).max(LOGO_VECTOR_MAX_PATHS),
   transform: logoTransformSchema,
 };
-export const logoVectorComponentSchema = z.discriminatedUnion("editingKind", [
+const logoVectorComponentSchema = z.discriminatedUnion("editingKind", [
   z.strictObject({ ...componentShape, editingKind: z.literal("geometry") }),
   z.strictObject({ ...componentShape, editingKind: z.literal("outlined_custom") }),
   z.strictObject({ ...componentShape, editingKind: z.literal("editable_text"), textSource: logoTextSourceSchema }),

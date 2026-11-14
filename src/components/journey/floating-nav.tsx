@@ -7,7 +7,7 @@ import styles from "./journey.module.css";
 
 export type NavItem = { href: string; label: string };
 
-export function isActiveHref(href: string, pathname: string) {
+function isActiveHref(href: string, pathname: string) {
   return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 }
 

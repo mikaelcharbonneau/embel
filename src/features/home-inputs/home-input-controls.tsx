@@ -8,7 +8,7 @@ import { AttachmentPicker } from "./attachment-picker";
 import type { HomeVoiceAdapter } from "./voice-contract";
 import { validateAttachmentSelection, type HomeAttachmentAvailability } from "./attachment-draft";
 import { emptyHomeInputIntent, type HomeInputSession } from "./home-input-session";
-export type HomeInputControlsProps = {
+type HomeInputControlsProps = {
   account: VerifiedAccount | null;
   sessionFence: string;
   memory: HomeInputSession;

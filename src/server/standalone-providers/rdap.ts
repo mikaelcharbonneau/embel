@@ -26,7 +26,7 @@ const services: Record<string, string> = {
   art: "https://rdap.centralnic.com/art/",
   fr: "https://rdap.nic.fr/",
 };
-export const RDAP_PROVIDER = "Public registry RDAP";
+const RDAP_PROVIDER = "Public registry RDAP";
 export async function lookupRdap(
   domain: string,
   fetcher: ProviderFetch,

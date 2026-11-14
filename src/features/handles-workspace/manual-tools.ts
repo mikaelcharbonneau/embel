@@ -49,18 +49,3 @@ export function handlesCsv(rows: readonly { name: string; entries: readonly Hand
   ];
   return lines.map((line) => line.map(cell).join(",")).join("\r\n") + "\r\n";
 }
-
-export function downloadHandlesCsv(rows: readonly { name: string; entries: readonly HandleEntry[] }[]) {
-  if (!rows.length) return;
-  const url = URL.createObjectURL(new Blob([handlesCsv(rows)], { type: "text/csv;charset=utf-8" }));
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "embel-handles.csv";
-  try {
-    document.body.appendChild(link);
-    link.click();
-  } finally {
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-}

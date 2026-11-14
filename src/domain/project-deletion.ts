@@ -32,7 +32,4 @@ export const projectDeletionSummarySchema = accountProjectSummarySchema
   })
   .superRefine(validateProjectDeletionState);
 export const projectDeletionResponseSchema = z.strictObject({ project: projectDeletionSummarySchema });
-export type ProjectDeletionInput = z.infer<typeof projectDeletionInputSchema>;
 export type ProjectDeletionSummary = z.infer<typeof projectDeletionSummarySchema>;
-
-export type ProjectStopDeletionInput = z.infer<typeof projectStopDeletionInputSchema>;

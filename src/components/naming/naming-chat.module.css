@@ -9,33 +9,6 @@
   overflow: hidden;
   background: var(--paper);
 }
-.chatFirst.workspace {
-  grid-template-columns: minmax(0, 1fr);
-  --fc-max-width: var(--conversation-max);
-}
-.chatPanel {
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--paper);
-  border-right: 0;
-}
-.chatFirst .chatPanel {
-  border-right: 0;
-}
-.openingTitle {
-  flex-shrink: 0;
-  width: 100%;
-  max-width: 808px;
-  padding: 28px 24px 0;
-  margin: 0 auto;
-  font-size: 24px;
-  line-height: 32px;
-  font-weight: 500;
-  letter-spacing: -0.5px;
-}
 .chatUnavailable {
   padding: 24px 16px;
   font-size: 13px;
@@ -59,9 +32,6 @@
   gap: 22px;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-}
-.chatFirst .transcript {
-  padding-inline: max(24px, calc((100% - var(--conversation-max)) / 2));
 }
 .transcript > * {
   flex-shrink: 0;
@@ -94,9 +64,6 @@
 .active :global(.naming-approach-options) {
   grid-template-columns: 1fr;
   gap: 8px;
-}
-.chatFirst .active :global(.naming-approach-options) {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .active :global(.naming-approach-option) {
   padding: 12px 14px;
@@ -205,21 +172,8 @@
   padding: 24px;
   background: var(--canvas);
 }
-.canvas :global(.project-naming-header) {
-  margin-bottom: 22px;
-}
-.canvas :global(.project-naming-header h1) {
-  margin-top: 0;
-  font-weight: 400;
-}
 .canvas > :global(.project-naming-muted) {
   margin-bottom: 18px;
-}
-.canvas :global(.project-naming-header .project-naming-eyebrow) {
-  display: none;
-}
-.canvas :global(.project-naming-header-actions a) {
-  display: none;
 }
 .canvas :global(.project-naming-section-heading) {
   align-items: center;
@@ -335,9 +289,6 @@
   background: var(--accent-soft) !important;
 }
 @media (max-width: 1150px) and (min-width: 761px) {
-  .chatFirst.workspace {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .workspace .canvas :global(.project-naming-grid) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -352,26 +303,8 @@
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
   }
-  .chatFirst.workspace {
-    grid-template-rows: minmax(0, 1fr);
-  }
-  .chatFirst .chatPanel {
-    grid-row: 1;
-  }
-  .chatPanel {
-    border-right: 0;
-  }
-  .openingTitle {
-    padding: 20px 16px 0;
-    font-size: 22px;
-    line-height: 30px;
-  }
-  .chatFirst .transcript,
   .transcript.transcript {
     padding: 22px 16px;
-  }
-  .chatFirst .active :global(.naming-approach-options) {
-    grid-template-columns: 1fr;
   }
   .answer > button {
     min-height: 44px;
@@ -381,10 +314,6 @@
   }
   .canvas.canvas {
     padding: 20px 16px;
-  }
-  .canvas :global(.project-naming-header h1) {
-    font-size: 22px;
-    line-height: 30px;
   }
   .workspace .canvas :global(.project-naming-grid) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -422,16 +351,8 @@
 .workspace.exploring {
   grid-template: minmax(0, 1fr) / minmax(0, 1fr);
 }
-.exploring .canvas,
-.exploring .chatPanel {
+.exploring .canvas {
   grid-area: 1 / 1;
-}
-.exploring .chatPanel {
-  z-index: 1;
-  pointer-events: none;
-  background: transparent;
-  border: 0;
-  --fc-backing: var(--canvas);
 }
 .exploring .conversation {
   background: transparent;
@@ -446,34 +367,8 @@
   padding-bottom: calc(var(--floating-composer-clearance, 96px) + 16px);
   scroll-padding-bottom: var(--floating-composer-clearance, 96px);
 }
-.chatFirst .transcript {
-  padding-bottom: calc(var(--floating-composer-clearance, 96px) + 20px);
-  scroll-padding-bottom: var(--floating-composer-clearance, 96px);
-}
-.manualEntry {
-  flex: 0 1 auto;
-  min-height: 0;
-  max-height: 32%;
-  overflow-y: auto;
-  padding: 12px max(24px, calc((100% - var(--conversation-max)) / 2)) 0;
-}
-@media (max-width: 760px) {
-  .manualEntry {
-    padding-inline: 16px;
-  }
-}
-
-.chatFirst:has(> :global(.project-naming-notice)) {
-  grid-template-rows: auto minmax(0, 1fr);
-}
-.chatFirst:has(> :global(.project-naming-notice)) .chatPanel {
-  grid-row: 2;
-}
 
 /* The transcript owns its scrolling even when Strategy hands off inside this view. */
-.chatFirst.workspace {
-  grid-template-rows: minmax(0, 1fr);
-}
 .transcript.transcript {
   display: flex;
   flex-direction: column;
@@ -522,18 +417,6 @@
 .manualName > :global([role="alert"]) {
   flex-basis: 100%;
   margin: 0;
-}
-.customNames {
-  margin-block: 8px 28px;
-}
-.customNames > h2 {
-  margin: 0 0 14px;
-  font-size: 18px;
-  line-height: 26px;
-  font-weight: 500;
-}
-.workspace .canvas .customNames :global(.project-naming-grid) {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
 }
 @media (max-width: 760px) {
   .manualName input {

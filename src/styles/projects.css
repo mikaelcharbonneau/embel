@@ -156,8 +156,7 @@
   font-size: 14px;
   line-height: 22px;
 }
-.projects-account-status,
-.projects-notice {
+.projects-account-status {
   color: var(--secondary);
   font-size: 13px;
   line-height: 20px;

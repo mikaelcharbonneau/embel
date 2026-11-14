@@ -14,7 +14,7 @@ export function canonicalIdentityInput(value: unknown): string {
   if (result === undefined) throw new TypeError("Identity checks require JSON values.");
   return result;
 }
-export async function hashIdentityText(text: string): Promise<string> {
+async function hashIdentityText(text: string): Promise<string> {
   const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
   return Array.from(new Uint8Array(hash), (value) => value.toString(16).padStart(2, "0")).join("");
 }

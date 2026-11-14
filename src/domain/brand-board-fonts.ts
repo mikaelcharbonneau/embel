@@ -259,7 +259,6 @@ export const BRAND_BOARD_FONTS = [
 
 export type BrandBoardFont = (typeof BRAND_BOARD_FONTS)[number];
 export type BrandBoardFontFamily = BrandBoardFont["family"];
-export const BRAND_BOARD_FONT_FAMILIES = BRAND_BOARD_FONTS.map((font) => font.family);
 const inspected = new Map(fontProvenance.files.map((font) => [font.id, font]));
 
 export function brandBoardFont(family: string): BrandBoardFont | null {

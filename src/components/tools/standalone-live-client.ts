@@ -18,7 +18,7 @@ import {
 import { type HandleCheckAdapter, unavailableEvidence } from "@/features/handles-workspace/adapters";
 
 export type LiveLookupBinding = { ownerId: string; isCurrent: () => boolean; signal: AbortSignal };
-export type TrademarkLookupAdapter = {
+type TrademarkLookupAdapter = {
   ready: boolean;
   search(input: Extract<StandaloneLookupInput, { tool: "trademarks" }>, signal: AbortSignal): Promise<TrademarkLookup>;
 };

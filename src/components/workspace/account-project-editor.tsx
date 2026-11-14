@@ -554,15 +554,6 @@ export function AccountProjectEditor({ projectId, navigation }: { projectId: str
           Open Inspiration
         </Link>
       )}
-      {identityBlocked ? (
-        <button className="button secondary small" type="button" disabled>
-          Saved references and systems
-        </button>
-      ) : (
-        <Link className="text-link" href={`/brands/account/${projectId}/identity`}>
-          Saved references and systems
-        </Link>
-      )}
       {identityHint && <p className="field-hint">{identityHint}</p>}
     </div>
   );

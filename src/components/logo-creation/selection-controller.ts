@@ -8,7 +8,7 @@ import {
 import type { AccountLogoClient } from "../identity/account-logo-client";
 import type { LogoDraftMemory } from "../identity/logo-draft-memory";
 import { AccountRequestError } from "../workspace/account-api";
-export type LogoSelectionInput = {
+type LogoSelectionInput = {
   client: AccountLogoClient;
   memory: LogoDraftMemory;
   projectId: string;

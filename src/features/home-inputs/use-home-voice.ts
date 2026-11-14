@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HomeVoiceError, type HomeVoiceAdapter, type VoiceAvailability, type VoiceErrorCode } from "./voice-contract";
-export type HomeVoiceState = "idle" | "starting" | "listening" | "stopping" | "review" | "error";
+type HomeVoiceState = "idle" | "starting" | "listening" | "stopping" | "review" | "error";
 type Capture = {
   controller: AbortController;
   fence: string;

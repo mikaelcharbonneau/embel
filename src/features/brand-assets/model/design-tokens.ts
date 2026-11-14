@@ -46,7 +46,7 @@ export function readableBrandColor(
   );
 }
 
-export type DesignTokens = ReturnType<typeof designTokens>;
+type DesignTokens = ReturnType<typeof designTokens>;
 export function designTokens(snapshot: BrandAssetSnapshot) {
   const roles = Object.entries(snapshot.palette) as [keyof BrandAssetSnapshot["palette"], string][];
   // An accent too light for text on the page background is used as a fill only.

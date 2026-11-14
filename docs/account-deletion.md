@@ -59,6 +59,31 @@ blocker is caught when it is applied.
 Foreign keys to `auth.users` are unchanged. Tables without `on delete cascade` keep refusing a raw
 Auth deletion while the person still has data, so an account can only disappear through the purge.
 
+### Tables that refer to each other in a loop
+
+The purge deletes one table at a time and retries a table refused by a foreign key after its
+children are gone. That cannot work when tables refer to each other in a loop: a naming session
+points at the chosen name (`name_selections`), which points at its candidate, which points back at
+the session; a transformed name and its transform point at each other's tables; an Identity session
+points at its preferences and current selection, which point back at it. Until November 11, 2026
+every account that had chosen a brand name failed here with `account_purge_blocked`.
+
+Migration `20261111130000_account_purge_foreign_key_cycles.sql` makes the one foreign key that
+closes each loop `DEFERRABLE INITIALLY IMMEDIATE`:
+
+- `naming_sessions_current_selection_id_owner_id_project_id_fkey`
+- `name_candidates_transform_id_owner_id_project_id_fkey`
+- `identity_sessions_current_selection_id_identity_revision_p_fkey`
+- `identity_sessions_project_id_owner_id_current_preferences__fkey`
+
+Outside the purge they behave exactly as before (checked at the end of every statement). The purge
+runs `SET CONSTRAINTS ALL DEFERRED` after it registers its transaction and `SET CONSTRAINTS ALL
+IMMEDIATE` before it returns, which runs every postponed check there: a purge that left a dangling
+reference fails and rolls back. Clearing the session pointers first was not an option, because the
+project content guard refuses that update for a project in the trash. The migration fails if any
+loop made only of non-deferrable foreign keys remains between `public` and `fluid_private` tables,
+so a new one is caught when it is applied; close it the same way.
+
 ### What is kept, and why
 
 | Kept | Where | Contents |
@@ -109,7 +134,9 @@ Needs `CRON_SECRET` (at least 16 characters) in the environment.
 
 - `tests/database/account-deletion.test.ts` (PGlite, full migration history): a person with
   projects, history, paid and active runs, credits, a legacy job, a profile, an export request and
-  Storage objects is fully purged while another person's rows are byte-for-byte unchanged; the
+  Storage objects is fully purged while another person's rows are byte-for-byte unchanged; so is a
+  person who chose and transformed brand names and saved Identity preferences, in a live project and
+  in one in the trash, with the session's foreign key still enforced afterwards; the
   accounting copy holds no id or content; history stays immutable outside the purge, including with
   the setting forged; API roles cannot call the server functions; orphan listing; export rate limit.
 - `tests/server/account-deletion.test.ts`: step order, resuming after a failure at every step,

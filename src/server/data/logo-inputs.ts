@@ -76,7 +76,7 @@ function parseMetadata<T>(schema: z.ZodType<T>, value: unknown): T {
 }
 /** Only two fixed write functions use this explicitly injected, owner-bound login.
  * Public reads use the actual authenticated account. No privileged fallback. */
-export function createPostgresLogoInputRegistry(factory: IdentityConnectionFactory): LogoInputRegistry {
+function createPostgresLogoInputRegistry(factory: IdentityConnectionFactory): LogoInputRegistry {
   async function write(
     auth: AuthenticatedContext,
     projectId: string,

@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-export const MAX_CONVERSATION_EVENTS = 64;
-export const MAX_PROMPT_LENGTH = 12_000;
-export const MAX_CONVERSATION_BYTES = 64_000;
+const MAX_CONVERSATION_EVENTS = 64;
+const MAX_PROMPT_LENGTH = 12_000;
+const MAX_CONVERSATION_BYTES = 64_000;
 export const conversationWidgets = ["competitors", "audience", "personality", "positioning"] as const;
-export const conversationWidgetSchema = z.enum(conversationWidgets);
+const conversationWidgetSchema = z.enum(conversationWidgets);
 export type ConversationWidget = z.infer<typeof conversationWidgetSchema>;
 const eventId = z.string().min(1).max(128);
 const promptText = z

@@ -77,7 +77,7 @@ export const draftAttachmentSchema = bounded(
 );
 export type DraftAttachment = z.infer<typeof draftAttachmentSchema>;
 // Reuse the existing project/context validator while rejecting extra response fields.
-export const attachmentAccountProjectSchema = accountProjectSchema
+const attachmentAccountProjectSchema = accountProjectSchema
   .strict()
   .extend({ id: uuid, owner_id: uuid, current_revision: revision, created_at: timestamp });
 export const attachedProjectDraftReceiptSchema = bounded(

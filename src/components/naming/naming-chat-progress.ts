@@ -1,7 +1,7 @@
 import type { NamingPreferencesV2 } from "@/domain/naming-brain-preferences";
 import { namingChatCheckpointSchema, type NamingChatCheckpoint } from "@/domain/naming-chat-checkpoint";
 
-export type NamingQuestion = "approaches" | "directness" | "language" | "length" | "fragments";
+type NamingQuestion = "approaches" | "directness" | "language" | "length" | "fragments";
 export type NamingChatStep = NamingQuestion | "review";
 /** Owner-bound UI progress. Durable checkpoints acknowledge exact saved preferences. */
 export type NamingChatProgress = { activeStep: NamingChatStep; confirmed: Partial<Record<NamingQuestion, string>> };

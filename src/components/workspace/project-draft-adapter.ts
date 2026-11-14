@@ -38,7 +38,7 @@ function conversationalBasis(draft: ConversationDraft, saved = draft.preservedCo
   return messages.length ? { messages } : {};
 }
 
-export function conversationDraftFields(
+function conversationDraftFields(
   context: ContextSnapshot,
 ): Pick<LocalDraft, "conversation" | "audienceConversationKey"> {
   return {
@@ -155,9 +155,7 @@ export function competitorReviewKey(draft: CompetitorBrief, saved = draft.preser
   });
 }
 
-export function competitorDraftFields(
-  context: ContextSnapshot,
-): Pick<LocalDraft, "competitors" | "competitorReviewKey"> {
+function competitorDraftFields(context: ContextSnapshot): Pick<LocalDraft, "competitors" | "competitorReviewKey"> {
   const competitors = editableCompetitors(context);
   return {
     competitors,

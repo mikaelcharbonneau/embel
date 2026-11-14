@@ -1,6 +1,6 @@
 import type { AssetVersionDetail } from "@/domain/asset-library";
 import { logoExportManifestSchema, type LogoExportManifest } from "@/domain/logo-deliverables";
-export type LogoAssetEvidence = { origin: string; vector: string; rights: string; approvedExportId: string | null };
+type LogoAssetEvidence = { origin: string; vector: string; rights: string; approvedExportId: string | null };
 /** Manifest evidence is a separate owner-checked projection. It never mutates
  * legacy metadata, current file availability, retention or an Identity approval. */
 export function describeAssetEvidence(

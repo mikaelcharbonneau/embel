@@ -4,7 +4,7 @@ import type { IdentityConsistencyResult, IdentityDirectionsOverview } from "@/do
 import type { selectIdentityDirectionComponents } from "@/server/data/logo-workspace";
 import { ApiError } from "@/server/http/errors";
 import { previewIdentityMix, DirectionMixError } from "../model/mix";
-export type DirectionComponentSelectionRequest = Parameters<typeof selectIdentityDirectionComponents>[2];
+type DirectionComponentSelectionRequest = Parameters<typeof selectIdentityDirectionComponents>[2];
 /** Called under the shared source/head fences; browser diagnostics are never trusted. */
 export async function verifyDirectionSelection(input: {
   overview: IdentityDirectionsOverview;

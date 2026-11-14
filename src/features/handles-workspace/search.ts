@@ -7,13 +7,8 @@ import {
   type HandlePlatform,
 } from "./domain";
 
-export type HandleSeparator = "" | "." | "_";
-export type HandleSearchOptions = { prefixes: string; suffixes: string; separators: HandleSeparator[] };
-export const defaultHandleSearch: HandleSearchOptions = {
-  prefixes: "get, hello, try",
-  suffixes: "hq, studio, co",
-  separators: [""],
-};
+type HandleSeparator = "" | "." | "_";
+type HandleSearchOptions = { prefixes: string; suffixes: string; separators: HandleSeparator[] };
 
 function affixes(value: string): string[] {
   const values = [

@@ -197,8 +197,9 @@ export function AssetDetailDialog({
       ref={dialog}
       className="assets-detail"
       aria-labelledby="asset-detail-heading"
+      // No `close` listener: this dialog closes by unmounting, and the effect
+      // cleanup's own close() would dismiss it when development re-runs effects.
       onCancel={onClose}
-      onClose={onClose}
       onClick={(event) => {
         if (isDialogBackdropClick(event)) onClose();
       }}

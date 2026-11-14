@@ -115,7 +115,7 @@ export const inspirationOverviewSchema = z
     }
   });
 export type InspirationOverview = z.infer<typeof inspirationOverviewSchema>;
-export type InspirationChoice = z.infer<typeof referenceReactionSchema>;
+type InspirationChoice = z.infer<typeof referenceReactionSchema>;
 export type InspirationPreferences = Pick<InspirationChoice, "ensemble" | "elements">;
 export const hasInspirationChoice = (choice?: InspirationPreferences) =>
   Boolean(choice && (choice.ensemble || choice.elements.length));

@@ -46,7 +46,7 @@ function boundedDimensions(width: number | undefined, height: number | undefined
   if (width > 8192 || height > 8192 || width * height > 16_777_216)
     throw new LogoVectorError("limit_exceeded", "Raster exceeds the decoded 8192-pixel edge or 16-megapixel limit.");
 }
-export async function decodeIdentityRaster(input: { bytes: Uint8Array; mimeType: string }) {
+async function decodeIdentityRaster(input: { bytes: Uint8Array; mimeType: string }) {
   const sharp = (await import("sharp")).default;
   if (sharp.versions.sharp !== "0.35.5")
     throw new LogoVectorError("engine_unavailable", "The qualified raster decoder is unavailable.");
@@ -110,7 +110,7 @@ export async function inspectDecodedIdentityRaster(input: {
 
 /** Bytes of the image a style-note request may carry, so the whole request
  * stays within the 128 KiB text-policy input bound. */
-export const LOGO_REFERENCE_NOTE_IMAGE_BYTES = 90_000;
+const LOGO_REFERENCE_NOTE_IMAGE_BYTES = 90_000;
 /** A liked upload as the style-note model sees it: decoded in this bounded
  * child, placed on white so a transparent logo is not read as solid black, and
  * at most 1024 pixels on its longer edge. A PNG is kept when it fits; a larger

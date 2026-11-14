@@ -10,12 +10,12 @@ import { BrandAssetError } from "../model/snapshot";
 import type { BrandArtwork, BrandFontNames } from "../model/artwork";
 
 export const BRAND_ASSET_TIMEOUT_MS = 60_000;
-export const MAX_BRAND_ASSET_BYTES = 52_428_800;
-export const MAX_BRAND_FONT_BYTES = 20_971_520;
+const MAX_BRAND_ASSET_BYTES = 52_428_800;
+const MAX_BRAND_FONT_BYTES = 20_971_520;
 export function checkBrandAssetSignal(signal: AbortSignal) {
   if (signal.aborted) throw signal.reason ?? new DOMException("Cancelled", "AbortError");
 }
-export function observed<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+function observed<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
   return new Promise((resolve, reject) => {
     const abort = () => reject(signal.reason ?? new DOMException("Cancelled", "AbortError"));
     if (signal.aborted) {

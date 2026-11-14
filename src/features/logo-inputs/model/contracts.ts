@@ -9,7 +9,7 @@ import { logoHashSchema, logoUuidSchema } from "@/domain/logo-vector";
 
 export const LOGO_REFERENCE_UPLOAD_MAX_BYTES = 33_554_432;
 export const LOGO_FONT_UPLOAD_MAX_BYTES = 10_485_760;
-export const LOGO_LICENSE_MAX_BYTES = 262_144;
+const LOGO_LICENSE_MAX_BYTES = 262_144;
 export const LOGO_INPUT_METADATA_MAX_BYTES = 294_912;
 const jsonbText = (value: string) =>
   [...value].every((character) => {
@@ -165,10 +165,6 @@ export const catalogLogoFontSchema = z.strictObject({
   reservedFontNames: z.array(z.string().min(1).max(200)).max(20),
 });
 export type CatalogLogoFont = z.infer<typeof catalogLogoFontSchema>;
-export const CURATED_REFERENCE_UNAVAILABLE =
-  "The curated reference collection is unavailable until its source and display and processing rights have been verified.";
-export const UPLOADED_FONT_REVIEW_NOTICE =
-  "Your font and license are saved as a declaration. Display, outlines, embedding, modification and sharing remain unavailable until the license is reviewed.";
 
 export const logoInputRequestQuerySchema = z.strictObject({
   cursor: logoUuidSchema.optional(),

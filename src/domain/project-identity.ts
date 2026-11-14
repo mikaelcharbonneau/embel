@@ -27,12 +27,11 @@ import {
 } from "./projects";
 
 export const IDENTITY_MUTATION_MAX_BYTES = 32_768;
-export const IDENTITY_HISTORY_DEFAULT_PAGE_SIZE = 20;
-export const IDENTITY_HISTORY_MAX_PAGE_SIZE = 50;
-export const IDENTITY_MAX_PRODUCTION_FILES = 48;
-export const identityComponents = ["logo", "colors", "typography", "graphics", "imagery", "composition"] as const;
-export const identityComponentSchema = z.enum(identityComponents);
-export type IdentityComponent = z.infer<typeof identityComponentSchema>;
+const IDENTITY_HISTORY_DEFAULT_PAGE_SIZE = 20;
+const IDENTITY_HISTORY_MAX_PAGE_SIZE = 50;
+const IDENTITY_MAX_PRODUCTION_FILES = 48;
+const identityComponents = ["logo", "colors", "typography", "graphics", "imagery", "composition"] as const;
+const identityComponentSchema = z.enum(identityComponents);
 const editableComponent = z.enum(["colors", "typography"]);
 const revision = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 const counter = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
@@ -116,9 +115,8 @@ export function initialIdentityPreferences(context: ContextSnapshot): IdentityPr
 export const identityPreferenceRevisionSchema = z
   .strictObject({ ...ownership, revision, preferences: identityPreferencesSchema, createdAt: timestamp })
   .transform(freeze);
-export type IdentityPreferenceRevision = z.infer<typeof identityPreferenceRevisionSchema>;
 
-export const identityNameResolutionSchema = z.discriminatedUnion("status", [
+const identityNameResolutionSchema = z.discriminatedUnion("status", [
   z.strictObject({
     status: z.literal("resolved"),
     value: name,
@@ -127,7 +125,7 @@ export const identityNameResolutionSchema = z.discriminatedUnion("status", [
   z.strictObject({ status: z.literal("missing") }),
   z.strictObject({ status: z.literal("inconsistent"), selectedName: name, suppliedName: name }),
 ]);
-export type IdentityNameResolution = z.infer<typeof identityNameResolutionSchema>;
+type IdentityNameResolution = z.infer<typeof identityNameResolutionSchema>;
 export function resolveIdentityName(context: ContextSnapshot): IdentityNameResolution {
   const value = contextSnapshotSchema.parse(context);
   const selected = value.selectedName?.trim().normalize("NFC") ?? "";
@@ -144,7 +142,7 @@ export function resolveIdentityName(context: ContextSnapshot): IdentityNameResol
 
 const strategySteps = ["reformulation", "competitors", "audience", "personality", "positioning"] as const;
 const strategyStep = z.enum(strategySteps);
-export const identityReadinessSchema = z
+const identityReadinessSchema = z
   .strictObject({
     ready: z.boolean(),
     blocking: z
@@ -166,7 +164,7 @@ export const identityReadinessSchema = z
     )
       issue(ctx, "Readiness must preserve the saved-name resolution");
   });
-export type IdentityReadiness = z.infer<typeof identityReadinessSchema>;
+type IdentityReadiness = z.infer<typeof identityReadinessSchema>;
 /** Input readiness only. The selected-reference count must come from the owned aggregate, not a feed page. */
 export function getIdentityReadiness(
   context: ContextSnapshot,
@@ -246,7 +244,7 @@ export const identityBasisSchema = z
     "Identity basis must bind the owned saved inputs",
   )
   .transform(freeze);
-export type IdentityBasis = z.infer<typeof identityBasisSchema>;
+type IdentityBasis = z.infer<typeof identityBasisSchema>;
 type BasisInput = {
   ownerId: string;
   projectId: string;
@@ -275,11 +273,11 @@ export function identityBasis(input: BasisInput): IdentityBasis {
 export function identityBasisKey(basis: IdentityBasis): string {
   return `identity-basis-v${basis.version}:${JSON.stringify(identityBasisSchema.parse(basis))}`;
 }
-export const identityCurrentBasisSchema = z.discriminatedUnion("status", [
+const identityCurrentBasisSchema = z.discriminatedUnion("status", [
   z.strictObject({ status: z.literal("available"), basis: identityBasisSchema }),
   z.strictObject({ status: z.literal("unavailable"), reason: z.enum(["missing_name", "inconsistent_name"]) }),
 ]);
-export type IdentityCurrentBasis = z.infer<typeof identityCurrentBasisSchema>;
+type IdentityCurrentBasis = z.infer<typeof identityCurrentBasisSchema>;
 export function getIdentityCurrentBasis(input: BasisInput): IdentityCurrentBasis {
   // Validate scope even when a missing name prevents a comparable material basis.
   z.strictObject(ownership).parse({ ownerId: input.ownerId, projectId: input.projectId });
@@ -330,7 +328,7 @@ export function createIdentityInputSnapshot(
 }
 
 const materialKeys = ["strategy", "name", "references", "preferences", "logoBrief"] as const;
-export const identityFreshnessSchema = z.discriminatedUnion("status", [
+const identityFreshnessSchema = z.discriminatedUnion("status", [
   z.strictObject({ status: z.literal("current"), changed: z.array(z.enum(materialKeys)).length(0) }),
   z.strictObject({
     status: z.literal("stale"),
@@ -361,7 +359,7 @@ export function getIdentityFreshness(recordedBasis: IdentityBasis, current: Iden
   return identityFreshnessSchema.parse({ status: changed.length ? "stale" : "current", changed });
 }
 
-export const identityDirectionSchema = z.strictObject({ direction, usageNotes: note }).transform(freeze);
+const identityDirectionSchema = z.strictObject({ direction, usageNotes: note }).transform(freeze);
 export const identityColorsSchema = z
   .strictObject({
     swatches: z
@@ -439,7 +437,7 @@ export const identitySystemAssetSchema = assetVersionReferenceSchema.extend({
   mimeType: z.string().min(1).max(150),
 });
 export type IdentitySystemAsset = z.infer<typeof identitySystemAssetSchema>;
-export const identityBoardPreviewSchema = z
+const identityBoardPreviewSchema = z
   .strictObject({
     asset: identitySystemAssetSchema.extend({ mimeType: z.enum(["image/png", "image/jpeg", "image/webp"]) }),
     depictsSystemVersionId: z.uuid(),
@@ -447,14 +445,14 @@ export const identityBoardPreviewSchema = z
   })
   .transform(freeze);
 export type IdentityBoardPreview = z.infer<typeof identityBoardPreviewSchema>;
-export const identityProductionFileSchema = z.strictObject({
+const identityProductionFileSchema = z.strictObject({
   component: identityComponentSchema,
   role: z.string().trim().min(1).max(120),
   asset: identitySystemAssetSchema,
 });
 export type IdentityProductionFile = z.infer<typeof identityProductionFileSchema>;
 /** Read-only evidence links, never provider-authorship proof from shape alone. The DAL must resolve actual leased completion or replay the owned manual base. */
-export const identitySystemSourceSchema = z.discriminatedUnion("kind", [
+const identitySystemSourceSchema = z.discriminatedUnion("kind", [
   z.strictObject({
     kind: z.literal("generated"),
     batchId: z.uuid(),
@@ -738,7 +736,6 @@ export const identityComponentChangeSchema = z
       issue(ctx, "A user edit must record a real owned change to a new system version");
   })
   .transform(freeze);
-export type IdentityComponentChange = z.infer<typeof identityComponentChangeSchema>;
 export const identityRefinementResponseSchema = z
   .strictObject({
     system: identitySystemVersionSchema,
@@ -901,7 +898,6 @@ export const identitySessionSchema = z
     (value) => (value.identityRevision === 0) === (value.currentSelectionId === null),
     "The Identity selection head must match its revision",
   );
-export type IdentitySession = z.infer<typeof identitySessionSchema>;
 export const updateIdentityPreferencesSchema = z.strictObject({
   expectedPreferencesRevision: counter,
   preferences: identityPreferencesSchema,
@@ -916,7 +912,6 @@ export const updateIdentityPreferencesResponseSchema = z
       value.session.currentPreferencesRevision === value.preferences.revision,
     "Preference response must bind the exact owned session head",
   );
-export type UpdateIdentityPreferencesResponse = z.infer<typeof updateIdentityPreferencesResponseSchema>;
 /** Mutation-time freshness uses the new selection receipt, not an arbitrary later observation. */
 export const selectIdentitySystemResponseSchema = z
   .strictObject({ session: identitySessionSchema, currentSelection: identitySelectionWithSystemSchema })
@@ -945,7 +940,7 @@ export const selectIdentitySystemResponseSchema = z
     }
   });
 export type SelectIdentitySystemResponse = z.infer<typeof selectIdentitySystemResponseSchema>;
-export const identitySystemSummarySchema = z
+const identitySystemSummarySchema = z
   .strictObject({
     id: z.uuid(),
     ...ownership,
@@ -1037,7 +1032,6 @@ export const identitySystemPageSchema = z
     )
       issue(ctx, "History continuation must bind its exact last row and project");
   });
-export type IdentitySystemPage = z.infer<typeof identitySystemPageSchema>;
 export const identitySystemDetailSchema = z
   .strictObject({
     ...ownership,
@@ -1058,10 +1052,9 @@ export const identitySystemDetailSchema = z
       issue(ctx, "System detail requires a comparable owned basis or explicit unavailability");
     }
   });
-export type IdentitySystemDetail = z.infer<typeof identitySystemDetailSchema>;
 export const identityProjectSchema = assetProjectSummarySchema.extend({ context: contextSnapshotSchema });
 /** Server capability for selection/refinement, independent of image generation or preference CAS. */
-export const identitySaveAvailabilitySchema = z.discriminatedUnion("status", [
+const identitySaveAvailabilitySchema = z.discriminatedUnion("status", [
   z.strictObject({ status: z.literal("available") }),
   z.strictObject({ status: z.literal("unavailable"), reason: z.literal("trusted_transaction_unavailable") }),
 ]);

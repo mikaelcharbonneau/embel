@@ -85,9 +85,9 @@ function launchChild(): ChildProcessWithoutNullStreams {
     },
   });
 }
-export type LogoVectorProcessOptions = { timeoutMs?: number; launch?: () => ChildProcessWithoutNullStreams };
+type LogoVectorProcessOptions = { timeoutMs?: number; launch?: () => ChildProcessWithoutNullStreams };
 /** Injectable process launcher for resource-boundary tests; runtime uses the fixed child. */
-export function createRasterProcessRunner(
+function createRasterProcessRunner(
   mode: "inspect" | "concept-grayscale" | "reference-on-white",
   options: LogoVectorProcessOptions = {},
 ) {

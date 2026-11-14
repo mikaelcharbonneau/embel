@@ -101,7 +101,6 @@ const savedWorkspaceSchema = z.object({ version: z.literal(1), drafts: z.array(d
 export type LocalDraft = z.infer<typeof draftSchema>;
 export type LocalSegment = z.infer<typeof segmentSchema>;
 export type LocalCompetitor = z.infer<typeof localCompetitorSchema>;
-export type DraftStage = LocalDraft["stage"];
 
 export const DRAFT_STORAGE_KEY = "fluid.local-drafts.v1";
 const MAX_SERIALIZED_WORKSPACE_LENGTH = 8_000_000;
@@ -229,10 +228,6 @@ export function updateLocalDraft(id: string, patch: Partial<Omit<LocalDraft, "id
       draft.id === id ? { ...draft, ...patch, updatedAt: new Date().toISOString() } : draft,
     ),
   );
-}
-
-export function deleteLocalDraft(id: string) {
-  return commit(snapshot.drafts.filter((draft) => draft.id !== id));
 }
 export function copyToLocalDraft(draft: LocalDraft) {
   hydrate();

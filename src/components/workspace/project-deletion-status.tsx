@@ -5,7 +5,7 @@ import { AccountRequestError } from "./account-api";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { readProjectDeletion, type LifecycleProject } from "./project-deletion-client";
 
-export function deletionIsPending(project: LifecycleProject) {
+function deletionIsPending(project: LifecycleProject) {
   return project.deletion_state === "stopping" || project.deletion_state === "awaiting_resolution";
 }
 

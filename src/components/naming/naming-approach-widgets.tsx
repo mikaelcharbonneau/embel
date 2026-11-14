@@ -17,7 +17,6 @@ import { GuidedThinking } from "@/components/workspace/guided-thinking";
 import { projectStrategyHref } from "@/domain/project-handoff";
 import { ProjectArtwork } from "@/components/ui/project-artwork";
 import { Icon } from "@/components/ui/icon";
-import type { NamingComposerLayout } from "./use-naming-composer-layout";
 import { FloatingComposer } from "@/components/workspace/floating-composer";
 import { ConversationComposer } from "@/components/workspace/conversation-composer";
 import {
@@ -132,7 +131,7 @@ function choicesSummary(value: NamingPreferencesV2) {
     .filter(Boolean)
     .join(" · ");
 }
-export function NamingRecoveryNotice({ memory, account }: { memory: NamingBrainMemory; account: NamingAccount }) {
+function NamingRecoveryNotice({ memory, account }: { memory: NamingBrainMemory; account: NamingAccount }) {
   const read = useCallback(() => memory.getRecovery(account), [memory, account]);
   const recovery = useSyncExternalStore(memory.subscribe, read, hidden);
   if (!recovery) return null;
@@ -178,7 +177,6 @@ export function NamingApproachWidgets({
   generationUnavailable = false,
   compact = false,
   onToggleConversation,
-  composerLayout,
   conversationHistory,
   inline,
   manualName,
@@ -193,7 +191,6 @@ export function NamingApproachWidgets({
   conversationHistory?: ReactNode;
   compact?: boolean;
   onToggleConversation?: (open: boolean) => void;
-  composerLayout?: NamingComposerLayout;
   generationStatus?: ReactNode;
   generationUnavailable?: boolean;
   savedChat?: NamingChatCheckpoint;
@@ -826,7 +823,7 @@ export function NamingApproachWidgets({
       <FloatingComposer
         label="Naming composer"
         history={compact ? chatHistory : undefined}
-        expanded={compact && (composerLayout?.expanded ?? true)}
+        expanded={compact}
         onExpandedChange={onToggleConversation}
         expandLabel="Open chat"
         collapseLabel="Close chat"

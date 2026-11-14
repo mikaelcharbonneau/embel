@@ -81,7 +81,7 @@ function active(signal?: AbortSignal): void {
 
 /** Authenticated fixed RPCs only. This factory creates no client, connection,
  * job, provider, environment lookup, or alternative account/session boundary. */
-export type LogoWorkspaceDependencies = {
+type LogoWorkspaceDependencies = {
   assetStore?: IdentityAssetStore;
   transactions?: {
     run(

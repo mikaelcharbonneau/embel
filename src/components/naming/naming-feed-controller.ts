@@ -24,17 +24,17 @@ export const NAMING_ACTIVE_POLL_MS = 1_000;
 export const NAMING_ENGINE_ACTIVE_POLL_MS = 3_000;
 export const NAMING_IDLE_POLL_MS = 15_000;
 /** One read follows at most this many 100-name pages; the next poll continues from there. */
-export const NAMING_FEED_MAX_PAGES = 50;
+const NAMING_FEED_MAX_PAGES = 50;
 
-export const namingFeedResponseSchema = z.strictObject({ feed: namingGenerationFeedSchema });
-export const namingStartResponseSchema = z.strictObject({
+const namingFeedResponseSchema = z.strictObject({ feed: namingGenerationFeedSchema });
+const namingStartResponseSchema = z.strictObject({
   feed: namingGenerationFeedSchema,
   run: namingRunSchema,
   reused: z.boolean(),
 });
 
 /** The saved versions a start request must name; SQL refuses a stale one. */
-export type NamingBasis = { projectRevision: number; preferencesVersion: number };
+type NamingBasis = { projectRevision: number; preferencesVersion: number };
 
 export function namingPollInterval(state: NamingFeedState | null | undefined) {
   if (!state || !(state.pending || state.stopping || namingRunActive(state.feed?.run))) return NAMING_IDLE_POLL_MS;
@@ -93,7 +93,7 @@ export function namingFailureMessage(code: string | null, savedCount: number) {
     .join(" ");
 }
 
-export type NamingStatus =
+type NamingStatus =
   | { kind: "idle" }
   | { kind: "starting" | "stopping" | "stopped" | "unavailable"; message: string }
   | { kind: "active"; message: string; savedCount: number }
@@ -442,4 +442,3 @@ export function createNamingFeedController(options: {
     },
   };
 }
-export type NamingFeedController = ReturnType<typeof createNamingFeedController>;

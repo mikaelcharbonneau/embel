@@ -4,7 +4,7 @@ import { getSupabaseConfiguration } from "../config";
 
 type Environment = Record<string, string | undefined>;
 type Check = "reachable" | "unavailable" | "not_configured";
-export type CoreReadiness = {
+type CoreReadiness = {
   service: "fluid-web";
   release: string;
   scope: "core_connectivity";

@@ -28,9 +28,9 @@ import {
   type UploadLogoFontInput,
   type UploadLogoReferenceInput,
 } from "../model/contracts";
-export const REFERENCE_PERMISSION = "I have permission to use and process this image.";
-export const FONT_PERMISSION = "I have permission to upload and use this font and its license.";
-export type InputPreview = { url: string; release(): void };
+const REFERENCE_PERMISSION = "I have permission to use and process this image.";
+const FONT_PERMISSION = "I have permission to upload and use this font and its license.";
+type InputPreview = { url: string; release(): void };
 export type LogoInputClient = {
   listLogoReferences(
     query?: { cursor?: string; limit?: number },
@@ -52,7 +52,7 @@ export type LogoInputClient = {
   importCatalogLogoFont(input: ImportCatalogLogoFontInput, signal?: AbortSignal): Promise<FontRecord | null>;
   previewLogoReference(input: LogoReferenceRegistration, signal?: AbortSignal): Promise<InputPreview | null>;
 };
-export type LogoInputsState = {
+type LogoInputsState = {
   busy: boolean;
   loading: boolean;
   references: LogoReferenceRegistration[];

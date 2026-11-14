@@ -7,7 +7,7 @@ export const JOURNEY = [
 ] as const;
 
 export type JourneyStepId = (typeof JOURNEY)[number]["id"];
-export type JourneyStepStatus = "done" | "current" | "upcoming";
+type JourneyStepStatus = "done" | "current" | "upcoming";
 /** `complete` keeps a finished step's state while it is the page being shown. */
 export type JourneyStepView = {
   id: JourneyStepId;
@@ -52,7 +52,7 @@ export function journeyStepOfPath(projectId: string, pathname: string): JourneyS
 
 /** Where each step lives today. Identity opens at the logo, which leads on to
  * inspiration and creative direction. */
-export function journeyStepHref(projectId: string, step: JourneyStepId): string {
+function journeyStepHref(projectId: string, step: JourneyStepId): string {
   const base = projectBase(projectId);
   return step === "strategy"
     ? `${base}?view=strategy`
@@ -65,7 +65,7 @@ export function journeyStepHref(projectId: string, step: JourneyStepId): string 
 
 /** The step a project's next action belongs to, from the same continuation the
  * project cards show. Steps before it are complete; null when it is unknown. */
-export function journeyStepOfAction(projectId: string, href: string): JourneyStepId | null {
+function journeyStepOfAction(projectId: string, href: string): JourneyStepId | null {
   const path = href.split(/[?#]/, 1)[0] ?? "";
   const base = projectBase(projectId);
   return path === base || path.startsWith(`${base}/`) ? journeyStepOfPath(projectId, path) : null;

@@ -2,7 +2,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { HomeVoiceAdapter, VoiceErrorCode } from "./voice-contract";
 import { useHomeVoice } from "./use-home-voice";
-export type HomeVoiceControlProps = {
+type HomeVoiceControlProps = {
   value: string;
   onChange(value: string): void;
   language: string;
