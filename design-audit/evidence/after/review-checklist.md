@@ -34,11 +34,16 @@ Fixes made during this review (PRs 275 to 279): D-005, D-006 (send button), D-00
 - **Accessibility:** no screen-reader run of the chat log (D-003); choice cards, tabs and gallery controls have no pressed look (D-006); example placeholders (D-093).
 - **Not captured at 1440:** research failed and research in progress (D-016, D-041).
 - **Data:** the old inspiration catalogue stays while saved likes still resolve through it (D-079).
-- **Emails:** no mark or help address, one has no expiry, straight apostrophes; the hosted templates are edited in the Supabase dashboard (D-085, D-087).
+- **Emails:** the mark, the expiry and the apostrophes are in the repository templates; the help address waits for launch; the hosted templates are pasted into the Supabase dashboard by the owner (D-085, D-087).
 
-### Needs the owner
+### Owner decisions (November 14, 2026), all closed
 
-D-020, D-028 (Terms, Privacy and Help wait until those pages exist), D-052, D-056, D-067, D-072 (keep the first password after a mismatch?), D-076, D-078, D-091, D-097. D-024 is deferred and D-036 declined by the owner.
+Nothing here is an open question any more; do not ask again.
+
+- **Done after the decision:** D-052 desktop breakpoints, D-072 (both passwords kept after a mismatch), D-091 (no error status; the logo search keeps going), D-097 (Library and Projects views in the address; Settings opens on Account), D-043 (`/fluid-mark.svg` deleted), D-087 (emails: mark, expiry, apostrophes).
+- **Kept as is:** D-056 (the noun stays Projects).
+- **Just before launch:** D-028 Terms, Privacy and Help; D-067 gallery credit lines; D-076 Plans footer and Downgrade; D-078 Stripe branding.
+- **Leave as is for now:** D-020 image previews, D-024 direction-board logo, D-036 credit ledger.
 
 ### One line per finding
 
@@ -63,15 +68,15 @@ D-020, D-028 (Terms, Privacy and Help wait until those pages exist), D-052, D-05
 | D-017 | Pass | `screens/home__signed-out__1440.png`; `src/components/workspace/home-examples.tsx` | Three finished brands under the prompt and "Free to start with 30 credits"; images are not lazy, the first has `fetchPriority="high"`; production LCP 440 ms, CLS 0. |
 | D-018 | Partly | `design-system/drift.md` | Tokens are used widely, but stylesheets still hold 13 pixel font sizes (15/17/22 px), 25 literal spacings, 3 rgb() colours, literal shadows and durations, and alias `--fc-radius`; the three-layer structure was not visible in this evidence. |
 | D-019 | Partly | none for M-013; `traces/home__signed-out__desktop__load.json.gz` (Home only) | Status says jumps and "private" wording are gone; CLS and landing position when opening Kestrel were not re-measured. |
-| D-020 | Needs the owner | Status | Server-made previews wait on the owner; Library alt text is distinct. |
+| D-020 | Closed (owner) | Status | Server-made previews wait on the owner; Library alt text is distinct. |
 | D-021 | Pass | `screens/brand-conversation__kestrel-complete-showcase-pro__1440.png`; `a11y/summary.json` (19 tab stops) | Finished steps are folded, the brand board is the first colourful thing, and the page has 19 tab stops instead of 141. |
 | D-022 | Pass | `exports/rendered/kestrel__brand-board.png.png`, `…__social--post-square.png.png` | Circles and "YOUR LOGO" are gone and the brands look clearly different. The odd body line ("For our audience, we are see…") is the local stand-in AI's canned positioning text (`design-audit/seed/stand-in-ai.mjs:139`), not Embel's; in production the AI writes this sentence. |
 | D-023 | Pass | `exports/rendered/kestrel__guides--brand-guide.html.png` | The guide has the logo, crops of the chosen board, brand type and colours, and names the direction; it repeats the broken body sentence from D-022. The on-screen tab was not compared. |
-| D-024 | Deferred (owner) | `exports/rendered/kestrel__direction--selected-direction.png.png` | Owner decision; unchanged. |
+| D-024 | Closed (owner) | `exports/rendered/kestrel__direction--selected-direction.png.png` | Owner decision; unchanged. |
 | D-025 | Pass | `screens/brand-conversation__mosswood-directions-generated-free__1440.png` | Name samples break only between words and the three cards are the same height; the 76-character name was not on a direction card in this evidence. |
 | D-026 | Pass | `screens/home__signed-out-prompt-filled__1440.png` | "Check AI availability" no longer shows unless AI is known to be unavailable (PR 278). The sign-in note appears when typing starts, as in the approved design (`approved/home__home-signed-out-idea-typed__1440.png`). |
 | D-027 | Pass | `screens/sign-in__email-confirmed-notice__1440.png`, `…email-confirmation-failed-notice__1440.png` | Success and warning messages are styled, and "Send a new confirmation email" is a real button. |
-| D-028 | Needs the owner | `a11y/keyboard.json` (sign-up legalLinks: Sign in, Return to Home) | Terms, Privacy and Help wait until those pages exist (owner decision). |
+| D-028 | Closed (owner, before launch) | `a11y/keyboard.json` (sign-up legalLinks: Sign in, Return to Home) | Terms, Privacy and Help wait until those pages exist (owner decision). |
 | D-029 | Partly | `screens/brand-assets__kestrel-preparing-pro__1440.png` (2836 px tall) vs `…ready-pro__1440.png` (2714 px) | Skeletons hold the final shape and the download confirms in a toast, but the preparing banner disappears (about 120 px) and CLS was not re-measured. |
 | D-030 | Pass | `screens/project-workspace__error-api-500-pro__1440.png` | One error card with Try again and Back to Projects and the normal pill; the read strip steps aside when the page shows its card and no longer says "verified" (PR 279). |
 | D-031 | Pass | `screens/plans__free-0-credits-upgrade-free__1440.png` | "About N complete brands a month", Pro recommended, and the zero balance in a sentence with December 1. |
@@ -79,7 +84,7 @@ D-020, D-028 (Terms, Privacy and Help wait until those pages exist), D-052, D-05
 | D-033 | Not checked — phone-only | Status | Needs 320/390 px captures (desktop scope). |
 | D-034 | Pass | `annotated/A-kbd-library-details.png`; `a11y/keyboard.json` (library-details) | Opens by keyboard on the system Dialog and returns focus to the card; it shows internal wording ("Legacy record · provider unverified", "License unverified") and "Chosen" next to "No version of this file is selected yet". |
 | D-035 | Partly | `screens/library__all-generations-pro__1440.png` | Grouped by brand, chosen marked, no Refresh; but board numbers don't match the journey (Kestrel's chosen "Direction 1, Editorial Soft Shapes" is "Direction board 2"). |
-| D-036 | Declined (owner) | `a11y/keyboard.json` (Usage still "Tokens used") | Owner decision: no credit ledger; unchanged. |
+| D-036 | Closed (owner) | `a11y/keyboard.json` (Usage still "Tokens used") | Owner decision: no credit ledger; unchanged. |
 | D-037 | Pass | `screens/brand-conversation__logo-step-no-type-selected-disabled-explore-free__1440.png`, `settings__delete-account-dialog-free__1440.png` | One disabled look with a visible reason ("Choose at least one type", "turns on when it matches"); the same Logo screen shows a stray "Discard local edits and reload" button. |
 | D-038 | Pass | `screens/library__empty-fresh__1440.png`, `projects__error-api-500-free__1440.png` | Empty and error pages share one centred Empty state (icon, title, line, one button). |
 | D-039 | Pass | `design-system/drift.md` | No hex colour in stylesheets (3 rgb() shadow tints remain), `#cbacc5` gone. |
@@ -95,11 +100,11 @@ D-020, D-028 (Terms, Privacy and Help wait until those pages exist), D-052, D-05
 | D-049 | Pass | `screens/projects__three-brands-pro__1440.png` | Icons come from one Lucide set through one component; the gallery heart (drawn by hand so it can fill when liked) now uses the set's 1.5 stroke (PR 279). |
 | D-050 | Pass | `design-system/drift.md` (Radius) | The only radius values outside tokens are 50% circles and `inherit`. No square controls appear in the 1440 screens. |
 | D-051 | Partly | `design-system/drift.md` (Box shadows, z-index) | Shadows use the three tokens and every z-index is a named token. One literal shadow is left (`0 1px 4px rgb(25 25 25 / 22%)`, inspiration.css:852). |
-| D-052 | Fail | `design-system/drift.md` (Breakpoints) | 31 breakpoint and feature-query values remain, and the page widths are not reduced to two. The status says "to do"; the lead records it as an owner question. |
+| D-052 | Pass (desktop) | `design-system/drift.md` (Breakpoints) | Owner go-ahead Nov 14: desktop rules now switch at 1023 px or on the system's own 1024–1279 px step names; the 1500 px steps are gone. Phone-width breakpoints wait (phone-only). |
 | D-053 | Pass | `design-system/components.md` | `!important` is down to 5 justified guards; the unused `.account-invite` styles are removed (PR 279). Most other "unreferenced" names are built from templates and are in use. |
 | D-054 | Partly | `annotated/A-kbd-zoom200-conversation.png`; `a11y/keyboard.json` (zoom-200-chrome); `screens/brand-conversation__kestrel-complete-showcase-pro__1440.png` | At 720 × 450 the bar is one 84 px row naming "Identity · 3 of 4", and the reply box is not fixed (81% left for content). The finished Kestrel brand still shows Assets as "4 … next step", not four ticks. The 390 px part was not checked (phone only). |
 | D-055 | Partly | `screens/project-workspace__loading-pro__1440.png` | The loading frame is a neutral skeleton with "Loading project…" and no signed-out text. No capture with a 3-second delay on the account check exists, so the pill width was not measured. |
-| D-056 | Needs the owner | `screens/projects__empty-fresh__1440.png` | Headings now share one style and have no full stops. The noun ("Projects" or "Brands") waits for the owner. |
+| D-056 | Closed (owner) | `screens/projects__empty-fresh__1440.png` | Headings now share one style and have no full stops. The noun ("Projects" or "Brands") waits for the owner. |
 | D-057 | Partly | (no after shift measurement) | The status says Done in part. The rebuilt screens use message slots, but the "moved to Deleted projects" notice is still inserted above the list. No layout-shift capture is in the after set. |
 | D-058 | Partly | (no after timing capture) | The status records the fix (the choice shows at once and rolls back on failure). The after set has no recording, so the 100 ms target was not measured, and the Logo path is marked as not yet checked. |
 | D-059 | Partly | `design-system/drift.md` (Spacing: literal) | Spacing is almost all tokens, but 25 literal uses in 11 values remain, mostly in floating-composer.module.css. |
@@ -110,18 +115,18 @@ D-020, D-028 (Terms, Privacy and Help wait until those pages exist), D-052, D-05
 | D-064 | Pass | `annotated/A-kbd-inspiration-overlay.png` | The brand view footer reads "Your choices stay with Kestrel Analytics." |
 | D-065 | Partly | `screens/brand-conversation__mosswood-direction-larger-view-free__1440.png` | The larger view opens at its final size below the project bar (PR 279), with Previous, Next and Choose. No layout-shift measurement of the opening exists. |
 | D-066 | Partly | `screens/plans__free-0-credits-upgrade-free__1440.png`; `screens/brand-conversation__berenice-inspiration-chosen-free__1440.png` | Plans and the out-of-credits note both say December 1. Library and Activity dates still use fixed formats ("15 hours ago"), which the status lists as open. |
-| D-067 | Needs the owner | `annotated/A-kbd-inspiration-overlay.png` | The large view shows no credit line. The wording waits for the owner's permission records. |
+| D-067 | Closed (owner, before launch) | `annotated/A-kbd-inspiration-overlay.png` | The large view shows no credit line. The wording waits for the owner's permission records. |
 | D-068 | Partly | `screens/projects__eight-brands-free__1440.png` | The cards have a four-step mark, matching stage labels ("Choose a logo") and two-line names. Two cards are still both titled "Untitled brand". |
 | D-069 | Pass | `screens/brand-conversation__tidewater-logos-partly-failed-free__1440.png`, `…quill-logos-generated-free__1440.png` | The refine box is gone, and only the reply box remains ("Choose a concept, then press Send…"). The heading and the chat message still repeat the instruction once each. |
 | D-070 | Partly | `screens/brand-conversation__kestrel-change-name-open-pro__1440.png` | Each name has a visible Details control and the chat column no longer clips (PR 279). The list starts at 40 names with "Show 40 more", which is not the short list the item asks for. |
 | D-071 | Pass | `screens/brand-assets__kestrel-ready-pro__1440.png` | There is no Continue. The tabs and the "Download brand kit" button sit at the top, and the three social tiles align. That the kit button stays in view while scrolling was not checked from a full-page capture. |
-| D-072 | Needs the owner | `screens/sign-up__validation-password-mismatch__1440.png`; `a11y/keyboard.json` (sign-up-validation) | Errors sit under their fields in the app's style, with no browser bubble, and focus moves to the confirm field. Both passwords are still emptied after a mismatch, which the status leaves to the owner. |
+| D-072 | Pass | `screens/sign-up__validation-password-mismatch__1440.png`; `a11y/keyboard.json` (sign-up-validation) | Owner decision Nov 14: a mismatch keeps both passwords, shows the message under the confirmation and selects it; nothing is sent. |
 | D-073 | Partly | (no after recording) | The status says Done (PR 263). No capture of a return visit or of clearing the search exists to confirm "no skeleton, no request". |
 | D-074 | Pass | `screens/projects__options-menu-open-free__1440.png` | The "…" control sits in the card's text row and the menu doesn't cover the logo. The menu now also offers Rename. The keyboard walk shows Escape doesn't close the menu (a D-046 matter). |
 | D-075 | Pass | `src/app/opengraph-image.png` (no after capture) | The share image shows the mark, a one-line promise and a real Kestrel board. |
-| D-076 | Needs the owner | `screens/plans__pro-current-pro__1440.png`, `plans__upgrade-unavailable-free__1440.png`, `plans__return-checkout-success-fresh__1440.png` | Cancel plan is quieter than Manage plan, and failure and success use the same notice. The footer wording and a Downgrade action wait for the owner. |
+| D-076 | Closed (owner, before launch) | `screens/plans__pro-current-pro__1440.png`, `plans__upgrade-unavailable-free__1440.png`, `plans__return-checkout-success-fresh__1440.png` | Cancel plan is quieter than Manage plan, and failure and success use the same notice. The footer wording and a Downgrade action wait for the owner. |
 | D-077 | Pass | `screens/brand-identity__kestrel-pro__1440.png`; `screens/brand-recover__owner-no-unsaved-project-pro__1440.png` | `/identity` lands in the journey, and the recover page uses the standard Empty state. |
-| D-078 | Needs the owner | (Stripe Dashboard) | The Stripe branding is a dashboard setting only the owner can make and check. |
+| D-078 | Closed (owner, before launch) | (Stripe Dashboard) | The Stripe branding is a dashboard setting only the owner can make and check. |
 | D-079 | Partly | `public/inspiration/` (31 entries); `src/domain/inspiration.ts` | The old inspiration catalogue, including Airbnb, Asana and Dropbox images, is still shipped. `inspiration-catalog.json` is still imported. |
 | D-080 | Pass | `screens/home__generation-activity-dialog-pro__1440.png` | "Activity" shows one row per action as "Brand · Six logo concepts" and says "Nothing is running and nothing failed." The naming varies a little ("Logo concepts" next to "Six logo concepts"). |
 | D-081 | Pass | `screens/settings__save-error-offline-free__1440.png` | Saving is automatic. A failure shows "Couldn't save. Check your connection." with one Try again under the field. There are no floating Save or Cancel buttons. |
@@ -134,10 +139,10 @@ D-020, D-028 (Terms, Privacy and Help wait until those pages exist), D-052, D-05
 | D-088 | Pass | `lighthouse/summary.json` | Home and Projects no longer report label-content-name-mismatch. The remaining hit on Assets comes from a Lighthouse run made before the "Download PNG: brand board" rename. |
 | D-089 | Pass | `a11y/*.json` button names; `inspiration-brands.tsx` (`aria-pressed`) | Hearts are named "Like …" and carry the pressed state, so they are announced as "Like X, pressed". |
 | D-090 | Pass | `screens/brand-assets__orchardlane-ready-free__1440.png`; `a11y/summary.json` | The Orchard Lane preview has 0 contrast failures, and text on brand colours reads clearly. |
-| D-091 | Needs the owner | `lighthouse/brand-conversation__spokesmith-research-done-free__desktop/report.json`; spokesmith screen | Icon circles now show initials (none empty). Best practices is 96 because of three competitor-icon 404s (fake example.com hosts). Changing the route's answer is the owner's call. |
+| D-091 | Pass | `lighthouse/brand-conversation__spokesmith-research-done-free__desktop/report.json`; spokesmith screen | Owner go-ahead Nov 14: no icon answers 204 (nothing logged); the search adds SVG icons drawn to PNG, the www/bare twin and a favicon service last. |
 | D-092 | Pass | `a11y/summary.json`; `a11y/keyboard.json` (conversation-kestrel) | axe reports no nested-interactive or duplicate-id violations, and the direction cards hold sibling controls, not nested ones. |
 | D-093 | Partly | `a11y/keyboard.json` (settings-usage); `screens/settings__signed-out__1440.png` | Inputs have names and the Usage table has a caption ("Recent requests"). The status leaves example placeholders open. |
 | D-094 | Partly | `screens/sign-in__error-wrong-password__1440.png` | Interface text and the server messages people can see use typographic apostrophes (PRs 276, 278, 279); brand names carry `translate="no"`. The two email templates still use straight ones; the hosted copies are edited in the Supabase dashboard (D-087). |
 | D-095 | Pass | `screens/not-found__default__1440.png`; `src/app/error.tsx`, `global-error.tsx` | The 404 and the error screens share the page-error layout, and the global error shows the mark. The signed-in "Go to Projects" variant is covered by a unit test only, not a capture. |
 | D-096 | Partly | `screens/library__signed-out__1440.png`, `project-workspace__signed-out__1440.png`, `settings__signed-out__1440.png` | Library, Projects and the workspace show one centred sign-in card. Signed-out Settings still shows its tabs and section rows; it has no disabled form, but it isn't one card. |
-| D-097 | Needs the owner | `a11y/keyboard.json` (settings-tabs, library-details) | Tabs and sort are still not in the address. The owner decides whether Settings should reopen on the last tab. |
+| D-097 | Pass | `a11y/keyboard.json` (settings-tabs, library-details) | Owner decision Nov 14: Library and Projects keep their view in the address; Settings opens on Account. |
