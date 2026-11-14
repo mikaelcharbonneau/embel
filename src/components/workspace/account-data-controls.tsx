@@ -24,10 +24,10 @@ const exportMessages: Record<string, string> = {
   unauthenticated: "Your session has ended. Sign in again to download your data.",
 };
 const deletionMessages: Record<string, string> = {
-  confirmation_mismatch: "That email doesn't match this account. Check it and try again.",
+  confirmation_mismatch: "That email doesn’t match this account. Check it and try again.",
   reauthentication_required:
     "For your security, sign in again before deleting your account. Then come back to Settings.",
-  deletion_incomplete: "Deletion didn't finish. Some of your data may already be deleted. Try again to finish it.",
+  deletion_incomplete: "Deletion didn’t finish. Some of your data may already be deleted. Try again to finish it.",
   unauthenticated: "Your session has ended. Sign in again to delete your account.",
 };
 /** The same comparison the server makes; the server still checks it. */
@@ -60,7 +60,7 @@ function AccountData({ account }: { account: VerifiedAccount }) {
       });
       if (!response.ok) {
         const code = await errorCode(response);
-        setExportError((code && exportMessages[code]) ?? "Your data couldn't be prepared. Try again in a moment.");
+        setExportError((code && exportMessages[code]) ?? "Your data couldn’t be prepared. Try again in a moment.");
         return;
       }
       const blob = await response.blob();
@@ -160,7 +160,7 @@ function DeleteAccountDialog({ account, onClose }: { account: VerifiedAccount; o
           status: "idle",
           error:
             (code && deletionMessages[code]) ??
-            "Your account couldn't be deleted right now. Nothing more was changed. Try again in a moment.",
+            "Your account couldn’t be deleted right now. Nothing more was changed. Try again in a moment.",
         });
         return;
       }

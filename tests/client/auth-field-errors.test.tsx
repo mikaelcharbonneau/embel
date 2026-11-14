@@ -97,7 +97,7 @@ it("puts a credential mismatch under the password and marks both fields", async 
   expect(fetcher).toHaveBeenCalledOnce();
   expect(input("email").getAttribute("aria-invalid")).toBe("true");
   expect(input("password").getAttribute("aria-invalid")).toBe("true");
-  expect(messageFor("password")).toContain("We couldn't sign you in with those details");
+  expect(messageFor("password")).toContain("We couldn’t sign you in with those details");
   expect(input("password").value).toBe("");
   // Focus lands on the field to fix, not on the page.
   expect(document.activeElement).toBe(input("password"));
@@ -112,15 +112,15 @@ it("explains a short and a mismatched new password under their own fields", asyn
   await submit();
   expect(fetcher).not.toHaveBeenCalled();
   expect(messageFor("password")).toBe("This password has 10 characters. Use at least 12.");
-  expect(messageFor("confirmPassword")).toBe("The two passwords don't match. Enter the same password again.");
+  expect(messageFor("confirmPassword")).toBe("The two passwords don’t match. Enter the same password again.");
   expect(document.activeElement).toBe(input("password"));
-  expect(host.textContent).toContain("You'll confirm your email before you sign in.");
+  expect(host.textContent).toContain("You’ll confirm your email before you sign in.");
 });
 
 it("says the idea is kept when a prompt is waiting", async () => {
   fixture.prompt.mockReturnValue(true);
   await render();
   expect(host.querySelector(".auth-card__intro")?.textContent).toBe(
-    "Your idea is kept. It will be waiting when you're signed in.",
+    "Your idea is kept. It will be waiting when you’re signed in.",
   );
 });

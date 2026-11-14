@@ -356,7 +356,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
         // Keep both the privacy fence and the owner's edits until an explicit recovery action.
         publish({ status: "error", generation });
         setSignOutError(
-          "Sign-out couldn't be confirmed. Your account content stays hidden and unsaved edits remain in this tab. Retry sign-out, or use Check account in the account menu.",
+          "Sign-out couldn’t be confirmed. Your account content stays hidden and unsaved edits remain in this tab. Retry sign-out, or use Check account in the account menu.",
         );
         return { ok: false, reason: "failed" };
       } finally {

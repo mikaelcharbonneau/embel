@@ -61,13 +61,13 @@ export function saveNewPassword(password: string): Promise<void> {
 
 export function resetEmailErrorMessage(error: unknown): string {
   if (error instanceof PasswordResetRequestError) {
-    if (error.code === "captcha_failed") return "The security check didn't pass. Please try again.";
+    if (error.code === "captcha_failed") return "The security check didn’t pass. Please try again.";
     if (error.status === 429) return "Too many reset requests. Wait a few minutes before asking for another link.";
     if (error.status === 503) return "Password reset is unavailable right now. Please try again shortly.";
-    if (error.status === 403) return "This request couldn't be verified. Refresh the page and try again.";
+    if (error.status === 403) return "This request couldn’t be verified. Refresh the page and try again.";
     if (error.status === 413 || error.status === 422) return "Enter a valid email address.";
   }
-  return "The reset link couldn't be requested. Check your connection and try again.";
+  return "The reset link couldn’t be requested. Check your connection and try again.";
 }
 
 export function newPasswordErrorMessage(error: unknown): string {
@@ -76,11 +76,11 @@ export function newPasswordErrorMessage(error: unknown): string {
       return "This reset link has expired or was already used. Request a new link to continue.";
     if (error.code === "weak_password")
       return "Choose a stronger password. Avoid common passwords and ones exposed in data breaches.";
-    if (error.code === "same_password") return "Choose a password you haven't used for this account.";
+    if (error.code === "same_password") return "Choose a password you haven’t used for this account.";
     if (error.status === 429) return "Too many attempts. Wait a few minutes before trying again.";
     if (error.status === 503) return "Password changes are unavailable right now. Please try again shortly.";
-    if (error.status === 403) return "This request couldn't be verified. Refresh the page and try again.";
+    if (error.status === 403) return "This request couldn’t be verified. Refresh the page and try again.";
     if (error.status === 413 || error.status === 422) return "Use a password of at least 12 characters.";
   }
-  return "Your password couldn't be saved. Check your connection and try again.";
+  return "Your password couldn’t be saved. Check your connection and try again.";
 }

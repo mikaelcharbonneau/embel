@@ -388,7 +388,7 @@ test("auth fixture: configured sign-in retains only transient retries, rejects u
   expect(fixture.state.signInRequests).toBe(1);
   fixture.state.holdSignIn = false;
   fixture.releaseSignIn();
-  await expect(form.getByRole("alert")).toContainText("We couldn't sign you in with those details");
+  await expect(form.getByRole("alert")).toContainText("We couldn’t sign you in with those details");
   await expect(password).toHaveValue("");
   await expect(page.getByText("Synthetic private detail must not be echoed", { exact: true })).toHaveCount(0);
   let retryRetainedCredentials = false;
@@ -406,7 +406,7 @@ test("auth fixture: configured sign-in retains only transient retries, rejects u
     {
       status: 403,
       body: { error: { code: "forbidden_origin", message: "Synthetic detail" } },
-      expected: "This sign-in request couldn't be verified",
+      expected: "This sign-in request couldn’t be verified",
     },
     {
       status: 422,
@@ -418,11 +418,11 @@ test("auth fixture: configured sign-in retains only transient retries, rejects u
       body: { error: { code: "body_too_large", message: "Synthetic detail" } },
       expected: "Check your email and password",
     },
-    { status: 200, body: { authenticated: false }, expected: "The sign-in response couldn't be verified" },
+    { status: 200, body: { authenticated: false }, expected: "The sign-in response couldn’t be verified" },
     {
       status: 200,
       body: { authenticated: true, unexpected: "field" },
-      expected: "The sign-in response couldn't be verified",
+      expected: "The sign-in response couldn’t be verified",
     },
   ]) {
     fixture.state.signInStatus = response.status;
@@ -496,7 +496,7 @@ test("auth fixture: sign-out confirms unsaved edits, fences pending requests and
   await expect(page.getByRole("textbox")).toHaveCount(0);
   expect(fixture.state.signOutRequests).toBe(1);
   fixture.release();
-  await expect(page.getByRole("alert").filter({ hasText: "Sign-out couldn't be confirmed" })).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: "Sign-out couldn’t be confirmed" })).toBeVisible();
   await expect(page.getByText("Synthetic private detail must not be echoed", { exact: true })).toHaveCount(0);
   await triggerAutomaticRefresh(page);
   expect(fixture.state.sessionRequests).toBe(sessionCount);
@@ -546,7 +546,7 @@ test("auth fixture: malformed sign-out success never clears an unsaved account d
   await openAccountSettings(page);
   await accountMenu(page).getByRole("menuitem", { name: "Sign out", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Discard edits and sign out", exact: true }).click();
-  await expect(page.getByRole("alert").filter({ hasText: "Sign-out couldn't be confirmed" })).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: "Sign-out couldn’t be confirmed" })).toBeVisible();
   await returnToProject(page);
   await expect(page.getByRole("textbox")).toHaveCount(0);
   await verifyProjectAccount(page);

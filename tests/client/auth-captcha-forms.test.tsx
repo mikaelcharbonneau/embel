@@ -26,7 +26,7 @@ vi.mock("@/components/ui/icon", () => ({ Icon: () => null, EmbelMark: () => null
 // Inert fixtures. A fake Turnstile API stands in for Cloudflare's script; no network is used.
 const email = "captcha-form@example.invalid",
   password = "inert form password";
-const plainMessage = "The security check didn't pass. Please try again.";
+const plainMessage = "The security check didn’t pass. Please try again.";
 type WidgetOptions = { callback: (token: string) => void; "error-callback": () => void };
 let root: Root, host: HTMLDivElement, fetcher: ReturnType<typeof vi.fn>;
 let turnstile: { render: ReturnType<typeof vi.fn>; reset: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> };
@@ -154,7 +154,7 @@ describe("with a site key", () => {
     await fill("email", email);
     await act(async () => options["error-callback"]());
     await submit();
-    expect(alertText()).toContain("couldn't load");
+    expect(alertText()).toContain("couldn’t load");
     expect(fetcher).not.toHaveBeenCalled();
     await act(async () => options.callback("reset-token"));
     await submit();

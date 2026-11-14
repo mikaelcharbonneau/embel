@@ -146,7 +146,7 @@ export function useAccountStrategyStart({
   );
   const message = action?.identity === identity ? action.message : "";
   const recoveryMessage = checkingRecovery
-    ? "Checking the saved prompt's recovery status before editing or sending…"
+    ? "Checking the saved prompt’s recovery status before editing or sending…"
     : recovery?.projectId
       ? "Your project is saved. Open it below to check the original request."
       : recovery

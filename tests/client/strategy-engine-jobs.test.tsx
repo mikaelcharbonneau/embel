@@ -219,7 +219,7 @@ describe("Strategy on the generation engine", () => {
       await api.enqueue("strategy.competitors", 1, allowance);
     });
     expect(api.actionError).toBe(
-      "You've used this month's credits. They renew on December 1. Your conversation is saved.",
+      "You’ve used this month’s credits. They renew on December 1. Your conversation is saved.",
     );
     expect(api.actionError).not.toMatch(/\$/u);
   });
@@ -270,6 +270,6 @@ describe("engine run mapping", () => {
     ).toEqual([]);
     expect(engineStrategyJob(run({ kind: "engine.probe" }), ownerId, projectId)).toBeNull();
     expect(engineStrategyJob(run({ inputRevision: null }), ownerId, projectId)).toBeNull();
-    expect(strategyCreditsMessage(null)).toBe("You've used this month's credits. Your conversation is saved.");
+    expect(strategyCreditsMessage(null)).toBe("You’ve used this month’s credits. Your conversation is saved.");
   });
 });

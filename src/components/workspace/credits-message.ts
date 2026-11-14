@@ -11,5 +11,5 @@ export function creditsRenewDate(periodEnd: string | null | undefined) {
  * kept. Never a price. */
 export function creditsMessage(periodEnd: string | null, kept: string) {
   const date = creditsRenewDate(periodEnd);
-  return `You've used this month's credits${date ? `. They renew on ${date}` : ""}. ${kept}`;
+  return `You’ve used this month’s credits${date ? `. They renew on ${date}` : ""}. ${kept}`;
 }

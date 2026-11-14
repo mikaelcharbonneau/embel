@@ -337,8 +337,8 @@ describe("Identity generation immutable request lifecycle", () => {
   });
   // The generation engine refuses a round for credits or today's limit before admitting anything.
   it.each([
-    [402, "You've used this month's credits. Your saved directions are kept."],
-    [429, "You've reached today's limit for new directions. Your saved directions are kept. Try again tomorrow."],
+    [402, "You’ve used this month’s credits. Your saved directions are kept."],
+    [429, "You’ve reached today’s limit for new directions. Your saved directions are kept. Try again tomorrow."],
   ])(
     "treats an engine refusal (%i) as final: it says why, keeps no request and names no price",
     async (status, message) => {

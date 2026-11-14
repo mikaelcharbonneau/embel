@@ -439,7 +439,7 @@ export function createLogoInputsController(options: {
       try {
         const identity = await fingerprint(file, pending.kind === "font_upload");
         if (!current() || state.pending !== pending || epoch !== attachmentEpoch) return;
-        if (!same(identity, pending.file)) throw Error("This file does not match the original file's bytes and type.");
+        if (!same(identity, pending.file)) throw Error("This file does not match the original file’s bytes and type.");
         originalFile = file;
         update({ hasOriginalFile: true, error: null });
       } catch (error) {

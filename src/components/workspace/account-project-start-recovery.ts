@@ -176,7 +176,7 @@ export function readReceipt(ownerId: string, draftId: string) {
     );
     if (parsed && (parsed.ownerId !== ownerId || parsed.draftId !== draftId))
       throw new StartReceiptRecoveryError(
-        "This project's recovery record could not be verified. No new project was created.",
+        "This project’s recovery record could not be verified. No new project was created.",
       );
     const stored = parsed ?? { ownerId, draftId, projectId: null };
     const prior = receipts.get(receiptId(ownerId, draftId));
@@ -288,7 +288,7 @@ export function rememberReceipt(receipt: StartReceipt, requireDurable = false) {
   const shared = readDurableLocalDraft(receipt.draftId);
   if (requireDurable && !durable && (shared.storage !== "available" || shared.draft))
     throw new StartReceiptRecoveryError(
-      "This project's recovery record could not be saved on this device. No project request was sent. Your prompt and files are kept in this tab.",
+      "This project’s recovery record could not be saved on this device. No project request was sent. Your prompt and files are kept in this tab.",
     );
 }
 export function forgetReceipt(receipt: StartReceipt) {

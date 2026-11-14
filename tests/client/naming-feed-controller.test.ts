@@ -554,10 +554,10 @@ describe("on the generation engine", () => {
     expect(state()).toMatchObject({
       pending: null,
       retry: "start",
-      error: "You've used this month's credits. They renew on December 1. Your names are saved.",
+      error: "You’ve used this month’s credits. They renew on December 1. Your names are saved.",
     });
     expect(state().error).not.toMatch(/\$|cost|price/iu);
-    expect(namingCreditsMessage(null)).toBe("You've used this month's credits. Your names are saved.");
+    expect(namingCreditsMessage(null)).toBe("You’ve used this month’s credits. Your names are saved.");
   });
   it("names today's limit, and keeps an admitted run that didn't start for Try again with the same key", async () => {
     server = feed({ engine: true });

@@ -21,7 +21,7 @@ async function expectSignInKeepsPrompt(page: Page) {
   const signIn = page.getByRole("dialog", { name: "Sign in to Embel", exact: true });
   await expect(signIn).toBeVisible();
   await expect(
-    signIn.getByText("Your idea is kept. It will be waiting when you're signed in.", { exact: false }),
+    signIn.getByText("Your idea is kept. It will be waiting when you’re signed in.", { exact: false }),
   ).toBeVisible();
 }
 
