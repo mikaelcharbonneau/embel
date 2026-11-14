@@ -69,11 +69,10 @@ const numberWords = [
 export const countWord = (count: number) => numberWords[count] ?? String(count);
 const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
-/** Results that come in a set: one click makes several of them, so the label counts them. */
+/** Results that come in a set of requests: one click makes several requests, so the label counts them. (A creative
+ * directions request is one request that makes three boards, so its plain label already says three.) */
 const countedLabels: Partial<Record<Operation, readonly [singular: string, plural: string]>> = {
   "identity.logo_concept": ["logo concept", "logo concepts"],
-  "identity.image": ["creative direction", "creative directions"],
-  "identity.logo_directions": ["creative direction", "creative directions"],
   "identity.logo_refine": ["logo change", "logo changes"],
 };
 /** The journey's own words for each kind of work, never the engine's operation names. */
@@ -86,14 +85,14 @@ const plainLabels: Record<Operation, string> = {
   "strategy.slogan": "Slogan",
   "naming.generate": "Names",
   "ideas.explore": "Ideas",
-  "identity.image": "Creative directions",
+  "identity.image": "Three creative directions",
   "identity.vector": "Vector logo",
   "brand.export": "Brand files",
   "identity.logo_concept": "Logo concepts",
   "identity.logo_refine": "Logo change",
   "identity.logo_vectorize": "Vector logo",
   "identity.logo_vector_propose": "Vector logo",
-  "identity.logo_directions": "Creative directions",
+  "identity.logo_directions": "Three creative directions",
   "identity.logo_export": "Brand files",
   "identity.logo_style_note": "Notes on an image you liked",
 };

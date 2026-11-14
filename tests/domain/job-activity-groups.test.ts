@@ -123,7 +123,7 @@ describe("groupJobActivity", () => {
       ],
     });
     const { attention, finished } = splitJobActivity(groups);
-    expect(titles(attention)).toEqual(["Kestrel Analytics · Logo change", "Maison Aurélie · One creative direction"]);
+    expect(titles(attention)).toEqual(["Kestrel Analytics · Logo change", "Maison Aurélie · Three creative directions"]);
     expect(titles(finished)).toEqual(["Kestrel Analytics · Six logo concepts", "Maison Aurélie · Names"]);
   });
 });
@@ -136,7 +136,8 @@ describe("plain words", () => {
     }
     expect(jobActionLabel("identity.logo_concept", 6)).toBe("Six logo concepts");
     expect(jobActionLabel("identity.image", 3)).toBe("Three creative directions");
-    expect(jobActionLabel("identity.logo_directions", 1)).toBe("One creative direction");
+    // One directions request makes three boards: the label never counts requests for it.
+    expect(jobActionLabel("identity.logo_directions", 1)).toBe("Three creative directions");
     expect(jobActionLabel("identity.logo_refine", 1)).toBe("Logo change");
     expect(jobActionLabel("identity.logo_refine", 2)).toBe("Two logo changes");
     expect(jobActionLabel("naming.generate", 2)).toBe("Names");
