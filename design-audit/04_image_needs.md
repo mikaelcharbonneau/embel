@@ -14,6 +14,79 @@ Terms used here.
 - **LCP candidate:** LCP (Largest Contentful Paint) is the moment the largest text or image on the first screen finishes drawing. An image that could be that largest element must load early, never lazily.
 - **Real output:** an image Embel itself produced for a brand (a logo concept, a direction board, a brand board). It is the product's own work, shown as it is.
 
+## Update after the redesign (Prompt 7, November 13, 2026)
+
+Source: `design-assets/handoff.md` (final slot sizes, owner decisions of November 13 and 14). The audit tables in section 3 below are kept as written on November 11 and are now the *history*; where they disagree with this update, this update wins. The verdict does not change: still **no AI RASTER or AI VECTOR slot, 0 images to generate**. How this update was made: handoff.md read in full; sizes copied as written; classes checked against the design-system generator sources (see the caveat after table 3).
+
+**Rule used for export sizes.** 1x is the largest width the slot is drawn at (at 390, 768 or 1440), rounded up to the next multiple of 4 where a round number is conventional; 2x is double. Where 2x would be wider than the 1024 px file Embel generates (logo concepts, direction boards), the 1024 file itself is the 2x, and nothing is upscaled.
+
+### U1. Final slot sizes (CSS px, as rendered on the canvas)
+
+"Side chat" means a 1440 × 900 window with the chat at its default 400 px. With the chat at 480 px the logo and direction tiles are 275 px; with the chat hidden, 334 px.
+
+| ID | Slot | 390 | 768 | 1440 | Export 1x / 2x | Format and budget (unchanged from section 3 unless noted) |
+| --- | --- | --- | --- | --- | --- | --- |
+| IMG-003 | Share image (link preview) | not on a page | not on a page | 1200 × 630 file | 1200 × 630 / 2400 × 1260 (the 2x is new; link previews only read the 1x) | PNG, 200 KB (1x). The 2x file is an extra, budget 600 KB |
+| IMG-007 | Signed-out Home examples, 4:3 | 358 × 269 | 227 × 170 | 336 × 252 | 360 × 270 / 720 × 540 | AVIF + WebP, 35 KB each at 720 |
+| IMG-008 | New-account Home empty state, 4:3 | 358 × 269 | not shown | 336 × 252 | same files as IMG-007 | same files, 0 extra |
+| IMG-011 | Project card logo strip (contain) | 324 × 146 | 316 × 142 | 302 × 135 | 324 × 146 / 648 × 292; concept thumbs about 100 × 100 / 200 × 200 | WebP, 15 KB |
+| IMG-012 | Library preview, square (contain) | 356 × 356 | 348 × 348 | 334 × 334 | 360 / 720 | AVIF + WebP, 40 KB; the brand board is shown whole in the square |
+| IMG-014 | Inspiration tiles (licensed) | 141 × 141 and 290 × 163 | not shown | 205 × 205 and 418 × 235 | 420 × 236 / 840 × 472 | keep the existing boards |
+| IMG-017 | "Your images", 4:3 | 290 × 218 | not shown | 287 × 215 | 290 × 218 / 580 × 436 | WebP, 15 KB |
+| IMG-018 | Logo concept tile, 1:1, logo inset 12% | 356 (one across) | 348 (two across) | 302 to 304 (side chat) | 360 / 720; the enlarged view (16:9: 358 × 201 at 390, 812 × 457 at 1440) uses the full 1024 file | WebP lossless or PNG, 30 KB |
+| IMG-019 | Logo drawing and failed tile | as IMG-018 | as IMG-018 | as IMG-018 | none (CSS plus the reveal script) | CSS |
+| IMG-020 | Chosen-logo thumbnail | 44 × 44 | 44 × 44 | 44 × 44 | 48 / 96. The finished brand also shows the logo on a 16:9 card (356 × 200, 718 × 404, 372 × 209): use the 1024 file there | WebP or PNG, 5 KB (thumbnail) |
+| IMG-021 | Direction board tile, 1:1 | 356 | 348 (two across) | 302 (side chat) | 360 / 720. Chosen on the finished brand: 356 / 718 / 560, so use the 1024 file as 2x. Enlarged: up to 62% of the window height, also the 1024 file | AVIF + WebP, 60 KB at 720 |
+| IMG-022 | Brand board, 8:11 | 356 × 490 | 718 × 987 | 617 × 849 | page preview 720 × 990 / 1440 × 1980; file 1600 × 2200 | WebP (preview) 80 KB; PNG (file) 400 KB |
+| IMG-023 | Profile image | not given | not given | not given | file 1024 × 1024; no page preview width was drawn: see open items | PNG 120 KB (file) |
+| IMG-024 | Post templates | portrait preview 356 × 445 | 348 × 435 | 334 × 418 | portrait preview 360 × 450 / 720 × 900; files 1080 × 1080 and 1080 × 1350 | WebP 30 KB (preview); PNG 150 KB and SVG (files) |
+| IMG-025 | Banners | wide 356 × 119, cover 356 × 89 | 718 × 239 and 718 × 180 | 1054 × 351 and 1054 × 264 | previews 1056 × 352 / 2112 × 704 (wide) and 1056 × 264 / 2112 × 528 (cover); files 1500 × 500 and 1584 × 396 | WebP 30 KB (preview); PNG 120 KB and SVG (files) |
+| IMG-026 | Guidelines imagery (crops from the chosen direction board) | 308 × 300 | not shown | 296 × 300 (the guidelines file at 1200: 344 × 300) | 344 × 300 / 688 × 600 | WebP or JPEG; 300 KB for the whole guide file |
+
+Not listed in handoff.md, so unchanged from section 3, covered by code, or removals: IMG-001, 002, 004 to 006, 009, 010, 013, 015, 016, 027 to 029 (and 005, 016 stay removals).
+
+### U2. Slots whose size, source or purpose changed since the audit
+
+| ID | What changed |
+| --- | --- |
+| IMG-003 | Purpose and source unchanged (real output). The composition is now fixed by the approved board: mark and "Embel" top left, "Turn a product idea into a brand you can use." bottom left, one Kestrel Analytics board on the right, bleeding off the right edge. A 2x file (2400 × 1260) is added at the owner's request. |
+| IMG-007, IMG-008 | Sizes now 358 / 227 / 336 (audit proposed 350 / 224 / 341). The third example is no longer a placeholder: Tidewild Hot Sauce was approved on November 14, made with one ordinary run (6 concepts, 3 boards) and its crop exists. Crop rule fixed by the Tidewild file: the top-left 720 × 540 of the chosen 1024 × 1024 direction board. Brands: Kestrel Analytics, Orchard Lane Cider, Tidewild Hot Sauce. |
+| IMG-011 | The strip is bigger (324 × 146 against about 252 × 88) and shows the logo whole (`contain`); the audit's "logo on the direction's background colour" is no longer part of the slot. Three concept thumbs of about 100 × 100 are added. |
+| IMG-012 | Shape: a 4:3 frame holding a 1:1 image (348 × 261) became a square (356 / 348 / 334) that shows the whole board. |
+| IMG-014 | Rendered sizes re-measured on the canvas (205 / 418 at 1440); the boards themselves are unchanged. |
+| IMG-017 | Ratio 3:2 became 4:3 and the slot is much larger (290 × 218 against 280 × 159 and 177 × 118); the audit's 180 and 360 wide exports are too small. |
+| IMG-018 | Purpose changed: **artwork only**. No label row or Choose button; the whole picture chooses it; Enlarge stays in the corner. Logo inset 12% in its tile. Size 302 to 304 at 1440 in the side chat (audit proposed 340); 356 and 348 at 390 and 768. |
+| IMG-019 | Now the approved drawing effect: dotted frame, corner handles, two mono labels ("Concept 3", "Drawing"), a sweeping grey halftone, then a reveal of about 3 seconds drawn from the picture's own pixels (contour sketch, grey screen, colour dots, picture). Logo concepts only; direction boards keep the simple blur. |
+| IMG-020 | Thumbnail 44 × 44 (was 38 to 42). New use: a 16:9 chosen-logo card on the finished brand (356 × 200, 718 × 404, 372 × 209). |
+| IMG-021 | Tiles 356 / 348 / 302; chosen board 356 / 718 / 560 on the finished brand; enlarged up to 62% of the window height. The direction cards keep their current design (owner, November 13): they are not artwork-only. |
+| IMG-022 to IMG-025 | Previews are larger: brand board 356 × 490 / 718 × 987 / 617 × 849 (audit 274 / 636 / 972); portrait post preview 356 × 445 (audit 82 at 390); banners 1054 wide at 1440. File sizes are unchanged. Template artwork is now defined on canvas page 5 (see U3). |
+| IMG-026 | Crops are now about square (308 × 300, 296 × 300) instead of 4:3 crops at 274 / 310 / 480. |
+| Direction board source | **D-024 deferred** (owner, November 14): a direction board can show a different logo from the chosen one. It is a generation-engine issue outside this redesign; the crops below use the boards as generated. |
+
+### U3. Slots now covered in code
+
+These need no static file from this pass. They are covered by the design system and built in implementation.
+
+| ID | Covered by | Notes |
+| --- | --- | --- |
+| IMG-004 | Icon library: Lucide through `.e-icon[data-icon="..."]` | One library, one line weight. 55 icons are embedded (listed in the manifest). Licence ISC. |
+| IMG-006 | `.e-canvas--dots` (token `--pattern-dot-grid`, `--pattern-dot-size`, `--pattern-dot-color`) | CSS only; never an image file. |
+| IMG-010 | `.e-empty` with `.e-empty__visual` holding one `.e-icon` | One treatment for every empty state; Lucide icons only. |
+| IMG-018 | `.e-media`, `.e-media--inset` | Tile, 12% inset. The 1:1 frame is `.e-media`. |
+| IMG-019 | `.e-media--drawing` (frame, handles, labels, halftone) and `.e-media--revealing` with `.e-media__canvas` (the reveal); canvas board "Logo · Drawing (loading)" | The reveal script comes from transitions.dev (see the manifest's Implementation notes). |
+| IMG-022 | Canvas page 5 (Delivery), row "Brand image templates, two families" | Brand board template. |
+| IMG-023 | Canvas page 5, same row | Profile image template. |
+| IMG-024 | Canvas page 5, same row | Post templates, square and portrait. |
+| IMG-025 | Canvas page 5, same row | Wide and cover banners. |
+
+**Caveat on the class names.** `design-assets/design-system/` was not in the repository when this pass ran, so the classes could not be checked against the published system (version 1794600671-f81e). Checked against the generator sources in `design-audit/design-system-build/`: `.e-media`, `.e-media--thumb`, `.e-media--contain`, `.e-canvas--dots` and `.e-empty` exist there. `.e-media--inset`, `.e-media--drawing`, `.e-media--revealing` and `.e-media__canvas` do **not**; they come from the November 13 changes, which exist only in the published artifact. They are taken from the Prompt 7 brief and `handoff.md` and must be confirmed against the published `bundle.css` before implementation.
+
+### U4. Open items from this update
+
+- **IMG-023 and the square post template:** handoff.md gives no rendered width for the profile image (shown as "—") and lists only the portrait post preview. Square preview and profile preview widths are therefore assumed equal to the portrait preview's width (360 / 720). Confirm on canvas page 5.
+- **Tidewild Hot Sauce naming:** like the other two names, it has to be checked against real companies before it goes public (the audit's rule for IMG-007).
+- **Kestrel Analytics board:** the full board includes a photographic face and an invented person's name and phone number (audit E-043). The Home crop uses only the top 53% and left 70% of the board, and the share image shows the left 62% and the top 61% of it; both were viewed and show neither the face (centre-right of the lower half) nor the business card.
+
 ## 1. Verdict
 
 Embel needs very little new imagery, and none of it should be illustration, stock photography or AI-made decoration. The interface today contains one 28 px brand mark, line icons and a dot-grid background; everything colourful on screen is either the person's own generated brand or the inspiration gallery, which is exactly what the Direction asks for. The work is therefore about using the product's own output better. **Marketing (signed-out Home):** this is the one real gap; the only landing page shows no example of what Embel makes, and one row of three real finished brands would fix it. **Onboarding (a new account's Home):** reuse that same row instead of an empty card; no new asset. **Empty states, 404 and error screens:** no art; one consistent icon treatment and the existing mark are enough. **App screens:** no new images, but the person's logos and direction boards are shown too small and downloaded far too large (a 1.3 MB board drawn at 237 px), so the needs here are bigger presentation and proper thumbnails. **Exported files:** this is the largest need; every brand's social images and brand board share one fixed decoration of two circles, and the downloadable guidelines contain no logo and no image, so these templates need to be redrawn in code from the chosen direction. **Social sharing:** the share image and the icon set work but are generic and incomplete; replace the share image with real output and add the missing icon sizes. In numbers: 29 slots, of which 9 keep what exists, 9 should show real product output, 6 are drawn in code, 2 come from one icon library, 2 are removals, 1 is licensed third-party work (the inspiration gallery), and **none needs an AI-generated or commissioned image**.
