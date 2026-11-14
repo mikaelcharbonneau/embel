@@ -10,7 +10,7 @@ import { UnsavedProjectRecovery } from "./unsaved-project-recovery";
 import { ProjectCardActions } from "./project-card-actions";
 import type { LifecycleProject, ProjectDeletionAction } from "./project-deletion-client";
 import { ProjectDeletionStatus } from "./project-deletion-status";
-import { ProjectCard as SavedProjectCard, ProjectCardSkeletons, shortDate } from "./project-card";
+import { ProjectCard as SavedProjectCard, ProjectCardSkeletons } from "./project-card";
 import "@/styles/projects.css";
 
 type ProjectCard = {
@@ -18,7 +18,6 @@ type ProjectCard = {
   id: string;
   title: string;
   created: string;
-  deleted: string | null;
   href: string;
   saved: LifecycleProject;
 };
@@ -27,23 +26,6 @@ type Sort = "updated" | "created" | "alphabetical";
 function recent(a: ProjectCard, b: ProjectCard) {
   return -compareProjectCursors({ createdAt: a.created, id: a.id }, { createdAt: b.created, id: b.id });
 }
-/** Active cards share Home's short date; deleted cards say when they were deleted. */
-function dateLabel(project: ProjectCard, now: number | null) {
-  if (!project.deleted) return shortDate(project.created, now === null ? undefined : new Date(now));
-  const date = project.deleted,
-    timestamp = Date.parse(date),
-    prefix = "Deleted";
-  if (!Number.isFinite(timestamp)) return "Date unavailable";
-  if (now === null)
-    return `${prefix} ${new Date(timestamp).toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })}`;
-  const minutes = Math.max(0, Math.floor((now - timestamp) / 60_000));
-  if (minutes < 60)
-    return `${prefix} ${minutes < 1 ? "just now" : `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`}`;
-  const hours = Math.floor(minutes / 60),
-    days = Math.floor(hours / 24);
-  return `${prefix} ${hours < 24 ? `${hours} ${hours === 1 ? "hour" : "hours"} ago` : days === 1 ? "yesterday" : days < 7 ? `${days} days ago` : new Date(timestamp).toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })}`;
-}
-
 function ProjectControl({ kind, children }: { kind: "Sort"; children: React.ReactNode }) {
   const ref = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
@@ -116,20 +98,14 @@ function ProjectsLibrary({
 }) {
   const { listing, error, pending, load, reload, remove, update } = useAccountProjectListing(account, state);
   const { query, setQuery, sort, setSort } = controls;
-  const [now, setNow] = useState(() => Date.now());
   const [notice, setNotice] = useState<{ project: LifecycleProject; action: ProjectDeletionAction } | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 60_000);
-    return () => clearInterval(timer);
-  }, []);
   const deleted = state === "deleted";
   const projects: ProjectCard[] = (listing?.items ?? []).map((project) => ({
     key: project.id,
     id: project.id,
     title: project.title,
     created: project.created_at,
-    deleted: project.deletion_requested_at ?? project.deleted_at,
     href: `/brands/account/${project.id}`,
     saved: project,
   }));
@@ -293,7 +269,6 @@ function ProjectsLibrary({
                     key={project.key}
                     project={project.saved}
                     account={account}
-                    date={dateLabel(project, now)}
                     actions={actions}
                     deletionStatus={
                       deleted ? (

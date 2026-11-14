@@ -8,9 +8,7 @@ import { useAccountProjectListing } from "./account-projects";
 import { ProjectCardActions } from "./project-card-actions";
 import type { LifecycleProject } from "./project-deletion-client";
 import { ProjectDeletionStatus } from "./project-deletion-status";
-import { ProjectCard, ProjectCardSkeletons, shortDate } from "./project-card";
-
-export { shortDate };
+import { ProjectCard, ProjectCardSkeletons } from "./project-card";
 
 export function HomeRecentBrands() {
   const { session } = useAccountSession();
@@ -88,7 +86,6 @@ function HomeAccountRecentBrands({ account }: { account: VerifiedAccount }) {
               project={brand}
               account={account}
               headingLevel={3}
-              date={shortDate(brand.created_at)}
               actions={(name) => (
                 <ProjectCardActions
                   key={`${brand.id}:${brand.current_revision}:${brand.lifecycle_version}`}

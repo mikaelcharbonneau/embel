@@ -2,7 +2,8 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { HomeRecentBrands, shortDate } from "@/components/workspace/home-recent-brands";
+import { HomeRecentBrands } from "@/components/workspace/home-recent-brands";
+import { relativeTime } from "@/components/workspace/project-card";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 
 const mock = vi.hoisted(() => ({
@@ -134,12 +135,16 @@ describe("home account cards", () => {
 });
 
 describe("recent card dates", () => {
-  it("says Today and Yesterday, then a short date with the year only when it differs", () => {
+  it("says how long ago in minutes, hours and days, then a short date with the year only when it differs", () => {
     const now = new Date(2026, 10, 6, 9, 30);
-    expect(shortDate(new Date(2026, 10, 6, 0, 5).toISOString(), now)).toBe("Today");
-    expect(shortDate(new Date(2026, 10, 5, 23, 55).toISOString(), now)).toBe("Yesterday");
-    expect(shortDate(new Date(2026, 9, 31, 12).toISOString(), now)).toBe("Oct 31");
-    expect(shortDate(new Date(2025, 11, 24, 12).toISOString(), now)).toBe("Dec 24, 2025");
-    expect(shortDate("not a date", now)).toBe("Date unavailable");
+    expect(relativeTime(new Date(2026, 10, 6, 9, 29, 40).toISOString(), now)).toBe("just now");
+    expect(relativeTime(new Date(2026, 10, 6, 9, 29).toISOString(), now)).toBe("1 minute ago");
+    expect(relativeTime(new Date(2026, 10, 6, 8, 50).toISOString(), now)).toBe("40 minutes ago");
+    expect(relativeTime(new Date(2026, 10, 6, 0, 5).toISOString(), now)).toBe("9 hours ago");
+    expect(relativeTime(new Date(2026, 10, 5, 8, 55).toISOString(), now)).toBe("yesterday");
+    expect(relativeTime(new Date(2026, 10, 2, 12).toISOString(), now)).toBe("4 days ago");
+    expect(relativeTime(new Date(2026, 9, 20, 12).toISOString(), now)).toBe("Oct 20");
+    expect(relativeTime(new Date(2025, 11, 24, 12).toISOString(), now)).toBe("Dec 24, 2025");
+    expect(relativeTime("not a date", now)).toBeNull();
   });
 });
