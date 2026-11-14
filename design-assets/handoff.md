@@ -60,7 +60,6 @@ Part B items in `Design_AUDIT.md` section 6 that are not named on any canvas row
 
 - **D-024 deferred** (owner, Nov 14): the direction board can show a different logo from the chosen one. It is a generation-engine issue, outside this redesign; implementation changes nothing about it.
 - **D-036 declined** (owner, Nov 14): no credit ledger. The Usage boards on canvas page 2 show a ledger that will not be built; implementation restyles today's Usage page with the design system and keeps the data it shows now.
-- **IMG-007 / IMG-008:** the owner approved a third showcase brand (Nov 14), made with one ordinary run of the product (6 logo concepts, 3 direction boards). Until it exists, the third Home example is a placeholder; the first two use the showcase brands.
 - **Audience, Positioning, Personality and Slogan** have desktop side-chat screens only; at 768 and 390 they follow the one-column conversation as in the current app.
 - **Name details checks:** only YouTube handles and the EU trademark register are checked live today; domain search across many extensions needs a bulk check from the domain provider, which also supplies the prices.
 
@@ -71,7 +70,7 @@ Export each slot at 1× and 2× of the largest width it appears at. "Side chat" 
 | ID | Slot | 390 | 768 | 1440 | Notes |
 | --- | --- | --- | --- | --- | --- |
 | IMG-003 | Share image (link preview) | — | — | 1200 × 630 file | Board on page 7 |
-| IMG-007 | Signed-out Home examples, 4:3 | 358 × 269 | 227 × 170 | 336 × 252 | Same asset as IMG-008; third is a placeholder |
+| IMG-007 | Signed-out Home examples, 4:3 | 358 × 269 | 227 × 170 | 336 × 252 | Same asset as IMG-008; the three examples are Kestrel Analytics, Orchard Lane Cider and Tidewild Hot Sauce (third showcase brand, approved and made Nov 14; crop in `design-assets/source/IMG-007_tidewild-home_v1.webp`) |
 | IMG-008 | New-account Home empty state, 4:3 | 358 × 269 | — | 336 × 252 | Same asset as IMG-007 |
 | IMG-011 | Project card logo strip (contain) | 324 × 146 | 316 × 142 | 302 × 135 | Plus three concept thumbs, about 100 × 100 |
 | IMG-012 | Library preview, square (contain) | 356 × 356 | 348 × 348 | 334 × 334 | Brand board shown whole in the square |
