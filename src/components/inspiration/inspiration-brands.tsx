@@ -33,7 +33,7 @@ export function Heart({ liked }: { liked: boolean }) {
       viewBox="0 0 24 24"
       fill={liked ? "currentColor" : "none"}
       stroke="currentColor"
-      strokeWidth="1.55"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
     >

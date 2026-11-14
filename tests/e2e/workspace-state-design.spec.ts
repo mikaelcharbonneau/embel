@@ -435,14 +435,14 @@ test("failed project read keeps actionable recovery without project bars", async
     state.projectGate = null;
     const notice = page
       .getByRole("alert")
-      .filter({ hasText: "The saved project could not be verified. Your existing work is kept." });
+      .filter({ hasText: "We couldn’t check this brand’s latest save. Your work is kept." });
     await expect(notice).toBeVisible();
-    await expect(notice.getByRole("button", { name: "Check saved project", exact: true })).toBeEnabled();
+    await expect(notice.getByRole("button", { name: "Try again", exact: true })).toBeEnabled();
     await expectNoProjectBars(page);
     const failed = await frame(page);
     // The explicit read-error notice occupies real content space; the shell keeps its bounds.
     expectSameFrame(checking.slice(0, 3), failed.slice(0, 3));
-    const retry = notice.getByRole("button", { name: "Check saved project", exact: true });
+    const retry = notice.getByRole("button", { name: "Try again", exact: true });
     await retry.focus();
     await expect(retry).toBeFocused();
     expect(state.writes).toEqual([]);
@@ -467,9 +467,9 @@ test("retained project read failure keeps its actionable notice without adding p
   await expect(page).toHaveURL(`/brands/account/${projectId}/logo`);
   const notice = page
     .getByRole("alert")
-    .filter({ hasText: "The saved project could not be verified. Your existing work is kept." });
+    .filter({ hasText: "We couldn’t check this brand’s latest save. Your work is kept." });
   await expect(notice).toBeVisible();
-  await expect(notice.getByRole("button", { name: "Check saved project", exact: true })).toBeEnabled();
+  await expect(notice.getByRole("button", { name: "Try again", exact: true })).toBeEnabled();
   await expectProjectCanvas(page);
   expect(state.writes).toEqual([]);
   await captureState(page, info, "retained-project-read-error");

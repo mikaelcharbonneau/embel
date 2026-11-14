@@ -69,8 +69,9 @@
   justify-content: space-between;
   gap: var(--space-3);
 }
+/* "Forgot password?" keeps the 24 px link target (D-084) without making the label row taller. */
 .auth-field__label-row > .e-link--standalone {
-  min-height: 0;
+  margin-block: calc((var(--link-target-min) - 1lh) / -2);
 }
 
 /* Cloudflare Turnstile (shown only when a site key is configured). */

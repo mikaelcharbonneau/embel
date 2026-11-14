@@ -216,7 +216,7 @@ export function buildAccountExport(
           files.push({ path: relative, included: true, zipPath, bytes: file.bytes.byteLength });
         } catch (error) {
           logServerError("account_export_file", error);
-          files.push({ path: relative, included: false, reason: "This file couldn't be read for the download." });
+          files.push({ path: relative, included: false, reason: "This file couldn’t be read for the download." });
         }
       }
       after = page.at(-1)!;

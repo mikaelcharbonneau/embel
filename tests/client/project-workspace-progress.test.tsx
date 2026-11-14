@@ -127,9 +127,9 @@ describe("project workspace retains account and saved-state safety without proje
     expect(host.querySelector("input")).toBe(input);
     expect(document.activeElement).toBe(input);
     expect(host.querySelector('[role="alert"]')?.textContent).toContain(
-      "The saved project could not be verified. Your existing work is kept.",
+      "We couldn’t check this brand’s latest save. Your work is kept.",
     );
-    expect(host.querySelector("button")?.textContent).toBe("Check saved project");
+    expect(host.querySelector("button")?.textContent).toBe("Try again");
     expect(host.querySelector<HTMLButtonElement>("button")?.disabled).toBe(false);
     expect(input.value).toBe("Keep local input");
     expectNoProjectBars();
@@ -166,7 +166,7 @@ describe("project workspace retains account and saved-state safety without proje
     );
     await render(<input aria-label="Retained editor" defaultValue="Kept" />);
     expect(host.querySelector('[role="alert"]')?.textContent).toContain(
-      "The saved project could not be verified. Your existing work is kept.",
+      "We couldn’t check this brand’s latest save. Your work is kept.",
     );
     expectNoProjectBars();
     expect(drafts.hasUnsaved()).toBe(false);
@@ -257,7 +257,7 @@ describe("project workspace retains account and saved-state safety without proje
     await act(async () => {
       await vi.advanceTimersByTimeAsync(30_000);
     });
-    expect(host.textContent).toContain("The saved project could not be verified");
+    expect(host.textContent).toContain("We couldn’t check this brand’s latest save");
     await act(async () => {
       resolve(response());
       await Promise.resolve();

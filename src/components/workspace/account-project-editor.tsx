@@ -90,14 +90,8 @@ export function AccountProjectEditor({ projectId, navigation }: { projectId: str
     [session.generation, projectId],
   );
   const dirty = Boolean(workspace && changed(workspace));
-  function projectStatus(content: ReactNode) {
-    return (
-      <>
-        {navigation}
-        {content}
-      </>
-    );
-  }
+  // Loading, signed-out and error states stand alone: their own card offers the way back (D-009, D-030).
+  const projectStatus = (content: ReactNode) => content;
   if (!validId) return <UnavailableProject />;
   if (session.status !== "ready") return projectStatus(<ProjectAccountState retainedEdits={dirty} />);
   if (loadError?.generation === session.generation)

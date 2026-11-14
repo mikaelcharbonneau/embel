@@ -567,7 +567,8 @@ function OwnedVisualDirections({
           error: inChat ? null : shownError,
           busy: Boolean(generation.busy || shownHistory?.busy),
           disabledReason: blockedReason,
-          onGenerate: start,
+          // At 0 credits More directions is unavailable before the click; the no-credits note says why (D-015).
+          onGenerate: noCredits ? undefined : start,
           onCheck: () => void refresh(),
           onStop:
             unresolved && generation.stopAcknowledgedBatchId !== generation.batch?.batchId

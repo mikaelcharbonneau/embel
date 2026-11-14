@@ -27,3 +27,19 @@
   display: flex;
   justify-content: center;
 }
+
+/* The chat thread's one column never grows past the chat panel: a long single-line summary (such as the answered
+   Naming choices) ellipsizes inside it instead of widening every message and clipping them at the panel's edge. */
+.e-workspace__thread {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* A work-area dialog (a larger view, name details) opens below the floating project bar, never under it. The dialog
+   is positioned against the whole overlay, so its own top and bottom keep it in the space under the bar. */
+@media (min-width: 1024px) {
+  .e-workspace__overlay > .e-dialog {
+    --overlay-top: calc(var(--nav-offset) + var(--nav-height) + var(--space-3));
+    inset-block: var(--overlay-top) var(--space-gutter);
+    max-height: calc(100% - var(--overlay-top) - var(--space-gutter));
+  }
+}

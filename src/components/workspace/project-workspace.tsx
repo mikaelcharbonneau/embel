@@ -23,7 +23,7 @@ import {
 import { AccountRequestError } from "./account-api";
 import { boundedAccountRequest } from "./bounded-account-request";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
-import { ProjectAccountState, ProjectOpening } from "./project-page-state";
+import { ProjectAccountState, ProjectOpening, ProjectPageErrorContext } from "./project-page-state";
 import { Button } from "@/components/ui/button";
 import { InlineMessage } from "@/components/ui/message";
 import { accountDraftChanged, reconcileAccountWorkspace } from "./account-draft-memory";
@@ -135,6 +135,8 @@ function OwnedProjectShell({
   const pathname = usePathname();
   const workspace = useSyncExternalStore(drafts.subscribe, () => drafts.get(projectId), empty);
   const [error, setError] = useState<string | null>(null);
+  // The page below shows its own "We couldn’t open this brand" card; the strip then stays out of the way.
+  const [pageError, setPageError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [identityEvidence, setIdentityEvidence] = useState<ProjectStageEvidence | null>(null);
   const [logoEvidence, setLogoEvidence] = useState<ProjectStageEvidence | null>(null);
@@ -173,7 +175,7 @@ function OwnedProjectShell({
         if (error instanceof AccountRequestError && error.status === 401) expire(account);
         // A brand that doesn't exist shows its own page error below; a notice strip above it would say it twice (D-030).
         else if (error instanceof AccountRequestError && error.status === 404) setError(null);
-        else setError("The saved project could not be verified. Your existing work is kept.");
+        else setError("We couldn’t check this brand’s latest save. Your work is kept.");
       });
     return () => controller.abort();
   }, [account, projectId, pathname, attempt, drafts, isCurrent, expire]);
@@ -221,12 +223,12 @@ function OwnedProjectShell({
   const progress: ProjectProgress | null = project ? { projectId, nextHref } : null;
   const notices = (
     <>
-      {error && (
+      {error && !pageError && (
         <InlineMessage
           tone="danger"
           actions={
-            <Button size="sm" onClick={() => setAttempt((value) => value + 1)}>
-              Check saved project
+            <Button size="sm" icon="refresh" onClick={() => setAttempt((value) => value + 1)}>
+              Try again
             </Button>
           }
         >
@@ -277,7 +279,9 @@ function OwnedProjectShell({
               <section className={`project-workspace project-stage-${stage}`}>
                 {/* Inside the side-chat Workspace the notices sit at the top of the work area instead. */}
                 {!noticesHosted && notices}
-                <div className="project-workspace-content">{children}</div>
+                <div className="project-workspace-content">
+                  <ProjectPageErrorContext.Provider value={setPageError}>{children}</ProjectPageErrorContext.Provider>
+                </div>
               </section>
             </WorkspaceNoticeContext.Provider>
           </LogoEvidenceContext.Provider>
