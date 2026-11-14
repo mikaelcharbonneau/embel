@@ -199,6 +199,38 @@ describe("Menu", () => {
   });
 });
 
+describe("Menu dismissal", () => {
+  it("closes on a press outside and keeps that press, click included, from reaching what is underneath", async () => {
+    const underneath = vi.fn();
+    await render(
+      <>
+        <Menu
+          trigger={(props) => (
+            <button type="button" {...props}>
+              Options
+            </button>
+          )}
+          items={[{ kind: "action", label: "Rename", onSelect: () => {} }]}
+        />
+        <button type="button" onClick={underneath}>
+          Underneath
+        </button>
+      </>,
+    );
+    const [trigger, outside] = [...host.querySelectorAll("button")];
+    await press(trigger!);
+    expect(trigger!.getAttribute("aria-expanded")).toBe("true");
+    await act(async () => {
+      outside!.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
+      outside!.click();
+    });
+    expect(trigger!.getAttribute("aria-expanded")).toBe("false");
+    expect(underneath).not.toHaveBeenCalled();
+    await press(outside!);
+    expect(underneath).toHaveBeenCalledOnce();
+  });
+});
+
 describe("Toast", () => {
   function Copy() {
     const toast = useToast();

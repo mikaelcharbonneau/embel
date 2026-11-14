@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
-  type MouseEvent,
+  type MouseEvent as ReactMouseEvent,
   type ReactNode,
   type RefObject,
 } from "react";
@@ -20,7 +20,7 @@ export type MenuItem =
       label: string;
       icon?: IconName;
       href: string;
-      onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
+      onClick?: (event: ReactMouseEvent<HTMLAnchorElement>) => void;
     }
   | { kind: "choice"; label: string; checked: boolean; onSelect: () => void }
   | { kind: "separator" }
@@ -84,6 +84,13 @@ export function Menu({
       if (menuRef.current?.contains(target) || triggerRef.current?.contains(target)) return;
       event.preventDefault();
       event.stopPropagation();
+      // The click that follows this press must not reach what is underneath either.
+      const swallow = (click: MouseEvent) => {
+        click.preventDefault();
+        click.stopPropagation();
+      };
+      document.addEventListener("click", swallow, { capture: true, once: true });
+      window.setTimeout(() => document.removeEventListener("click", swallow, true), 600);
       setOpen(false);
     };
     document.addEventListener("pointerdown", outside, true);
