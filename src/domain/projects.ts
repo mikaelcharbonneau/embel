@@ -8,16 +8,16 @@ export const projectScopeSchema = z.literal("complete_brand");
 export type ProjectScope = z.infer<typeof projectScopeSchema>;
 /** Saved Identity history keeps the scope it was made with, including retired ones. */
 export const recordedProjectScopeSchema = z.enum(["complete_brand", "naming_only", "visual_identity_only"]);
-export const projectStageSchema = z.enum(["discovery", "strategy", "naming", "identity", "guidelines"]);
-export const standaloneKindSchema = z.enum(["idea", "name", "handle", "domain", "trademark"]);
+const projectStageSchema = z.enum(["discovery", "strategy", "naming", "identity", "guidelines"]);
+const standaloneKindSchema = z.enum(["idea", "name", "handle", "domain", "trademark"]);
 
-export const researchSourceSchema = z.strictObject({
+const researchSourceSchema = z.strictObject({
   url: z.url({ protocol: /^https?$/ }),
   title: z.string().trim().min(1).max(300),
   retrievedAt: z.iso.datetime({ offset: true }),
 });
 
-export const checkEvidenceSchema = z.strictObject({
+const checkEvidenceSchema = z.strictObject({
   id: z.string().min(1).max(128),
   provider: z.string().trim().min(1).max(100),
   method: z.string().trim().min(1).max(100),
@@ -108,7 +108,7 @@ export const guidedTurnSchema = z
     }
   });
 export type GuidedTurn = z.infer<typeof guidedTurnSchema>;
-export const guidedAnswerSchema = z
+const guidedAnswerSchema = z
   .strictObject({
     stage: guidedStageSchema,
     turnId: guidedIdentifier,
@@ -243,7 +243,7 @@ export const contextSnapshotSchema = z
   });
 export type ContextSnapshot = z.infer<typeof contextSnapshotSchema>;
 
-export const originSchema = z.strictObject({
+const originSchema = z.strictObject({
   kind: standaloneKindSchema,
   sourceId: z.uuid(),
   evidence: z.array(checkEvidenceSchema).max(100),
@@ -296,7 +296,7 @@ const standaloneSourceSchema = z.strictObject({
   context: contextSnapshotSchema,
   evidence: z.array(checkEvidenceSchema).max(100),
 });
-export type StandaloneSource = z.infer<typeof standaloneSourceSchema>;
+type StandaloneSource = z.infer<typeof standaloneSourceSchema>;
 
 /** Persistence must load this source through an authenticated, owner-scoped repository. */
 export function createBrandFromStandalone(input: {

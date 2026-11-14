@@ -157,7 +157,7 @@ export function supabaseDeletionStore(admin: SupabaseClient): AccountDeletionSto
 
 /** Asks running and queued generations to stop, with the person's own login
  * (cancel_generation). Best effort: the purge removes their records either way. */
-export async function cancelActiveGenerations(client: SupabaseClient, ownerId: string) {
+async function cancelActiveGenerations(client: SupabaseClient, ownerId: string) {
   const { data, error } = await client
     .from("generation_runs")
     .select("id")

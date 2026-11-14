@@ -13,20 +13,11 @@ import {
 import { accountDraftChanged, type AccountWorkspace } from "./account-draft-memory";
 import { AccountRequestError } from "./account-api";
 import { creditsMessage } from "./credits-message";
-
-export const strategyLabels: Record<StrategyOperation, string> = {
-  "strategy.reformulate": "Response",
-  "strategy.competitors": "Competitor research",
-  "strategy.audience": "Audience proposal",
-  "strategy.personality": "Personality proposal",
-  "strategy.positioning": "Positioning proposal",
-  "strategy.slogan": "Slogan proposal",
-};
 type BoundedAPIAllowance = { billingMode: "openai_api"; spendControl?: undefined; maximumCostMicrousd: number };
 type UncappedAPIAllowance = { billingMode: "openai_api"; spendControl: "uncapped"; policyIdentity: string };
 type APIAllowance = BoundedAPIAllowance | UncappedAPIAllowance;
 export type StrategyAllowance = APIAllowance;
-export type StrategyPromptPlan =
+type StrategyPromptPlan =
   | { kind: "response_only"; billingMode: "openai_api"; reformulation: APIAllowance }
   | {
       kind: "response_and_competitors";
@@ -133,11 +124,7 @@ export function strategyJobMatchesRequest(
 export function strategyJobActive(job: StrategyJob) {
   return ["queued", "running", "partial", "cancel_requested"].includes(job.state);
 }
-export function strategyApplicationMatchesResult(
-  job: StrategyJob,
-  stepKey: string,
-  application: StrategyJobApplication,
-) {
+function strategyApplicationMatchesResult(job: StrategyJob, stepKey: string, application: StrategyJobApplication) {
   return (
     application.jobId === job.id &&
     application.stepKey === stepKey &&
@@ -251,7 +238,7 @@ const intentSchema = z.union([
     reformulationCap: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
   }),
 ]);
-export type StrategyIntent = z.infer<typeof intentSchema>;
+type StrategyIntent = z.infer<typeof intentSchema>;
 const intentListSchema = z.array(intentSchema).max(50);
 const intentStorageKey = "fluid.strategy-consent.v1";
 const inMemoryIntents = new Map<string, StrategyIntent>();

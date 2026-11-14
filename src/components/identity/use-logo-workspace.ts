@@ -60,11 +60,11 @@ const briefOf = (revision: LogoStageRevision<"brief_references"> | undefined): L
   return { name, activity, audience, personality, logoTypes };
 };
 
-export type LogoWorkspaceReloadResult = "reloaded" | "draft_blocked" | "unavailable";
+type LogoWorkspaceReloadResult = "reloaded" | "draft_blocked" | "unavailable";
 export const LOGO_AUTOSAVE_DELAY_MS = 650;
 export const LOGO_SAVE_TIMEOUT_MS = 30_000;
 
-export type LogoWorkspaceBaseline = {
+type LogoWorkspaceBaseline = {
   workspace: LogoWorkspaceV2;
   stagePayloads: Payloads;
   referenceSnapshot: LogoReferenceSnapshot | null;

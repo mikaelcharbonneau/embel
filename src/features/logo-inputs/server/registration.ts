@@ -21,7 +21,7 @@ import { logoOwner, logoId, parseLogoInput } from "@/server/data/logo-transactio
 import { canonicalIdentityInput } from "@/features/identity-directions/model/font-check-binding";
 import { logoInputRequestSchema, type LogoInputRequest, type LogoInputRequestState } from "../model/contracts";
 
-export type LogoInputEvidence = { family: string; licenseText: string; licenseSourceUrl: string | null } | null;
+type LogoInputEvidence = { family: string; licenseText: string; licenseSourceUrl: string | null } | null;
 export interface LogoInputRegistry {
   prepare(
     auth: AuthenticatedContext,
@@ -51,7 +51,7 @@ export const inputHash = (bytes: Uint8Array | string) => createHash("sha256").up
 export const activeLogoInput = (signal?: AbortSignal) => {
   if (signal?.aborted) throw new ApiError("integration_unavailable");
 };
-export function catalogDeclaration(id: string, licenseHash: string): string {
+function catalogDeclaration(id: string, licenseHash: string): string {
   return `Reviewed free-commercial catalog ${id}; exact license SHA-256 ${licenseHash}.`;
 }
 /** Supplies the existing store's required non-raster validator. No catalog lookup,

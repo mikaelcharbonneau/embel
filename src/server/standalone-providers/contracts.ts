@@ -87,9 +87,7 @@ const jurisdictions = z.array(jurisdiction).max(20).refine(unique);
 const classes = z.array(z.number().int().min(1).max(45)).max(45).refine(unique);
 const identifier = z.string().min(1).max(200);
 const timestamp = z.iso.datetime({ offset: true });
-export const trademarkTargetSchema = providerTargetSchema.refine(
-  (v) => v.tool === "trademarks",
-) as z.ZodType<TrademarkTarget>;
+const trademarkTargetSchema = providerTargetSchema.refine((v) => v.tool === "trademarks") as z.ZodType<TrademarkTarget>;
 export type TrademarkHit = {
   registryId: string;
   jurisdiction: string;
@@ -128,7 +126,7 @@ export type TrademarkResearch = {
 };
 
 /** Exact public DNS names only; never accepts IP, localhost or local-network names. No DNS lookup occurs. */
-export function publicProviderHost(host: string): boolean {
+function publicProviderHost(host: string): boolean {
   return (
     host === host.toLowerCase() &&
     host.length <= 253 &&
@@ -140,7 +138,7 @@ export function publicProviderHost(host: string): boolean {
     !/(?:^|\.)(?:localhost|local|internal|lan|home|onion|invalid)$/.test(host)
   );
 }
-export const publicProviderUrlSchema = providerSourceUrlSchema.refine((value) => {
+const publicProviderUrlSchema = providerSourceUrlSchema.refine((value) => {
   try {
     const url = new URL(value);
     return !url.port && publicProviderHost(url.hostname);

@@ -26,7 +26,7 @@ export type GuidedChoiceWidgetProps = {
   projectId?: string;
 };
 
-export type ResearchLoadingScreenProps = {
+type ResearchLoadingScreenProps = {
   message?: string;
   onCancel?: () => void;
   cancelPending?: boolean;

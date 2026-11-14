@@ -1,6 +1,6 @@
 import type { InspirationPreferences } from "@/domain/inspiration";
 type Fence = { userId: string; generation: number };
-export type InspirationIntent = {
+type InspirationIntent = {
   desired: InspirationPreferences;
   expectedRevision: number;
   expectedProjectRevision: number;

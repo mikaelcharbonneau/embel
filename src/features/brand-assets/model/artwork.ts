@@ -45,11 +45,11 @@ export const BRAND_APPLICATIONS = [
   { id: "banner-wide", label: "Wide banner", width: 1500, height: 500, editable: true },
   { id: "banner-cover", label: "Cover banner", width: 1584, height: 396, editable: true },
 ] as const;
-export type BrandApplication = (typeof BRAND_APPLICATIONS)[number];
+type BrandApplication = (typeof BRAND_APPLICATIONS)[number];
 
 /** Saved words used in the artwork. A missing or unrenderable line is left out,
  * never replaced with placeholder text. */
-export type BrandCopy = { tagline: string | null; headline: string | null; message: string | null };
+type BrandCopy = { tagline: string | null; headline: string | null; message: string | null };
 const cleanText = (value: string | null | undefined) => value?.replace(/\s+/gu, " ").trim() || null;
 export function brandCopy(
   snapshot: BrandAssetSnapshot,
@@ -66,7 +66,7 @@ export function brandCopy(
   };
 }
 
-export const isDarkColor = (hex: string) => contrast("#FFFFFF", hex) >= contrast("#000000", hex);
+const isDarkColor = (hex: string) => contrast("#FFFFFF", hex) >= contrast("#000000", hex);
 /** Palette colors to present the logo on: the brand's light background and a
  * dark color with strong contrast for the reversed version, when one exists. */
 export function logoSurfaces(snapshot: BrandAssetSnapshot): { light: string; dark: string | null } {

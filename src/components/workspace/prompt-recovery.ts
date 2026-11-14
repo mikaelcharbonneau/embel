@@ -90,10 +90,6 @@ export function readPromptRecoveryState(ownerId?: string | null) {
   }
 }
 
-export function readPromptRecovery() {
-  return readPromptRecoveryState()?.draft ?? null;
-}
-
 /** Authentication may route back to an explicit intent without reading its text. */
 export function hasPromptRecovery() {
   try {

@@ -406,4 +406,3 @@ export function useIdentityReferences(account: VerifiedAccount, projectId: strin
     keepSaved,
   };
 }
-export type IdentityReferencesController = ReturnType<typeof useIdentityReferences>;

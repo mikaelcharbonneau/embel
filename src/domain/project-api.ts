@@ -39,4 +39,3 @@ export const updateProjectInputSchema = z.strictObject({
 
 export type AccountProjectSummary = z.infer<typeof accountProjectSummarySchema>;
 export type AccountProject = z.infer<typeof accountProjectSchema>;
-export type AccountRevision = z.infer<typeof accountRevisionSchema>;

@@ -9,8 +9,8 @@ import { parseProviderTarget, providerTime, type ProviderClock, type ProviderFet
 import { namecomConfigSchema, type NamecomConfig } from "./live-config";
 import { liveProviderJson } from "./live-json";
 
-export const NAMECOM_DOMAIN_PROVIDER = "namecom_core";
-export const NAMECOM_DOMAIN_SOURCE_URL = "https://docs.name.com/api/v1/reference/domains/check-availability";
+const NAMECOM_DOMAIN_PROVIDER = "namecom_core";
+const NAMECOM_DOMAIN_SOURCE_URL = "https://docs.name.com/api/v1/reference/domains/check-availability";
 const RECHECK_AFTER_MS = 60_000; // Embel policy, not a price lock or provider guarantee.
 const price = z.number().finite().nonnegative();
 const purchaseTypes = [

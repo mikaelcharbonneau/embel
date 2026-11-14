@@ -85,7 +85,7 @@ export const identityReferenceMediaSchema = assetVersionReferenceSchema.extend({
   mimeType: z.enum(["image/png", "image/jpeg", "image/webp"]),
 });
 export type IdentityReferenceMedia = z.infer<typeof identityReferenceMediaSchema>;
-export const referenceAttributionSchema = z.strictObject({
+const referenceAttributionSchema = z.strictObject({
   label: z.string().trim().min(1).max(240),
   creator: z.string().trim().min(1).max(240).nullable(),
   sourceUrl: attributionUrl.nullable(),
@@ -114,7 +114,7 @@ export const identityReferenceSchema = z
         message: "Reference media must belong to the same owner and project",
       });
   });
-export type IdentityReference = z.infer<typeof identityReferenceSchema>;
+type IdentityReference = z.infer<typeof identityReferenceSchema>;
 
 export const setReferenceReactionSchema = z.strictObject({
   expectedRevision: revision,
@@ -143,7 +143,7 @@ export const referenceReactionSchema = z
         message: "Revision zero is an untouched reaction; later revisions require a timestamp",
       });
   });
-export type ReferenceReaction = z.infer<typeof referenceReactionSchema>;
+type ReferenceReaction = z.infer<typeof referenceReactionSchema>;
 export const identityReferenceEntrySchema = z
   .strictObject({ reference: identityReferenceSchema, reaction: referenceReactionSchema })
   .superRefine((value, ctx) => {
@@ -206,7 +206,7 @@ export function applyReferenceReaction(args: {
   }).reaction;
 }
 
-export const identityReferenceCursorSchema = z.strictObject({
+const identityReferenceCursorSchema = z.strictObject({
   projectId: z.uuid(),
   createdAt: timestamp,
   referenceId: z.uuid(),
@@ -241,7 +241,7 @@ export function validateIdentityReferenceQuery(
   if (query.excludedTags.some((tag) => !known.has(tag))) throw new Error("Unknown reference exclusion tag");
   return query;
 }
-export const referenceFeedAvailabilitySchema = z.discriminatedUnion("status", [
+const referenceFeedAvailabilitySchema = z.discriminatedUnion("status", [
   z.strictObject({ status: z.literal("available") }),
   z.strictObject({ status: z.literal("unavailable"), reason: z.literal("reference_source_unconfigured") }),
 ]);
@@ -419,4 +419,3 @@ export function identityReferenceBasis(snapshot: unknown) {
     })),
   });
 }
-export type IdentityReferenceBasis = ReturnType<typeof identityReferenceBasis>;

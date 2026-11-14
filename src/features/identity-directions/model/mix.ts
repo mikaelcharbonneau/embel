@@ -6,7 +6,7 @@ import {
 import { freezeLogoRecord, sameLogoScope } from "@/domain/logo-vector";
 import { evaluateIdentityMix } from "./consistency";
 
-export type DirectionMixPreview = {
+type DirectionMixPreview = {
   approvedLogoId: string;
   components: { paletteVersionId: string; typographyVersionId: string; graphicsVersionId: string };
   sourceDirectionIds: readonly string[];

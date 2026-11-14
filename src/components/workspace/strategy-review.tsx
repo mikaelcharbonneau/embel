@@ -6,7 +6,6 @@ import { Icon } from "@/components/ui/icon";
 import type { Personality } from "@/domain/projects";
 import type { LocalDraft } from "./local-drafts";
 import {
-  draftCompetitors,
   draftPersonality,
   draftPositioning,
   isPersonalityReviewComplete,
@@ -396,89 +395,5 @@ export function PositioningReview({
         </button>
       </div>
     </form>
-  );
-}
-
-/** Selected inputs only; no inferred strategy or provider claims. */
-export function StrategyContext({ draft }: { draft: LocalDraft }) {
-  const audience = draft.segments.filter((segment) => segment.selected);
-  const competitors = draftCompetitors(draft).filter((competitor) => competitor.selected);
-  const personality = draftPersonality(draft);
-  return (
-    <dl className="strategy-inputs">
-      <div>
-        <dt>Offering</dt>
-        <dd>{draft.offering.trim() || "Not specified"}</dd>
-      </div>
-      <div>
-        <dt>Selected audience</dt>
-        <dd>
-          {audience.length ? (
-            <>
-              <p>{audience.map((segment) => segment.name.trim() || "Unnamed audience").join(", ")}</p>
-              <ContextDetails title={<>Needs and reasons</>}>
-                <ul>
-                  {audience.map((segment) => (
-                    <li key={segment.id}>
-                      <strong>{segment.name.trim() || "Unnamed audience"}</strong>
-                      <p>{segment.needs.trim() || "Needs not specified"}</p>
-                      {segment.reason.trim() && <p>{segment.reason}</p>}
-                    </li>
-                  ))}
-                </ul>
-              </ContextDetails>
-            </>
-          ) : (
-            "No audience selected"
-          )}
-        </dd>
-      </div>
-      <div>
-        <dt>Retained competitors</dt>
-        <dd>
-          {competitors.length ? (
-            <>
-              <p>{competitors.map((competitor) => competitor.name.trim() || "Unnamed competitor").join(", ")}</p>
-              <ContextDetails title={<>Why they are relevant</>}>
-                <ul>
-                  {competitors.map((competitor) => (
-                    <li key={competitor.id}>
-                      <strong>{competitor.name.trim() || "Unnamed competitor"}</strong>
-                      <p>{competitor.relevance.trim() || "Relevance not specified"}</p>
-                    </li>
-                  ))}
-                </ul>
-              </ContextDetails>
-            </>
-          ) : (
-            "No competitors retained"
-          )}
-        </dd>
-      </div>
-      {draft.stage === "positioning" && (
-        <div>
-          <dt>Personality emphasis</dt>
-          <dd>
-            {personality ? (
-              <>
-                <ul className="strategy-profile-summary">
-                  {dimensions.map((dimension) => (
-                    <li key={dimension.key}>
-                      <span>{dimension.label}</span>
-                      <span>{personality[dimension.key]} / 100</span>
-                    </li>
-                  ))}
-                </ul>
-                <p className="strategy-context-review">
-                  {isPersonalityReviewComplete(draft) ? "Personality confirmed" : "Personality not reviewed"}
-                </p>
-              </>
-            ) : (
-              "No profile yet"
-            )}
-          </dd>
-        </div>
-      )}
-    </dl>
   );
 }

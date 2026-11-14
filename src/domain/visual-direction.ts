@@ -15,13 +15,13 @@ const note = z
   .trim()
   .max(1200)
   .refine((value) => !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(value), "Unsupported control character");
-export const visualDirectionGuidanceSchema = z.strictObject({
+const visualDirectionGuidanceSchema = z.strictObject({
   character: note,
   colors: note,
   typography: note,
   graphics: note,
 });
-export type VisualDirectionGuidance = z.infer<typeof visualDirectionGuidanceSchema>;
+type VisualDirectionGuidance = z.infer<typeof visualDirectionGuidanceSchema>;
 export const emptyVisualGuidance = (): VisualDirectionGuidance => ({
   character: "",
   colors: "",
@@ -31,7 +31,7 @@ export const emptyVisualGuidance = (): VisualDirectionGuidance => ({
 export const sameVisualGuidance = (a: VisualDirectionGuidance, b: VisualDirectionGuidance) =>
   (Object.keys(a) as (keyof VisualDirectionGuidance)[]).every((key) => a[key] === b[key]);
 /** Catalog text is attributed guidance, never an owned asset or proof of rights. */
-export const visualDirectionReferenceSchema = z
+const visualDirectionReferenceSchema = z
   .strictObject({
     // Brands in the gallery have no designer credit or source link yet: null.
     referenceId: z.uuid(),
@@ -79,7 +79,7 @@ export const reviewedVisualDirectionSchema = z
     )
       ctx.addIssue({ code: "custom", message: "Review requires saved inspiration or written guidance" });
   });
-export type ReviewedVisualDirection = z.infer<typeof reviewedVisualDirectionSchema>;
+type ReviewedVisualDirection = z.infer<typeof reviewedVisualDirectionSchema>;
 export const reviewVisualDirectionSchema = z.strictObject({
   expectedRevision: revision,
   expectedProjectRevision: revision.min(1),
@@ -87,7 +87,6 @@ export const reviewVisualDirectionSchema = z.strictObject({
   catalogVersion: z.literal(INSPIRATION_CATALOG_VERSION),
   guidance: visualDirectionGuidanceSchema,
 });
-export type ReviewVisualDirection = z.infer<typeof reviewVisualDirectionSchema>;
 export function visualDirectionReferences(inspiration: InspirationOverview) {
   return inspiration.choices
     .filter(hasInspirationChoice)
@@ -106,7 +105,7 @@ export function visualDirectionReferences(inspiration: InspirationOverview) {
     })
     .sort((a, b) => a.referenceId.localeCompare(b.referenceId));
 }
-export function visualDirectionIsCurrent(value: ReviewedVisualDirection, inspiration: InspirationOverview) {
+function visualDirectionIsCurrent(value: ReviewedVisualDirection, inspiration: InspirationOverview) {
   return (
     value.ownerId === inspiration.ownerId &&
     value.projectId === inspiration.projectId &&

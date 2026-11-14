@@ -23,7 +23,7 @@ import { assertLogoComponentLocks } from "../model/locks";
 import { assertLogoConversionNotAborted } from "./converter";
 import { canonicalLogoDocumentBytes, verifyLogoVectorRevision } from "./revisions";
 
-export type LogoVectorMutationDependencies = {
+type LogoVectorMutationDependencies = {
   assetStore: IdentityAssetStore;
   readVectorDetail(
     auth: AuthenticatedContext,

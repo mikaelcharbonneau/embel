@@ -3,7 +3,7 @@ import { ContextDetails } from "@/components/ui/context-details";
 import Link from "next/link";
 import type { AccountProject } from "@/domain/project-api";
 import { getProjectHandoff } from "@/domain/project-handoff";
-export type ProjectContinuityPanelProps = {
+type ProjectContinuityPanelProps = {
   project: AccountProject;
   dirty: boolean;
   conflicted: boolean;

@@ -23,7 +23,7 @@ const ratio = (image: Sized) => image.width / image.height;
 const rowSum = (row: readonly Sized[]) => row.reduce((total, image) => total + ratio(image), 0);
 
 /** A brand's height for a card width w: height = slope * w + offset. */
-export type CardShape = { slope: number; offset: number };
+type CardShape = { slope: number; offset: number };
 export function cardShape(rows: readonly (readonly Sized[])[]): CardShape {
   const sums = rows.map(rowSum);
   // Each row is (content width - gaps between its images) / its combined ratio tall.
@@ -115,4 +115,4 @@ export function bentoLayout(
   return { boxes, height: Math.max(0, y - gap) };
 }
 /** Preferred row height for a gallery width. */
-export const bentoTarget = (width: number) => Math.min(520, Math.max(320, width * 0.62));
+const bentoTarget = (width: number) => Math.min(520, Math.max(320, width * 0.62));

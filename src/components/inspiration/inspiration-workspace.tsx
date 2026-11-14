@@ -156,7 +156,7 @@ function InspirationGrid({ children }: { children: ReactNode }) {
 }
 /** "page" is the standalone Inspiration page; "conversation" is the same step
  * shown as one Embel message inside the project conversation. */
-export type InspirationVariant = "page" | "conversation";
+type InspirationVariant = "page" | "conversation";
 /** In the conversation, Continue reveals the next message (onContinue) instead of
  * opening a page; once that message is on screen the row is no longer needed. */
 type InspirationProps = {

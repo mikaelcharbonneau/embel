@@ -38,4 +38,3 @@ export const logoCapabilitiesSchema = z
       }
     }
   });
-export type LogoCapabilities = z.infer<typeof logoCapabilitiesSchema>;

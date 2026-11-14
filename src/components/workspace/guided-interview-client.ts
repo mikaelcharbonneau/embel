@@ -164,7 +164,7 @@ export function retainedAnswerNames(
   return selected.length ? selected : null;
 }
 
-export type GuidedTimelineItem =
+type GuidedTimelineItem =
   { kind: "user"; event: Extract<ConversationEvent, { kind: "user_message" }> } | { kind: "turn"; turn: GuidedTurn };
 export function guidedTimeline(context: ContextSnapshot): GuidedTimelineItem[] {
   const messages = (context.intake.conversation ?? []).filter((event) => event.kind === "user_message");

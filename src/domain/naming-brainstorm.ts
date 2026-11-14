@@ -18,12 +18,11 @@ const safeText = z
       !/[\p{Cc}\p{Bidi_Control}]/u.test(value) &&
       /[^\p{White_Space}\p{Default_Ignorable_Code_Point}\p{Mark}\u2800]/u.test(value),
   );
-export const namingBrainstormCandidateSchema = z.strictObject({
+const namingBrainstormCandidateSchema = z.strictObject({
   value: nameValueSchema,
   rationale: safeText,
   primaryApproach: namingApproachSchema,
 });
-export type NamingBrainstormCandidate = z.infer<typeof namingBrainstormCandidateSchema>;
 const constructedCandidate = namingBrainstormCandidateSchema.extend({
   construction: z.array(z.string().trim().min(1).max(100)).max(12),
 });
@@ -33,11 +32,11 @@ export const namingBrainstormAcceptedCandidateSchema = namingBrainstormCandidate
   caution: z.literal(NAMING_BRAINSTORM_CAUTION),
   graphemeCount: z.number().int().min(1).max(100),
 });
-export type NamingBrainstormAcceptedCandidate = z.infer<typeof namingBrainstormAcceptedCandidateSchema>;
+type NamingBrainstormAcceptedCandidate = z.infer<typeof namingBrainstormAcceptedCandidateSchema>;
 export const namingBrainstormOutputSchema = z.strictObject({ candidates: z.array(z.unknown()).max(120) });
 const segmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
 /** Matches the established project-name identity exactly, including retained symbols. */
-export function namingBrainstormIdentity(value: string): string {
+function namingBrainstormIdentity(value: string): string {
   return nameValueSchema
     .parse(value)
     .toLowerCase()

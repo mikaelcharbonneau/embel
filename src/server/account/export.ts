@@ -23,7 +23,7 @@ import { accountAdminClient } from "./admin";
  * the function's time limit; files beyond the cap are listed in files.json and
  * stay downloadable inside Embel.
  */
-export const FILE_BYTES_CAP = 400 * 1024 * 1024;
+const FILE_BYTES_CAP = 400 * 1024 * 1024;
 const ROW_PAGE = 500;
 const MAX_ROWS_PER_TABLE = 50_000;
 const FILE_PAGE = 500;
@@ -34,7 +34,7 @@ const MAX_FILES = 5_000;
 const INTERNAL_FIELD =
   /(^|_)cost(_|$)|microusd|^lease_|_lease$|workflow_run_id|idempotency_key|provider_response_id|^plan_(manifest|fingerprint)$|^worker_id$|^policy_identity$/u;
 
-export type ExportTable = { table: string; keyColumns: string[] };
+type ExportTable = { table: string; keyColumns: string[] };
 export interface AccountExportSource {
   tables(): Promise<ExportTable[]>;
   rows(table: ExportTable, offset: number, limit: number): Promise<Record<string, unknown>[]>;
@@ -230,7 +230,7 @@ export function buildAccountExport(
 
 /** The person's own data through their own login, and their files through the
  * server key, limited to their own Storage prefix. */
-export function supabaseExportSource(auth: ProfileContext, admin: SupabaseClient): AccountExportSource {
+function supabaseExportSource(auth: ProfileContext, admin: SupabaseClient): AccountExportSource {
   const tableSchema = z.array(
     z.object({ table_name: z.string().regex(/^[a-z_][a-z0-9_]{0,62}$/u), key_columns: z.array(z.string()).nullable() }),
   );

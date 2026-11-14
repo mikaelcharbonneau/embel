@@ -24,7 +24,7 @@ export const domainNameSchema = z
   .transform(normalizeDomain)
   .refine((value) => domainSyntaxError(value) === null, "Invalid or unsupported domain syntax");
 const canonicalDomain = domainNameSchema;
-export type SearchPreparation = { domains: string[]; errors: { line: number; message: string }[] };
+type SearchPreparation = { domains: string[]; errors: { line: number; message: string }[] };
 /** Local candidate construction never checks or reserves a name. */
 export function prepareDomainSearch(input: string, extensions: string[]): SearchPreparation {
   if (input.length > 4000)
@@ -131,7 +131,7 @@ export function quoteBlockReason(quote: DomainQuote, check: DomainCheck | null, 
     return "Quote does not match the availability evidence.";
   return null;
 }
-export const registrationEvidenceSchema = z
+const registrationEvidenceSchema = z
   .object({
     orderId: reference,
     domain: canonicalDomain,
@@ -145,7 +145,7 @@ export const registrationEvidenceSchema = z
     (value) => value.expiresAt === null || Date.parse(value.expiresAt) > Date.parse(value.confirmedAt),
     "Registration expiry must follow confirmation",
   );
-export const domainOrderEventSchema = z.discriminatedUnion("type", [
+const domainOrderEventSchema = z.discriminatedUnion("type", [
   z
     .object({ type: z.literal("payment_confirmed"), id: reference, orderId: reference, paymentReference: reference })
     .strict(),
@@ -161,7 +161,7 @@ export const domainOrderEventSchema = z.discriminatedUnion("type", [
     .object({ type: z.enum(["registration_failed", "needs_reconciliation"]), id: reference, orderId: reference })
     .strict(),
 ]);
-export type DomainOrderEvent = z.infer<typeof domainOrderEventSchema>;
+type DomainOrderEvent = z.infer<typeof domainOrderEventSchema>;
 export const domainOrderSchema = z
   .object({
     id: reference,
@@ -214,7 +214,7 @@ export const domainOrderSchema = z
         });
     }
   });
-export type DomainOrder = z.infer<typeof domainOrderSchema>;
+type DomainOrder = z.infer<typeof domainOrderSchema>;
 /** Only for authenticated, signature-verified server events. This is not a webhook/auth boundary. */
 export function applyDomainOrderEvent(rawOrder: DomainOrder, rawEvent: DomainOrderEvent): DomainOrder {
   const order = domainOrderSchema.parse(rawOrder),
@@ -274,15 +274,6 @@ export const purchasedDomainSchema = z
     (value) => value.order.registration === "confirmed" && value.order.confirmation !== null,
     "Library contains only registrar-confirmed Embel purchases",
   );
-export type PurchasedDomain = z.infer<typeof purchasedDomainSchema>;
-export type DomainLibrary =
-  { status: "unavailable" | "loading" | "error"; message?: string } | { status: "ready"; items: unknown[] };
-export type DomainBrandSource = {
-  type: "domain";
-  domain: string;
-  check: DomainCheck | null;
-  order: DomainOrder | null;
-};
 /** Public, locally mapped provider failures only; raw provider text is never displayed. */
 export class DomainLookupError extends Error {
   constructor(

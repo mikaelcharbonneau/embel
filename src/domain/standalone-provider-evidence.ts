@@ -6,20 +6,20 @@ import { logoHashSchema, logoTimestampSchema, boundedLogoJson, uniqueLogoValues,
 // P6 bounds each decoded page payload in compact UTF-8, separately from its
 // target/provenance envelope. Research retains five page results AND their hits.
 export const PROVIDER_PAGE_PAYLOAD_MAX_UTF8_BYTES = 262_144;
-export const PROVIDER_MAX_RETAINED_PAGES = 5;
+const PROVIDER_MAX_RETAINED_PAGES = 5;
 // The strict target/provenance fields fit within 16 KiB even with JSON escaping.
-export const PROVIDER_RESULT_ENVELOPE_MAX_UTF8_BYTES = 16_384;
+const PROVIDER_RESULT_ENVELOPE_MAX_UTF8_BYTES = 16_384;
 // Query, coverage, edition and aggregate wrappers also fit within 16 KiB.
-export const PROVIDER_RESEARCH_OVERHEAD_MAX_UTF8_BYTES = 16_384;
-export const PROVIDER_RESEARCH_PAYLOAD_MAX_UTF8_BYTES =
+const PROVIDER_RESEARCH_OVERHEAD_MAX_UTF8_BYTES = 16_384;
+const PROVIDER_RESEARCH_PAYLOAD_MAX_UTF8_BYTES =
   PROVIDER_MAX_RETAINED_PAGES * (2 * PROVIDER_PAGE_PAYLOAD_MAX_UTF8_BYTES + PROVIDER_RESULT_ENVELOPE_MAX_UTF8_BYTES) +
   PROVIDER_RESEARCH_OVERHEAD_MAX_UTF8_BYTES;
-export const PROVIDER_RESULT_MAX_UTF8_BYTES =
+const PROVIDER_RESULT_MAX_UTF8_BYTES =
   PROVIDER_RESEARCH_PAYLOAD_MAX_UTF8_BYTES + PROVIDER_RESULT_ENVELOPE_MAX_UTF8_BYTES;
 // P6 uses bounded integer numbers: JSONB's added spacing is below a 2x compact
 // allowance. Other generic payloads must ALSO fit this bound after exponents
 // expand. This is not the decoded wire-response/page-payload byte budget.
-export const PROVIDER_RESULT_MAX_JSONB_BYTES = 2 * PROVIDER_RESULT_MAX_UTF8_BYTES;
+const PROVIDER_RESULT_MAX_JSONB_BYTES = 2 * PROVIDER_RESULT_MAX_UTF8_BYTES;
 const providerEncoder = new TextEncoder();
 
 export const providerDomainSchema = z

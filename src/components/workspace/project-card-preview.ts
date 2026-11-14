@@ -4,7 +4,7 @@ import type { AccountLogoClient } from "@/components/identity/account-logo-clien
 import { readLogoCandidate } from "@/components/logo-creation/candidate-review";
 import { AccountRequestError } from "./account-api";
 
-export type ProjectCardPreview = { name: string | null; receipt: IdentityAssetReceipt | null };
+type ProjectCardPreview = { name: string | null; receipt: IdentityAssetReceipt | null };
 type PreviewReader = Pick<
   AccountLogoClient,
   "getLogoWorkspace" | "getLogoStageRevision" | "readLogoConceptBatch" | "readLogoRasterRefinement"

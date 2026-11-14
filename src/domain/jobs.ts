@@ -10,7 +10,7 @@ export const jobStatusSchema = z.enum([
   "failed",
   "needs_reconciliation",
 ]);
-export type JobStatus = z.infer<typeof jobStatusSchema>;
+type JobStatus = z.infer<typeof jobStatusSchema>;
 export const moneySchema = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 
 export const stepOutcomeSchema = z.discriminatedUnion("status", [

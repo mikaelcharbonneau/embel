@@ -1,13 +1,3 @@
-.project-intake-navigation {
-  position: relative;
-  min-width: 0;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: thin;
-}
-.project-intake-navigation button {
-  flex: 0 0 auto;
-}
 .strategy-provider-note {
   display: flex;
   align-items: flex-start;
@@ -240,54 +230,6 @@
 .positioning-input-footer > span {
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
-}
-.strategy-inputs details {
-  margin-top: 7px;
-}
-.strategy-inputs summary {
-  color: var(--secondary);
-  cursor: pointer;
-  font-size: var(--font-ui);
-  width: fit-content;
-}
-.strategy-inputs details ul {
-  display: grid;
-  gap: 13px;
-  list-style: none;
-  margin: 12px 0 0;
-  padding: 0;
-}
-.strategy-inputs details strong {
-  font-size: var(--font-ui);
-  font-weight: 500;
-}
-.strategy-inputs details p {
-  margin-top: 4px;
-  color: var(--secondary);
-}
-.strategy-profile-summary {
-  display: grid;
-  gap: 5px;
-  padding: 0;
-  margin: 0;
-  list-style: none;
-}
-.strategy-profile-summary li {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-}
-.strategy-profile-summary li > span:last-child {
-  color: var(--secondary);
-  font-variant-numeric: tabular-nums;
-}
-.strategy-context-review {
-  margin-top: 8px;
-  color: var(--secondary);
-  font-size: var(--font-ui);
-}
-.audience-next-step {
-  margin-top: 13px;
 }
 
 @media (max-width: 540px) {

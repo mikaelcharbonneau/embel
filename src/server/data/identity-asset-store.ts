@@ -53,7 +53,7 @@ export interface IdentityAssetStore {
   ): Promise<VerifiedAssetBytes>;
   readLeasedAsset(job: ClaimedJob, reference: AssetVersionReference, signal?: AbortSignal): Promise<VerifiedAssetBytes>;
 }
-export type IdentityAssetAccess =
+type IdentityAssetAccess =
   | { kind: "owned"; auth: AuthenticatedContext; ownerId: string; projectId: string }
   | { kind: "leased"; job: ClaimedJob; ownerId: string; projectId: string };
 export type IdentityAssetReservation = {
@@ -106,7 +106,7 @@ export type IdentityAssetStoreDependencies = {
   now?: () => Date;
   validateBytes?: (write: IdentityAssetWrite, bytes: Uint8Array, signal?: AbortSignal) => Promise<void>;
 };
-export class IdentityAssetUncertainPublicationError extends ApiError {
+class IdentityAssetUncertainPublicationError extends ApiError {
   constructor(
     readonly requestKey: string,
     readonly reservationId: string | null,

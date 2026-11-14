@@ -53,7 +53,7 @@ export const logoBriefDraftSchema = bounded(
 );
 export type LogoBriefDraft = z.infer<typeof logoBriefDraftSchema>;
 const ids = z.array(uuid).max(1000).refine(unique, "Duplicate identifier");
-export const logoStagePayloadSchemas = {
+const logoStagePayloadSchemas = {
   brief_references: z.strictObject({
     ...logoBriefDraftSchema.shape,
     referenceSnapshotId: uuid,
@@ -83,8 +83,6 @@ export const logoStagePayloadSchemas = {
     .refine((v) => v.approvalId === null || v.selectionId !== null, "Approval requires a selection"),
   deliverables: z.strictObject({ variantSetId: uuid.nullable(), exportManifestIds: ids }),
 };
-export type LogoStagePayloadMap = { [S in LogoStage]: z.infer<(typeof logoStagePayloadSchemas)[S]> };
-export type LogoStagePayload = LogoStagePayloadMap[LogoStage];
 const revisionShape = {
   version: z.literal(2),
   id: uuid,
@@ -164,7 +162,7 @@ export const logoReferenceSnapshotSchema = bounded(
   LOGO_REFERENCE_SNAPSHOT_MAX_BYTES,
 );
 export type LogoReferenceSnapshot = z.infer<typeof logoReferenceSnapshotSchema>;
-export const logoCapabilitySchema = z.discriminatedUnion("status", [
+const logoCapabilitySchema = z.discriminatedUnion("status", [
   z.strictObject({ status: z.literal("available") }),
   z.strictObject({ status: z.literal("unavailable"), reason: text.min(1) }),
 ]);
@@ -203,7 +201,6 @@ export const logoWorkspaceV2Schema = bounded(
 );
 export type LogoWorkspaceV2 = z.infer<typeof logoWorkspaceV2Schema>;
 export const logoCurrentVectorSelectionSchema = z.strictObject({ ...scope, vectorRevisionId: uuid.nullable() });
-export type LogoCurrentVectorSelection = z.infer<typeof logoCurrentVectorSelectionSchema>;
 
 export const logoMutationReceiptSchema = bounded(
   z
@@ -237,10 +234,10 @@ export const selectLogoConceptInputSchema = bounded(
   z.strictObject({ ...command, batchId: uuid, slotId: uuid, attemptId: uuid }),
 );
 export const selectLogoRasterInputSchema = bounded(z.strictObject({ ...command, source: logoRasterSourceSchema }));
-export const saveLogoEditInputSchema = bounded(
+const saveLogoEditInputSchema = bounded(
   z.strictObject({ ...command, baseVectorRevisionId: uuid, edit: logoManualEditSchema }),
 );
-export const acceptLogoVectorInputSchema = bounded(
+const acceptLogoVectorInputSchema = bounded(
   z.strictObject({ ...command, vectorRevisionId: uuid, acceptEarlierBasis: z.boolean() }),
 );
 export const restoreLogoStageInputSchema = bounded(

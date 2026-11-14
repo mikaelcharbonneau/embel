@@ -205,7 +205,7 @@ export const logoConceptBatchSchema = bounded(
   1_048_576,
 );
 export type LogoConceptBatch = z.infer<typeof logoConceptBatchSchema>;
-export const logoConceptBatchSummarySchema = z.strictObject({ id: uuid, requestKey: uuid, createdAt: timestamp });
+const logoConceptBatchSummarySchema = z.strictObject({ id: uuid, requestKey: uuid, createdAt: timestamp });
 /** Discovery never repeats full batches, provider receipts or private asset URLs. */
 export const logoConceptBatchPageSchema = bounded(
   z
@@ -316,7 +316,7 @@ export const logoDispatchReceiptSchema = bounded(
       "A vector proposal or style note must bind exactly one durable job",
     ),
 );
-export type LogoDispatchReceipt = z.infer<typeof logoDispatchReceiptSchema>;
+type LogoDispatchReceipt = z.infer<typeof logoDispatchReceiptSchema>;
 export type LogoRequestState =
   | { status: "not_found" }
   | {
@@ -437,7 +437,7 @@ const legacyLogoRefinementJobInputSchema = z.strictObject({
     }),
   ]),
 });
-export const logoRefinementJobInputSchema = bounded(
+const logoRefinementJobInputSchema = bounded(
   z.union([
     legacyLogoRefinementJobInputSchema,
     legacyLogoRefinementJobInputSchema.extend({
@@ -450,10 +450,9 @@ export const logoRefinementJobInputSchema = bounded(
 );
 // Server-resolved inputs compose independently bounded immutable records and exact publication lineage.
 // Wrappers have no free text; 128 bytes covers their JSONB keys/separators.
-export const LOGO_RESOLVED_CONCEPT_INPUT_MAX_BYTES =
-  3 * LOGO_MUTATION_MAX_BYTES + LOGO_REFERENCE_SNAPSHOT_MAX_BYTES + 128;
+const LOGO_RESOLVED_CONCEPT_INPUT_MAX_BYTES = 3 * LOGO_MUTATION_MAX_BYTES + LOGO_REFERENCE_SNAPSHOT_MAX_BYTES + 128;
 // The additional fixed asset reference and its wrapper fit within 512 bytes.
-export const LOGO_RESOLVED_REFINEMENT_INPUT_MAX_BYTES = LOGO_RESOLVED_CONCEPT_INPUT_MAX_BYTES + 512;
+const LOGO_RESOLVED_REFINEMENT_INPUT_MAX_BYTES = LOGO_RESOLVED_CONCEPT_INPUT_MAX_BYTES + 512;
 export const logoResolvedConceptInputSchema = bounded(
   z
     .strictObject({

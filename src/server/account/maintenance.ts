@@ -17,7 +17,7 @@ export function assertMaintenanceCaller(request: Request, secret = process.env.C
   if (!timingSafeEqual(digest(given), digest(`Bearer ${secret}`))) throw new ApiError("unauthenticated");
 }
 
-export interface OrphanStore {
+interface OrphanStore {
   listOrphans(after: string | null): Promise<string[]>;
   removeFiles(paths: string[]): Promise<number>;
 }

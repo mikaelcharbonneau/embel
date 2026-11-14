@@ -28,7 +28,7 @@ import { createProjectInputSchema, type ContextSnapshot, type CreateProjectInput
 import type { NamingChatCheckpoint } from "@/domain/naming-chat-checkpoint";
 
 export type NamingAccount = { userId: string; generation: number };
-export type NamingPreferenceDraft = {
+type NamingPreferenceDraft = {
   saved: NamingPreferenceRevision | null;
   draft: NamingPreferencesV2;
   dirty: boolean;
@@ -50,7 +50,7 @@ export type NamingFeedState = {
   /** The last steered request this tab sent, so Try again can repeat its direction. */
   lastSteer: Pick<StartNamingRunRequest, "seedIds" | "instruction"> | null;
 };
-export type NamingSteeringDraft = { candidateIds: string[]; instruction: string };
+type NamingSteeringDraft = { candidateIds: string[]; instruction: string };
 const emptySteeringDraft = (): NamingSteeringDraft => ({ candidateIds: [], instruction: "" });
 const hasSteeringDraft = (draft: NamingSteeringDraft) =>
   draft.candidateIds.length > 0 || draft.instruction.trim().length > 0;
@@ -69,7 +69,7 @@ export type NamingBrainRecord = {
   chatProgress?: NamingChatProgress;
   chatProgressSource?: "saved_run" | "interaction";
 };
-export type NamingProjectEntry = {
+type NamingProjectEntry = {
   description: string;
   direction: string;
   language: string;
