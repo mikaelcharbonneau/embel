@@ -34,7 +34,6 @@ vi.mock("@/components/workspace/account-session", () => ({
   }),
 }));
 vi.mock("@/components/workspace/use-project-next-step", () => ({ useProjectNextStep: () => null }));
-vi.mock("@/components/workspace/account-project-continuity", () => ({ AccountProjectContinuity: () => null }));
 vi.mock("@/components/workspace/account-guided-interview", () => ({
   AccountGuidedInterview: (props: ComponentProps<typeof AccountGuidedInterview>) => {
     mock.editor = props;

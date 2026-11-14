@@ -2,6 +2,8 @@ import { z } from "zod";
 import { AccountRequestError } from "@/components/workspace/account-api";
 import { boundedAccountRequest } from "@/components/workspace/bounded-account-request";
 import { creditsMessage } from "@/components/workspace/credits-message";
+import { startRefusal, stepView, type RunPhase, type StepView } from "@/domain/generation-run";
+import { UPDATES_DELAYED } from "@/domain/generation-words";
 import { creditSummaryResponseSchema } from "@/domain/generations";
 import {
   NAMING_RUN_TARGET,
@@ -95,22 +97,51 @@ export function namingFailureMessage(code: string | null, savedCount: number) {
 
 type NamingStatus =
   | { kind: "idle" }
-  | { kind: "starting" | "stopping" | "stopped" | "unavailable"; message: string }
-  | { kind: "active"; message: string; savedCount: number }
-  | { kind: "failed" | "error"; message: string };
+  | { kind: "starting" | "stopping" | "stopped" | "unavailable"; message: string; note?: string }
+  | { kind: "active"; message: string; savedCount: number; note?: string }
+  /** `retry: false` when Try again would only be refused again (credits, today's limit). */
+  | { kind: "failed" | "error"; message: string; retry?: false };
+
+/** The run's phase in the words every step screen shares: Naming stores a stop request as a state. */
+const namingRunPhase = (state: NamingFeedState): RunPhase | null => {
+  const run = state.feed?.run;
+  return run ? (run.state === "cancel_requested" ? "stopping" : run.state) : null;
+};
+/** What the person can do on the Naming step: the one decision shared with Logo and Creative direction. */
+export function namingStepView(state: NamingFeedState | null | undefined): StepView {
+  return stepView({
+    phase: state ? namingRunPhase(state) : null,
+    loaded: Boolean(state?.feed),
+    problem:
+      !state?.error || !state.retry
+        ? null
+        : state.retry === "start"
+          ? { during: "start", httpStatus: state.failedStatus ?? null }
+          : { during: state.retry },
+    sending: state?.stopping ? "stop" : state?.pending && !state.error ? "start" : null,
+  });
+}
 
 /** What the names message says about generation. A finished run, even short of 100, says nothing. */
 export function namingStatus(state: NamingFeedState | null | undefined): NamingStatus {
   const run = state?.feed?.run;
   if (!state) return { kind: "idle" };
-  if (state.error) return { kind: "error", message: state.error };
-  if (state.stopping || run?.state === "cancel_requested")
-    return { kind: "stopping", message: `Stopping… ${names(run?.savedCount ?? 0)} saved.` };
-  if (run && namingRunActive(run))
+  const view = namingStepView(state);
+  // A failed check while the run works is a note under the progress, never an ending.
+  const note = view.message === "updates_delayed" ? { note: UPDATES_DELAYED } : {};
+  if (state.error && view.message !== "updates_delayed" && view.message !== "stopping")
+    return {
+      kind: "error",
+      message: state.error,
+      ...(view.message === "out_of_credits" || view.message === "daily_limit" ? { retry: false as const } : {}),
+    };
+  if (view.stopping) return { kind: "stopping", message: `Stopping… ${names(run?.savedCount ?? 0)} saved.`, ...note };
+  if (run && view.working)
     return {
       kind: "active",
       message: `Generating names… ${run.savedCount} of ${NAMING_RUN_TARGET}`,
       savedCount: run.savedCount,
+      ...note,
     };
   if (state.pending) return { kind: "starting", message: "Generating names…" };
   if (state.feed?.availability.status === "unavailable")
@@ -123,7 +154,6 @@ export function namingStatus(state: NamingFeedState | null | undefined): NamingS
 function requestFailure(cause: unknown, action: "start" | "stop" | "load") {
   if (cause instanceof AccountRequestError) {
     if (cause.status === 401) return "Sign in again to continue. Your saved names are kept.";
-    if (action === "start" && cause.status === 503) return "AI name generation is unavailable right now.";
     if (action === "start" && cause.status === 409)
       return "Your project or naming choices changed, or names are already being generated. Check the latest names, then try again.";
     if (action === "start" && cause.status === 422) return "Finish your naming choices before generating names.";
@@ -138,9 +168,8 @@ function requestFailure(cause: unknown, action: "start" | "stop" | "load") {
       ? "Stop couldn’t be confirmed. Try again."
       : "Names couldn’t be loaded. Try again.";
 }
-/** Answers that prove the request started nothing; anything else may have reached SQL. */
-const definitive = (cause: unknown) =>
-  cause instanceof AccountRequestError && [400, 401, 402, 403, 404, 409, 413, 422, 429, 503].includes(cause.status);
+/** Answers that prove the request started nothing; anything else, 503 included, may have reached SQL. */
+const definitive = (cause: unknown) => cause instanceof AccountRequestError && startRefusal(cause.status) === "final";
 const cursorOf = (row?: NamingFeedEntry): NamingFeedCursor | null =>
   row ? { createdAt: row.entry.candidate.createdAt, id: row.entry.candidate.id } : null;
 
@@ -220,7 +249,12 @@ export function createNamingFeedController(options: {
   }
   function fail(cause: unknown, retry: "start" | "stop" | "load") {
     if (cause instanceof AccountRequestError && cause.status === 401) options.expire?.(account);
-    update((value) => ({ ...value, error: requestFailure(cause, retry), retry }));
+    update((value) => ({
+      ...value,
+      error: requestFailure(cause, retry),
+      retry,
+      failedStatus: cause instanceof AccountRequestError ? cause.status : null,
+    }));
   }
 
   /** Polls continue after the newest known name; a full read (mount, refresh) replaces the list. */
@@ -442,7 +476,9 @@ export function createNamingFeedController(options: {
         update((value) => ({
           ...value,
           stopping: stop ? false : value.stopping,
-          ...(start && value.pending ? { error: requestFailure(null, "start"), retry: "start" as const } : {}),
+          ...(start && value.pending
+            ? { error: requestFailure(null, "start"), retry: "start" as const, failedStatus: null }
+            : {}),
         }));
       closed = true;
       stopPolling();

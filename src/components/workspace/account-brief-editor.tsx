@@ -3,7 +3,14 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import type { AccountWorkspace } from "./account-draft-memory";
 import type { DraftPatch } from "./project-editor";
-import { personalityReviewKey, positioningReviewKey } from "./project-draft-adapter";
+import {
+  competitorReviewKey,
+  isCompetitorReviewComplete,
+  isPersonalityReviewComplete,
+  isPositioningReviewComplete,
+  personalityReviewKey,
+  positioningReviewKey,
+} from "./project-draft-adapter";
 import { IconButton } from "@/components/ui/button";
 import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
 import styles from "@/components/ui/context-details.module.css";
@@ -38,16 +45,40 @@ export function AccountBriefEditor({
       trigger.current?.focus();
     }
   }, [open]);
+  /** Owner decision, November 14, 2026: editing the brief keeps the confirmed Strategy answers and closes no
+   * later step. Each confirmation is tied to the exact brief it was made for, so an edit carries every one that
+   * held before it over to the new text. The conversation then says the brief changed and offers a redo
+   * (`briefChangedSinceStrategy`). An emptied description still cannot proceed; that is decided where it is read. */
   function update(patch: DraftPatch) {
     if (readOnly) return;
-    const next = { ...workspace.draft, ...patch };
+    const before = workspace.draft,
+      saved = workspace.saved.context,
+      next = { ...before, ...patch };
+    const brief = before.confirmedBrief;
+    const briefConfirmed =
+      brief &&
+      (["description", "activity", "offering", "knownAudience"] as const).every(
+        (key) => brief[key].trim() === before[key].trim(),
+      );
     onUpdate({
       ...patch,
-      ...(personalityReviewKey(workspace.draft) !== personalityReviewKey(next)
-        ? { personalityReviewKey: null, personalityReviewedAt: null }
+      ...(briefConfirmed
+        ? {
+            confirmedBrief: {
+              ...brief,
+              description: next.description,
+              activity: next.activity,
+              offering: next.offering,
+              knownAudience: next.knownAudience,
+            },
+          }
         : {}),
-      ...(positioningReviewKey(workspace.draft) !== positioningReviewKey(next)
-        ? { positioningReviewKey: null, positioningReviewedAt: null }
+      ...(isCompetitorReviewComplete(before, saved) ? { competitorReviewKey: competitorReviewKey(next, saved) } : {}),
+      ...(isPersonalityReviewComplete(before, saved)
+        ? { personalityReviewKey: personalityReviewKey(next, saved) }
+        : {}),
+      ...(isPositioningReviewComplete(before, saved)
+        ? { positioningReviewKey: positioningReviewKey(next, saved) }
         : {}),
     });
   }
@@ -105,15 +136,7 @@ export function AccountBriefEditor({
               value={workspace.draft.description}
               maxLength={12000}
               readOnly={readOnly}
-              onChange={(event) =>
-                update({
-                  description: event.target.value,
-                  confirmedBrief: undefined,
-                  competitorReviewKey: null,
-                  audienceReviewedAt: null,
-                  audienceConversationKey: null,
-                })
-              }
+              onChange={(event) => update({ description: event.target.value })}
             />
           </label>
           {(
@@ -131,15 +154,7 @@ export function AccountBriefEditor({
                 value={workspace.draft[field]}
                 maxLength={2000}
                 readOnly={readOnly}
-                onChange={(event) =>
-                  update({
-                    [field]: event.target.value,
-                    confirmedBrief: undefined,
-                    competitorReviewKey: null,
-                    audienceReviewedAt: null,
-                    audienceConversationKey: null,
-                  })
-                }
+                onChange={(event) => update({ [field]: event.target.value })}
               />
             </label>
           ))}

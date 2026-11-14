@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { isRunStopping } from "@/domain/generation-run";
 import type { GenerationRun } from "@/domain/generations";
+import { isJobWorkingOrPartial } from "@/domain/jobs";
 import {
   strategyJobResultSchema,
   strategyJobSchema,
@@ -122,8 +123,9 @@ export function strategyJobMatchesRequest(
   if ("spendControl" in job && job.spendControl === "uncapped") return false;
   return job.reserved_cost_microusd <= allowance.maximumCostMicrousd;
 }
+/** Still polled by the strategy screens. A partial job counts and an unconfirmed one does not (see jobs.ts). */
 export function strategyJobActive(job: StrategyJob) {
-  return ["queued", "running", "partial", "cancel_requested"].includes(job.state);
+  return isJobWorkingOrPartial(job.state);
 }
 function strategyApplicationMatchesResult(job: StrategyJob, stepKey: string, application: StrategyJobApplication) {
   return (

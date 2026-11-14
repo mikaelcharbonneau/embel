@@ -37,7 +37,6 @@ vi.mock("@/components/workspace/use-strategy-jobs", () => ({
     enqueue: mock.enqueue,
   }),
 }));
-vi.mock("@/components/workspace/account-project-continuity", () => ({ AccountProjectContinuity: () => null }));
 
 const projectId = "bbbbbbbb-1111-4111-8111-111111111111",
   when = "2026-10-17T00:00:00Z";

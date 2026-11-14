@@ -36,6 +36,9 @@ export type VisualDirectionGeneration = {
   completed: number;
   usageLabel?: string | null;
   error?: string | null;
+  /** What the error message offers: `null` for nothing (pressing would be refused again), an action of its
+   * own (Try again for a Stop that couldn't be confirmed), or, when left out, Check availability. */
+  errorAction?: { label: string; onClick(): void } | null;
   disabledReason?: string | null;
   busy?: boolean;
   onGenerate?: () => void;
@@ -220,7 +223,11 @@ export function VisualDirectionsView({
           <InlineMessage
             tone="danger"
             actions={
-              (!progress || finished) && generation.onCheck ? (
+              generation.errorAction ? (
+                <Button icon="rotate-ccw" disabled={generation.busy} onClick={generation.errorAction.onClick}>
+                  {generation.errorAction.label}
+                </Button>
+              ) : generation.errorAction !== null && (!progress || finished) && generation.onCheck ? (
                 <Button icon="refresh-cw" disabled={generation.busy} onClick={generation.onCheck}>
                   Check availability
                 </Button>

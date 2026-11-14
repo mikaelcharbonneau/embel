@@ -14,7 +14,7 @@ import { getIdentityFreshness, type IdentitySystemVersion } from "@/domain/proje
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { useProjectIdentity } from "@/components/identity/use-project-identity";
 import { IdentitySystemBoard } from "@/components/identity/identity-system-board";
-import { identityBatchUnresolved } from "@/components/identity/identity-generation-controller";
+import { identityBatchUnresolved, identityStepView } from "@/components/identity/identity-generation-controller";
 import { useLogoDraftMemory } from "@/components/identity/logo-draft-memory-context";
 import { useLogoWorkspace } from "@/components/identity/use-logo-workspace";
 import { useLogoCandidate } from "@/components/logo-creation/use-logo-candidate";
@@ -390,6 +390,25 @@ function OwnedVisualDirections({
     (selectedSystem ? describeVisualDirections([selectedSystem])[0]?.title : undefined);
   const assetsHref = `/brands/account/${projectId}/logo/deliverables`;
   const noCredits = credits.balance !== null && credits.balance <= 0;
+  // What the person can do now: the one decision shared with Naming and Logo (docs/state-machines.md).
+  // Stopping is read from the round itself, so a tab that never pressed Stop shows the same.
+  const step = identityStepView(generation);
+  // A kept, unconfirmed request has no round to stop yet: Stop closes the request itself.
+  const stopRound = generation.retained
+    ? unresolved && generation.stopAcknowledgedBatchId !== generation.batch?.batchId
+      ? () => void generation.controller?.closeOriginal()
+      : undefined
+    : step.canStop
+      ? () => void generation.controller?.stop()
+      : undefined;
+  // What the generation message offers: nothing when pressing would be refused again (today's limit),
+  // Try again for a Stop that couldn't be confirmed, otherwise the screen's usual Check availability.
+  const generationErrorAction =
+    step.message === "daily_limit"
+      ? null
+      : step.retry === "stop"
+        ? { label: "Try again", onClick: () => void generation.controller?.stop() }
+        : undefined;
   // The reply box (decision 2): the chosen direction as a chip; Send continues to Assets.
   const brandShown = presentation === "brand" && showAssets && Boolean(selectedSystem && chosenTitle && client);
   const stepReply: StepReply | null = visible
@@ -409,16 +428,11 @@ function OwnedVisualDirections({
         outOfCredits: false,
         working: unresolved,
         stopLabel: "Stop drawing",
+        stopping: unresolved && step.stopping,
         send: () => {
           if (showAssets) router.push(assetsHref);
         },
-        stop:
-          unresolved && generation.stopAcknowledgedBatchId !== generation.batch?.batchId
-            ? () => {
-                if (generation.retained) void generation.controller?.closeOriginal();
-                else void generation.controller?.stop();
-              }
-            : undefined,
+        stop: stopRound,
       }
     : null;
   useStepReply(stepReply, onReplyChange);
@@ -461,7 +475,9 @@ function OwnedVisualDirections({
       ? { url: chosenBoard?.id === selectedSystem.id ? chosenBoard.url : null, alt: `${chosenTitle} board` }
       : null,
   );
-  const stopping = visibleStatus === "stopping";
+  const stopping = visibleStatus === "stopping" || step.stopping;
+  // The chat's message is about generation only when no other error took its place.
+  const generationError = shownError !== null && shownError === generation.error;
   const chatStatus =
     inChat && chatSlot && visible
       ? createPortal(
@@ -487,6 +503,15 @@ function OwnedVisualDirections({
                   drawFailed && !blockedReason && !noCredits ? (
                     <Button variant="primary" icon="rotate-ccw" disabled={Boolean(generation.busy)} onClick={start}>
                       Try again
+                    </Button>
+                  ) : generationError && generationErrorAction === null ? undefined : generationError &&
+                    generationErrorAction ? (
+                    <Button
+                      icon="rotate-ccw"
+                      disabled={Boolean(generation.busy)}
+                      onClick={generationErrorAction.onClick}
+                    >
+                      {generationErrorAction.label}
                     </Button>
                   ) : (
                     <Button icon="refresh-cw" disabled={Boolean(generation.busy)} onClick={() => void refresh()}>
@@ -565,18 +590,13 @@ function OwnedVisualDirections({
           usageLabel: null,
           // A refusal for lack of credits is told once, in place, by the Out-of-credits message.
           error: inChat ? null : shownError,
+          errorAction: generationError ? generationErrorAction : undefined,
           busy: Boolean(generation.busy || shownHistory?.busy),
           disabledReason: blockedReason,
           // At 0 credits More directions is unavailable before the click; the no-credits note says why (D-015).
           onGenerate: noCredits ? undefined : start,
           onCheck: () => void refresh(),
-          onStop:
-            unresolved && generation.stopAcknowledgedBatchId !== generation.batch?.batchId
-              ? () => {
-                  if (generation.retained) void generation.controller?.closeOriginal();
-                  else void generation.controller?.stop();
-                }
-              : undefined,
+          onStop: stopRound,
         }}
         selectionCheck={
           identity.selectionCheckAvailable

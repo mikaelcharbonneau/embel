@@ -3,16 +3,17 @@
 import { useEffect, useState } from "react";
 import { createAccountIdentityClient } from "@/components/identity/account-identity-client";
 import { createAccountLogoClient } from "@/components/identity/account-logo-client";
+import type { JourneyEvidence } from "@/domain/journey";
 import type { AccountProject } from "@/domain/project-api";
 import { AccountRequestError } from "./account-api";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
-import { readProjectContinuation } from "./project-continuation";
+import { readProjectJourneyEvidence } from "./project-continuation";
 
-/** The project's next action, read with the same logic as its project card, so
- * the journey bar and the cards always agree. Null while unknown. */
-export function useProjectNextStep(account: VerifiedAccount, project: AccountProject | null): string | null {
+/** What the open project's saved logo and direction work shows, read with the same code as its project card,
+ * so the journey bar and the cards give `journeyProgress` the same facts. Null while unknown. */
+export function useProjectNextStep(account: VerifiedAccount, project: AccountProject | null): JourneyEvidence | null {
   const { isCurrent, expire } = useAccountSession();
-  const [state, setState] = useState<{ key: string; href: string } | null>(null);
+  const [state, setState] = useState<{ key: string; evidence: JourneyEvidence } | null>(null);
   const { userId, generation } = account;
   const key = project ? `${userId}:${generation}:${project.id}:${project.current_revision}` : null;
 
@@ -25,9 +26,9 @@ export function useProjectNextStep(account: VerifiedAccount, project: AccountPro
       identity: createAccountIdentityClient(captured, project.id, isCurrent, expire),
     };
     const deadline = setTimeout(() => controller.abort(), 15_000);
-    readProjectContinuation(project, clients, controller.signal)
-      .then((action) => {
-        if (!controller.signal.aborted && isCurrent(captured)) setState({ key, href: action.href });
+    readProjectJourneyEvidence(project, clients, controller.signal)
+      .then((evidence) => {
+        if (!controller.signal.aborted && isCurrent(captured)) setState({ key, evidence });
       })
       .catch((error) => {
         if (error instanceof AccountRequestError && error.status === 401 && isCurrent(captured)) expire(captured);
@@ -41,5 +42,5 @@ export function useProjectNextStep(account: VerifiedAccount, project: AccountPro
     };
   }, [expire, generation, isCurrent, key, project, userId]);
 
-  return state?.key === key ? state.href : null;
+  return state?.key === key ? state.evidence : null;
 }

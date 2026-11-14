@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isJobWorking } from "./jobs";
 import { nameValueSchema } from "./naming";
 import { namingApproachSchema, namingPreferencesV2Schema } from "./naming-brain-preferences";
 import { namingStrategyBasisSchema, projectNameEntrySchema } from "./project-naming";
@@ -122,8 +123,7 @@ export const namingRunSchema = z.strictObject({
   finishedAt: timestamp.nullable(),
 });
 export type NamingRun = z.infer<typeof namingRunSchema>;
-export const namingRunActive = (run: Pick<NamingRun, "state"> | null | undefined) =>
-  !!run && ["queued", "running", "cancel_requested"].includes(run.state);
+export const namingRunActive = (run: Pick<NamingRun, "state"> | null | undefined) => !!run && isJobWorking(run.state);
 
 /** One cleaned name sent by the worker to `round_saved`. */
 export const namingSavedCandidateSchema = z.strictObject({

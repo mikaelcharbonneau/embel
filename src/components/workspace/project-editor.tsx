@@ -7,6 +7,7 @@ import {
   Fragment,
   useEffect,
   useEffectEvent,
+  useReducer,
   useRef,
   useState,
   useTransition,
@@ -37,6 +38,8 @@ import {
   rememberPromptForSignIn,
 } from "./prompt-recovery";
 import { createAccountLifecycleClient } from "./account-lifecycle-client";
+import { homeStartFormReducer, initialHomeStartForm } from "./home-start-form-state";
+import { homeStartView, type HomeStartSituation } from "./home-start-permissions";
 import { HomeInputControls } from "@/features/home-inputs/home-input-controls";
 import { createOnDeviceVoiceAdapter } from "@/features/home-inputs/on-device-voice-adapter";
 import { unavailableHomeVoiceAdapter, type OnDeviceSpeechEnvironment } from "@/features/home-inputs/voice-contract";
@@ -98,16 +101,13 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
   // Every project is a complete brand.
   const scope: ProjectScope = "complete_brand";
   const [prompt, setPrompt] = useState<string>(example?.description ?? "");
-  const [exampleUsed, setExampleUsed] = useState(Boolean(example));
   const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  // The form's mode lives in one place (docs/state-machines.md, J7); the typed text and its message do not.
+  const [
+    { exampleUsed, submitting, opening, textDraftId, resumedPrompt, recoveryLoaded, recoveryLocked, promptOwner },
+    dispatch,
+  ] = useReducer(homeStartFormReducer, Boolean(example), initialHomeStartForm);
   const [navigating, startNavigation] = useTransition();
-  const [opening, setOpening] = useState<{ fence: string; href: string } | null>(null);
-  const [textDraftId, setTextDraftId] = useState<string | null>(null);
-  const [resumedPrompt, setResumedPrompt] = useState(false);
-  const [recoveryLoaded, setRecoveryLoaded] = useState(false);
-  const [recoveryLocked, setRecoveryLocked] = useState(false);
-  const [promptOwner, setPromptOwner] = useState<string | null>(null);
   const textDraft = useRef<string | null>(null);
   const pendingAccountDraft = useRef<LocalDraft | null>(null);
   const recoveryChecked = useRef(false);
@@ -118,19 +118,21 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
     if (!loaded || session.status === "checking" || recoveryChecked.current) return;
     recoveryChecked.current = true;
     const recovery = readPromptRecoveryState(account?.userId);
-    setRecoveryLoaded(true);
+    dispatch({ type: "recovery_checked" });
     if (!recovery || exampleId) return;
     const retained = recovery.draft;
     textDraft.current = retained.id;
     if (!getLocalDraft(retained.id)) pendingAccountDraft.current = retained;
     // Restore the browser draft after hydration, without touching owner-bound file or request state.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTextDraftId(retained.id);
-    setRecoveryLocked(recovery.locked);
-    setPromptOwner(retained.ownerId ?? null);
     setPrompt(retained.description);
-    setExampleUsed(retained.example);
-    setResumedPrompt(true);
+    dispatch({
+      type: "prompt_restored",
+      draftId: retained.id,
+      locked: recovery.locked,
+      ownerId: retained.ownerId ?? null,
+      example: retained.example,
+    });
   }, [loaded, exampleId, account?.userId, session.status]);
   function readTextDraft(id: string) {
     return getLocalDraft(id) ?? (pendingAccountDraft.current?.id === id ? pendingAccountDraft.current : null);
@@ -159,7 +161,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
           rememberPromptForSignIn(previous.id, false, pendingAccountDraft.current);
         }
       }
-      if (account) setPromptOwner(account.userId);
+      if (account) dispatch({ type: "prompt_claimed", ownerId: account.userId });
       return previous.id;
     }
     if (account && !homeInputSession.get(account)?.files.length) {
@@ -171,8 +173,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
       });
       pendingAccountDraft.current = draft;
       textDraft.current = draft.id;
-      setTextDraftId(draft.id);
-      setPromptOwner(account.userId);
+      dispatch({ type: "draft_kept", draftId: draft.id, ownerId: account.userId });
       rememberPromptForSignIn(draft.id, locked, draft);
       return draft.id;
     }
@@ -188,8 +189,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
     });
     if (id) {
       textDraft.current = id;
-      setTextDraftId(id);
-      setPromptOwner(account?.userId ?? null);
+      dispatch({ type: "draft_kept", draftId: id, ownerId: account?.userId ?? null });
     }
     return id;
   }
@@ -283,41 +283,50 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
   const hiddenPrompt = Boolean(promptOwner && promptOwner !== account?.userId);
   const displayedPrompt = frozenProject?.context.description ?? (hiddenPrompt ? "" : prompt);
   const displayedExample = frozenProject?.context.intake.example ?? (!hiddenPrompt && exampleUsed);
-  const frozenInputs =
-    !recoveryLoaded ||
-    hiddenPrompt ||
-    submitting ||
-    strategy.pending ||
-    strategy.locked ||
-    navigating ||
-    Boolean(openingHref) ||
-    frozenBrief ||
-    hiddenFiles;
   const recoveryFull = drafts.filter((draft) => !draft.accountProjectId).length >= 50;
-  const textRecoveryBlocked = strategy.recoveryBlocked && !hasFiles && !frozenBrief;
-  const disabled =
-    !loaded ||
-    !recoveryLoaded ||
-    textRecoveryBlocked ||
-    (!account && !inputIntent?.browserDraftId && !textDraftId && recoveryFull) ||
-    submitting ||
-    strategy.pending ||
-    navigating ||
-    Boolean(openingHref) ||
-    hiddenFiles ||
-    selectingFiles;
+  // "What may the person do now?" is answered in `homeStartView`, once for the screen and once per click.
+  const shown: Omit<HomeStartSituation, "now"> = {
+    draftsLoaded: loaded,
+    recoveryLoaded,
+    hiddenPrompt,
+    submitting,
+    strategyPending: strategy.pending,
+    strategyLocked: strategy.locked,
+    strategyRecoveryBlocked: strategy.recoveryBlocked,
+    navigating,
+    opening: Boolean(openingHref),
+    signedIn: Boolean(account),
+    hasFiles,
+    frozenBrief,
+    hiddenFiles,
+    selectingFiles,
+    keptDraft: Boolean(inputIntent?.browserDraftId) || Boolean(textDraftId),
+    recoveryFull,
+  };
+  const {
+    readOnly: frozenInputs,
+    sendDisabled: disabled,
+    inputControlsDisabled,
+  } = homeStartView({ ...shown, now: null });
+  /** The same question at the moment of a click: the guard ref and the file memory are read now. */
+  function viewNow() {
+    return homeStartView({
+      ...shown,
+      now: {
+        submitting: submittingRef.current,
+        filesNeedAccount: homeInputSession.hasUnsaved() && (!account || !isCurrent(account)),
+        attachedSaveStarted: Boolean(account && homeInputSession.get(account)?.saveIntent),
+      },
+    });
+  }
 
   function canEditInputs() {
-    if (hiddenPrompt) return false;
-    if (!recoveryLoaded || submittingRef.current || strategy.pending || strategy.locked || navigating || openingHref)
-      return false;
-    if (homeInputSession.hasUnsaved() && (!account || !isCurrent(account))) return false;
-    return !account || !homeInputSession.get(account)?.saveIntent;
+    return viewNow().mayEdit;
   }
   function editPrompt(value: string) {
     if (canEditInputs()) {
       setPrompt(value);
-      setPromptOwner(account?.userId ?? null);
+      dispatch({ type: "prompt_edited", ownerId: account?.userId ?? null });
       setError("");
     }
   }
@@ -345,36 +354,23 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
     strategy.detachPrompt();
     textDraft.current = null;
     pendingAccountDraft.current = null;
-    setTextDraftId(null);
+    dispatch({ type: "other_account_prompt_set_aside" });
     setPrompt("");
-    setPromptOwner(null);
-    setExampleUsed(false);
-    setResumedPrompt(false);
-    setRecoveryLocked(false);
     setError("");
   }
 
   function openSavedProject(href: string) {
-    setOpening({ fence: sessionFence, href });
+    dispatch({ type: "project_opening", fence: sessionFence, href });
     try {
       startNavigation(() => router.push(href));
     } catch (cause) {
-      setOpening(null);
+      dispatch({ type: "project_open_failed" });
       throw cause;
     }
   }
 
   async function sendPrompt(mode: "ai" | "draft" = "ai") {
-    if (
-      !recoveryLoaded ||
-      hiddenPrompt ||
-      submittingRef.current ||
-      navigating ||
-      openingHref ||
-      strategy.pending ||
-      textRecoveryBlocked
-    )
-      return;
+    if (!viewNow().maySend) return;
     if (!account || !isCurrent(account)) {
       if (beforeSignIn(strategy.locked)) router.push("/sign-in");
       return;
@@ -404,7 +400,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
       return;
     }
     submittingRef.current = true;
-    setSubmitting(true);
+    dispatch({ type: "send_started" });
     setError("");
     const controller = new AbortController();
     attachedRequest.current = controller;
@@ -518,7 +514,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
     } finally {
       if (attachedRequest.current === controller) attachedRequest.current = null;
       submittingRef.current = false;
-      setSubmitting(false);
+      dispatch({ type: "send_finished" });
     }
   }
 
@@ -555,11 +551,8 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
               clearPromptRecovery(account?.userId);
               textDraft.current = null;
               pendingAccountDraft.current = null;
-              setTextDraftId(null);
+              dispatch({ type: "new_prompt_started" });
               setPrompt("");
-              setPromptOwner(null);
-              setExampleUsed(false);
-              setResumedPrompt(false);
               setError("");
             }}
           >
@@ -641,7 +634,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
                       (account ? "Checking verified file storage…" : "Sign in to save verified input files."),
                   }
             }
-            disabled={!recoveryLoaded || submitting || navigating || strategy.pending || strategy.locked}
+            disabled={inputControlsDisabled}
           />
         }
       />
@@ -690,7 +683,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
                 onClick={() => {
                   if (!canEditInputs()) return;
                   setPrompt(item.description);
-                  setExampleUsed(true);
+                  dispatch({ type: "example_chosen" });
                   setError("");
                 }}
               >
@@ -723,7 +716,6 @@ type EditorStorage = {
   promptPlaceholder?: string;
   promptHint?: React.ReactNode;
   resultNavigation?: React.ReactNode;
-  projectContext?: React.ReactNode;
   onStrategyApproved?: (draft: LocalDraft) => Promise<boolean>;
 };
 
@@ -1209,7 +1201,6 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
               ))}
             </ol>
             {!lastPrompt && storage.strategy && <div className="conversation-service-entry">{storage.strategy}</div>}
-            {storage.projectContext && <div className="conversation-context">{storage.projectContext}</div>}
             <ContextDetails className="project-details-disclosure" title={<>Project details and saving</>}>
               <header className="conversation-project-header">
                 <div className="conversation-project-title">

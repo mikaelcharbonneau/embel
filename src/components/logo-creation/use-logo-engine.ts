@@ -1,8 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { canStopRun, startRefusal, type StepProblem } from "@/domain/generation-run";
 import { creditSummaryResponseSchema, generationRunResponseSchema, type GenerationRun } from "@/domain/generations";
-import { isActiveLogoRun, latestLogoRun, logoEngineStatusSchema, type LogoEngineKind } from "@/domain/logo-engine";
+import {
+  isActiveLogoRun,
+  latestLogoRun,
+  logoEngineStatusSchema,
+  type LogoEngineKind,
+  type LogoEngineStatus,
+} from "@/domain/logo-engine";
 import { AccountRequestError } from "../workspace/account-api";
 import { boundedAccountRequest } from "../workspace/bounded-account-request";
 import { creditsMessage } from "../workspace/credits-message";
@@ -19,7 +26,13 @@ export type LogoEngine = {
   /** Runs started from this page, or running when it opened: only these move the screen. */
   followed: ReadonlySet<string>;
   starting: boolean;
+  /** Why the last start was refused or couldn't be confirmed, in words. */
   error: string | null;
+  /** What last went wrong, for `stepView` (docs/state-machines.md): a Stop that got no answer while its run
+   * still works, else the start behind `error`, else a failed read. */
+  problem: StepProblem | null;
+  /** A Stop request is on its way. */
+  stopSending: boolean;
   active(kind: LogoEngineKind): GenerationRun | null;
   latest(kind: LogoEngineKind): GenerationRun | null;
   /** `quiet` keeps a refusal off the screen, for work the person didn't click (style notes). */
@@ -29,6 +42,8 @@ export type LogoEngine = {
     options?: { quiet?: boolean },
   ): Promise<GenerationRun | null>;
   cancel(runId: string): Promise<void>;
+  /** Try again: the Stop that got no answer, the unconfirmed start with its same key, or the failed read. */
+  retry(): void;
   clearError(): void;
   refresh(): void;
 };
@@ -40,8 +55,8 @@ export function logoEngineErrorMessage(error: unknown, periodEnd: string | null 
     if (error.status === 409)
       return "Your logo details changed or a set is still being drawn. Your work is kept; try again in a moment.";
     if (error.status === 429) return "You’ve reached today’s limit for this. Your logos are saved. Try again tomorrow.";
-    if (error.status === 503) return "Logo drawing is unavailable right now. Nothing has started and nothing was used.";
   }
+  // Everything else, 503 included, may have admitted a run (startRefusal): never "nothing has started".
   return "This request could not be confirmed. Your logos are kept; check again before trying once more.";
 }
 
@@ -58,11 +73,30 @@ export function useLogoEngine(account: VerifiedAccount, projectId: string): Logo
     engine: null,
     runs: [],
   });
-  const [action, setAction] = useState<{ identity: string; starting: boolean; error: string | null }>({
+  const [action, setAction] = useState<{
+    identity: string;
+    starting: boolean;
+    error: string | null;
+    /** The HTTP status behind `error`: null for no answer, undefined when there is no error. */
+    refused?: number | null;
+  }>({ identity, starting: false, error: null });
+  /** The last read failed; the next good read clears it. */
+  const [readFailed, setReadFailed] = useState<{ identity: string } | null>(null);
+  /** Stop requests: the one on its way, and the run whose Stop got no answer. */
+  const [stops, setStops] = useState<{ identity: string; sending: string | null; failed: string | null }>({
     identity,
-    starting: false,
-    error: null,
+    sending: null,
+    failed: null,
   });
+  /** A start that couldn't be confirmed keeps its key: asking for the same thing again repeats the key,
+   * so the server returns the run it may have started instead of starting (and charging) a second one. */
+  const unconfirmed = useRef<{
+    identity: string;
+    kind: LogoEngineKind;
+    input: Record<string, unknown>;
+    body: string;
+    key: string;
+  } | null>(null);
   const [followed, setFollowed] = useState<{ identity: string; ids: ReadonlySet<string> }>({
     identity,
     ids: new Set(),
@@ -78,28 +112,44 @@ export function useLogoEngine(account: VerifiedAccount, projectId: string): Logo
   }, [identity]);
 
   const view = state.identity === identity ? state : { identity, engine: null, runs: [] as GenerationRun[] };
+  const readStatus = useCallback(
+    (signal: AbortSignal) =>
+      boundedAccountRequest(`/api/projects/${projectId}/logo/engine`, logoEngineStatusSchema, {
+        signal,
+        expectedOwnerId: account.userId,
+      }),
+    [account.userId, projectId],
+  );
+  /** Takes a read as the truth: the runs, and which of them this page follows. */
+  const adopt = useCallback(
+    (status: LogoEngineStatus, alsoFollow: readonly string[] = []) => {
+      setState({ identity, engine: status.engine, runs: status.runs });
+      setReadFailed(null);
+      // Runs already working when the page opened are followed too.
+      const working = [...status.runs.filter(isActiveLogoRun).map((run) => run.id), ...alsoFollow];
+      if (working.length)
+        setFollowed((previous) =>
+          previous.identity === identity && working.every((id) => previous.ids.has(id))
+            ? previous
+            : { identity, ids: new Set([...(previous.identity === identity ? previous.ids : []), ...working]) },
+        );
+    },
+    [identity],
+  );
   useEffect(() => {
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     async function read() {
       try {
-        const status = await boundedAccountRequest(`/api/projects/${projectId}/logo/engine`, logoEngineStatusSchema, {
-          signal: controller.signal,
-          expectedOwnerId: account.userId,
-        });
+        const status = await readStatus(controller.signal);
         if (controller.signal.aborted || !current()) return;
-        setState({ identity, engine: status.engine, runs: status.runs });
-        // Runs already working when the page opened are followed too.
-        const working = status.runs.filter(isActiveLogoRun).map((run) => run.id);
-        if (working.length)
-          setFollowed((previous) =>
-            previous.identity === identity && working.every((id) => previous.ids.has(id))
-              ? previous
-              : { identity, ids: new Set([...(previous.identity === identity ? previous.ids : []), ...working]) },
-          );
+        adopt(status);
         if (status.runs.some(isActiveLogoRun)) timer = setTimeout(() => void read(), ACTIVE_POLL_MS);
       } catch {
-        if (!controller.signal.aborted && current()) timer = setTimeout(() => void read(), ACTIVE_POLL_MS * 3);
+        if (controller.signal.aborted || !current()) return;
+        // Said on the screen (updates are delayed, or the first load failed), and checked again.
+        setReadFailed({ identity });
+        timer = setTimeout(() => void read(), ACTIVE_POLL_MS * 3);
       }
     }
     void read();
@@ -107,18 +157,37 @@ export function useLogoEngine(account: VerifiedAccount, projectId: string): Logo
       controller.abort();
       clearTimeout(timer);
     };
-  }, [account.userId, current, identity, projectId, version]);
+  }, [adopt, current, identity, readStatus, version]);
 
   const refresh = useCallback(() => setVersion((value) => value + 1), []);
   const start = useCallback(
     async (kind: LogoEngineKind, input: Record<string, unknown>, options: { quiet?: boolean } = {}) => {
       if (!current()) return null;
       const controller = new AbortController();
-      setAction((previous) => ({
-        identity,
-        starting: true,
-        error: options.quiet && previous.identity === identity ? previous.error : null,
-      }));
+      setAction((previous) =>
+        options.quiet && previous.identity === identity
+          ? { ...previous, starting: true }
+          : { identity, starting: true, error: null },
+      );
+      // The same request as one that couldn't be confirmed repeats its key; anything else is a new request.
+      // Work the person didn't click (quiet) keeps nothing: it is simply asked again later.
+      const body = JSON.stringify([kind, input]),
+        kept = options.quiet ? null : unconfirmed.current;
+      const key =
+        kept && kept.identity === identity && kept.body === body ? kept.key : `logo:${kind}:${crypto.randomUUID()}`;
+      const started = (run: GenerationRun) => {
+        if (unconfirmed.current?.key === key) unconfirmed.current = null;
+        setFollowed((previous) => ({
+          identity,
+          ids: new Set([...(previous.identity === identity ? previous.ids : []), run.id]),
+        }));
+        setAction((previous) =>
+          options.quiet && previous.identity === identity
+            ? { ...previous, starting: false }
+            : { identity, starting: false, error: null },
+        );
+        return run;
+      };
       try {
         const { run } = await boundedAccountRequest(
           `/api/projects/${projectId}/generations`,
@@ -127,26 +196,42 @@ export function useLogoEngine(account: VerifiedAccount, projectId: string): Logo
             method: "POST",
             signal: controller.signal,
             expectedOwnerId: account.userId,
-            body: { kind, idempotencyKey: `logo:${kind}:${crypto.randomUUID()}`, input },
+            body: { kind, idempotencyKey: key, input },
           },
         );
         if (!current()) return null;
-        setFollowed((previous) => ({
-          identity,
-          ids: new Set([...(previous.identity === identity ? previous.ids : []), run.id]),
-        }));
         setState((previous) =>
           previous.identity === identity
             ? { ...previous, runs: [run, ...previous.runs.filter((item) => item.id !== run.id)] }
             : previous,
         );
-        setAction({ identity, starting: false, error: null });
+        started(run);
         refresh();
         return run;
       } catch (error) {
         if (!current()) return null;
+        const refused = error instanceof AccountRequestError ? error.status : null;
+        if (refused !== null && startRefusal(refused) === "final") {
+          if (unconfirmed.current?.key === key) unconfirmed.current = null;
+        } else if (!options.quiet) {
+          // A run may exist. Keep the request's key, and look the run up before anything is offered again.
+          unconfirmed.current = { identity, kind, input, body, key };
+          try {
+            const status = await readStatus(controller.signal);
+            if (!current()) return null;
+            const run = status.runs.find((item) => item.kind === kind && isActiveLogoRun(item));
+            adopt(status, run ? [run.id] : []);
+            if (run) {
+              refresh();
+              return started(run);
+            }
+          } catch {
+            /* Still unconfirmed: Try again repeats the same key. */
+          }
+          if (!current()) return null;
+        }
         let periodEnd: string | null = null;
-        if (error instanceof AccountRequestError && error.status === 402) {
+        if (refused === 402) {
           try {
             periodEnd = (
               await boundedAccountRequest("/api/credits", creditSummaryResponseSchema, { signal: controller.signal })
@@ -156,31 +241,30 @@ export function useLogoEngine(account: VerifiedAccount, projectId: string): Logo
           }
         }
         if (current())
-          setAction((previous) => ({
-            identity,
-            starting: false,
-            error: options.quiet
+          setAction((previous) =>
+            options.quiet
               ? previous.identity === identity
-                ? previous.error
-                : null
-              : logoEngineErrorMessage(error, periodEnd),
-          }));
+                ? { ...previous, starting: false }
+                : { identity, starting: false, error: null }
+              : { identity, starting: false, error: logoEngineErrorMessage(error, periodEnd), refused },
+          );
         refresh();
         return null;
       }
     },
-    [account.userId, current, identity, projectId, refresh],
+    [account.userId, adopt, current, identity, projectId, readStatus, refresh],
   );
   const cancel = useCallback(
     async (runId: string) => {
       if (!current()) return;
+      setStops({ identity, sending: runId, failed: null });
       try {
         const { run } = await boundedAccountRequest(
           `/api/projects/${projectId}/generations/${runId}/cancel`,
           generationRunResponseSchema,
           { method: "POST", body: {}, signal: new AbortController().signal, expectedOwnerId: account.userId },
         );
-        if (current())
+        if (current()) {
           setState((previous) =>
             previous.identity === identity
               ? {
@@ -191,8 +275,11 @@ export function useLogoEngine(account: VerifiedAccount, projectId: string): Logo
                 }
               : previous,
           );
+          setStops({ identity, sending: null, failed: null });
+        }
       } catch {
-        /* The next check shows whether it stopped. */
+        // Said on the screen with Try again; the next check also shows whether it stopped.
+        if (current()) setStops({ identity, sending: null, failed: runId });
       }
       refresh();
     },
@@ -200,8 +287,25 @@ export function useLogoEngine(account: VerifiedAccount, projectId: string): Logo
   );
 
   const runs = view.runs,
-    act = action.identity === identity ? action : { starting: false, error: null };
+    act = action.identity === identity ? action : { starting: false, error: null, refused: undefined };
   const ids = followed.identity === identity ? followed.ids : EMPTY;
+  const stop = stops.identity === identity ? stops : { sending: null, failed: null };
+  // A Stop that got no answer matters only while its run still works and no Stop reached it.
+  const stopFailedRun = runs.find((run) => run.id === stop.failed && canStopRun(run)) ?? null;
+  const problem: StepProblem | null = stopFailedRun
+    ? { during: "stop" }
+    : act.error !== null && act.refused !== undefined
+      ? { during: "start", httpStatus: act.refused }
+      : readFailed?.identity === identity
+        ? { during: view.engine === null ? "load" : "check" }
+        : null;
+  const retry = useCallback(() => {
+    if (stopFailedRun) void cancel(stopFailedRun.id);
+    else if (act.error !== null && unconfirmed.current?.identity === identity)
+      void start(unconfirmed.current.kind, unconfirmed.current.input);
+    else refresh();
+  }, [act.error, cancel, identity, refresh, start, stopFailedRun]);
+  const problemKey = JSON.stringify(problem);
   return useMemo(
     () => ({
       engine: view.engine,
@@ -209,13 +313,17 @@ export function useLogoEngine(account: VerifiedAccount, projectId: string): Logo
       followed: ids,
       starting: act.starting,
       error: act.error,
+      problem: JSON.parse(problemKey) as StepProblem | null,
+      stopSending: stop.sending !== null,
       active: (kind) => runs.find((run) => run.kind === kind && isActiveLogoRun(run)) ?? null,
       latest: (kind) => latestLogoRun(runs, kind),
       start,
       cancel,
+      retry,
       refresh,
-      clearError: () => setAction((previous) => ({ ...previous, error: null })),
+      clearError: () =>
+        setAction((previous) => ({ identity: previous.identity, starting: previous.starting, error: null })),
     }),
-    [act.error, act.starting, cancel, ids, refresh, runs, start, view.engine],
+    [act.error, act.starting, cancel, ids, problemKey, refresh, retry, runs, start, stop.sending, view.engine],
   );
 }

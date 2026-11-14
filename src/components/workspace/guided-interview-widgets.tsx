@@ -393,8 +393,9 @@ const reviewSteps: Record<StrategyReviewStep, { action: string; text: string }> 
   positioning: { action: "Review positioning", text: "Review your positioning to continue to names." },
   personality: { action: "Review personality", text: "Review your personality to continue to names." },
 };
-/** The work area when Strategy lost its confirmation after the conversation moved on, as a brief edit
- * does: it says so and offers the step to reopen, instead of waiting for a response nobody asked for. */
+/** The work area when Strategy has no confirmation although the conversation moved on: it says so and offers
+ * the step to reopen, instead of waiting for a response nobody asked for. A brief edit used to cause this and no
+ * longer does (owner decision, November 14, 2026); projects edited before that are still in this state. */
 export function GuidedStrategyReview({
   step,
   disabled,
@@ -411,7 +412,7 @@ export function GuidedStrategyReview({
         variant="results"
         icon="rotate-ccw"
         title={title}
-        text={`Part of your strategy is no longer confirmed, which happens when the brief changes. ${reviewSteps[step].text}`}
+        text={`Part of your strategy is no longer confirmed. ${reviewSteps[step].text}`}
         action={
           <Button variant="primary" size="sm" disabled={disabled} onClick={onReview}>
             {reviewSteps[step].action}

@@ -59,7 +59,9 @@ export function stepReplyAction(reply: StepReply): WorkspaceReplyAction {
     // At 0 credits the step says so once, in the chat, with when credits return and See plans (D-014). Send stays
     // off; the reply box adds no second message.
     blockedReason: undefined,
-    working: reply.working ? { label: reply.stopLabel ?? "Stop", onStop: reply.stop } : undefined,
+    working: reply.working
+      ? { label: reply.stopLabel ?? "Stop", onStop: reply.stop, stopping: Boolean(reply.stopping) }
+      : undefined,
   };
 }
 

@@ -37,6 +37,9 @@ export type StepReply = {
   working: boolean;
   /** Stop's label and tooltip ("Stop drawing"). */
   stopLabel?: string;
+  /** Stop was asked and the run has not ended yet, as the run itself reports it: the reply box says
+   * "Stopping…" and does not offer Stop again. */
+  stopping?: boolean;
   /** Sends the reply. With text and `acceptsText`, the text is a change to the chosen result; without, Send continues. */
   send(text: string): void;
   stop?(): void;

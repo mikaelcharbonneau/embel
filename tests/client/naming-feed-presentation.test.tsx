@@ -216,3 +216,22 @@ it.each([
     vi.unstubAllGlobals();
   }
 });
+
+// docs/state-machines.md, "The same server situation": one answer for the three AI step screens.
+it("keeps progress and Stop under a quiet note when updates are delayed", async () => {
+  const note = "Updates are delayed. Still working, and checking again.";
+  const feed = feedOf({ kind: "active", message: "Generating names… 40 of 100", savedCount: 40, note }, 40);
+  await mount(createElement(NamingFeedStatus, { feed, blocked: false }), async (host) => {
+    expect(host.textContent).toBe(`Generating names… 40 of 100Stop${note}`);
+    expect(host.querySelector(".e-progress__track")).not.toBeNull();
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+  });
+});
+it("offers no Try again for a refusal that would be refused again", async () => {
+  const message = "You’ve reached today’s limit for name generation. Try again tomorrow. Your names are saved.";
+  const feed = feedOf({ kind: "error", message, retry: false });
+  await mount(createElement(NamingFeedStatus, { feed, blocked: false }), async (host) => {
+    expect(host.textContent).toBe(message);
+    expect(host.querySelector("button")).toBeNull();
+  });
+});

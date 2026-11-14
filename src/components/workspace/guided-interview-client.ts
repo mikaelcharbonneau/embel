@@ -4,6 +4,7 @@ import {
   guidedReplySchema,
   guidedTurnOperation,
   initializeGuidedInterview,
+  withStrategyBrief,
   type GuidedReply,
   type GuidedStage,
   type GuidedTurn,
@@ -79,6 +80,8 @@ export function initialGuidedContext(
     next = submitted.context;
     message = submitted.event;
   }
+  // Research starts from the saved brief; if that is not the first message, the conversation records it.
+  if (stage === "competitors") next = withStrategyBrief(next);
   return appendGuidedTurn(next, {
     id: crypto.randomUUID(),
     stage,
@@ -104,6 +107,7 @@ export function guidedMessageContext(
   }
   const state = next.intake.guidedInterview!;
   const first = state.turns.length === 0;
+  if (first && state.stage === "competitors") next = withStrategyBrief(next);
   return appendGuidedTurn(next, {
     id: crypto.randomUUID(),
     userMessageId: submitted.event.id,

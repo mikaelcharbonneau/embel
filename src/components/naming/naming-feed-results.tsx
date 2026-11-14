@@ -237,12 +237,20 @@ export function NamingFeedStatus({
             )}
           </div>
           <div className="e-progress__track" aria-hidden="true" />
+          {status.note && <p className="e-muted">{status.note}</p>}
         </div>
       );
     case "starting":
     case "stopping":
     case "stopped":
-      return <p>{status.message}</p>;
+      return status.note ? (
+        <>
+          <p>{status.message}</p>
+          <p className="e-muted">{status.note}</p>
+        </>
+      ) : (
+        <p>{status.message}</p>
+      );
     case "unavailable":
       return (
         <div className="project-naming-notice" role="status">
@@ -257,9 +265,16 @@ export function NamingFeedStatus({
       return (
         <div role="alert">
           <p>{status.message}</p>
-          <button type="button" className="button secondary small" disabled={blocked} onClick={() => void feed.retry()}>
-            Try again
-          </button>
+          {status.retry !== false && (
+            <button
+              type="button"
+              className="button secondary small"
+              disabled={blocked}
+              onClick={() => void feed.retry()}
+            >
+              Try again
+            </button>
+          )}
         </div>
       );
   }

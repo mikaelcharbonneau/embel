@@ -6,6 +6,7 @@ import {
   useEffectEvent,
   useLayoutEffect,
   useMemo,
+  useReducer,
   useRef,
   useState,
   useSyncExternalStore,
@@ -25,6 +26,7 @@ import { useProjectProgress } from "./project-progress";
 import { getNamingReadiness } from "@/domain/project-naming";
 import {
   appendGuidedTurn,
+  briefChangedSinceStrategy,
   confirmGuidedSelection,
   guidedTurnOperation,
   revisitGuidedStage,
@@ -75,6 +77,8 @@ import {
   withoutScoreScaleNote,
 } from "./guided-interview-client";
 import type { ProjectEditorForm } from "./project-editor";
+import { guidedActivity, guidedTurnAction } from "./guided-turn-coordinator";
+import { initialWorkAreaState, projectReach, workAreaReducer, workAreaView, type WorkView } from "./guided-work-view";
 import { useStrategyJobs } from "./use-strategy-jobs";
 import { Workspace } from "./workspace-layout";
 import {
@@ -140,21 +144,26 @@ export function AccountGuidedInterview({
   const setSelection = (selection: GuidedInterviewInput["selection"]) =>
     changeInput((previous) => ({ ...previous, selection }));
   const [error, setError] = useState<string | null>(null);
-  const [namingReopened, setNamingReopened] = useState(false);
   const [working, setWorking] = useState(false);
-  const [briefOpen, setBriefOpen] = useState(false);
-  const [briefFromNaming, setBriefFromNaming] = useState(false);
+  // A redirect from an old step page commits its `#journey-…` address with this
+  // page's first render; the store reads it again right after that render.
+  const hash = useSyncExternalStore(subscribeToHash, readHash, noHash);
+  const logoLinked = hash === "#journey-logo";
+  // What the person opened and closed in the work area (docs/state-machines.md, J4).
+  const [workArea, dispatchWorkArea] = useReducer(workAreaReducer, { logoLinked }, initialWorkAreaState);
+  const namingReopened = workArea.namingReopenedFor !== null,
+    reopened = workArea.reopened;
   const [namingMessages, setNamingMessages] = useState<HTMLDivElement | null>(null);
   const [namingResults, setNamingResults] = useState<HTMLDivElement | null>(null);
   const closeNaming = useCallback(() => {
-    setNamingReopened(false);
+    dispatchWorkArea({ type: "confirmed_name" });
   }, []);
   // Choosing a different name after Change name closes the names again.
-  const [reopenedFor, setReopenedFor] = useState<string | null>(null);
-  if (namingReopened && reopenedFor !== null && reopenedFor !== (workspace.saved.context.selectedName ?? "")) {
-    setNamingReopened(false);
-    setReopenedFor(null);
-  }
+  if (
+    workArea.namingReopenedFor !== null &&
+    workArea.namingReopenedFor !== (workspace.saved.context.selectedName ?? "")
+  )
+    dispatchWorkArea({ type: "saved_name_changed" });
   const lock = useRef(false),
     mounted = useRef(false);
   const attempts = useRef(new Set<string>());
@@ -170,14 +179,27 @@ export function AccountGuidedInterview({
   const bound = turn ? guidedTurnResult(jobs, turn, account.userId, saved.id) : null;
   const reply = bound?.reply ?? null;
   const active = jobs.some(strategyJobActive);
-  const pending = Boolean(busy || working || strategy.pending || active);
   const dirty = accountDraftChanged(workspace);
-  const blocked = pending || dirty || workspace.conflict;
   const currentTurn =
     turn && state?.stage === turn.stage && !state.answers.some((answer) => answer.turnId === turn.id) ? turn : null;
   const operation = currentTurn ? guidedTurnOperation(currentTurn) : null;
   const allowance = operation ? guidedAllowance(availability, operation) : null;
-  const turnStarting = Boolean(currentTurn && (strategy.pending || busy || working || workspace.pendingGuidedContext));
+  const runningJob = bound && strategyJobActive(bound.job) ? bound.job : null;
+  // "Is a request running?" under each name the page asks it (docs/state-machines.md, J5).
+  const { pending, blocked, turnStarting, embelWorking, researching } = guidedActivity({
+    busy,
+    working,
+    requestStarting: strategy.pending,
+    requestActive: active,
+    dirty,
+    conflict: workspace.conflict,
+    savePending: Boolean(workspace.pendingGuidedContext),
+    overviewLoaded: Boolean(strategy.overview),
+    readFailed: Boolean(strategy.readError),
+    currentTurn,
+    turnRequested: Boolean(bound),
+    turnJobRunning: Boolean(runningJob),
+  });
   const choiceTurn =
     state?.stage !== "complete"
       ? [...(state?.turns ?? [])]
@@ -204,26 +226,33 @@ export function AccountGuidedInterview({
   // Persisted turns retain their request identity across a lost acknowledgement.
   // An uncertain enqueue retries the exact key; it never creates a replacement job.
   const coordinate = useEffectEvent(async () => {
-    // Voice · Slogan opens once a name is chosen. Choosing the name is the
-    // deliberate step; the proposal request keeps one identity per revision.
-    if (
-      mounted.current &&
-      !lock.current &&
-      !busy &&
-      !strategy.pending &&
-      !active &&
-      !dirty &&
-      !workspace.conflict &&
-      strategy.overview &&
-      !strategy.readError &&
-      state?.stage === "slogan" &&
-      saved.context.selectedName &&
-      !state.turns.some((item) => item.stage === "slogan") &&
-      guidedAllowance(availability, "strategy.slogan")
-    ) {
-      const key = `slogan-start:${saved.current_revision}`;
-      if (attempts.current.has(key)) return;
-      attempts.current.add(key);
+    // What to do is decided in one place; this runs it. The key is recorded before the save or request.
+    const action = guidedTurnAction({
+      mounted: mounted.current,
+      locked: lock.current,
+      busy,
+      requestStarting: strategy.pending,
+      requestActive: active,
+      dirty,
+      conflict: workspace.conflict,
+      overviewLoaded: Boolean(strategy.overview),
+      readFailed: Boolean(strategy.readError),
+      stage: state?.stage ?? null,
+      nameSelected: Boolean(saved.context.selectedName),
+      sloganTurnExists: Boolean(state?.turns.some((item) => item.stage === "slogan")),
+      sloganAllowed: Boolean(guidedAllowance(availability, "strategy.slogan")),
+      strategyAnswered: ["competitors", "audience", "positioning", "personality"].every((stage) =>
+        state?.answers.some((answer) => answer.stage === stage),
+      ),
+      savedRevision: saved.current_revision,
+      currentTurn,
+      bound: bound ? { jobId: bound.job.id, reply } : null,
+      requestAllowed: Boolean(allowance),
+    });
+    if (action.do === "nothing") return;
+    if (attempts.current.has(action.key)) return;
+    attempts.current.add(action.key);
+    if (action.do === "start_slogan") {
       lock.current = true;
       setWorking(true);
       try {
@@ -247,34 +276,17 @@ export function AccountGuidedInterview({
       }
       return;
     }
-    if (
-      !mounted.current ||
-      lock.current ||
-      busy ||
-      strategy.pending ||
-      active ||
-      dirty ||
-      workspace.conflict ||
-      !currentTurn ||
-      !strategy.overview ||
-      strategy.readError
-    )
-      return;
-    if (currentTurn.inputRevision !== saved.current_revision) return;
-    if (reply?.kind === "redirect") {
-      const key = `redirect:${bound!.job.id}`;
-      if (attempts.current.has(key)) return;
-      attempts.current.add(key);
+    if (action.do === "redirect") {
       lock.current = true;
       setWorking(true);
       try {
-        const next = revisitGuidedStage(saved.context, reply.targetStage);
+        const next = revisitGuidedStage(saved.context, action.reply.targetStage);
         await persist(
           appendGuidedTurn(next, {
             id: crypto.randomUUID(),
-            userMessageId: currentTurn.userMessageId,
-            stage: reply.targetStage,
-            purpose: reply.targetStage === "competitors" ? "research" : "propose",
+            userMessageId: action.turn.userMessageId,
+            stage: action.reply.targetStage,
+            purpose: action.reply.targetStage === "competitors" ? "research" : "propose",
             inputRevision: saved.current_revision + 1,
           }),
         );
@@ -286,15 +298,7 @@ export function AccountGuidedInterview({
       }
       return;
     }
-    if (
-      reply?.kind === "answer" &&
-      ["competitors", "audience", "positioning", "personality"].every((stage) =>
-        state?.answers.some((answer) => answer.stage === stage),
-      )
-    ) {
-      const key = `clarification:${bound!.job.id}`;
-      if (attempts.current.has(key)) return;
-      attempts.current.add(key);
+    if (action.do === "finish_clarification") {
       lock.current = true;
       setWorking(true);
       try {
@@ -311,19 +315,16 @@ export function AccountGuidedInterview({
       }
       return;
     }
-    if (reply?.kind === "accepted") {
-      const key = `accept:${bound!.job.id}`;
-      if (attempts.current.has(key)) return;
-      attempts.current.add(key);
+    if (action.do === "accept") {
       lock.current = true;
       setWorking(true);
       try {
         let next = confirmGuidedSelection(saved.context, {
-          turnId: currentTurn.id,
-          reply,
+          turnId: action.turn.id,
+          reply: action.reply,
           now: new Date().toISOString(),
         });
-        next = nextGuidedProposal(next, saved.current_revision + 1, currentTurn.userMessageId);
+        next = nextGuidedProposal(next, saved.current_revision + 1, action.turn.userMessageId);
         await persist(next);
       } catch (cause) {
         if (mounted.current) setError(cause instanceof Error ? cause.message : "Your answer could not be saved.");
@@ -333,13 +334,9 @@ export function AccountGuidedInterview({
       }
       return;
     }
-    if (bound || !allowance || currentTurn.inputRevision !== saved.current_revision) return;
-    const key = `request:${currentTurn.id}`;
-    if (attempts.current.has(key)) return;
     // The request identity is derived from the project, revision and operation,
     // so a remount or reload resends the same request rather than a new one.
-    attempts.current.add(key);
-    await strategy.enqueue(guidedTurnOperation(currentTurn), saved.current_revision, allowance);
+    await strategy.enqueue(guidedTurnOperation(action.turn), saved.current_revision, allowance!);
   });
   useEffect(() => {
     void coordinate();
@@ -724,12 +721,6 @@ export function AccountGuidedInterview({
     }
   }
 
-  const checkingResearch =
-    currentTurn?.stage === "competitors" &&
-    currentTurn.purpose !== "message" &&
-    !strategy.readError &&
-    (!strategy.overview || (!bound && strategy.pending));
-
   const statusReadError =
     strategy.readError && active && currentTurn?.stage === "competitors"
       ? "Research status could not be checked. Your prompt is saved."
@@ -761,8 +752,9 @@ export function AccountGuidedInterview({
     saved.scope === "complete_brand" &&
     getNamingReadiness(saved.context, saved.scope).ready;
   // "Is Strategy done?" is saved twice: the conversation's stage and the review marks on the brief (J1 in
-  // docs/state-machines.md). A brief edit clears the marks and leaves the stage, so past Personality the
-  // names close with no slogan to wait for. Name the first unconfirmed step so the work area can offer it.
+  // docs/state-machines.md). A brief edit no longer clears the marks (owner decision, November 14, 2026), but a
+  // project whose brief was edited before that still has the stage without the marks: past Personality its names
+  // are closed with no slogan to wait for. Name the first unconfirmed step so the work area can offer it.
   const strategyReview: StrategyReviewStep | null = (() => {
     if (
       saved.scope !== "complete_brand" ||
@@ -777,101 +769,53 @@ export function AccountGuidedInterview({
   })();
   // On a cold reopen, let the saved Strategy answers load before the first Naming question.
   const historyChecked = Boolean(strategy.overview || strategy.readError);
-  const showNaming = (briefOpen ? briefFromNaming : namingReady) && historyChecked;
-  // Once a name is chosen and the slogan is proposed for it, the names fold into
-  // one answer and the conversation continues. Change name reopens them.
-  const nameChosen = Boolean(context.selectedName) && Boolean(state?.turns.some((turn) => turn.stage === "slogan"));
-  const namingOpen = showNaming && (!nameChosen || namingReopened);
-  const reached: JourneyStepId =
-    showNaming || state?.stage === "personality" || state?.stage === "slogan" || state?.stage === "complete"
-      ? "voice"
-      : "strategy";
-  const brandName = context.selectedName?.trim() || saved.title;
-
-  // Strategy, then Voice from the first personality question on, then Identity
-  // (Inspiration) once Voice is finished: the slogan answered or skipped.
-  const voiceShown =
-    reached === "voice" ||
-    Boolean(state?.answers.some((answer) => answer.stage === "personality")) ||
-    timeline.some(
-      (item) => item.kind === "turn" && (item.turn.stage === "personality" || item.turn.stage === "slogan"),
-    );
-  const identityShown = state?.stage === "complete" && nameChosen && saved.scope === "complete_brand";
   // Logo and Creative direction follow Inspiration, each after the previous step's
   // Send, when the project has already reached it, or when a link points at it.
   const progress = useProjectProgress(),
     projectBase = `/brands/account/${saved.id}`;
   const nextPath = progress?.projectId === saved.id ? progress.nextHref?.split(/[?#]/, 1)[0] : undefined;
-  const logoReached = Boolean(nextPath?.startsWith(`${projectBase}/logo`));
-  const directionsReached = Boolean(
-    nextPath?.startsWith(`${projectBase}/logo/directions`) || nextPath?.startsWith(`${projectBase}/logo/deliverables`),
-  );
-  // A brand whose next step is Assets is finished: its steps fold and the work shows the brand.
-  const finished = Boolean(nextPath?.startsWith(`${projectBase}/logo/deliverables`));
-  const [logoOpened, setLogoOpened] = useState(false),
-    [directionsOpened, setDirectionsOpened] = useState(false);
-  // A redirect from an old step page commits its `#journey-…` address with this
-  // page's first render; the store reads it again right after that render.
-  const hash = useSyncExternalStore(subscribeToHash, readHash, noHash);
-  const logoLinked = hash === "#journey-logo",
-    directionsLinked = hash === "#journey-directions";
-  const logoShown = identityShown && historyChecked && (logoOpened || logoLinked || directionsLinked || logoReached);
-  const directionsShown = logoShown && (directionsOpened || directionsLinked || directionsReached);
-
-  // The work area shows one step: the latest one, or a finished one reopened from its folded entry in the chat.
-  const latestView: WorkView = namingOpen
-    ? "naming"
-    : identityShown
-      ? directionsShown
-        ? "directions"
-        : logoShown
-          ? "logo"
-          : "inspiration"
-      : state?.stage === "slogan" || (state?.stage === "complete" && saved.scope === "complete_brand")
-        ? "slogan"
-        : "choices";
-  const [reopened, setReopened] = useState<WorkView | null>(null);
+  // Which step the work area shows and which parts of the chat exist: one derivation (J4).
+  const {
+    nameChosen,
+    namingOpen,
+    reached,
+    voiceShown,
+    identityShown,
+    logoShown,
+    directionsShown,
+    finished,
+    latestView,
+    view,
+    viewStep,
+    brandShown,
+    sections,
+    barStep,
+  } = workAreaView({
+    ...workArea,
+    stage: state?.stage ?? null,
+    completeBrand: saved.scope === "complete_brand",
+    namingReady,
+    historyChecked,
+    nameSelected: Boolean(context.selectedName),
+    sloganProposed: Boolean(state?.turns.some((turn) => turn.stage === "slogan")),
+    personalityAnswered: Boolean(state?.answers.some((answer) => answer.stage === "personality")),
+    voiceTurnInChat: timeline.some(
+      (item) => item.kind === "turn" && (item.turn.stage === "personality" || item.turn.stage === "slogan"),
+    ),
+    projectReach: projectReach(nextPath, projectBase),
+    hash,
+  });
+  const brandName = context.selectedName?.trim() || saved.title;
   // A "Change …" button on a folded step disappears once the step reopens; focus then moves to the work panel
   // that now shows the step, instead of falling to the page.
   const focusWorkAfterReopen = useRef(false);
   const reopenStep = (step: WorkView) => {
     focusWorkAfterReopen.current = true;
-    setReopened(step);
+    dispatchWorkArea({ type: "reopened_step", step });
   };
   // A link to the Logo step opens it even when the project has moved past it.
-  const [linkedLogo, setLinkedLogo] = useState(logoLinked);
-  if (logoLinked && !linkedLogo) setLinkedLogo(true);
-  const requested = reopened ?? (linkedLogo && logoShown && !directionsLinked ? "logo" : null);
-  const view: WorkView =
-    !namingOpen &&
-    requested &&
-    ((requested === "inspiration" && identityShown) ||
-      (requested === "logo" && logoShown) ||
-      (requested === "directions" && directionsShown))
-      ? requested
-      : latestView;
-  const viewStep: JourneyStepId =
-    view === "choices"
-      ? state?.stage === "personality"
-        ? "voice"
-        : "strategy"
-      : view === "naming" || view === "slogan"
-        ? "voice"
-        : "identity";
-  // A finished brand shows the brand itself; Change direction on its folded entry reopens the three boards.
-  const brandShown = finished && view === "directions" && reopened !== "directions";
-  const continueLatest = () => {
-    setReopened(null);
-    setLinkedLogo(false);
-  };
-
-  const sections: JourneyStepId[] = identityShown
-    ? ["strategy", "voice", "identity"]
-    : voiceShown
-      ? ["strategy", "voice"]
-      : ["strategy"];
-  const [sectionViewed, setSectionViewed] = useState<JourneyStepId | null>(null);
-  useConversationSteps(reached, sectionViewed ?? viewStep, sections);
+  if (logoLinked && !workArea.linkedLogo) dispatchWorkArea({ type: "logo_link_arrived" });
+  useConversationSteps(reached, barStep, sections);
 
   // Steps in the work area report their reply box action, result rows and folded summaries here.
   const replyRegistry = useReplyRegistry();
@@ -928,8 +872,7 @@ export function AccountGuidedInterview({
   const showSection = useEffectEvent((step: JourneyStepId) => {
     const section = document.getElementById(journeySectionId(step));
     if (!section || !root.current?.contains(section)) return;
-    if (step === "identity") continueLatest();
-    setSectionViewed(step === viewStep ? null : step);
+    dispatchWorkArea({ type: "section_requested", step, stepOnScreen: viewStep });
     const folded = section.querySelector<HTMLDetailsElement>("details");
     if (folded && step !== viewStep) folded.open = true;
     section.scrollIntoView({ block: "nearest" });
@@ -955,15 +898,11 @@ export function AccountGuidedInterview({
     showSection(step);
   }, [historyChecked, voiceShown]);
   // Working on the step on screen again puts the bar back on it.
-  if (sectionViewed && sectionViewed === viewStep) setSectionViewed(null);
+  if (workArea.sectionViewed && workArea.sectionViewed === viewStep)
+    dispatchWorkArea({ type: "viewed_section_on_screen" });
 
-  const runningJob = bound && strategyJobActive(bound.job) ? bound.job : null;
   const stop = runningJob ? () => void strategy.cancel(runningJob) : undefined;
   const stopping = bound?.job.state === "cancel_requested";
-  const researching =
-    currentTurn?.stage === "competitors" &&
-    currentTurn.purpose === "research" &&
-    Boolean(runningJob || (strategy.pending && !bound));
   const thinkingLabel = active
     ? runningJob
       ? runningJob.state === "queued"
@@ -976,7 +915,6 @@ export function AccountGuidedInterview({
         : "Starting response…"
       : "Checking research status…";
   const hasComposer = saved.scope === "complete_brand" || Boolean(state);
-  const embelWorking = Boolean(active || checkingResearch);
   const researchFailed = Boolean(failed) && currentTurn?.stage === "competitors" && currentTurn.purpose !== "message";
   const canStartResearch = Boolean(
     strategy.overview && !strategy.readError && guidedAllowance(availability, "strategy.competitors"),
@@ -1094,8 +1032,7 @@ export function AccountGuidedInterview({
   const nameFolded = nameChosen && !namingReopened;
   const changeName = () => {
     focusWorkAfterReopen.current = true;
-    setNamingReopened(true);
-    setReopenedFor(context.selectedName ?? "");
+    dispatchWorkArea({ type: "chose_to_change_name", selectedName: context.selectedName ?? "" });
   };
   const voiceDone = state?.stage === "complete" && Boolean(sloganAnswer) && nameFolded;
   const voiceFolded = voiceDone ? (
@@ -1210,15 +1147,40 @@ export function AccountGuidedInterview({
       </div>
     </div>
   );
+  // Owner decision, November 14, 2026: a brief edited after Strategy was confirmed keeps every answer and closes
+  // nothing. This notice says so and offers the usual "Change answer" on the first Strategy step. Closing it, or
+  // leaving it, changes nothing; it returns only for a later edit.
+  const [briefNoticeClosedFor, setBriefNoticeClosedFor] = useState<string | null>(null);
+  const briefNotice = saved.scope === "complete_brand" &&
+    briefChangedSinceStrategy(context) &&
+    briefNoticeClosedFor !== context.description && (
+      <InlineMessage
+        className="guided-brief-changed"
+        title="Your brief changed"
+        onDismiss={() => setBriefNoticeClosedFor(context.description)}
+        actions={
+          <Button
+            size="sm"
+            icon="rotate-ccw"
+            disabled={editDisabled}
+            onClick={() => void revisit("competitors", turnOf("competitors")?.userMessageId ?? null)}
+          >
+            Redo Strategy
+          </Button>
+        }
+      >
+        <p>
+          You edited your brief after confirming your Strategy. Your answers and progress are kept. To base them on the
+          new brief, redo Strategy from Competitors.
+        </p>
+      </InlineMessage>
+    );
   const briefEditor = (
     <AccountBriefEditor
       workspace={workspace}
-      open={briefOpen}
-      onOpen={() => {
-        setBriefFromNaming(Boolean(namingReady));
-        setBriefOpen(true);
-      }}
-      onClose={() => setBriefOpen(false)}
+      open={workArea.brief !== "closed"}
+      onOpen={() => dispatchWorkArea({ type: "opened_brief", fromNaming: Boolean(namingReady) })}
+      onClose={() => dispatchWorkArea({ type: "closed_brief" })}
       readOnly={Boolean(pending || workspace.conflict || workspace.pendingDraftSave || workspace.pendingGuidedContext)}
       saveLabel={storage.saveLabel}
       onUpdate={storage.onUpdate}
@@ -1444,6 +1406,7 @@ export function AccountGuidedInterview({
         : saved.scope !== "complete_brand"
           ? userMessage(saved.context.description, "description", briefEditor)
           : briefEditor}
+      {briefNotice}
       {legacyReplies}
       <section
         id={journeySectionId("strategy")}
@@ -1543,10 +1506,8 @@ export function AccountGuidedInterview({
         step={strategyReview}
         disabled={Boolean(blocked)}
         onReview={() => {
-          if (strategyReview === "brief") {
-            setBriefFromNaming(false);
-            setBriefOpen(true);
-          } else void revisit(strategyReview, turnOf(strategyReview)?.userMessageId ?? null);
+          if (strategyReview === "brief") dispatchWorkArea({ type: "opened_brief", fromNaming: false });
+          else void revisit(strategyReview, turnOf(strategyReview)?.userMessageId ?? null);
         }}
       />
     ) : !problem ? (
@@ -1572,10 +1533,7 @@ export function AccountGuidedInterview({
         <LogoCreationWorkspace
           projectId={saved.id}
           // Send continues to Creative direction, also from a Logo step reopened from its folded entry.
-          onContinue={() => {
-            continueLatest();
-            setDirectionsOpened(true);
-          }}
+          onContinue={() => dispatchWorkArea({ type: "continued_to_directions" })}
           reply="external"
           onReplyChange={setStepReply}
         />
@@ -1661,10 +1619,7 @@ export function AccountGuidedInterview({
       return {
         chips: likes === null ? [] : [`Inspiration: ${likes} liked`],
         label: next,
-        onSend: () => {
-          continueLatest();
-          setLogoOpened(true);
-        },
+        onSend: () => dispatchWorkArea({ type: "continued_to_logo" }),
       };
     }
     return null;
@@ -1739,7 +1694,6 @@ export function AccountGuidedInterview({
   );
 }
 
-type WorkView = "choices" | "naming" | "slogan" | "inspiration" | "logo" | "directions";
 // The Workspace's reply box serves every naming question, and the names always sit in the work area.
 const ignoreNamingQuestion = () => undefined;
 const ignoreNamingCanvas = () => undefined;

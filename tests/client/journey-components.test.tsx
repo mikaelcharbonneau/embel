@@ -9,7 +9,17 @@ vi.mock("next/link", () => ({
   default: ({ children, ...props }: ComponentProps<"a">) => createElement("a", props, children),
 }));
 
-import { JOURNEY, journeyPartLabel, journeyStepOfPath, journeySteps, projectJourney } from "@/domain/journey";
+import {
+  JOURNEY,
+  journeyPartLabel,
+  journeyProgress,
+  journeyStepOfPath,
+  journeySteps,
+  projectJourney,
+  type JourneyEvidence,
+  type JourneyProgress,
+} from "@/domain/journey";
+import { contextSnapshotSchema, type ContextSnapshot } from "@/domain/projects";
 import { FloatingNav } from "@/components/journey/floating-nav";
 import { ProjectCapsule } from "@/components/journey/project-capsule";
 import { LogoGenerationAction } from "@/components/logo-creation/generation-action";
@@ -51,9 +61,40 @@ describe("journey model", () => {
 
 describe("project journey from saved work", () => {
   const id = "11111111-1111-4111-8111-111111111111",
-    base = `/brands/account/${id}`;
-  const view = (pathname: string, nextHref: string | null) =>
-    projectJourney({ projectId: id, pathname, nextHref }).map(
+    base = `/brands/account/${id}`,
+    when = "2026-11-14T00:00:00Z";
+  /** Strategy and Personality confirmed in a finished conversation; `change` reopens or adds to it. */
+  const saved = (change: (context: ContextSnapshot) => void = () => {}) => {
+    const context = contextSnapshotSchema.parse({
+      description: "A repairable lighting studio",
+      competitorReviewComplete: true,
+      audienceSegments: [
+        {
+          id: "11111111-1111-4111-8111-111111111112",
+          label: "Small homes",
+          needs: [],
+          reason: "Compact",
+          selected: true,
+          origin: "user",
+        },
+      ],
+      personality: { sincerity: 60, excitement: 30, competence: 70, sophistication: 40, ruggedness: 20 },
+      positioning: "Repairable lights for small homes",
+      selectedName: "Luma",
+      intake: {
+        audienceReviewedAt: when,
+        personalityReviewedAt: when,
+        positioningReviewedAt: when,
+        guidedInterview: { version: 1, stage: "complete", turns: [], answers: [] },
+      },
+    });
+    change(context);
+    return context;
+  };
+  const progress = (context: ContextSnapshot, evidence?: JourneyEvidence) =>
+    journeyProgress({ project: { id, scope: "complete_brand", context }, evidence });
+  const view = (pathname: string, read: JourneyProgress | null) =>
+    projectJourney({ projectId: id, pathname, progress: read }).map(
       (step) => `${step.number}:${step.id}:${step.status}${step.href ? `->${step.href.replace(base, "")}` : ""}`,
     );
 
@@ -72,36 +113,48 @@ describe("project journey from saved work", () => {
     expect(journeyStepOfPath(id, "/brands/account/22222222-2222-4222-8222-222222222222/naming")).toBe("strategy");
   });
   it("marks steps before the verified next action as done and links the next one", () => {
-    expect(view(`${base}/naming`, `${base}/logo/directions`)).toEqual([
+    const chosen: JourneyEvidence = { logo: "chosen", brandKit: false, directions: 0, directionsPending: false };
+    expect(view(`${base}/naming`, progress(saved(), chosen))).toEqual([
       "1:strategy:done->?view=strategy",
       "2:voice:current->/naming",
       "3:identity:upcoming->/logo/directions",
       "4:assets:upcoming",
     ]);
-    expect(view(base, `${base}?view=strategy#strategy-audience`)).toEqual([
-      "1:strategy:current->?view=strategy#strategy-audience",
+    const audienceOpen = saved((context) => void (context.intake.audienceReviewedAt = null));
+    expect(view(base, progress(audienceOpen, { logo: "none" }))).toEqual([
+      "1:strategy:current->?view=strategy#journey-strategy",
       "2:voice:upcoming",
       "3:identity:upcoming",
       "4:assets:upcoming",
     ]);
   });
   it("highlights the step the conversation reports, such as Voice once naming continues inline", () => {
+    const unnamed = progress(
+      saved((context) => void (context.selectedName = null)),
+      { logo: "none" },
+    );
     expect(
-      projectJourney({ projectId: id, pathname: base, nextHref: `${base}/naming`, shown: "voice" }).map(
+      projectJourney({ projectId: id, pathname: base, progress: unnamed, shown: "voice" }).map(
         (step) => `${step.id}:${step.status}`,
       ),
     ).toEqual(["strategy:done", "voice:current", "identity:upcoming", "assets:upcoming"]);
   });
-  it("claims nothing as done while the next action is unknown", () => {
+  it("claims nothing as done while the project is unknown, and only the saved answers while the logo work is unread", () => {
     expect(view(`${base}/logo`, null)).toEqual([
       "1:strategy:upcoming",
       "2:voice:upcoming",
       "3:identity:current",
       "4:assets:upcoming",
     ]);
+    expect(view(`${base}/logo`, progress(saved()))).toEqual([
+      "1:strategy:done->?view=strategy",
+      "2:voice:done->/naming",
+      "3:identity:current",
+      "4:assets:upcoming",
+    ]);
   });
   it("always shows all four steps, numbered from one", () => {
-    expect(view(`${base}/logo/deliverables`, `${base}/logo/deliverables`)).toEqual([
+    expect(view(`${base}/logo/deliverables`, progress(saved(), { logo: "chosen", brandKit: true }))).toEqual([
       "1:strategy:done->?view=strategy",
       "2:voice:done->/naming",
       "3:identity:done->/logo",

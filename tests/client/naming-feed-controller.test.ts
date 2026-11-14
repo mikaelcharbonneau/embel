@@ -393,7 +393,12 @@ describe("Try again", () => {
       return { feed: page(call.path) };
     };
     await feedController.retry();
-    expect(namingStatus(state())).toEqual({ kind: "error", message: "AI name generation is unavailable right now." });
+    // A 503 may have admitted a run (startRefusal): it is unconfirmed, never "nothing happened".
+    expect(namingStatus(state())).toEqual({
+      kind: "error",
+      message: "Name generation couldn’t be confirmed. Try again.",
+    });
+    expect(state().pending).not.toBeNull();
   });
   it("repeats a Stop whose answer was lost", async () => {
     server = feed({ run: run("running") });
@@ -684,6 +689,99 @@ describe("on the generation engine", () => {
       "Name generation took too long and was stopped. 12 names saved. Try again.",
     );
     expect(namingFailureMessage("policy_mismatch", 0)).toBe("Name generation couldn’t finish. Try again.");
+  });
+});
+
+describe("the same answer as Logo and Creative direction (docs/state-machines.md)", () => {
+  const delayed = "Updates are delayed. Still working, and checking again.";
+  it("keeps progress and Stop when a status check fails while names are written, and keeps checking", async () => {
+    server = feed({ run: run("running", { savedCount: 40 }), entries: [entry(1)] });
+    const feedController = controller();
+    const stop = feedController.startPolling();
+    await settle();
+    reply = () => {
+      throw new AccountRequestError(503);
+    };
+    await vi.advanceTimersByTimeAsync(NAMING_ACTIVE_POLL_MS);
+    // Never as if the run ended: the same progress, with a quiet note.
+    expect(namingStatus(state())).toEqual({
+      kind: "active",
+      message: "Generating names… 40 of 100",
+      savedCount: 40,
+      note: delayed,
+    });
+    expect(namingPollInterval(state())).toBe(NAMING_ACTIVE_POLL_MS);
+    const before = reads().length;
+    reply = (call) => ({ feed: page(call.path) });
+    server = { ...server, run: run("running", { savedCount: 55 }) };
+    await vi.advanceTimersByTimeAsync(NAMING_ACTIVE_POLL_MS);
+    expect(reads().length).toBeGreaterThan(before);
+    expect(namingStatus(state())).toEqual({ kind: "active", message: "Generating names… 55 of 100", savedCount: 55 });
+    stop();
+  });
+  it("keeps saying Stopping when a check fails after Stop was asked", async () => {
+    server = feed({ run: run("cancel_requested", { savedCount: 2 }) });
+    const feedController = controller();
+    await feedController.load();
+    reply = () => {
+      throw new AccountRequestError(500);
+    };
+    await feedController.load();
+    expect(namingStatus(state())).toEqual({ kind: "stopping", message: "Stopping… 2 names saved.", note: delayed });
+  });
+  it.each([402, 429])("offers no Try again after a %i: it would be refused again", async (status) => {
+    const feedController = controller();
+    await feedController.load();
+    reply = (call) => {
+      if (call.path === "/api/credits") throw new AccountRequestError(500);
+      if (call.method === "POST") throw new AccountRequestError(status);
+      return { feed: page(call.path) };
+    };
+    expect(await feedController.start()).toBe(false);
+    expect(state().pending).toBeNull();
+    expect(namingStatus(state())).toEqual({
+      kind: "error",
+      message:
+        status === 402
+          ? "You’ve used this month’s credits. Your names are saved."
+          : "You’ve reached today’s limit for name generation. Try again tomorrow. Your names are saved.",
+      retry: false,
+    });
+  });
+  it("treats a 503 as unconfirmed: the request and its key are kept for Try again", async () => {
+    const feedController = controller();
+    await feedController.load();
+    reply = (call) => {
+      if (call.method === "POST") throw new AccountRequestError(503);
+      return { feed: page(call.path) };
+    };
+    expect(await feedController.start()).toBe(false);
+    expect(namingStatus(state())).toEqual({
+      kind: "error",
+      message: "Name generation couldn’t be confirmed. Try again.",
+    });
+    expect(state().pending?.idempotencyKey).toBe("synthetic-key-0001");
+    // Nothing new may start until the same request is answered.
+    expect(await feedController.start()).toBe(false);
+    reply = () => {
+      server = { ...server, run: run("queued") };
+      return { feed: page(base), run: server.run, reused: true };
+    };
+    expect(await feedController.retry()).toBe(true);
+    expect(writes("/feed/ensure").map((call) => (call.body as { idempotencyKey: string }).idempotencyKey)).toEqual([
+      "synthetic-key-0001",
+      "synthetic-key-0001",
+    ]);
+  });
+  it.each([401, 403])("treats a %i as final: nothing started, nothing kept", async (status) => {
+    const feedController = controller();
+    await feedController.load();
+    reply = (call) => {
+      if (call.method === "POST") throw new AccountRequestError(status);
+      return { feed: page(call.path) };
+    };
+    expect(await feedController.start()).toBe(false);
+    expect(state().pending).toBeNull();
   });
 });
 

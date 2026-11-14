@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { createIdentityGenerationController } from "@/components/identity/identity-generation-controller";
+import {
+  createIdentityGenerationController,
+  identityStepView,
+} from "@/components/identity/identity-generation-controller";
 import { createIdentityDraftMemory } from "@/components/identity/identity-draft-memory";
 import { AccountRequestError } from "@/components/workspace/account-api";
 import {
@@ -353,4 +356,132 @@ describe("Identity generation immutable request lifecycle", () => {
       expect(f.client.generate).toHaveBeenCalledTimes(2);
     },
   );
+});
+
+// docs/state-machines.md, "The same server situation": one answer for the three AI step screens.
+describe("Creative direction answers the same situations as Naming and Logo", () => {
+  const deferred = <T>() => {
+    let resolve!: (value: T) => void;
+    const promise = new Promise<T>((done) => (resolve = done));
+    return { promise, resolve };
+  };
+  const view = (f: ReturnType<typeof setup>) => identityStepView(f.controller.getSnapshot());
+
+  it.each([401, 403])("treats a %i start refusal as final (startRefusal): nothing is kept", async (status) => {
+    const f = setup();
+    await f.controller.refresh();
+    f.client.generate.mockRejectedValueOnce(new AccountRequestError(status));
+    await f.controller.start(generationIntent);
+    expect(f.controller.getSnapshot()).toMatchObject({ retained: null, batch: null });
+    expect(f.memory.hasUnsaved()).toBe(false);
+    expect(view(f)).toMatchObject({ message: "start_refused", keepRequest: false, canStart: true });
+  });
+  it("keeps an unconfirmed start and offers only the same request again", async () => {
+    const f = setup();
+    await f.controller.refresh();
+    f.client.generate.mockRejectedValueOnce(new AccountRequestError(503));
+    await f.controller.start(generationIntent);
+    expect(f.memory.hasUnsaved()).toBe(true);
+    expect(view(f)).toMatchObject({ message: "start_unconfirmed", keepRequest: true, canStart: false, retry: "start" });
+  });
+  it.each([
+    [402, "out_of_credits"],
+    [429, "daily_limit"],
+  ] as const)("offers no retry after a %i: it would be refused again", async (status, message) => {
+    const f = setup();
+    await f.controller.refresh();
+    f.client.generate.mockRejectedValueOnce(new AccountRequestError(status));
+    await f.controller.start(generationIntent);
+    expect(view(f)).toMatchObject({ message, retry: null, working: false });
+  });
+
+  it("reads stopping from the run itself, so a tab that never pressed Stop shows the same", async () => {
+    const f = setup();
+    f.client.generation.mockResolvedValue({ ...f.overview, latest: { ...f.batch, status: "cancel_requested" } });
+    await f.controller.refresh();
+    expect(f.controller.getSnapshot().stopAcknowledgedBatchId).toBeNull();
+    expect(view(f)).toMatchObject({ working: true, stopping: true, canStop: false, message: "stopping" });
+  });
+  it("keeps the Stop failure, with Try again, while the round still works", async () => {
+    const f = setup();
+    await f.controller.refresh();
+    await f.controller.start(generationIntent);
+    f.client.stopBatch.mockRejectedValueOnce(new AccountRequestError(503));
+    await f.controller.stop();
+    const message = "Stopping could not be confirmed. Check the request; its saved systems are kept.";
+    expect(f.controller.getSnapshot().error).toBe(message);
+    expect(view(f)).toMatchObject({ working: true, canStop: true, retry: "stop", message: "stop_unconfirmed" });
+    // The next status check does not wipe it.
+    await f.controller.poll();
+    expect(f.controller.getSnapshot().error).toBe(message);
+    expect(view(f).message).toBe("stop_unconfirmed");
+    // Try again repeats Stop; once the round says it is stopping the message goes.
+    await f.controller.stop();
+    expect(f.client.stopBatch).toHaveBeenCalledTimes(2);
+    expect(f.controller.getSnapshot().error).toBeNull();
+    expect(view(f)).toMatchObject({ stopping: true, canStop: false, retry: null, message: "stopping" });
+  });
+  it("keeps progress and Stop when a status check fails, and clears the note on the next good check", async () => {
+    const f = setup();
+    await f.controller.refresh();
+    await f.controller.start(generationIntent);
+    f.client.batch.mockRejectedValueOnce(new AccountRequestError(503));
+    await f.controller.poll();
+    expect(f.controller.getSnapshot().error).toBe(
+      "The latest generation status could not be checked. The last verified results remain available.",
+    );
+    expect(view(f)).toMatchObject({ working: true, canStop: true, message: "updates_delayed" });
+    await f.controller.poll();
+    expect(f.controller.getSnapshot().error).toBeNull();
+    expect(view(f)).toMatchObject({ working: true, canStop: true, message: null });
+  });
+  it("says a first load failed, with Try again", async () => {
+    const f = setup();
+    f.client.generation.mockRejectedValueOnce(new AccountRequestError(503));
+    await f.controller.refresh();
+    expect(view(f)).toMatchObject({ message: "load_failed", retry: "load", canStart: false });
+  });
+
+  it("does not lose a Stop pressed while a status check is in flight", async () => {
+    const f = setup();
+    await f.controller.refresh();
+    await f.controller.start(generationIntent);
+    const check = deferred<IdentityBatchState>();
+    f.client.batch.mockReturnValueOnce(check.promise);
+    const polling = f.controller.poll();
+    expect(f.controller.getSnapshot().busy).toBe("checking");
+    await f.controller.stop();
+    expect(f.client.stopBatch).toHaveBeenCalledTimes(1);
+    expect(f.controller.getSnapshot()).toMatchObject({ batch: { status: "cancel_requested" }, busy: null });
+    // The check that yielded answers late with what it saw before Stop: it changes nothing and says nothing.
+    check.resolve(f.batch);
+    await polling;
+    expect(f.controller.getSnapshot()).toMatchObject({
+      batch: { status: "cancel_requested" },
+      busy: null,
+      error: null,
+    });
+  });
+  it("does not lose a Start pressed while a status check is in flight, and never runs two starts", async () => {
+    const f = setup();
+    await f.controller.refresh();
+    const check = deferred<typeof f.overview>();
+    f.client.generation.mockReturnValueOnce(check.promise);
+    const checking = f.controller.refresh();
+    const started = deferred<IdentityBatchState>();
+    f.client.generate.mockReturnValueOnce(started.promise);
+    const first = f.controller.start(generationIntent);
+    expect(f.client.generate).toHaveBeenCalledTimes(1);
+    expect(f.controller.getSnapshot().busy).toBe("starting");
+    // A second Start, and a check, wait for the first: neither interrupts it.
+    await f.controller.start({ ...generationIntent, idempotencyKey: "a-second-start-while-one-runs" });
+    await f.controller.poll();
+    expect(f.client.generate).toHaveBeenCalledTimes(1);
+    expect(f.controller.getSnapshot().busy).toBe("starting");
+    started.resolve(f.batch);
+    await first;
+    check.resolve(f.overview);
+    await checking;
+    expect(f.controller.getSnapshot()).toMatchObject({ batch: { batchId: f.batch.batchId }, busy: null, error: null });
+  });
 });

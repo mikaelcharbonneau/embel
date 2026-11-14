@@ -117,7 +117,6 @@ async function inWorkspace(projectId: string, fetcher: typeof fetch) {
 const refused = {
   busy: "Your logo details changed or a set is still being drawn. Your work is kept; try again in a moment.",
   limit: "You’ve reached today’s limit for this. Your logos are saved. Try again tomorrow.",
-  off: "Logo drawing is unavailable right now. Nothing has started and nothing was used.",
   unknown: "This request could not be confirmed. Your logos are kept; check again before trying once more.",
 };
 
@@ -177,7 +176,8 @@ describe("S2: a refused Logo request inside the Workspace", () => {
     for (const [status, sentence] of [
       [409, refused.busy],
       [429, refused.limit],
-      [503, refused.off],
+      // A 503 may have admitted a run (startRefusal): it is unconfirmed, never "nothing has started".
+      [503, refused.unknown],
       ["offline", refused.unknown],
     ] as const) {
       answer = status;

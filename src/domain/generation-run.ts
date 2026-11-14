@@ -89,3 +89,89 @@ const FINAL_START_REFUSALS: readonly number[] = [400, 401, 402, 403, 404, 409, 4
 export function startRefusal(httpStatus: number): StartRefusal {
   return FINAL_START_REFUSALS.includes(httpStatus) ? "final" : "uncertain";
 }
+
+/**
+ * What a step screen (Naming, Logo, Creative direction) lets the person do, from the
+ * run's phase and the last thing that went wrong (docs/state-machines.md, rule 4).
+ * The three screens call this one function; each looks its own sentences up by `message`.
+ */
+export type StepProblem =
+  /** The start request was refused (`httpStatus`) or never answered (`null`). */
+  | { during: "start"; httpStatus: number | null }
+  | { during: "stop" }
+  /** The first read failed, so the screen has nothing to show yet. */
+  | { during: "load" }
+  /** A later status check failed. */
+  | { during: "check" };
+export type StepMessageKind =
+  | "stopping"
+  | "updates_delayed"
+  | "stop_unconfirmed"
+  | "load_failed"
+  | "out_of_credits"
+  | "daily_limit"
+  | "start_refused"
+  | "start_unconfirmed";
+export type StepSituation = {
+  /** The newest run as the server reports it, or null when there is none. */
+  phase: RunPhase | null;
+  /** The first read has answered. */
+  loaded: boolean;
+  problem: StepProblem | null;
+  /** A request this tab sent that has not been answered yet. */
+  sending?: "start" | "stop" | null;
+};
+export type StepView = {
+  /** Show progress: a run is working, or a start was just sent. */
+  working: boolean;
+  /** Stop was asked (the server says so, or this tab's Stop is on its way): say so, never offer Stop again. */
+  stopping: boolean;
+  canStop: boolean;
+  /** A new request may be started. False while one is unconfirmed: only Try again may repeat it. */
+  canStart: boolean;
+  /** What Try again repeats, or null when there is nothing to repeat or it would be refused again. */
+  retry: "start" | "stop" | "load" | null;
+  /** The start may have been admitted: keep the request and its key, so Try again returns the run it started. */
+  keepRequest: boolean;
+  message: StepMessageKind | null;
+};
+
+/** The order of the checks is the priority. */
+export function stepView({ phase, loaded, problem, sending = null }: StepSituation): StepView {
+  const active = phase === "stopping" || (phase !== null && isActiveRunStatus(phase));
+  const view: StepView = {
+    working: false,
+    stopping: false,
+    canStop: false,
+    canStart: false,
+    retry: null,
+    keepRequest: false,
+    message: null,
+  };
+  if (active) {
+    // A run is working: it never looks ended, whatever failed around it.
+    const stopping = phase === "stopping" || sending === "stop";
+    const stopFailed = !stopping && problem?.during === "stop";
+    const delayed = problem?.during === "check" || problem?.during === "load";
+    return {
+      ...view,
+      working: true,
+      stopping,
+      canStop: !stopping,
+      retry: stopFailed ? "stop" : null,
+      message: stopFailed ? "stop_unconfirmed" : delayed ? "updates_delayed" : stopping ? "stopping" : null,
+    };
+  }
+  if (sending === "start") return { ...view, working: true };
+  if (problem?.during === "start") {
+    if (problem.httpStatus === null || startRefusal(problem.httpStatus) === "uncertain")
+      return { ...view, retry: "start", keepRequest: true, message: "start_unconfirmed" };
+    // Nothing started. Credits and today's limit would refuse the same request again, so no Try again.
+    if (problem.httpStatus === 402) return { ...view, canStart: loaded, message: "out_of_credits" };
+    if (problem.httpStatus === 429) return { ...view, canStart: loaded, message: "daily_limit" };
+    return { ...view, canStart: loaded, retry: "start", message: "start_refused" };
+  }
+  if (problem?.during === "load") return { ...view, canStart: loaded, retry: "load", message: "load_failed" };
+  // A failed Stop or check with no run working needs no words: the next check shows what is true.
+  return { ...view, canStart: loaded };
+}

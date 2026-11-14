@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useReducer, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import {
@@ -27,6 +27,7 @@ import { rememberPromptForSignIn } from "./prompt-recovery";
 import { guidedAllowance, initialGuidedContext } from "./guided-interview-client";
 import { finishLocalDraftRecovery, saveLocalDraftToAccount } from "./save-local-draft-to-account";
 import { projectStartHref, prepareProjectStart } from "./project-start-draft";
+import { homeStartOpeningReducer, initialHomeStartOpening } from "./home-start-opening";
 
 type Availability = z.infer<typeof strategyRuntimeResponseSchema>["availability"];
 
@@ -46,20 +47,16 @@ export function useAccountStrategyStart({
   const router = useRouter();
   const [, startNavigation] = useTransition();
   const destination = useRef<{ identity: string; href: string } | null>(null);
-  // The same destination for rendering; the ref guards requests synchronously.
-  const [openingDestination, setOpeningDestination] = useState<{ identity: string; href: string } | null>(null);
+  // The same destination for rendering (`openingDestination`); the ref guards requests synchronously.
+  const [{ action, opening, destination: openingDestination }, dispatch] = useReducer(
+    homeStartOpeningReducer,
+    initialHomeStartOpening,
+  );
   const [checkingAvailability, setCheckingAvailability] = useState<string | null>(null);
   const identity =
     session.status === "ready" ? `${session.userId}:${session.generation}` : `unverified:${session.generation}`;
   const [runtime, setRuntime] = useState<{ identity: string; availability: Availability | null } | null>(null);
-  const [action, setAction] = useState<{
-    identity: string;
-    pending: boolean;
-    message: string;
-    recoveryBlocked?: boolean;
-  } | null>(null);
   const [retained, setRetained] = useState<StartReceipt | null>(null);
-  const [opening, setOpening] = useState<string | null>(null);
   const recoveryKey = `${identity}:${recoveryDraftId ?? ""}`;
   const [checkedRecovery, setCheckedRecovery] = useState<{
     key: string;
@@ -195,13 +192,17 @@ export function useAccountStrategyStart({
       !destination.current &&
       isCurrent(account);
     setCheckingAvailability(identity);
-    setAction({ identity, pending: false, message: "Checking AI availability. You can keep editing your prompt." });
+    dispatch({
+      type: "availability_check_started",
+      identity,
+      message: "Checking AI availability. You can keep editing your prompt.",
+    });
     try {
       const availability = (await verifySession(account, controller)) ? await readReadiness(account, controller) : null;
       if (availability && current())
-        setAction({
+        dispatch({
+          type: "availability_check_finished",
           identity,
-          pending: false,
           message: guided
             ? guidedAllowance(availability, "strategy.competitors")
               ? "Competitor research is ready. Send your prompt to begin."
@@ -217,9 +218,9 @@ export function useAccountStrategyStart({
       if (error instanceof AccountRequestError && error.status === 401) expire(account);
       else {
         setRuntime({ identity, availability: null });
-        setAction({
+        dispatch({
+          type: "availability_check_finished",
           identity,
-          pending: false,
           message: "AI availability could not be confirmed. Your prompt is kept; recheck your connection.",
         });
       }
@@ -233,14 +234,12 @@ export function useAccountStrategyStart({
 
   function openProject(href: string) {
     destination.current = { identity, href };
-    setOpeningDestination({ identity, href });
-    setOpening(identity);
-    setAction({ identity, pending: true, message: "Project saved. Opening your project…" });
+    dispatch({ type: "project_opening", identity, href });
     try {
       startNavigation(() => router.push(href));
     } catch (cause) {
       destination.current = null;
-      setOpeningDestination(null);
+      dispatch({ type: "project_open_failed" });
       throw cause;
     }
   }
@@ -258,8 +257,7 @@ export function useAccountStrategyStart({
       controller = new AbortController();
     request.current = controller;
     stopReadinessCheck();
-    setOpening(identity);
-    setAction({ identity, pending: true, message: "Saving your project…" });
+    dispatch({ type: "save_started", identity, showOpening: true });
     const current = () => mounted.current && !controller.signal.aborted && isCurrent(account);
     try {
       // A quick Send can beat the background readiness read. Resolve that read
@@ -363,9 +361,9 @@ export function useAccountStrategyStart({
       if (!current()) return false;
       if (cause instanceof AccountRequestError && cause.status === 401) expire(account);
       else
-        setAction({
+        dispatch({
+          type: "save_failed",
           identity,
-          pending: false,
           message:
             cause instanceof StartReceiptRecoveryError
               ? cause.message
@@ -374,10 +372,7 @@ export function useAccountStrategyStart({
       return false;
     } finally {
       if (request.current === controller) request.current = null;
-      if (current() && !destination.current) {
-        setAction((previous) => (previous?.identity === identity ? { ...previous, pending: false } : previous));
-        setOpening(null);
-      }
+      if (current() && !destination.current) dispatch({ type: "save_settled", identity });
     }
   }
 
@@ -394,8 +389,7 @@ export function useAccountStrategyStart({
       controller = new AbortController();
     request.current = controller;
     stopReadinessCheck();
-    if (guided) setOpening(identity);
-    setAction({ identity, pending: true, message: "Saving your project…" });
+    dispatch({ type: "save_started", identity, showOpening: guided });
     const current = () => mounted.current && !controller.signal.aborted && isCurrent(account);
     try {
       const result = await saveLocalDraftToAccount({
@@ -423,9 +417,9 @@ export function useAccountStrategyStart({
       if (!current()) return false;
       if (cause instanceof AccountRequestError && cause.status === 401) expire(account);
       else
-        setAction({
+        dispatch({
+          type: "save_failed",
           identity,
-          pending: false,
           message:
             cause instanceof StartReceiptRecoveryError
               ? cause.message
@@ -434,10 +428,7 @@ export function useAccountStrategyStart({
       return false;
     } finally {
       if (request.current === controller) request.current = null;
-      if (current() && !destination.current) {
-        setAction((previous) => (previous?.identity === identity ? { ...previous, pending: false } : previous));
-        setOpening(null);
-      }
+      if (current() && !destination.current) dispatch({ type: "save_settled", identity });
     }
   }
   const guidedNotice = (
@@ -505,8 +496,7 @@ export function useAccountStrategyStart({
     if (request.current || destination.current) return;
     setRetained(null);
     setCheckedRecovery(null);
-    setAction(null);
-    setOpening(null);
+    dispatch({ type: "prompt_detached" });
   }
   return {
     notice: guidedNotice,
