@@ -44,7 +44,9 @@ const projectId = "bbbbbbbb-1111-4111-8111-111111111111",
 let root: Root, host: HTMLDivElement, project: AccountProject, fetcher: ReturnType<typeof vi.fn>;
 async function render() {
   await act(async () => root.render(createElement(AccountProjectEditor, { projectId })));
-  await act(async () => host.querySelector<HTMLButtonElement>(".guided-brief-editor button[aria-label='Edit brief']")!.click());
+  await act(async () =>
+    host.querySelector<HTMLButtonElement>(".guided-brief-editor button[aria-label='Edit brief']")!.click(),
+  );
 }
 async function fill(node: HTMLTextAreaElement, value: string) {
   await act(async () => {

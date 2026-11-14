@@ -75,7 +75,9 @@ function boundJob(state: StrategyJob["state"]) {
   });
 }
 function button(label: string) {
-  return [...host.querySelectorAll<HTMLButtonElement>("button")].find((item) => (item.textContent || item.getAttribute("aria-label")) === label);
+  return [...host.querySelectorAll<HTMLButtonElement>("button")].find(
+    (item) => (item.textContent || item.getAttribute("aria-label")) === label,
+  );
 }
 function notice() {
   return host.querySelector(".guided-conversation-error")?.textContent ?? "";
@@ -143,7 +145,7 @@ describe("guided Strategy availability presentation", () => {
     await render();
     expect(host.querySelector('[aria-label="Researching your competitors"]')).not.toBeNull();
     expect(notice()).toBe("");
-    expect(button("Retry research")).toBeUndefined();
+    expect(button("Try again")).toBeUndefined();
   });
 
   it.each([
@@ -173,9 +175,10 @@ describe("guided Strategy availability presentation", () => {
       expect(notice()).not.toMatch(/Your brief is saved|No AI request was sent|exhausted|billing|database|storage/i);
       expect(button("Start competitor research")).toBeUndefined();
       // Only Embel's fixed invitation to start and the reason; Send (Start research) is unavailable.
-      expect(
-        [...host.querySelectorAll("article.e-turn")].map((item) => item.getAttribute("aria-label")),
-      ).toEqual(["Start research", "Embel status"]);
+      expect([...host.querySelectorAll("article.e-turn")].map((item) => item.getAttribute("aria-label"))).toEqual([
+        "Start research",
+        "Embel status",
+      ]);
       expect(button("Start research")?.disabled).toBe(true);
       expect(host.querySelector('[role="status"][aria-label="Project save status"]')?.textContent).toBe("Saved");
       await act(async () => button("Check status")!.click());
@@ -271,7 +274,7 @@ describe("guided Strategy availability presentation", () => {
       await render();
       expect(notice()).toContain(reasons.find(([value]) => value === reason)![1]);
       expect(button("Try again")).toBeUndefined();
-      expect(button("Retry research")).toBeUndefined();
+      expect(button("Try again")).toBeUndefined();
       expect(button("Check status")?.disabled).toBe(false);
       expect(saveContext).not.toHaveBeenCalled();
       expect(strategy.enqueue).not.toHaveBeenCalled();
@@ -282,9 +285,7 @@ describe("guided Strategy availability presentation", () => {
     addGuidedTurn();
     strategy.overview = { availability: available, jobs: [boundJob("failed")] };
     await render();
-    expect(notice()).toContain(
-      "Research could not produce verified suggestions. Your brief is saved.",
-    );
+    expect(notice()).toContain("Research could not produce verified suggestions. Your brief is saved.");
     expect(button("Try again")?.disabled).toBe(false);
     await act(async () => button("Try again")!.click());
     expect(saveContext).toHaveBeenCalledOnce();
@@ -315,7 +316,7 @@ describe("guided Strategy availability presentation", () => {
     await render();
     expect(host.querySelector('[aria-label="Researching your competitors"]')).not.toBeNull();
     expect(notice()).toBe("");
-    expect(button("Retry research")).toBeUndefined();
+    expect(button("Try again")).toBeUndefined();
     expect(strategy.enqueue).not.toHaveBeenCalled();
   });
 });

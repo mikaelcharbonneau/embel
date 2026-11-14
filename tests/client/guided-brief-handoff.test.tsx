@@ -88,7 +88,9 @@ it("keeps the Naming canvas mounted while editing the brief and awaiting its sav
     await render();
     const canvas = host.querySelector("[data-naming]");
     const input = host.querySelector<HTMLInputElement>('[aria-label="Naming draft"]')!;
-    await act(async () => host.querySelector<HTMLButtonElement>(".guided-brief-editor button[aria-label='Edit brief']")!.click());
+    await act(async () =>
+      host.querySelector<HTMLButtonElement>(".guided-brief-editor button[aria-label='Edit brief']")!.click(),
+    );
     expect(host.querySelector("[data-naming]")).toBe(canvas);
     expect(tracker.unmounts).toBe(0);
     workspace = { ...workspace, draft: { ...workspace.draft, title: "An edited title" } };

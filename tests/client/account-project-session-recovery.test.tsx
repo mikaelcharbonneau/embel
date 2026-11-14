@@ -86,7 +86,7 @@ async function mount() {
 }
 async function typePrompt(text: string) {
   await act(async () => {
-    const field = host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!;
+    const field = host.querySelector<HTMLTextAreaElement>(":is(.conversation-composer, .workspace-reply) textarea")!;
     Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(field, text);
     field.dispatchEvent(new Event("input", { bubbles: true }));
   });
@@ -164,7 +164,7 @@ it.each([0, 1])(
 it("keeps unsent conversation text through same-owner verification and protects unsaved exit", async () => {
   await mount();
   await typePrompt("Please keep my unsent message");
-  expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!.value).toBe(
+  expect(host.querySelector<HTMLTextAreaElement>(":is(.conversation-composer, .workspace-reply) textarea")!.value).toBe(
     "Please keep my unsent message",
   );
   expect(account.drafts.hasUnsaved()).toBe(true);
@@ -173,7 +173,7 @@ it("keeps unsent conversation text through same-owner verification and protects 
   expect(beforeUnload.defaultPrevented).toBe(true);
   await act(async () => account.refresh());
   expect(account.session).toMatchObject({ status: "ready", userId: owner, generation: 2 });
-  expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!.value).toBe(
+  expect(host.querySelector<HTMLTextAreaElement>(":is(.conversation-composer, .workspace-reply) textarea")!.value).toBe(
     "Please keep my unsent message",
   );
   expect(account.drafts.hasUnsaved()).toBe(true);
@@ -402,11 +402,13 @@ it("hides an unsent message while identity is checking and restores only the sam
   );
   await act(async () => account.refresh());
   expect(account.session.status).toBe("checking");
-  expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")).toBeNull();
+  expect(host.querySelector<HTMLTextAreaElement>(":is(.conversation-composer, .workspace-reply) textarea")).toBeNull();
   expect(host.textContent).not.toContain("Private unsent text");
   expect(account.drafts.hasUnsaved()).toBe(true);
   await act(async () => verification.resolve(Response.json({ user: { id: owner } })));
-  expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!.value).toBe("Private unsent text");
+  expect(host.querySelector<HTMLTextAreaElement>(":is(.conversation-composer, .workspace-reply) textarea")!.value).toBe(
+    "Private unsent text",
+  );
   const otherOwner = "dddddddd-1111-4111-8111-111111111111";
   fetcher.mockImplementation(async (path: string) =>
     path === "/api/session" ? Response.json({ user: { id: otherOwner } }) : new Response(null, { status: 404 }),
@@ -420,7 +422,9 @@ it("hides an unsent message while identity is checking and restores only the sam
     path === "/api/session" ? Response.json({ user: { id: owner } }) : Response.json({ project }),
   );
   await act(async () => account.refresh());
-  expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!.value).toBe("");
+  expect(host.querySelector<HTMLTextAreaElement>(":is(.conversation-composer, .workspace-reply) textarea")!.value).toBe(
+    "",
+  );
 });
 
 it("cannot republish a late guided PATCH after another owner has been verified", async () => {
@@ -631,18 +635,22 @@ it.each([false, true])(
       project = { ...project, current_revision: 2, context: JSON.parse(String(init.body)).context };
       throw new TypeError("Lost submitted prompt acknowledgement");
     });
-    await act(async () => host.querySelector<HTMLButtonElement>('button[title="Send prompt"]')!.click());
-    expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!.value).toBe(
-      "The submitted question",
+    await act(async () =>
+      host
+        .querySelector<HTMLButtonElement>(':is(button[title="Send prompt"], button[aria-label="Send prompt"])')!
+        .click(),
     );
+    expect(
+      host.querySelector<HTMLTextAreaElement>(":is(.conversation-composer, .workspace-reply) textarea")!.value,
+    ).toBe("The submitted question");
     if (newerTyping) await typePrompt("A different unsent question");
     await retrySave();
     expect(patches).toBe(1);
     expect(project.context.intake.conversation).toHaveLength(1);
     expect(project.context.intake.conversation![0]).toMatchObject({ text: "The submitted question" });
-    expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!.value).toBe(
-      newerTyping ? "A different unsent question" : "",
-    );
+    expect(
+      host.querySelector<HTMLTextAreaElement>(":is(.conversation-composer, .workspace-reply) textarea")!.value,
+    ).toBe(newerTyping ? "A different unsent question" : "");
     expect(account.drafts.hasUnsaved()).toBe(newerTyping);
   },
 );
@@ -682,7 +690,11 @@ it.each([false, true])(
         },
       });
     });
-    await act(async () => host.querySelector<HTMLButtonElement>('button[title="Send prompt"]')!.click());
+    await act(async () =>
+      host
+        .querySelector<HTMLButtonElement>(':is(button[title="Send prompt"], button[aria-label="Send prompt"])')!
+        .click(),
+    );
     expect(project.current_revision).toBe(1);
     expect(account.drafts.hasUnsaved()).toBe(true);
     if (newerTyping) await typePrompt("Keep this different unsent question");
@@ -691,9 +703,9 @@ it.each([false, true])(
     expect(requests[2]!.body).toBe(requests[0]!.body);
     expect(project.context.intake.conversation).toHaveLength(1);
     expect(project.context.intake.conversation![0]).toMatchObject({ text: "A submitted question after rate limiting" });
-    expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!.value).toBe(
-      newerTyping ? "Keep this different unsent question" : "",
-    );
+    expect(
+      host.querySelector<HTMLTextAreaElement>(":is(.conversation-composer, .workspace-reply) textarea")!.value,
+    ).toBe(newerTyping ? "Keep this different unsent question" : "");
     expect(account.drafts.hasUnsaved()).toBe(newerTyping);
     if (newerTyping) {
       await typePrompt("");
@@ -732,7 +744,8 @@ it.each([false, true])(
       });
     });
     await act(async () =>
-      [...host.querySelectorAll("button")].find((button) => button.textContent === "Continue")!.click(),
+      // Send confirms the chosen option (decision 2).
+      host.querySelector<HTMLButtonElement>('button[aria-label^="Continue to"]')!.click(),
     );
     expect(project.current_revision).toBe(1);
     expect(account.drafts.hasUnsaved()).toBe(true);
@@ -750,9 +763,9 @@ it.each([false, true])(
     expect(
       project.context.audienceSegments.filter((segment) => segment.selected).map((segment) => segment.label),
     ).toEqual(["Neighbors"]);
-    expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!.value).toBe(
-      newerTyping ? "Keep this unsent follow-up to my choice" : "",
-    );
+    expect(
+      host.querySelector<HTMLTextAreaElement>(":is(.conversation-composer, .workspace-reply) textarea")!.value,
+    ).toBe(newerTyping ? "Keep this unsent follow-up to my choice" : "");
     expect(account.drafts.hasUnsaved()).toBe(newerTyping);
     if (newerTyping) {
       await typePrompt("");

@@ -725,7 +725,6 @@ export function AccountGuidedInterview({
     }
   }
 
-
   const checkingResearch =
     currentTurn?.stage === "competitors" &&
     currentTurn.purpose !== "message" &&
@@ -780,7 +779,9 @@ export function AccountGuidedInterview({
   const voiceShown =
     reached === "voice" ||
     Boolean(state?.answers.some((answer) => answer.stage === "personality")) ||
-    timeline.some((item) => item.kind === "turn" && (item.turn.stage === "personality" || item.turn.stage === "slogan"));
+    timeline.some(
+      (item) => item.kind === "turn" && (item.turn.stage === "personality" || item.turn.stage === "slogan"),
+    );
   const identityShown = state?.stage === "complete" && nameChosen && saved.scope === "complete_brand";
   // Logo and Creative direction follow Inspiration, each after the previous step's
   // Send, when the project has already reached it, or when a link points at it.
@@ -937,8 +938,7 @@ export function AccountGuidedInterview({
       : "Checking research status…";
   const hasComposer = saved.scope === "complete_brand" || Boolean(state);
   const embelWorking = Boolean(active || checkingResearch);
-  const researchFailed =
-    Boolean(failed) && currentTurn?.stage === "competitors" && currentTurn.purpose !== "message";
+  const researchFailed = Boolean(failed) && currentTurn?.stage === "competitors" && currentTurn.purpose !== "message";
   const canStartResearch = Boolean(
     strategy.overview && !strategy.readError && guidedAllowance(availability, "strategy.competitors"),
   );
@@ -966,6 +966,12 @@ export function AccountGuidedInterview({
     ].filter((label): label is string => Boolean(label));
   }
   const answerFor = (stage: GuidedStage) => state?.answers.find((answer) => answer.stage === stage);
+  // The question as Embel asked it, for the Edit buttons of folded answers.
+  const questionOf = (stage: GuidedStage) => {
+    const answer = answerFor(stage),
+      asked = answer ? replyOf(answer.turnId) : null;
+    return asked?.kind === "choices" ? asked.question : stageQuestions[stage];
+  };
   const answeredTurnIds = new Set(state?.answers.map((answer) => answer.turnId));
   let cut = -1;
   timeline.forEach((item, index) => {
@@ -1003,21 +1009,21 @@ export function AccountGuidedInterview({
       <FoldedPart
         label="Competitors"
         answers={competitorNames}
-        editName={`Edit your answer: ${stageQuestions.competitors}`}
+        editName={`Edit your answer: ${questionOf("competitors")}`}
         disabled={editDisabled}
         onEdit={() => void revisit("competitors", turnOf("competitors")?.userMessageId ?? null)}
       />
       <FoldedPart
         label="Audience"
         answers={audienceAnswer ? answerLabels(audienceAnswer) : []}
-        editName={`Edit your answer: ${stageQuestions.audience}`}
+        editName={`Edit your answer: ${questionOf("audience")}`}
         disabled={editDisabled}
         onEdit={() => void revisit("audience", turnOf("audience")?.userMessageId ?? null)}
       />
       <FoldedPart
         label="Positioning"
         answers={answerLabels(positioningAnswer)}
-        editName={`Edit your answer: ${stageQuestions.positioning}`}
+        editName={`Edit your answer: ${questionOf("positioning")}`}
         disabled={editDisabled}
         onEdit={() => void revisit("positioning", turnOf("positioning")?.userMessageId ?? null)}
       />
@@ -1028,7 +1034,7 @@ export function AccountGuidedInterview({
         <FoldedAnswer
           label="Competitors"
           answers={[{ text: `${competitorNames.length} kept` }]}
-          editName={`Edit your answer: ${stageQuestions.competitors}`}
+          editName={`Edit your answer: ${questionOf("competitors")}`}
           onEdit={() => void revisit("competitors", turnOf("competitors")?.userMessageId ?? null)}
           editDisabled={editDisabled}
         >
@@ -1039,7 +1045,7 @@ export function AccountGuidedInterview({
         <FoldedAnswer
           label="Audience"
           answers={answerLabels(audienceAnswer).map((text) => ({ text }))}
-          editName={`Edit your answer: ${stageQuestions.audience}`}
+          editName={`Edit your answer: ${questionOf("audience")}`}
           onEdit={() => void revisit("audience", turnOf("audience")?.userMessageId ?? null)}
           editDisabled={editDisabled}
         />
@@ -1067,7 +1073,7 @@ export function AccountGuidedInterview({
         <FoldedPart
           label="Personality"
           answers={answerLabels(personalityAnswer)}
-          editName={`Edit your answer: ${stageQuestions.personality}`}
+          editName={`Edit your answer: ${questionOf("personality")}`}
           disabled={editDisabled}
           onEdit={() => void revisit("personality", turnOf("personality")?.userMessageId ?? null)}
         />
@@ -1082,7 +1088,7 @@ export function AccountGuidedInterview({
       <FoldedPart
         label="Slogan"
         answers={sloganAnswer?.customText ? [sloganAnswer.customText] : []}
-        editName={`Edit your answer: ${stageQuestions.slogan}`}
+        editName={`Edit your answer: ${questionOf("slogan")}`}
         disabled={editDisabled}
         onEdit={() => void revisit("slogan", turnOf("slogan")?.userMessageId ?? null)}
       />
@@ -1093,7 +1099,7 @@ export function AccountGuidedInterview({
         <FoldedAnswer
           label="Personality"
           answers={answerLabels(personalityAnswer).map((text) => ({ text }))}
-          editName={`Edit your answer: ${stageQuestions.personality}`}
+          editName={`Edit your answer: ${questionOf("personality")}`}
           onEdit={() => void revisit("personality", turnOf("personality")?.userMessageId ?? null)}
           editDisabled={editDisabled}
         />
@@ -1120,7 +1126,9 @@ export function AccountGuidedInterview({
       {logoShown && view !== "inspiration" && (
         <FoldedAnswer
           label="Inspiration"
-          answers={likes === null ? [{ text: "Your likes", icon: "heart" }] : [{ text: `${likes} liked`, icon: "heart" }]}
+          answers={
+            likes === null ? [{ text: "Your likes", icon: "heart" }] : [{ text: `${likes} liked`, icon: "heart" }]
+          }
           editLabel="Edit inspiration"
           onEdit={() => setReopened("inspiration")}
         />
@@ -1225,10 +1233,12 @@ export function AccountGuidedInterview({
   const status =
     embelWorking &&
     (researching ? (
-      <div className="e-stack e-stack--sm conversation-progress" role="status" aria-label="Researching your competitors">
-        <p>
-          {stopping ? "Cancelling research…" : "Researching your competitors and the pages they were found on."}
-        </p>
+      <div
+        className="e-stack e-stack--sm conversation-progress"
+        role="status"
+        aria-label="Researching your competitors"
+      >
+        <p>{stopping ? "Cancelling research…" : "Researching your competitors and the pages they were found on."}</p>
         <div className="e-progress" data-state={stopping ? "stopping" : "running"} aria-hidden="true">
           <div className="e-progress__track" />
         </div>
@@ -1291,12 +1301,7 @@ export function AccountGuidedInterview({
             </Button>
           )}
           {!(researchFailed && canRetry) && (
-            <Button
-              variant="quiet"
-              size="sm"
-              disabled={busy || working || strategy.pending}
-              onClick={strategy.refresh}
-            >
+            <Button variant="quiet" size="sm" disabled={busy || working || strategy.pending} onClick={strategy.refresh}>
               Check status
             </Button>
           )}
@@ -1309,7 +1314,9 @@ export function AccountGuidedInterview({
   const sloganTurn = choiceTurn?.stage === "slogan" ? choiceTurn : null;
   const sloganReply = sloganTurn ? guidedTurnResult(jobs, sloganTurn, account.userId, saved.id)?.reply : null;
   const choiceReply =
-    choiceTurn && choiceTurn.stage !== "slogan" ? guidedTurnResult(jobs, choiceTurn, account.userId, saved.id)?.reply : null;
+    choiceTurn && choiceTurn.stage !== "slogan"
+      ? guidedTurnResult(jobs, choiceTurn, account.userId, saved.id)?.reply
+      : null;
 
   const identityCopy: Record<"inspiration" | "logo" | "directions" | "finished", { label: string; text: string }> = {
     inspiration: {
@@ -1461,7 +1468,8 @@ export function AccountGuidedInterview({
       );
     const stage = workStage;
     const title = stage === "competitors" ? "Competitors" : undefined;
-    if (embelWorking || (state && !problem && pendingStage)) return <GuidedChoicesLoading stage={stage} title={title} />;
+    if (embelWorking || (state && !problem && pendingStage))
+      return <GuidedChoicesLoading stage={stage} title={title} />;
     if (!state && saved.scope !== "complete_brand") return null;
     return <GuidedChoicesEmpty stage={stage} title={title} research={stage === "competitors"} />;
   })();
@@ -1470,7 +1478,9 @@ export function AccountGuidedInterview({
       <GuidedSlogan
         reply={sloganReply}
         brandName={brandName}
-        choice={sloganChoice?.turnId === sloganTurn.id ? sloganChoice : { turnId: sloganTurn.id, chosen: null, own: "" }}
+        choice={
+          sloganChoice?.turnId === sloganTurn.id ? sloganChoice : { turnId: sloganTurn.id, chosen: null, own: "" }
+        }
         onChoice={setSloganChoice}
         disabled={Boolean(blocked)}
         onSkip={() => void skipSlogan(sloganTurn.id)}
@@ -1590,7 +1600,8 @@ export function AccountGuidedInterview({
     }
     return null;
   })();
-  const stepAction = (view === "logo" || view === "directions") && stepReply?.step === view ? stepReplyAction(stepReply) : null;
+  const stepAction =
+    (view === "logo" || view === "directions") && stepReply?.step === view ? stepReplyAction(stepReply) : null;
   const action = replyRegistry.action ?? stepAction ?? ownAction ?? replyRegistry.fallback;
   const namingComposerShown = namingOpen && Boolean(namingQuestionId);
   const replyBox = (
@@ -1662,9 +1673,7 @@ type ExternalReply = {
   reply?: "inline" | "external";
   onReplyChange?: (reply: Omit<StepReplyLike, "step"> | null) => void;
 };
-const LogoStep = LogoCreationWorkspace as ComponentType<
-  ComponentProps<typeof LogoCreationWorkspace> & ExternalReply
->;
+const LogoStep = LogoCreationWorkspace as ComponentType<ComponentProps<typeof LogoCreationWorkspace> & ExternalReply>;
 const DirectionsStep = VisualDirectionsPage as ComponentType<
   ComponentProps<typeof VisualDirectionsPage> & ExternalReply
 >;

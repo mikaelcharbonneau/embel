@@ -2,7 +2,6 @@
 
 import {
   createContext,
-
   useContext,
   useEffect,
   useId,
@@ -279,7 +278,12 @@ export function Workspace({
             onKeyDown={resizeByKey}
           />
         )}
-        <div ref={main} className={`e-workspace__main conversation-work${rowsClass}`} aria-label={workLabel} role="region">
+        <div
+          ref={main}
+          className={`e-workspace__main conversation-work${rowsClass}`}
+          aria-label={workLabel}
+          role="region"
+        >
           {notices?.notices}
           {work}
         </div>

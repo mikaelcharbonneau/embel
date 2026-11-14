@@ -86,7 +86,6 @@ function choices(option: GuidedOption, additional: GuidedOption[] = []): ChoiceR
   };
 }
 
-
 let host: HTMLDivElement;
 let root: Root;
 const onSelectionChange = vi.fn<(ids: string[]) => void>();

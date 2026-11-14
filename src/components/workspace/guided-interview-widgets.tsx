@@ -75,10 +75,7 @@ function Tags({ items }: { items: readonly string[] }) {
 function OptionDetails({ option, recommended }: { option: GuidedOption; recommended: boolean }) {
   const badge = recommended ? <span className="e-badge guided-option__recommended">Recommended</span> : null;
   const reason =
-    recommended &&
-    option.recommendationReason &&
-    option.stage !== "competitors" &&
-    option.stage !== "positioning" ? (
+    recommended && option.recommendationReason && option.stage !== "competitors" && option.stage !== "positioning" ? (
       <Detail label="Why we recommend it">{option.recommendationReason}</Detail>
     ) : null;
   if (option.stage === "competitors")
@@ -358,7 +355,15 @@ export function GuidedChoicesLoading({ stage, title }: { stage: GuidedStage; tit
 }
 
 /** The step's work area after a response did not finish: a quiet empty state; the recovery is in the chat. */
-export function GuidedChoicesEmpty({ stage, title, research }: { stage: GuidedStage; title?: string; research?: boolean }) {
+export function GuidedChoicesEmpty({
+  stage,
+  title,
+  research,
+}: {
+  stage: GuidedStage;
+  title?: string;
+  research?: boolean;
+}) {
   return (
     <section className="e-stack e-stack--lg conversation-step" aria-label={title ?? stageQuestions[stage]}>
       <StepHeading
