@@ -624,7 +624,7 @@ state("library", "kept-assets-pro", "audit-pro", async (page) => {
 });
 state("library", "all-generations-pro", "audit-pro", async (page) => {
   await open(page, "audit-pro", "/assets");
-  await page.getByRole("tab", { name: "All generations" }).click();
+  await page.getByRole("tab", { name: "Everything made" }).click();
   await page.getByText(/assets loaded/u).waitFor({ timeout: 30_000 });
   await loaded(page, { extra: 1200 });
 });
@@ -675,14 +675,19 @@ state("home", "generation-activity-dialog-pro", "audit-pro", async (page) => {
   await page.getByRole("dialog", { name: "Activity", exact: true }).waitFor({ timeout: 15_000 });
   await loaded(page);
 });
+/** Opens the folded Voice entry in the chat (its buttons are hidden, so not found by role, while it is closed). */
+async function openVoiceFold(page) {
+  await page
+    .locator("details.conversation-folded")
+    .filter({ has: page.locator(".e-answer__question", { hasText: /^Voice$/u }) })
+    .locator("summary")
+    .click();
+}
 state("brand-conversation", "kestrel-change-name-open-pro", "audit-pro", async (page) => {
   await open(page, "audit-pro", `/brands/account/${brand("kestrel")}?view=strategy`);
   await page.waitForTimeout(2500);
   // The name is folded in the chat with the rest of Voice: open it, then Change name.
-  await page
-    .locator("details.conversation-folded", { has: page.getByRole("button", { name: "Change name" }) })
-    .locator("summary")
-    .click();
+  await openVoiceFold(page);
   await page.getByRole("button", { name: "Change name" }).click();
   await page.waitForTimeout(2500);
   await loaded(page, { extra: 1200 });
@@ -691,6 +696,7 @@ state("brand-conversation", "kestrel-change-name-open-pro", "audit-pro", async (
 state("brand-conversation", "kestrel-name-details-pro", "audit-pro", async (page) => {
   await open(page, "audit-pro", `/brands/account/${brand("kestrel")}?view=strategy`);
   await page.waitForTimeout(2500);
+  await openVoiceFold(page);
   await page.getByRole("button", { name: "Change name" }).click();
   await page
     .getByRole("region", { name: "Naming exploration", exact: true })
