@@ -1,27 +1,38 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useMemo, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 import { brandBoardContrastRatio as contrast } from "@/domain/brand-board-design";
 import { brandBoardFont } from "@/domain/brand-board-fonts";
 import { guidedSlogan } from "@/domain/guided-interview";
-import { journeyPartLabel } from "@/domain/journey";
 import type { ContextSnapshot } from "@/domain/projects";
-import { EmbelIdentity } from "@/components/workspace/embel-identity";
+import { Button, buttonClass, Spinner } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
+import { MediaFrame, type MediaRatio } from "@/components/ui/media-frame";
+import { Menu } from "@/components/ui/menu";
+import { InlineMessage } from "@/components/ui/message";
+import { useToast } from "@/components/ui/toast";
 import type { BrandAssetFile, PreparedBrandAssets } from "../client/build-pack";
-import { BRAND_APPLICATIONS, logoSurfaces } from "../model/artwork";
+import { BRAND_APPLICATIONS } from "../model/artwork";
 import {
-  CORNERS,
   designTokens,
   designTokensCss,
   designTokensJson,
   readableBrandColor,
-  SPACING,
   TYPE_SCALE,
 } from "../model/design-tokens";
-import { plainBrandNotes } from "../model/guides";
 import type { BrandAssetSnapshot } from "../model/snapshot";
-import { downloadLabel, fileFormat, KitPalette, logoDownloadLabel } from "./brand-kit-contents";
+import { ColorSwatches, ManualCopy, useCopy } from "./brand-kit-contents";
 import styles from "./brand-assets.module.css";
 
 type Props = {
@@ -29,14 +40,34 @@ type Props = {
   pack: PreparedBrandAssets | null;
   previews: ReadonlyMap<string, string> | undefined;
   downloadFile(file?: BrandAssetFile): void;
+  /** A download is being checked and started. */
   disabled: boolean;
   projectId: string;
   context: ContextSnapshot | null;
   directionTitle?: string;
   /** Progress of preparing or downloading the kit, announced politely. */
   status: string;
+  /** The brand images are still being drawn. */
+  preparing?: boolean;
+  /** Draws the kit again, for images that could not be prepared. */
+  onRetry?(): void;
+  /** A message about the whole kit, shown under the download button. */
+  notice?: ReactNode;
 };
-type TypeStyle = BrandAssetSnapshot["heading"];
+type Tab = "images" | "guidelines" | "system";
+const TABS: readonly [Tab, string][] = [
+  ["images", "Brand images"],
+  ["guidelines", "Brand guidelines"],
+  ["system", "Design system"],
+];
+const COUNT = ["No", "One", "Two", "Three", "Four", "Five", "Six"];
+const SOCIAL_RATIO: Record<string, MediaRatio> = {
+  profile: "1x1",
+  "post-square": "1x1",
+  "post-portrait": "4x5",
+  "banner-wide": "3x1",
+  "banner-cover": "4x1",
+};
 
 function saveText(name: string, type: string, text: string) {
   const url = URL.createObjectURL(new Blob([text], { type }));
@@ -64,27 +95,36 @@ function FontFaces({ snapshot }: { snapshot: BrandAssetSnapshot }) {
   );
 }
 
-/** Shows a prepared file's own bytes through a local object URL that lives
- * exactly as long as the image element. */
-function FileImage({ file, alt }: { file: BrandAssetFile; alt: string }) {
-  const show = useCallback(
-    (image: HTMLImageElement | null) => {
-      if (!image) return;
-      const url = URL.createObjectURL(new Blob([file.bytes], { type: file.mimeType }));
-      image.src = url;
-      return () => URL.revokeObjectURL(url);
-    },
-    [file],
+/** The guidelines file itself, so the page and the download are one document.
+ * Scripts never run inside it; links open in a new tab. */
+function GuideDocument({ file, title, active }: { file: BrandAssetFile; title: string; active: boolean }) {
+  const frame = useRef<HTMLIFrameElement>(null);
+  const html = useMemo(() => new TextDecoder().decode(file.bytes), [file]);
+  const fit = useCallback(() => {
+    const document = frame.current?.contentDocument?.documentElement;
+    if (frame.current && document?.scrollHeight) frame.current.style.height = `${document.scrollHeight}px`;
+  }, []);
+  useEffect(() => {
+    if (!active) return;
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [active, fit]);
+  return (
+    <iframe
+      ref={frame}
+      className={styles.guide}
+      title={title}
+      srcDoc={html}
+      sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+      onLoad={fit}
+    />
   );
-  return <img ref={show} alt={alt} />; // eslint-disable-line @next/next/no-img-element
 }
 
-/** Ends a sentence after a quotation without doubling its own punctuation. */
-const quotedEnding = (quote: string) => (/[.!?…。！？]["'”’)]*$/u.test(quote) ? "" : ".");
-
-/** Assets: a summary with the whole kit, then Brand images, Brand guidelines and
- * the Design system, each as one of Embel's messages, built only from the saved
- * brand and the chosen direction. */
+/** Assets: one delivery page with the whole kit behind one button and three tabs
+ * (Brand images, Brand guidelines, Design system), each file downloadable on its
+ * own. Everything shown is built from the saved brand and the chosen direction. */
 export function AssetsJourney({
   snapshot,
   pack,
@@ -95,495 +135,486 @@ export function AssetsJourney({
   context,
   directionTitle,
   status,
+  preparing = !pack,
+  onRetry,
+  notice = null,
 }: Props) {
-  const files = pack?.files ?? [];
-  const tokens = useMemo(() => designTokens(snapshot), [snapshot]);
+  const id = useId();
+  const toast = useToast();
+  const [tab, setTab] = useState<Tab>("images");
+  const tabs = useRef(new Map<Tab, HTMLButtonElement | null>());
   const [format, setFormat] = useState<"css" | "json">("css");
+  const { copy, failed: copyFailed } = useCopy();
+  const files = pack?.files ?? [];
+  const failed = pack?.failed ?? [];
+  const tokens = useMemo(() => designTokens(snapshot), [snapshot]);
   const slogan = context ? guidedSlogan(context) : null;
   const positioning = context?.positioning || null;
-  const p = snapshot.palette,
-    surfaces = logoSurfaces(snapshot);
-  const colorName = (hex: string) =>
-    snapshot.colors.find((color) => color.hex.toLowerCase() === hex.toLowerCase())?.name ?? hex;
-  const fileButton = (file: BrandAssetFile, item: string) => (
-    <button
-      key={file.name}
-      type="button"
-      className="button secondary small"
-      disabled={disabled}
-      aria-label={`Download ${item} as ${file.editable ? "editable " : ""}${fileFormat(file)}`}
-      onClick={() => downloadFile(file)}
-    >
-      {downloadLabel(file)}
-    </button>
-  );
-  const logoFiles = files.filter((file) => file.category === "logo");
-  // The prepared logo files' own bytes are shown, so the page matches the downloads.
-  const logoFile = logoFiles.find((file) => file.name === "logo/logo-transparent.png");
-  const reversedFile = logoFiles.find((file) => file.name === "logo/logo-reversed.png");
-  const guide = files.find((file) => file.category === "guide" && file.mimeType === "text/html");
+  const p = snapshot.palette;
+  const base = `/brands/account/${projectId}`;
   const board = files.find((file) => file.category === "board");
   const boardPreview = board ? previews?.get(board.name) : undefined;
-  const base = `/brands/account/${projectId}`;
-  const audience = context?.audienceSegments.filter((item) => item.selected).map((item) => item.label) ?? [];
+  const guide = files.find((file) => file.category === "guide" && file.mimeType === "text/html");
+  const fileNamed = (name: string) => files.find((file) => file.name === name);
+  const failedNamed = (name: string) => failed.some((item) => item.name === name);
   const heading = {
     fontFamily: `"${snapshot.heading.family}", system-ui, sans-serif`,
     fontWeight: snapshot.heading.weight,
   };
-  const body = { fontFamily: `"${snapshot.body.family}", system-ui, sans-serif`, fontWeight: snapshot.body.weight };
-  const typePair: [string, TypeStyle, CSSProperties][] = [
-    ["Headings", snapshot.heading, heading],
-    ["Body", snapshot.body, body],
-  ];
-  const traits = context?.personality
-    ? Object.entries(context.personality)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 2)
-        .map(([key]) => key)
-    : [];
+  const body: CSSProperties = {
+    fontFamily: `"${snapshot.body.family}", system-ui, sans-serif`,
+    fontWeight: snapshot.body.weight,
+  };
   const exportText = format === "css" ? designTokensCss(tokens) : designTokensJson(tokens);
-  const inDirection = directionTitle ? `in your chosen direction, ${directionTitle}` : "in your chosen direction";
-  // The accent is shown as text only where it is readable; otherwise as a fill.
+  // The accent carries text only where it is readable; otherwise it is a fill.
   const accentReadable = contrast(p.accent, p.background) >= 4.5;
+  const imageCount = BRAND_APPLICATIONS.length + 1;
+  const hint = preparing
+    ? "The brand kit can be downloaded when your brand images are ready."
+    : `Logo files, ${failed.length ? `${imageCount - failed.length} of ${imageCount} images` : "images"}, guidelines and tokens · ZIP · ${files.length} files`;
+
+  const onTabKey = (event: KeyboardEvent<HTMLDivElement>) => {
+    const at = TABS.findIndex(([key]) => key === tab);
+    const to =
+      event.key === "ArrowRight"
+        ? (at + 1) % TABS.length
+        : event.key === "ArrowLeft"
+          ? (at - 1 + TABS.length) % TABS.length
+          : event.key === "Home"
+            ? 0
+            : event.key === "End"
+              ? TABS.length - 1
+              : null;
+    if (to === null) return;
+    event.preventDefault();
+    const next = TABS[to]![0];
+    setTab(next);
+    tabs.current.get(next)?.focus();
+  };
+  const panel = (key: Tab) => ({
+    id: `${id}-${key}-panel`,
+    role: "tabpanel",
+    "aria-labelledby": `${id}-${key}-tab`,
+    hidden: tab !== key,
+    className: styles.panel,
+  });
+
+  const download = (file: BrandAssetFile | undefined, label: string, kind: string) => (
+    <Button
+      size="sm"
+      icon="download"
+      aria-label={`Download ${label} as ${kind}`}
+      disabled={!file || disabled}
+      onClick={() => file && downloadFile(file)}
+    >
+      Download {kind}
+    </Button>
+  );
+  const downloadMenu = (png: BrandAssetFile | undefined, svg: BrandAssetFile | undefined, label: string) =>
+    png ? (
+      <Menu
+        items={[
+          { kind: "action", label: "PNG image", icon: "image", onSelect: () => downloadFile(png) },
+          ...(svg
+            ? [
+                {
+                  kind: "action" as const,
+                  label: "SVG you can edit",
+                  icon: "pencil" as const,
+                  onSelect: () => downloadFile(svg),
+                },
+              ]
+            : []),
+        ]}
+        trigger={(props) => (
+          <Button {...props} size="sm" icon="download" aria-label={`Download ${label}`} disabled={disabled}>
+            Download
+            <Icon name="chevron-down" size="sm" />
+          </Button>
+        )}
+      />
+    ) : (
+      <Button size="sm" icon="download" aria-label={`Download ${label}`} disabled>
+        Download
+        <Icon name="chevron-down" size="sm" />
+      </Button>
+    );
+  const picture = (name: string, ratio: MediaRatio, alt: string, flush = false) => {
+    const preview = previews?.get(`${name}.png`);
+    const className = flush ? styles.flush : undefined;
+    if (preview) return <MediaFrame ratio={ratio} src={preview} alt={alt} className={className} />;
+    if (failedNamed(name) || (pack && !preview))
+      return (
+        <MediaFrame ratio={ratio} state="failed" failedText="This image couldn’t be prepared." className={className} />
+      );
+    return <MediaFrame ratio={ratio} state="loading" className={className} />;
+  };
+  const socialCards = BRAND_APPLICATIONS.filter((spec) => spec.width / spec.height < 2);
+  const banners = BRAND_APPLICATIONS.filter((spec) => spec.width / spec.height >= 2);
+  const meta = (spec: (typeof BRAND_APPLICATIONS)[number]) =>
+    `${spec.width} × ${spec.height} · ${spec.editable ? "PNG and SVG" : "PNG"}`;
+  const failedNames = failed.map((item) => `the ${item.label.toLowerCase()}`);
+  const failedList =
+    failedNames.length > 1 ? `${failedNames.slice(0, -1).join(", ")} and ${failedNames.at(-1)}` : failedNames[0];
 
   return (
-    <div className="kit-journey">
+    <div className={styles.page}>
       <FontFaces snapshot={snapshot} />
+      <header className="e-stack e-stack--xs">
+        <h1 className={styles.title} translate="no">
+          {snapshot.name}
+        </h1>
+        <p className={styles.lead}>
+          Your brand kit, made from your logo and your direction{directionTitle ? `, ${directionTitle}` : ""}.
+        </p>
+      </header>
 
-      <div className={styles.summary}>
-        <div>
-          <h2 className={styles.summaryTitle}>Your brand kit</h2>
-          <p>
-            Logo files, brand images, guidelines and design tokens for {snapshot.name}, {inDirection}.
-          </p>
-        </div>
-        <div className={styles.summaryAction}>
-          <button type="button" className="button primary" disabled={disabled} onClick={() => downloadFile()}>
-            Download brand kit
+      <div className="e-stack e-stack--sm">
+        <div className="e-section-bar">
+          <div className="e-tabs" role="tablist" aria-label="Your brand kit" onKeyDown={onTabKey}>
+            {TABS.map(([key, label]) => (
+              <button
+                key={key}
+                ref={(node) => {
+                  tabs.current.set(key, node);
+                }}
+                type="button"
+                className="e-tab"
+                role="tab"
+                id={`${id}-${key}-tab`}
+                aria-controls={`${id}-${key}-panel`}
+                aria-selected={tab === key}
+                tabIndex={tab === key ? 0 : -1}
+                onClick={() => setTab(key)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            className={buttonClass({ variant: "primary" })}
+            aria-describedby={`${id}-kit`}
+            aria-busy={preparing || disabled || undefined}
+            disabled={disabled}
+            onClick={() => downloadFile()}
+          >
+            {preparing ? <Spinner /> : <Icon name="download" size="sm" />}
+            {preparing ? "Preparing brand kit" : "Download brand kit"}
           </button>
-          <p className={styles.status} role="status">
-            {status}
-          </p>
         </div>
+        <p className="e-section__hint e-tabular" id={`${id}-kit`}>
+          {hint}
+        </p>
+        <p className="e-sr" role="status">
+          {status}
+        </p>
       </div>
 
-      <article id="assets-images" className="guided-assistant-message kit-message" aria-label="Brand images">
-        <EmbelIdentity label={journeyPartLabel("assets", "Brand images")} />
-        <p className="guided-assistant-copy">
-          {snapshot.name} is coming together. Here are your brand images {inDirection}: a brand board with your logo,
-          colors and type on one page, and images for your social accounts. Download any of them, or the whole kit.
-        </p>
-        {board && (
-          <section className="kit-card" aria-labelledby="assets-board-title">
-            <h2 id="assets-board-title" className={styles.cardTitle}>
-              Brand board
-            </h2>
-            <figure className="kit-image kit-board">
-              <div className="kit-image-frame">
-                {boardPreview ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={boardPreview} alt={`${snapshot.name} final brand board`} />
-                ) : (
-                  <span role="status">Preparing…</span>
-                )}
-              </div>
-              <figcaption className={styles.caption}>
-                <span>
-                  <strong>Your logo, colors and type on one page</strong>
-                </span>
-                <span className="kit-actions">{fileButton(board, "brand board")}</span>
-              </figcaption>
-            </figure>
-          </section>
-        )}
-        <section className="kit-card" aria-labelledby="assets-social-title">
-          <h2 id="assets-social-title" className={styles.cardTitle}>
-            Social images and templates
-          </h2>
-          <p className="kit-hint">Posts and banners also come as editable SVG templates.</p>
-          <div className="kit-images">
-            {BRAND_APPLICATIONS.map((spec) => {
-              const png = files.find((file) => file.name === `social/${spec.id}.png`);
-              const svg = files.find((file) => file.name === `social/${spec.id}.svg`);
-              const preview = png && previews?.get(png.name);
-              return (
-                <figure key={spec.id} className="kit-image" data-wide={spec.width / spec.height > 1.5}>
-                  <div className="kit-image-frame" style={{ aspectRatio: `${spec.width} / ${spec.height}` }}>
-                    {preview ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={preview} alt={`${snapshot.name} ${spec.label.toLowerCase()}`} />
-                    ) : (
-                      <span role="status">{pack ? "Not available" : "Preparing…"}</span>
-                    )}
-                  </div>
-                  <figcaption className={styles.caption}>
-                    <span>
-                      <strong>{spec.label}</strong>
-                      <small>
-                        {spec.width} × {spec.height}
-                      </small>
-                    </span>
-                    <span className="kit-actions">
-                      {png && fileButton(png, spec.label.toLowerCase())}
-                      {svg && fileButton(svg, spec.label.toLowerCase())}
-                    </span>
-                  </figcaption>
-                </figure>
-              );
-            })}
+      {notice}
+      {preparing && (
+        <div className="e-card e-card--pad">
+          <div className="e-progress" data-state="running">
+            <div className="e-progress__row">
+              <p className="e-progress__status">
+                Preparing your brand images and guidelines. This usually takes under a minute. Your design system is
+                ready now.
+              </p>
+            </div>
+            <div className="e-progress__track" />
+          </div>
+        </div>
+      )}
+      {failed.length > 0 && (
+        <InlineMessage
+          tone="danger"
+          actions={
+            onRetry && (
+              <Button size="sm" icon="rotate-ccw" onClick={onRetry} disabled={disabled}>
+                Retry {failed.length} {failed.length === 1 ? "image" : "images"}
+              </Button>
+            )
+          }
+        >
+          {COUNT[failed.length] ?? failed.length} brand {failed.length === 1 ? "image" : "images"} couldn’t be prepared:{" "}
+          {failedList}. Everything else is ready.
+        </InlineMessage>
+      )}
+
+      <div {...panel("images")}>
+        <section className="e-compare" aria-labelledby={`${id}-board`}>
+          <div className={`e-card ${styles.cardClip}`}>
+            {boardPreview ? (
+              <MediaFrame
+                ratio="8x11"
+                src={boardPreview}
+                alt={`${snapshot.name} final brand board`}
+                className={styles.flush}
+              />
+            ) : (
+              picture("brand-board", "8x11", "", true)
+            )}
+          </div>
+          <div className="e-compare__side">
+            <div className="e-stack e-stack--sm">
+              <h2 className="e-section__title" id={`${id}-board`}>
+                Brand board
+              </h2>
+              <p>Your logo, colors and type on one page, with details from your direction.</p>
+              <p className="e-section__hint e-tabular">1600 × 2200 · PNG</p>
+            </div>
+            <div>{download(board, "brand board", "PNG")}</div>
           </div>
         </section>
-        <div className="kit-footer">
-          <span>{BRAND_APPLICATIONS.length} social images · Next: Brand guidelines</span>
-          <a className="button primary" href="#assets-guidelines">
-            Continue
-          </a>
-        </div>
-      </article>
 
-      <article id="assets-guidelines" className="guided-assistant-message kit-message" aria-label="Brand guidelines">
-        <EmbelIdentity label={journeyPartLabel("assets", "Brand guidelines")} />
-        <p className="guided-assistant-copy">
-          Here are your brand guidelines: everything someone needs to use {snapshot.name} consistently. Edit takes you
-          to the step that sets each part.
-        </p>
-        <nav className="kit-sections" aria-label="Guideline sections">
-          {["Overview", "Logo", "Colors", "Typography", "Voice", "Imagery"].map((name) => (
-            <a key={name} href={`#g-${name.toLowerCase()}`}>
-              {name}
-            </a>
-          ))}
-        </nav>
-        <section className="kit-card kit-document" aria-labelledby="assets-guidelines-title">
-          <h2 id="assets-guidelines-title" className={styles.cardTitle}>
-            Brand guidelines
-          </h2>
-          <section id="g-overview">
-            <div className="kit-section-head">
-              <h3>Overview</h3>
-              <Link href={`${base}?view=strategy#journey-strategy`}>Edit</Link>
-            </div>
-            <p className="kit-brand-name" style={heading}>
-              {snapshot.name}
+        <section className="e-section" aria-labelledby={`${id}-social`}>
+          <div className="e-section__head">
+            <h2 className="e-section__title" id={`${id}-social`}>
+              Social images
+            </h2>
+            <p className="e-section__hint">
+              Ready to upload as PNG. Posts and banners also come as SVG files you can edit.
             </p>
-            {slogan && (
-              <p className="kit-slogan" style={body}>
-                {slogan}
-              </p>
-            )}
-            {(positioning || audience.length > 0) && (
-              <dl>
-                {positioning && (
-                  <div>
-                    <dt>Positioning</dt>
-                    <dd>{positioning}</dd>
+          </div>
+          <ul className={`e-grid-cards ${styles.list}`} aria-label="Profile image and post templates">
+            {socialCards.map((spec) => {
+              const png = fileNamed(`social/${spec.id}.png`),
+                svg = fileNamed(`social/${spec.id}.svg`),
+                label = spec.label.toLowerCase();
+              return (
+                <li key={spec.id} className={`e-card ${styles.socialCard}`}>
+                  <div className={styles.stage}>
+                    {picture(`social/${spec.id}`, SOCIAL_RATIO[spec.id]!, `${snapshot.name} ${label}`)}
                   </div>
-                )}
-                {audience.length > 0 && (
-                  <div>
-                    <dt>Audience</dt>
-                    <dd>{audience.join(" · ")}</dd>
-                  </div>
-                )}
-              </dl>
-            )}
-          </section>
-          <section id="g-logo">
-            <div className="kit-section-head">
-              <h3>Logo</h3>
-              <Link href={`${base}/logo`}>Edit</Link>
-            </div>
-            <div className={styles.logoTiles}>
-              <figure className={styles.logoTile}>
-                <div className={styles.logoSurface} style={{ background: surfaces.light }}>
-                  {logoFile ? (
-                    <FileImage file={logoFile} alt={`${snapshot.name} logo on ${colorName(surfaces.light)}`} />
-                  ) : (
-                    !pack && <span role="status">Preparing…</span>
-                  )}
-                </div>
-                <figcaption>On light backgrounds</figcaption>
-              </figure>
-              {surfaces.dark && (
-                <figure className={styles.logoTile}>
-                  <div className={styles.logoSurface} data-tone="dark" style={{ background: surfaces.dark }}>
-                    {reversedFile ? (
-                      <FileImage
-                        file={reversedFile}
-                        alt={`${snapshot.name} logo, one-color reversed version on ${colorName(surfaces.dark)}`}
-                      />
-                    ) : (
-                      !pack && <span role="status">Preparing…</span>
-                    )}
-                  </div>
-                  <figcaption>Reversed version, for dark backgrounds</figcaption>
-                </figure>
-              )}
-            </div>
-            <p>
-              Give the logo clear space and keep it away from other text and images. On light backgrounds, use the copy
-              with a transparent background; on dark backgrounds, the one-color reversed version. Don’t stretch the logo
-              or change its colors otherwise.
-            </p>
-            {logoFiles.length > 0 && (
-              <div className="kit-actions">
-                {logoFiles.map((file) => (
-                  <button
-                    key={file.name}
-                    type="button"
-                    className="button secondary small"
-                    disabled={disabled}
-                    onClick={() => downloadFile(file)}
-                  >
-                    {logoDownloadLabel(file)}
-                  </button>
-                ))}
-              </div>
-            )}
-          </section>
-          <section id="g-colors">
-            <div className="kit-section-head">
-              <h3>Colors</h3>
-              <Link href={`${base}/logo/directions`}>Edit</Link>
-            </div>
-            <KitPalette colors={snapshot.colors} />
-            {snapshot.colorNotes && <p>{plainBrandNotes(snapshot, snapshot.colorNotes)}</p>}
-          </section>
-          <section id="g-typography">
-            <div className="kit-section-head">
-              <h3>Typography</h3>
-              <Link href={`${base}/logo/directions`}>Edit</Link>
-            </div>
-            <div className="kit-type-pair">
-              {typePair.map(([role, style, css]) => {
-                const font = brandBoardFont(style.family);
-                return (
-                  <div key={role}>
-                    <div className="kit-section-head">
-                      <span>
-                        {role} · {style.family} {style.weight}
-                      </span>
-                      {font && (
-                        <a href={font.url} target="_blank" rel="noopener noreferrer">
-                          Font link ↗
-                        </a>
-                      )}
+                  <div className={`e-card__body ${styles.cardBody}`}>
+                    <div className="e-stack e-stack--xs">
+                      <h3 className="e-card__title">{spec.label}</h3>
+                      <span className="e-card__meta e-tabular">{meta(spec)}</span>
                     </div>
-                    <p style={css}>
-                      {role === "Headings"
-                        ? (slogan ?? snapshot.name)
-                        : positioning || `${snapshot.name}, set in its body type.`}
-                    </p>
+                    <div>{spec.editable ? downloadMenu(png, svg, label) : download(png, label, "PNG")}</div>
                   </div>
-                );
-              })}
-            </div>
-            {snapshot.typeNotes && <p>{plainBrandNotes(snapshot, snapshot.typeNotes)}</p>}
-          </section>
-          <section id="g-voice">
-            <div className="kit-section-head">
-              <h3>Voice</h3>
-              <Link href={`${base}?view=strategy#journey-voice`}>Edit</Link>
-            </div>
-            {traits.length ? (
-              <p>
-                Leads with {traits.join(" and ")}
-                {slogan ? (
-                  <>
-                    , as in “{slogan}”{quotedEnding(slogan)}
-                  </>
-                ) : (
-                  "."
-                )}
-              </p>
-            ) : (
-              <p>Set the personality in Voice to describe how {snapshot.name} sounds.</p>
-            )}
-          </section>
-          <section id="g-imagery">
-            <div className="kit-section-head">
-              <h3>Imagery</h3>
-              <Link href={`${base}/logo/directions`}>Edit</Link>
-            </div>
-            {snapshot.graphicNotes && <p>{plainBrandNotes(snapshot, snapshot.graphicNotes)}</p>}
-            {snapshot.compositionNotes && <p>{plainBrandNotes(snapshot, snapshot.compositionNotes)}</p>}
-          </section>
+                </li>
+              );
+            })}
+          </ul>
+          <ul className={`e-stack ${styles.list}`} aria-label="Banners">
+            {banners.map((spec) => {
+              const png = fileNamed(`social/${spec.id}.png`),
+                svg = fileNamed(`social/${spec.id}.svg`),
+                label = spec.label.toLowerCase();
+              return (
+                <li key={spec.id} className={`e-card ${styles.cardClip}`}>
+                  {picture(`social/${spec.id}`, SOCIAL_RATIO[spec.id]!, `${snapshot.name} ${label}`, true)}
+                  <div className="e-card__body">
+                    <div className="e-cluster e-cluster--between">
+                      <div className="e-stack e-stack--xs">
+                        <h3 className="e-card__title">{spec.label}</h3>
+                        <span className="e-card__meta e-tabular">{meta(spec)}</span>
+                      </div>
+                      {downloadMenu(png, svg, label)}
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         </section>
-        <div className="kit-footer">
-          <span>Next: Design system</span>
-          {guide && (
-            <button type="button" className="button secondary" disabled={disabled} onClick={() => downloadFile(guide)}>
-              Download guidelines
-            </button>
-          )}
-          <a className="button primary" href="#assets-system">
-            Continue
-          </a>
-        </div>
-      </article>
+      </div>
 
-      <article id="assets-system" className="guided-assistant-message kit-message" aria-label="Design system">
-        <EmbelIdentity label={journeyPartLabel("assets", "Design system")} />
-        <p className="guided-assistant-copy">
-          Last piece: a design system, so your website, shop or app looks like {snapshot.name} from day one. Copy the
-          values you need, or download them for your tools.
-        </p>
-        <section className="kit-card kit-document" aria-labelledby="assets-system-title">
-          <h2 id="assets-system-title" className={styles.cardTitle}>
-            Design system
-          </h2>
-          <section>
-            <h3>Preview</h3>
-            <div className="kit-preview" style={{ background: p.background, color: p.text, ...body }}>
-              <p className="kit-preview-title" style={{ ...heading, color: p.text }}>
-                {slogan ?? snapshot.name}
+      <div {...panel("guidelines")}>
+        <section className="e-section" aria-labelledby={`${id}-guide`}>
+          <div className="e-cluster e-cluster--between e-cluster--top">
+            <div className="e-section__head">
+              <h2 className="e-section__title" id={`${id}-guide`}>
+                Brand guidelines
+              </h2>
+              <p className="e-section__hint">
+                Everything someone needs to use <span translate="no">{snapshot.name}</span> consistently. The file you
+                download is this document.
               </p>
+            </div>
+            <Button
+              icon="download"
+              className="e-button--block-compact"
+              disabled={!guide || disabled}
+              onClick={() => guide && downloadFile(guide)}
+            >
+              Download guidelines
+            </Button>
+          </div>
+          <p className="e-section__hint">
+            To change something, go back to the step it comes from:{" "}
+            <Link className="e-link" href={`${base}/logo`}>
+              Logo
+            </Link>
+            ,{" "}
+            <Link className="e-link" href={`${base}/logo/directions`}>
+              Creative direction
+            </Link>{" "}
+            or{" "}
+            <Link className="e-link" href={`${base}?view=strategy#journey-voice`}>
+              Voice
+            </Link>
+            .
+          </p>
+          <div className={`e-card ${styles.cardClip}`}>
+            {guide ? (
+              <GuideDocument file={guide} title={`${snapshot.name} brand guidelines`} active={tab === "guidelines"} />
+            ) : (
+              <MediaFrame ratio="8x11" state="loading" className={styles.flush} />
+            )}
+          </div>
+        </section>
+      </div>
+
+      <div {...panel("system")}>
+        <section className="e-section" aria-labelledby={`${id}-system`}>
+          <div className="e-section__head">
+            <h2 className="e-section__title" id={`${id}-system`}>
+              Design system
+            </h2>
+            <p className="e-section__hint">
+              So your website, shop or app looks like <span translate="no">{snapshot.name}</span> from day one. Copy the
+              values you need, or download them for your tools.
+            </p>
+          </div>
+          <div className={`e-card ${styles.cardClip}`}>
+            <div
+              className={styles.preview}
+              role="img"
+              aria-label={`Preview: a heading, a sentence and two buttons in the ${snapshot.name} colors and type`}
+              style={{ background: p.background, color: p.text, ...body }}
+            >
+              <p style={{ ...heading, fontSize: 32, lineHeight: 1.15 }}>{slogan ?? snapshot.name}</p>
               {positioning && <p>{positioning}</p>}
-              <div className="kit-preview-actions">
+              <span className={styles.previewActions}>
                 <span
                   style={{
                     background: p.primary,
                     color: readableBrandColor(snapshot, p.primary, [p.background]),
-                    borderRadius: 999,
                   }}
                 >
                   Get started
                 </span>
-                <span style={{ border: `1px solid ${p.text}`, borderRadius: 999 }}>Learn more</span>
-              </div>
-              {accentReadable ? (
-                <span className="kit-preview-accent" style={{ color: p.accent }}>
-                  {snapshot.name}
-                </span>
-              ) : (
                 <span
-                  className={styles.previewHighlight}
-                  style={{ background: p.accent, color: readableBrandColor(snapshot, p.accent) }}
+                  style={{ borderColor: p.primary, color: readableBrandColor(snapshot, p.background, [p.primary]) }}
+                >
+                  Learn more
+                </span>
+                <span
+                  className={styles.pill}
+                  data-accent={accentReadable ? "text" : "fill"}
+                  style={
+                    accentReadable
+                      ? { color: p.accent, borderColor: p.accent }
+                      : { background: p.accent, color: readableBrandColor(snapshot, p.accent, [p.primary]) }
+                  }
+                  translate="no"
                 >
                   {snapshot.name}
                 </span>
-              )}
+              </span>
             </div>
-          </section>
-          <section>
-            <h3>Color tokens</h3>
-            <div role="table" aria-label="Color tokens" className="kit-tokens">
-              {tokens.colors.map((color) => (
-                <div role="row" key={color.key}>
-                  <span role="cell" className="kit-chip" style={{ background: color.hex }} aria-hidden="true" />
-                  <span role="cell">{color.name}</span>
-                  <span role="cell">
-                    {color.hex} <small>· {color.use}</small>
-                  </span>
-                </div>
+          </div>
+        </section>
+
+        <section className="e-section" aria-labelledby={`${id}-colors`}>
+          <h2 className="e-section__title" id={`${id}-colors`}>
+            Colors
+          </h2>
+          <ColorSwatches colors={tokens.colors} />
+        </section>
+
+        <section className="e-section" aria-labelledby={`${id}-type`}>
+          <h2 className="e-section__title" id={`${id}-type`}>
+            Type scale
+          </h2>
+          <div className="e-card e-card--pad" style={{ background: p.background, color: p.text }}>
+            <div className={styles.typeScale} translate="no">
+              {TYPE_SCALE.map((step) => {
+                const style = step.role === "heading" ? snapshot.heading : snapshot.body;
+                return (
+                  <div key={step.key}>
+                    <span className={styles.typeLabel}>
+                      {step.label} · {step.size} / {style.family} {style.weight}
+                    </span>
+                    <span
+                      style={{
+                        ...(step.role === "heading" ? heading : body),
+                        fontSize: step.size,
+                        lineHeight: step.lineHeight,
+                      }}
+                    >
+                      {step.role === "heading"
+                        ? step.key === "display"
+                          ? snapshot.name
+                          : (slogan ?? snapshot.name)
+                        : positioning || snapshot.name}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section className="e-section" aria-labelledby={`${id}-export`}>
+          <div className={styles.exportHead}>
+            <h2 className="e-section__title" id={`${id}-export`}>
+              Export
+            </h2>
+            <div className="e-segmented" role="group" aria-label="Format">
+              {(["css", "json"] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className="e-segmented__item"
+                  aria-pressed={format === value}
+                  onClick={() => setFormat(value)}
+                >
+                  {value.toUpperCase()}
+                </button>
               ))}
             </div>
-          </section>
-          <section>
-            <h3>Type scale</h3>
-            <div className="kit-scale">
-              {TYPE_SCALE.map((step) => (
-                <div key={step.key}>
-                  <small>
-                    {step.label} · {step.size} / {(step.role === "heading" ? snapshot.heading : snapshot.body).family}{" "}
-                    {(step.role === "heading" ? snapshot.heading : snapshot.body).weight}
-                  </small>
-                  <span
-                    style={{
-                      ...(step.role === "heading" ? heading : body),
-                      fontSize: step.size,
-                      lineHeight: step.lineHeight,
-                    }}
-                  >
-                    {step.role === "heading"
-                      ? step.key === "display"
-                        ? snapshot.name
-                        : (slogan ?? snapshot.name)
-                      : positioning || snapshot.name}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </section>
-          <section className="kit-two">
-            <div>
-              <h3>Spacing</h3>
-              <div className="kit-spacing">
-                {SPACING.map((value) => (
-                  <span key={value}>
-                    <i style={{ width: value, height: value }} />
-                    {value}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div>
-              <h3>Corners</h3>
-              <div className="kit-corners">
-                {CORNERS.map((corner) => (
-                  <span key={corner.key}>
-                    <i style={{ borderRadius: corner.value }} />
-                    {corner.key === "pill" ? corner.label : `${corner.label} · ${corner.value}`}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </section>
-          <section>
-            <div className="kit-section-head">
-              <h3>Export</h3>
-              <div role="group" aria-label="Format" className="naming-filter">
-                {(["css", "json"] as const).map((value) => (
-                  <button key={value} type="button" aria-pressed={format === value} onClick={() => setFormat(value)}>
-                    {value.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <pre className="kit-code" tabIndex={0}>
+          </div>
+          <div className="e-code">
+            <pre tabIndex={0} translate="no">
               {exportText}
             </pre>
-            <div className="kit-actions">
-              <button
-                type="button"
-                className="button secondary small"
-                onClick={() => void navigator.clipboard?.writeText(exportText).catch(() => {})}
-              >
-                Copy
-              </button>
-              <button
-                type="button"
-                className="button secondary small"
-                onClick={() =>
-                  saveText(
-                    format === "css" ? "design-tokens.css" : "design-tokens.json",
-                    format === "css" ? "text/css" : "application/json",
-                    exportText,
-                  )
-                }
-              >
-                Download {format.toUpperCase()}
-              </button>
-            </div>
-          </section>
+            <button
+              type="button"
+              className="e-icon-button e-icon-button--quiet e-icon-button--sm"
+              aria-label={`Copy the ${format.toUpperCase()}`}
+              onClick={() =>
+                void copy(
+                  `tokens-${format}`,
+                  `Design tokens as ${format.toUpperCase()}`,
+                  exportText,
+                  `Copied the ${format.toUpperCase()}`,
+                )
+              }
+            >
+              <Icon name="copy" size="sm" />
+            </button>
+          </div>
+          <ManualCopy failed={copyFailed} />
+          <div className="e-form-actions">
+            <Button
+              icon="download"
+              onClick={() => {
+                saveText(
+                  format === "css" ? "design-tokens.css" : "design-tokens.json",
+                  format === "css" ? "text/css" : "application/json",
+                  exportText,
+                );
+                toast("Design tokens downloaded");
+              }}
+            >
+              Download {format.toUpperCase()}
+            </Button>
+          </div>
         </section>
-        <div className="kit-footer">
-          <span>
-            {pack
-              ? `Logo files, images, guidelines and tokens · ZIP · ${pack.files.length} files`
-              : "Preparing your files…"}
-          </span>
-          <button
-            type="button"
-            className="button primary"
-            aria-label="Download brand kit as a ZIP file"
-            disabled={disabled}
-            onClick={() => downloadFile()}
-          >
-            Download brand kit
-          </button>
-        </div>
-      </article>
+      </div>
     </div>
   );
 }

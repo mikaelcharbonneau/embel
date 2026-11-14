@@ -13,6 +13,7 @@ import {
 import {
   brandCopy,
   createBrandApplication,
+  createFinalBrandBoard,
   BRAND_APPLICATIONS,
 } from "../../../src/features/brand-assets/model/artwork";
 
@@ -126,7 +127,10 @@ describe("browser asset verification and resource lifetimes", () => {
       "fetch",
       vi.fn(async (path: string) => new Response(readFileSync(`public${path}`))),
     );
-    const copy = brandCopy(f.snapshot, { slogan: "Clear routes for every city." });
+    const copy = brandCopy(f.snapshot, {
+      slogan: "Clear routes for every city.",
+      positioning: "For city cyclists, a calm route planner.",
+    });
     const fonts = await loadBrandFonts(
       [createBrandApplication(f.snapshot, BRAND_APPLICATIONS[1], copy)],
       new AbortController().signal,
@@ -156,7 +160,7 @@ describe("browser asset verification and resource lifetimes", () => {
       vi.fn(async () => new Response("changed font")),
     );
     await expect(
-      loadBrandFonts([createBrandApplication(f.snapshot, BRAND_APPLICATIONS[1])], new AbortController().signal),
+      loadBrandFonts([createFinalBrandBoard(f.snapshot)], new AbortController().signal),
     ).rejects.toMatchObject({ reason: "font" });
     expect(load).not.toHaveBeenCalled();
   });
@@ -194,7 +198,7 @@ describe("browser asset verification and resource lifetimes", () => {
       heading: { ...f.snapshot.heading, family: font.family, font },
       body: { ...f.snapshot.body, family: font.family, font },
     };
-    const art = createBrandApplication(snapshot, BRAND_APPLICATIONS[3]);
+    const art = createFinalBrandBoard(snapshot);
     const fonts = await loadBrandFonts([art, art], new AbortController().signal);
     expect(original.byteLength).toBeGreaterThan(2 * 1024 * 1024);
     expect(fetch).toHaveBeenCalledExactlyOnceWith(
@@ -215,7 +219,7 @@ describe("browser asset verification and resource lifetimes", () => {
     const f = setup();
     vi.stubGlobal("FontFace", class {});
     Object.defineProperty(document, "fonts", { configurable: true, value: { add: vi.fn(), delete: vi.fn() } });
-    const art = createBrandApplication({ ...f.snapshot, name }, BRAND_APPLICATIONS[3]);
+    const art = createFinalBrandBoard({ ...f.snapshot, name });
     await expect(loadBrandFonts([art], new AbortController().signal)).rejects.toMatchObject({ reason });
     expect(fetch).not.toHaveBeenCalled();
   });
@@ -231,7 +235,7 @@ describe("browser asset verification and resource lifetimes", () => {
       vi.fn(async () => new Response(Buffer.concat([original, Buffer.from([0])]))),
     );
     await expect(
-      loadBrandFonts([createBrandApplication(f.snapshot, BRAND_APPLICATIONS[3])], new AbortController().signal),
+      loadBrandFonts([createFinalBrandBoard(f.snapshot)], new AbortController().signal),
     ).rejects.toMatchObject({ reason: "size" });
     expect(add).not.toHaveBeenCalled();
   });

@@ -11,7 +11,3 @@ export async function brandMarkDataUri() {
   const svg = await readFile(join(process.cwd(), "public/embel-mark.svg"));
   return `data:image/svg+xml;base64,${svg.toString("base64")}`;
 }
-
-export function geistFont(weight: "Regular" | "Medium") {
-  return readFile(join(process.cwd(), `node_modules/geist/dist/fonts/geist-sans/Geist-${weight}.ttf`));
-}
