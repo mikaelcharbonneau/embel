@@ -17,7 +17,9 @@ import { buildBrandAssetPack, type PreparedBrandAssets, type BrandAssetFile } fr
 import { AssetsJourney } from "./assets-journey";
 import { guidedSlogan } from "@/domain/guided-interview";
 import type { ContextSnapshot } from "@/domain/projects";
-import styles from "./brand-assets.module.css";
+import { Button } from "@/components/ui/button";
+import { InlineMessage } from "@/components/ui/message";
+import { useToast } from "@/components/ui/toast";
 
 export type BrandAssetsPanelProps = {
   system: BrandAssetSystem;
@@ -69,7 +71,13 @@ export function BrandAssetsPanel(props: BrandAssetsPanelProps) {
       return { snapshot: null, error: errorMessage(error) };
     }
   }, [props.system, props.sourceLogo, props.account.userId, props.projectId]);
-  if (!result.snapshot) return <p role="alert">{result.error}</p>;
+  if (!result.snapshot)
+    return (
+      <section aria-label="Brand assets">
+        <h1 className="e-sr">Assets</h1>
+        <InlineMessage tone="danger">{result.error}</InlineMessage>
+      </section>
+    );
   return (
     <OwnedBrandAssets
       key={`${props.account.generation}:${JSON.stringify(result.snapshot)}:${props.vectorRevisionId ?? ""}`}
@@ -86,6 +94,8 @@ type Ready = {
 };
 type DownloadSession = Pick<Ready, "logoClient" | "identityClient"> & {
   download(file?: BrandAssetFile): Promise<void>;
+  /** Prepares the kit again from the saved sources. */
+  retry(): void;
 };
 
 function OwnedBrandAssets({
@@ -100,8 +110,24 @@ function OwnedBrandAssets({
   onRefreshSelection,
   context = null,
 }: BrandAssetsPanelProps & { snapshot: BrandAssetSnapshot }) {
+  const toast = useToast();
   const slogan = context ? guidedSlogan(context) : null,
     positioning = context?.positioning || null;
+  // Saved words the guidelines quote: the selected audience and the two leading personality traits.
+  const audience = useMemo(
+    () => context?.audienceSegments.filter((item) => item.selected).map((item) => item.label) ?? [],
+    [context],
+  );
+  const traits = useMemo(
+    () =>
+      context?.personality
+        ? Object.entries(context.personality)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 2)
+            .map(([key]) => key)
+        : [],
+    [context],
+  );
   const [ready, setReady] = useState<Ready | null>(null);
   const [downloading, setDownloading] = useState(false),
     [stale, setStale] = useState(false);
@@ -146,7 +172,17 @@ function OwnedBrandAssets({
       prepared = boundedBrandAssetWork(lifetime.signal, async (signal) => {
         await confirm(signal);
         const pack = await buildBrandAssetPack(
-          { snapshot, logoClient, identityClient, vectorRevisionId, slogan, positioning },
+          {
+            snapshot,
+            logoClient,
+            identityClient,
+            vectorRevisionId,
+            slogan,
+            positioning,
+            direction: directionTitle ?? null,
+            audience,
+            traits,
+          },
           signal,
         );
         await confirm(signal);
@@ -215,7 +251,8 @@ function OwnedBrandAssets({
         } finally {
           anchor.remove();
         }
-        setMessage("Download started. Check your browser’s downloads.");
+        setMessage("Ready to download.");
+        toast(file ? `${file.label} downloaded` : "Brand kit downloaded");
       } catch (cause) {
         // Preparation already reported its own failure. A transient download
         // failure leaves the verified previews available for another click.
@@ -235,7 +272,17 @@ function OwnedBrandAssets({
         if (current()) setDownloading(false);
       }
     }
-    session.current = { logoClient, identityClient, download };
+    function retry() {
+      if (!current() || downloadingFile || selectionChanged) return;
+      prepared = null;
+      releaseUrls();
+      setReady(null);
+      setMessage(null);
+      void prepare().catch(() => {
+        /* The panel displays the error; the next click retries. */
+      });
+    }
+    session.current = { logoClient, identityClient, download, retry };
     // A discarded Strict Mode mount must not start a second private asset read.
     queueMicrotask(() => {
       if (!current()) return;
@@ -252,7 +299,21 @@ function OwnedBrandAssets({
       session.current = null;
       releaseUrls();
     };
-  }, [snapshot, logoClient, identityClient, account, projectId, revalidate, vectorRevisionId, slogan, positioning]);
+  }, [
+    snapshot,
+    logoClient,
+    identityClient,
+    account,
+    projectId,
+    revalidate,
+    vectorRevisionId,
+    slogan,
+    positioning,
+    directionTitle,
+    audience,
+    traits,
+    toast,
+  ]);
 
   if (!identityClient.current() || !isAccountLogoClientCurrent(logoClient, account, projectId)) return null;
   const shown = ready?.logoClient === logoClient && ready.identityClient === identityClient ? ready : null;
@@ -260,25 +321,53 @@ function OwnedBrandAssets({
     const active = session.current;
     if (active?.logoClient === logoClient && active.identityClient === identityClient) void active.download(file);
   }
-  // Status appears beside the kit's Download button instead of a separate notice bar.
+  function retry() {
+    const active = session.current;
+    if (active?.logoClient === logoClient && active.identityClient === identityClient) active.retry();
+  }
+  // Announced politely beside the kit's Download button.
   const status = downloading
     ? "Preparing your download…"
     : message || (!error && !shown ? "Preparing your files…" : "");
-  return (
-    <section className={styles.panel} aria-label="Brand assets">
-      {error && (
-        <p className={styles.error} role="alert">
-          {error}
-        </p>
-      )}
-      {stale ? (
-        onRefreshSelection && (
-          <button type="button" className="button secondary" onClick={onRefreshSelection}>
-            Refresh kit
-          </button>
+  const notice = error ? (
+    <InlineMessage
+      tone="danger"
+      actions={
+        stale ? (
+          onRefreshSelection && (
+            <Button size="sm" icon="refresh-cw" onClick={onRefreshSelection}>
+              Refresh kit
+            </Button>
+          )
+        ) : (
+          <Button size="sm" icon="rotate-ccw" disabled={downloading} onClick={retry}>
+            Try again
+          </Button>
         )
+      }
+    >
+      {error}
+    </InlineMessage>
+  ) : null;
+  return (
+    <section aria-label="Brand assets">
+      {stale ? (
+        <div className="e-stack e-stack--lg">
+          <h1 className="e-sr">Assets</h1>
+          {notice}
+          {!error && onRefreshSelection && (
+            <div>
+              <Button icon="refresh-cw" onClick={onRefreshSelection}>
+                Refresh kit
+              </Button>
+            </div>
+          )}
+        </div>
       ) : (
         <AssetsJourney
+          notice={notice}
+          preparing={!shown && !error}
+          onRetry={retry}
           snapshot={snapshot}
           pack={shown?.pack ?? null}
           previews={shown?.previews}
