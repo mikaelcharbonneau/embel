@@ -12,12 +12,17 @@ import { useAccountSession, type VerifiedAccount } from "@/components/workspace/
 import { AssetWriteOutcomeUnknownError, assetErrorMessage, createAccountAssetsClient } from "./account-assets-client";
 import { appendAssetLibraryPage, AssetLibraryWindowChangedError, readAssetLibraryWindow } from "./asset-library-window";
 
+const libraryKey = (query: Pick<AssetLibraryQuery, "tab" | "projectId" | "format">) =>
+  `library:${query.tab}:${query.projectId ?? ""}:${query.format ?? ""}`;
+
 export function useAssetLibrary(account: VerifiedAccount) {
-  const { isCurrent, expire } = useAccountSession();
+  const { isCurrent, expire, viewCache } = useAccountSession();
   const [client] = useState(() => createAccountAssetsClient(account, isCurrent, expire));
   const [query, setQuery] = useState<AssetLibraryQuery>({ tab: "my_selection", limit: 40 });
   const requestedQuery = useRef(query);
-  const [page, setPage] = useState<AssetLibraryPage | null>(null);
+  // The view this tab last showed comes back at once and is re-read in place (D-073).
+  const [kept] = useState(() => viewCache?.get<AssetLibraryPage>(account, libraryKey(query)) ?? null);
+  const [page, setPage] = useState<AssetLibraryPage | null>(kept);
   const [projects, setProjects] = useState<AssetProjectSummary[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +32,11 @@ export function useAssetLibrary(account: VerifiedAccount) {
   const epoch = useRef(0),
     sequence = useRef(0),
     read = useRef<AbortController | null>(null);
-  const loaded = useRef<AssetLibraryPage | null>(null);
+  const loaded = useRef<AssetLibraryPage | null>(kept);
+  const keep = useCallback(
+    (value: AssetLibraryPage) => viewCache?.set(account, libraryKey(value.query), value),
+    [account, viewCache],
+  );
   const operation = useRef<{ kind: "retain" | "more" } | null>(null);
   useEffect(() => {
     client.activate();
@@ -73,6 +82,7 @@ export function useAssetLibrary(account: VerifiedAccount) {
           return;
         loaded.current = reply;
         setPage(reply);
+        keep(reply);
         setStatus("ready");
         setError(null);
         setNeedsCheck(false);
@@ -98,7 +108,7 @@ export function useAssetLibrary(account: VerifiedAccount) {
         }
       });
     return () => controller.abort();
-  }, [client, query, reload]);
+  }, [client, keep, query, reload]);
   const refresh = useCallback(() => {
     // A read cannot establish the outcome of an outstanding write. Its own
     // acknowledgment (or explicit recovery after failure) starts reconciliation.
@@ -112,6 +122,14 @@ export function useAssetLibrary(account: VerifiedAccount) {
     setError(null);
     setReload((value) => value + 1);
   }, []);
+  // The list updates itself when the person comes back to the tab; there is no Refresh button (D-035).
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && client.current()) refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [client, refresh]);
   function changeQuery(next: Omit<AssetLibraryQuery, "cursor" | "limit">) {
     if (operation.current) return;
     const current = requestedQuery.current;
@@ -217,6 +235,7 @@ export function useAssetLibrary(account: VerifiedAccount) {
       const combined = appendAssetLibraryPage(previous, reply);
       loaded.current = combined;
       setPage(combined);
+      keep(combined);
       setProjects((previous) => [
         ...new Map(
           [...previous, ...reply.items.map((item) => item.project)].map((project) => [project.id, project]),

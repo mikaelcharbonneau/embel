@@ -5,28 +5,50 @@ import { useEffect, useRef, useState } from "react";
 import type { AssetDetail, AssetLibraryItem } from "@/domain/asset-library";
 import type { LogoExportManifest } from "@/domain/logo-deliverables";
 import { describeAssetEvidence } from "@/features/identity-deliverables/model/asset-evidence";
+import { Button, IconButton } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/feedback";
 import { Icon } from "@/components/ui/icon";
-import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
-import { assetTitle } from "./asset-labels";
+import { Menu } from "@/components/ui/menu";
+import { InlineMessage } from "@/components/ui/message";
+import { assetStep, assetTitle } from "./asset-labels";
 import { AssetPreview } from "./asset-preview";
 import { assetErrorMessage, canReadAssetFile, type AccountAssetsClient } from "./account-assets-client";
 
+/** "Nov 12, 2026". */
+function longDate(iso: string) {
+  const date = new Date(iso);
+  return Number.isFinite(date.getTime())
+    ? date.toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })
+    : null;
+}
+
+/**
+ * One Library file (D-035, D-034): its picture whole, whether it is in the brand, where it was made, its versions
+ * and its file. Like and Save are toggles; Download checks the file before handing over a private link. Built on
+ * the system's Dialog, which stays open through development's double effects and returns focus to the opener.
+ */
 export function AssetDetailDialog({
   item,
+  name,
   client,
   onClose,
   onSelected,
+  retention,
   exportManifests = [],
   exportHref = (_manifestId, projectId) => `/brands/account/${projectId}/logo/deliverables`,
 }: {
   item: AssetLibraryItem;
+  /** The name its card showed ("Logo concept 3"). */
+  name?: string;
   client: AccountAssetsClient;
   onClose: () => void;
   onSelected: () => void;
+  /** Like and Save, run by the list so its cards and tabs stay in step. */
+  retention?: { busy: boolean; onToggle: (field: "liked" | "saved") => void };
   exportManifests?: readonly LogoExportManifest[];
   exportHref?: (manifestId: string, projectId: string) => string;
 }) {
-  const dialog = useRef<HTMLDialogElement>(null);
   const [exportEvidence, setExportEvidence] = useState<{
     versionId: string;
     manifest: LogoExportManifest | null;
@@ -35,22 +57,20 @@ export function AssetDetailDialog({
   const [choice, setChoice] = useState<string | null>(item.displayedVersion?.versionId ?? null);
   const [accepted, setAccepted] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [fileMessage, setFileMessage] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [fileMessage, setFileMessage] = useState<{ tone: "positive" | "danger"; text: string } | null>(null);
+  const [running, setRunning] = useState<"more" | "select" | "download" | null>(null);
+  const busy = running !== null;
   const [loading, setLoading] = useState(true);
   const [needsCheck, setNeedsCheck] = useState(false);
   const [reload, setReload] = useState(0);
   const sequence = useRef(0),
     inFlight = useRef(false),
     active = useRef(true);
+  const title = name ?? assetTitle(item.asset?.kind);
   useEffect(() => {
     active.current = true;
-    const element = dialog.current;
-    if (!element?.open) element?.showModal();
-    element?.querySelector<HTMLElement>("h2")?.focus();
     return () => {
       active.current = false;
-      element?.close();
     };
   }, []);
   useEffect(() => {
@@ -96,14 +116,19 @@ export function AssetDetailDialog({
       : exportManifests;
   const evidence = version ? describeAssetEvidence(version, manifests) : null;
   const isSelected = version?.versionId === detail?.selectedVersion?.versionId;
+  const latest = detail?.versions.items[0]?.versionNumber ?? 0;
   const confirmation =
     detail && version
       ? `${version.versionId}:${detail.project.current_revision}:${detail.asset.selectionRevision}`
       : null;
+  const chosen = Boolean(item.asset?.usage && (item.asset.usage.active || item.asset.usage.legacy));
+  const step = assetStep(item.asset?.kind);
+  const made = longDate(version?.createdAt ?? item.asset?.createdAt ?? "");
+
   async function loadMore() {
     if (!detail?.versions.nextCursor || inFlight.current) return;
     inFlight.current = true;
-    setBusy(true);
+    setRunning("more");
     const observed = ++sequence.current;
     try {
       const reply = await client.detail(detail.asset, { cursor: detail.versions.nextCursor });
@@ -113,7 +138,7 @@ export function AssetDetailDialog({
         reply.project.current_revision !== detail.project.current_revision
       ) {
         setNeedsCheck(true);
-        setError("This asset or its brand changed. Check the latest version before continuing.");
+        setError("This file or its brand changed. Check the latest version before continuing.");
         return;
       }
       const ids = new Set(detail.versions.items.map((row) => row.versionId));
@@ -128,7 +153,7 @@ export function AssetDetailDialog({
       if (active.current && client.current()) setError(assetErrorMessage(cause));
     } finally {
       inFlight.current = false;
-      if (active.current && client.current()) setBusy(false);
+      if (active.current && client.current()) setRunning(null);
     }
   }
   async function select() {
@@ -143,7 +168,7 @@ export function AssetDetailDialog({
       return;
     inFlight.current = true;
     sequence.current += 1;
-    setBusy(true);
+    setRunning("select");
     setError(null);
     try {
       const reply = await client.select(detail.asset, {
@@ -165,13 +190,13 @@ export function AssetDetailDialog({
       }
     } finally {
       inFlight.current = false;
-      if (active.current && client.current()) setBusy(false);
+      if (active.current && client.current()) setRunning(null);
     }
   }
   async function download() {
     if (!version || inFlight.current) return;
     inFlight.current = true;
-    setBusy(true);
+    setRunning("download");
     setFileMessage(null);
     try {
       const reply = await client.download(version);
@@ -184,230 +209,252 @@ export function AssetDetailDialog({
       document.body.append(anchor);
       anchor.click();
       anchor.remove();
-      setFileMessage("File checked. Download requested using a private link that expires in 60 seconds.");
+      setFileMessage({
+        tone: "positive",
+        text: "File checked. Your download uses a private link that expires in 60 seconds.",
+      });
     } catch (cause) {
-      if (active.current && client.current()) setFileMessage(assetErrorMessage(cause, "file"));
+      if (active.current && client.current())
+        setFileMessage({ tone: "danger", text: assetErrorMessage(cause, "file") });
     } finally {
       inFlight.current = false;
-      if (active.current && client.current()) setBusy(false);
+      if (active.current && client.current()) setRunning(null);
     }
   }
+
+  const versionLabel = (row: { versionNumber: number; format: string }) =>
+    `Version ${row.versionNumber}${row.versionNumber === latest ? " · Latest" : ""}`;
+  const fileState =
+    version?.fileState === "metadata_only"
+      ? "Metadata only — no stored file"
+      : version?.fileState === "missing_or_invalid"
+        ? "Missing or invalid file"
+        : null;
+
   return (
-    <dialog
-      ref={dialog}
+    <Dialog
+      size="lg"
+      media
       className="assets-detail"
-      aria-labelledby="asset-detail-heading"
-      // No `close` listener: this dialog closes by unmounting, and the effect
-      // cleanup's own close() would dismiss it when development re-runs effects.
-      onCancel={onClose}
-      onClick={(event) => {
-        if (isDialogBackdropClick(event)) onClose();
-      }}
-    >
-      <header>
-        <div>
-          <span className="assets-eyebrow">{item.project.title}</span>
-          <h2 id="asset-detail-heading" tabIndex={-1}>
-            {assetTitle(item.asset.kind)}
-          </h2>
-        </div>
-        <button type="button" className="assets-close" aria-label="Close asset details" onClick={onClose}>
-          <Icon name="close" size={19} />
-        </button>
-      </header>
-      {error && (
-        <div className="assets-notice" role="alert">
-          <p>{error}</p>
-          <button
-            className="button secondary small"
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              setLoading(true);
-              setAccepted(null);
-              setReload((value) => value + 1);
-            }}
-          >
-            Check latest asset
-          </button>
-        </div>
-      )}
-      {loading && (
-        <p className="assets-muted" role="status">
-          Loading version history…
-        </p>
-      )}
-      {detail && (
+      title={title}
+      closeLabel="Close asset details"
+      onClose={onClose}
+      footer={
         <>
-          <div className="assets-detail-summary">
-            <Link className="text-link" href={`/brands/account/${detail.project.id}`}>
-              {detail.project.title}
-              <Icon name="arrow" size={13} />
-            </Link>
-            <span>
-              {detail.selectedVersion
-                ? `Selected: version ${detail.selectedVersion.versionNumber} · ${detail.selectedVersion.format.toUpperCase()}`
-                : "No selected version"}
-            </span>
-          </div>
-          <div className="assets-detail-content">
-            <section aria-label="Version preview">
-              <AssetPreview
-                key={version?.versionId ?? "empty"}
-                version={version}
-                client={client}
-                label={`${assetTitle(item.asset.kind)}, version ${version?.versionNumber ?? ""}`}
+          {retention && (
+            <>
+              <IconButton
+                icon="heart"
+                variant="outlined"
+                label={`Like ${title}`}
+                pressed={item.asset.liked}
+                disabled={retention.busy}
+                onClick={() => retention.onToggle("liked")}
               />
+              <IconButton
+                icon="library"
+                variant="outlined"
+                label={`Save ${title} to your library`}
+                pressed={item.asset.saved}
+                disabled={retention.busy}
+                onClick={() => retention.onToggle("saved")}
+              />
+            </>
+          )}
+          <Button
+            variant="primary"
+            icon="download"
+            loading={running === "download"}
+            disabled={busy || !version || !canReadAssetFile(version)}
+            onClick={() => void download()}
+          >
+            Download {version ? version.format.toUpperCase() : "file"}
+          </Button>
+        </>
+      }
+    >
+      <div className="assets-detail__layout">
+        <AssetPreview
+          key={version?.versionId ?? "empty"}
+          version={version ?? (loading ? item.displayedVersion : null)}
+          client={client}
+          ratio="4x3"
+          className="assets-detail__media"
+          label={`${title}${version ? `, version ${version.versionNumber}` : ""}`}
+        />
+        <div className="e-stack e-stack--lg assets-detail__facts">
+          {chosen && (
+            <div>
+              <Badge icon="check">Chosen</Badge>
+            </div>
+          )}
+          <dl className="assets-evidence">
+            <div>
+              <dt>Brand</dt>
+              <dd>
+                <Link className="e-link" href={`/brands/account/${item.project.id}`}>
+                  {item.project.title}
+                </Link>
+              </dd>
+            </div>
+            {step && (
+              <div>
+                <dt>Step</dt>
+                <dd>{step}</dd>
+              </div>
+            )}
+            {made && (
+              <div>
+                <dt>Made</dt>
+                <dd>{made}</dd>
+              </div>
+            )}
+            {version && (
+              <div>
+                <dt>File</dt>
+                <dd>{fileState ? `${version.format.toUpperCase()} · ${fileState}` : version.format.toUpperCase()}</dd>
+              </div>
+            )}
+            {evidence && (
+              <>
+                <div>
+                  <dt>Origin</dt>
+                  <dd>{evidence.origin}</dd>
+                </div>
+                <div>
+                  <dt>Rights</dt>
+                  <dd>{evidence.rights}</dd>
+                </div>
+                <div>
+                  <dt>Vector</dt>
+                  <dd>{evidence.vector}</dd>
+                </div>
+              </>
+            )}
+          </dl>
+          {loading && (
+            <p className="e-muted" role="status">
+              Loading versions…
+            </p>
+          )}
+          {detail && (
+            <div className="e-stack e-stack--sm assets-versions">
+              <p className="e-field__label">Version</p>
               {version ? (
-                <>
-                  <div className="assets-version-title">
-                    <h3>Version {version.versionNumber}</h3>
-                    <span>
-                      {version.format.toUpperCase()}
-                      {isSelected ? " · Selected" : ""}
-                    </span>
-                  </div>
-                  <p className="assets-muted">
-                    {version.freshness.status === "stale"
-                      ? `Earlier brand context · revision ${version.inputRevision} of ${detail.project.current_revision}`
-                      : "Material context has not been verified."}
-                  </p>
-                  <dl className="assets-evidence">
-                    <div>
-                      <dt>File</dt>
-                      <dd>
-                        {version.fileState === "metadata_only"
-                          ? "Metadata only — no stored file"
-                          : version.fileState === "missing_or_invalid"
-                            ? "Missing or invalid file"
-                            : version.fileState === "verified"
-                              ? "File integrity checked"
-                              : "Checked when previewed or downloaded"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Origin</dt>
-                      <dd>{evidence?.origin}</dd>
-                    </div>
-                    <div>
-                      <dt>Rights</dt>
-                      <dd>{evidence?.rights}</dd>
-                    </div>
-                    <div>
-                      <dt>Vector</dt>
-                      <dd>{evidence?.vector}</dd>
-                    </div>
-                  </dl>
-                  {evidence?.approvedExportId && exportHref && (
-                    <Link className="text-link" href={exportHref(evidence.approvedExportId, version.projectId)}>
-                      View this brand’s export history
-                    </Link>
+                <Menu
+                  align="start"
+                  label="Versions"
+                  items={[
+                    ...detail.versions.items.map((row) => ({
+                      kind: "choice" as const,
+                      label: `${versionLabel(row)} · ${row.format.toUpperCase()}${
+                        row.versionId === detail.selectedVersion?.versionId ? " · Selected" : ""
+                      }`,
+                      checked: row.versionId === choice,
+                      onSelect: () => {
+                        setChoice(row.versionId);
+                        setAccepted(null);
+                        setFileMessage(null);
+                      },
+                    })),
+                    ...(detail.versions.nextCursor
+                      ? [
+                          { kind: "separator" as const },
+                          {
+                            kind: "action" as const,
+                            label: "Load more versions",
+                            disabled: busy || loading || needsCheck,
+                            onSelect: () => void loadMore(),
+                          },
+                        ]
+                      : []),
+                  ]}
+                  trigger={(props) => (
+                    <Button {...props} className="assets-version-title" disabled={busy}>
+                      {versionLabel(version)}
+                      <Icon name="chevron-down" size="sm" />
+                    </Button>
                   )}
-                  {version.freshness.status === "stale" && !isSelected && (
-                    <label className="assets-ack">
+                />
+              ) : (
+                <p className="e-muted">
+                  {detail.versions.items.length ? "Choose a version." : "No versions have been saved for this file."}
+                </p>
+              )}
+              <p className="e-muted">
+                {detail.selectedVersion
+                  ? `Version ${detail.selectedVersion.versionNumber} is the selected version of this file.`
+                  : "No version of this file is selected yet."}{" "}
+                {detail.versions.items.length} of {detail.versions.totalCount}{" "}
+                {detail.versions.totalCount === 1 ? "version" : "versions"} shown.
+              </p>
+              {version && !isSelected && (
+                <>
+                  {version.freshness.status === "stale" && (
+                    <label className="e-check assets-ack">
                       <input
+                        className="e-box"
                         type="checkbox"
                         checked={accepted === confirmation}
                         disabled={busy || needsCheck}
                         onChange={(event) => setAccepted(event.target.checked ? confirmation : null)}
                       />
-                      <span>I have reviewed this earlier version against the brand&apos;s current context.</span>
+                      <span className="e-check__text">
+                        This version was made from earlier brand details (revision {version.inputRevision} of{" "}
+                        {detail.project.current_revision}). I have checked it against the current ones.
+                      </span>
                     </label>
                   )}
-                  <div className="assets-detail-actions">
-                    <button
-                      className="button primary small"
-                      type="button"
+                  <div>
+                    <Button
+                      loading={running === "select"}
                       disabled={
                         busy ||
                         loading ||
                         needsCheck ||
-                        isSelected ||
                         (version.freshness.status === "stale" && accepted !== confirmation)
                       }
                       onClick={() => void select()}
                     >
-                      {isSelected
-                        ? "Selected version"
-                        : version.versionNumber < (detail.versions.items[0]?.versionNumber ?? 0)
-                          ? "Restore this version"
-                          : "Select this version"}
-                    </button>
-                    <button
-                      className="button secondary small"
-                      type="button"
-                      disabled={busy || !canReadAssetFile(version)}
-                      onClick={() => void download()}
-                    >
-                      Check and download
-                      <Icon name="arrow" size={13} />
-                    </button>
+                      {version.versionNumber < latest ? "Restore this version" : "Select this version"}
+                    </Button>
                   </div>
-                  <p className="assets-muted assets-footnote">
-                    Selecting a version updates this asset&apos;s selection. Brand use is recorded separately.
-                  </p>
-                  {fileMessage && (
-                    <p className="assets-notice" role="status">
-                      {fileMessage}
-                    </p>
-                  )}
                 </>
-              ) : (
-                <p className="assets-muted">Choose a version from the history.</p>
               )}
-            </section>
-            <section className="assets-history" aria-labelledby="assets-history-heading">
-              <div>
-                <h3 id="assets-history-heading">All versions</h3>
-                <span>
-                  {detail.versions.items.length} of {detail.versions.totalCount}
-                </span>
-              </div>
-              <ol>
-                {detail.versions.items.map((row) => (
-                  <li key={row.versionId}>
-                    <button
-                      type="button"
-                      aria-pressed={row.versionId === choice}
-                      disabled={busy}
-                      onClick={() => {
-                        setChoice(row.versionId);
-                        setAccepted(null);
-                        setFileMessage(null);
-                      }}
-                    >
-                      <strong>
-                        Version {row.versionNumber}
-                        <span>{row.format.toUpperCase()}</span>
-                      </strong>
-                      <small>
-                        {row.versionId === detail.selectedVersion?.versionId
-                          ? "Selected"
-                          : row.freshness.status === "stale"
-                            ? "Earlier context"
-                            : "Context unverified"}
-                      </small>
-                    </button>
-                  </li>
-                ))}
-              </ol>
-              {!detail.versions.items.length && (
-                <p className="assets-muted">No versions have been saved for this asset.</p>
-              )}
-              {detail.versions.nextCursor && (
-                <button
-                  className="button secondary small"
-                  type="button"
-                  disabled={busy || loading || needsCheck}
-                  onClick={() => void loadMore()}
+              {evidence?.approvedExportId && exportHref && (
+                <Link
+                  className="e-link e-link--standalone"
+                  href={exportHref(evidence.approvedExportId, version!.projectId)}
                 >
-                  Load more versions
-                </button>
+                  View this brand’s export history
+                  <Icon name="arrow-right" size="sm" />
+                </Link>
               )}
-            </section>
-          </div>
-        </>
-      )}
-    </dialog>
+            </div>
+          )}
+          {error && (
+            <InlineMessage
+              tone="danger"
+              actions={
+                <Button
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => {
+                    setLoading(true);
+                    setAccepted(null);
+                    setReload((value) => value + 1);
+                  }}
+                >
+                  Check latest asset
+                </Button>
+              }
+            >
+              {error}
+            </InlineMessage>
+          )}
+          {fileMessage && <InlineMessage tone={fileMessage.tone}>{fileMessage.text}</InlineMessage>}
+        </div>
+      </div>
+    </Dialog>
   );
 }
