@@ -834,6 +834,8 @@ export function AccountGuidedInterview({
       : view === "naming" || view === "slogan"
         ? "voice"
         : "identity";
+  // A finished brand shows the brand itself; Change direction on its folded entry reopens the three boards.
+  const brandShown = finished && view === "directions" && reopened !== "directions";
   const continueLatest = () => {
     setReopened(null);
     setLinkedLogo(false);
@@ -871,9 +873,20 @@ export function AccountGuidedInterview({
       return next;
     });
   }, []);
+  // The Logo and Creative direction steps word Embel's message for their state ("I'm drawing six concepts…").
+  const [stepMessages, setStepMessages] = useState<Partial<Record<WorkspaceSummaryStep, string>>>({});
+  const setMessage = useCallback((step: WorkspaceSummaryStep, text: string | null) => {
+    setStepMessages((previous) => {
+      if ((previous[step] ?? null) === text) return previous;
+      const next = { ...previous };
+      if (text === null) delete next[step];
+      else next[step] = text;
+      return next;
+    });
+  }, []);
   const slots = useMemo(
-    () => ({ chat: chatSlot, overlay: overlayHost, setRows, setSummary }),
-    [chatSlot, overlayHost, setRows, setSummary],
+    () => ({ chat: chatSlot, overlay: overlayHost, setRows, setSummary, setMessage }),
+    [chatSlot, overlayHost, setRows, setSummary, setMessage],
   );
   const rows = [...rowOwners.values()].at(-1);
   const [likes, setLikes] = useState<number | null>(null);
@@ -1139,11 +1152,13 @@ export function AccountGuidedInterview({
           onEdit={() => setReopened("logo")}
         />
       )}
-      {finished && summaries.directions && (
+      {finished && summaries.directions && (view !== "directions" || brandShown) && (
         <FoldedAnswer
           label="Creative direction"
           thumbnail={thumbnail(summaries.directions)}
           answers={[{ text: summaries.directions.answer }]}
+          editLabel="Change direction"
+          onEdit={() => setReopened("directions")}
         />
       )}
     </>
@@ -1322,20 +1337,27 @@ export function AccountGuidedInterview({
     },
     logo: {
       label: journeyPartLabel("identity", "Logo"),
-      text: `Let’s draw the logo for ${brandName}. The concepts appear on the right; choose the one you like most, then press Send to continue to Creative direction.`,
+      text:
+        stepMessages.logo ??
+        `Let’s draw the logo for ${brandName}. The concepts appear on the right; choose the one you like most, then press Send to continue to Creative direction.`,
     },
     directions: {
       label: journeyPartLabel("identity", "Creative direction"),
-      text: "Each creative direction uses your chosen logo. Choose one on the right, then press Send to continue.",
+      text:
+        stepMessages.directions ??
+        "Each creative direction uses your chosen logo. Choose one on the right, then press Send to continue.",
     },
     finished: {
       label: "",
-      text: "Your logo and creative direction are chosen. Your brand kit is in Assets. Press Send to go there, or describe a change.",
+      text:
+        summaries.logo && summaries.directions
+          ? `You chose ${summaries.logo.answer} as your logo and ${summaries.directions.answer} as your direction. Your brand kit is in Assets. Press Send to go there, or describe a change.`
+          : "Your logo and creative direction are chosen. Your brand kit is in Assets. Press Send to go there, or describe a change.",
     },
   };
   const identityKey =
     view === "directions"
-      ? finished
+      ? brandShown
         ? "finished"
         : "directions"
       : view === "logo" || view === "inspiration"
@@ -1350,7 +1372,7 @@ export function AccountGuidedInterview({
         <article className="e-turn e-turn--settled" aria-label="Embel response">
           <div className="e-turn__main">
             <p className="e-turn__meta">{copy.label ? `Embel · ${copy.label}` : "Embel"}</p>
-            <p className="e-turn__text">{copy.text}</p>
+            {copy.text && <p className="e-turn__text">{copy.text}</p>}
           </div>
         </article>
       );
@@ -1514,6 +1536,7 @@ export function AccountGuidedInterview({
         <VisualDirectionsPage
           projectId={saved.id}
           variant="conversation"
+          presentation={brandShown ? "brand" : "choose"}
           reply="external"
           onReplyChange={setStepReply}
         />

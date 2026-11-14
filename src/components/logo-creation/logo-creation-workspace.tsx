@@ -23,7 +23,7 @@ import {
 } from "@/domain/logo-engine";
 import { LogoGenerationAction } from "./generation-action";
 import { acceptedConceptAttempt } from "./presentation";
-import { LogoVerifiedPreview } from "./verified-preview";
+import { LogoVerifiedPreview, useVerifiedPreview } from "./verified-preview";
 import { selectLogoCandidate, recoverLogoSelection, LogoSelectionConflictResolvedError } from "./selection-controller";
 import { useInspirationLikes } from "@/components/workspace/inspiration-likes-signal";
 import { AccountRequestError, accountErrorMessage } from "../workspace/account-api";
@@ -50,6 +50,13 @@ import { NoCreditsNote, OutOfCreditsInPlace, useCreditBalance } from "./credits-
 import { shownVersion } from "./concept-grid";
 import { LOGO_TYPE_LABELS } from "./presentation";
 import { journeyPartLabel } from "@/domain/journey";
+import { createPortal } from "react-dom";
+import {
+  useWorkspaceChatSlot,
+  useWorkspaceStepAnswer,
+  useWorkspaceStepMessage,
+} from "@/components/workspace/workspace-slots";
+import { chosenLogoAnswer, chosenLogoLabel } from "./chosen-logo-label";
 import styles from "./logo-creation.module.css";
 import stage from "@/styles/branding-stage.module.css";
 
@@ -351,11 +358,8 @@ function OwnedLogoCreation({
     ([, versions]) => selectedLogo && versions.some((version) => version.key === logoCandidateKey(selectedLogo)),
   );
   const selectedOrdinal = activeBatch?.slots.find((slot) => slot.id === selectedCard?.[0])?.ordinal;
-  const selectedLabel = selectedLogo
-    ? selectedOrdinal !== undefined
-      ? `Concept ${selectedOrdinal + 1}${selectedLogo.kind === "refinement" ? ` · ${selectedCard?.[1].find((version) => version.key === logoCandidateKey(selectedLogo))?.label ?? "Refined"}` : ""}`
-      : "Your chosen logo"
-    : undefined;
+  const chosenLabel = chosenLogoLabel(activeBatch, cardVersions, selectedLogo);
+  const selectedLabel = selectedLogo ? (chosenLabel ?? "Your chosen logo") : undefined;
   const refinementBusy = Boolean(
     refinementRequestKey && ["admitted", "running"].includes(refinementRequestStatus ?? ""),
   );
@@ -1107,32 +1111,36 @@ function OwnedLogoCreation({
     </>
   );
   const outOfCreditsMessage = <OutOfCreditsInPlace periodEnd={credits.periodEnd} onDismiss={() => setRanOut(null)} />;
-  const gridNotice =
-    ranOut === "concepts" ? (
-      outOfCreditsMessage
-    ) : failedSlotIds.length > 0 && drawingSlotIds.size === 0 ? (
-      <InlineMessage
-        tone="danger"
-        live={false}
-        actions={
-          <Button
-            icon="rotate-ccw"
-            disabled={!retryEstimate.canStart}
-            aria-label={retryLabel}
-            onClick={retryEstimate.start}
-          >
-            {retryLabel}
-          </Button>
-        }
-      >
-        {failedOrdinals.length === 1
-          ? `Concept ${failedOrdinals[0]} couldn’t be drawn.`
-          : `Concepts ${failedOrdinals.slice(0, -1).join(", ")} and ${failedOrdinals.at(-1)} couldn’t be drawn.`}{" "}
-        The others are ready to choose.
-      </InlineMessage>
-    ) : noCredits && activeBatch ? (
-      <NoCreditsNote periodEnd={credits.periodEnd} />
-    ) : null;
+  // In the Workspace the chat talks and the work area shows only the work: status, failures and credits sit in the
+  // chat, under Embel's message for the step.
+  const chatSlot = useWorkspaceChatSlot();
+  const inChat = external && Boolean(chatSlot);
+  const failureSentence =
+    failedOrdinals.length === 1
+      ? `Concept ${failedOrdinals[0]} couldn’t be drawn.`
+      : `Concepts ${failedOrdinals.slice(0, -1).join(", ")} and ${failedOrdinals.at(-1)} couldn’t be drawn.`;
+  const gridNotice = inChat ? null : ranOut === "concepts" ? (
+    outOfCreditsMessage
+  ) : failedSlotIds.length > 0 && drawingSlotIds.size === 0 ? (
+    <InlineMessage
+      tone="danger"
+      live={false}
+      actions={
+        <Button
+          icon="rotate-ccw"
+          disabled={!retryEstimate.canStart}
+          aria-label={retryLabel}
+          onClick={retryEstimate.start}
+        >
+          {retryLabel}
+        </Button>
+      }
+    >
+      {failureSentence} The others are ready to choose.
+    </InlineMessage>
+  ) : noCredits && activeBatch ? (
+    <NoCreditsNote periodEnd={credits.periodEnd} />
+  ) : null;
 
   // The reply box (decision 2): logo types as chips before the first set, the chosen concept once there is one.
   const logoTypes = draft?.brief.logoTypes ?? [];
@@ -1187,6 +1195,88 @@ function OwnedLogoCreation({
         };
   useStepReply(stepReply, onReplyChange);
 
+  // Embel's message for this state, and the step's status in the chat (the logo types, the drawing progress, a
+  // failure with its retry, credits in place).
+  const conceptsDrawing = drawingNow || Boolean(activeConceptRun);
+  const failedNow = failedSlotIds.length > 0 && !conceptsDrawing;
+  const chosenConcept = selectedLabel?.split(" · ")[0];
+  const stepMessage = activeRefineRun
+    ? "I’m changing your logo. The new version appears on the right when it’s ready."
+    : conceptsDrawing
+      ? `I’m drawing six concepts for ${brandName}. They appear on the right as each one is ready.`
+      : !activeBatch
+        ? `Time for a logo. I’ll draw six concepts for ${brandName}, guided by the designs you liked. First, choose the kinds of logo to explore on the right, then press Send.`
+        : selectedLogo && chosenConcept
+          ? `${chosenConcept} is your logo. ${refineStarter ? "To change it, describe the change below. " : ""}When you’re happy with it, press Send to continue to Creative direction.`
+          : failedNow
+            ? ""
+            : `Here are six concepts for ${brandName}. Choose the one you like most on the right. You can change it afterwards.`;
+  useWorkspaceStepMessage("logo", inChat ? stepMessage : null);
+  // The folded Logo entry once the step is finished: the chosen concept and a small copy of it.
+  const chosenPreview = useVerifiedPreview(inChat ? client : null, inChat ? focusedReceipt : null);
+  useWorkspaceStepAnswer(
+    "logo",
+    inChat && selectedLogo && chosenLabel ? chosenLogoAnswer(chosenLabel) : null,
+    chosenPreview.failed ? null : { url: chosenPreview.url, alt: "Chosen logo concept" },
+  );
+  const drawingCount = drawingSlotIds.size || 6;
+  const progressSentence = activeRefineRun
+    ? "Changing your logo."
+    : conceptsDrawing
+      ? drawingCount === 6
+        ? "Drawing six logo concepts. This usually takes about a minute."
+        : `Drawing ${drawingCount === 1 ? "one logo concept" : `${drawingCount} logo concepts`}.`
+      : null;
+  const chatStatus =
+    inChat && chatSlot
+      ? createPortal(
+          <div className="e-stack e-stack--sm" data-step-status="logo">
+            {progressSentence && (
+              <div className="e-stack e-stack--sm conversation-progress" role="status">
+                <p className="e-turn__text">{engineRun?.cancelRequested ? "Stopping…" : progressSentence}</p>
+                <div
+                  className="e-progress"
+                  data-state={engineRun?.cancelRequested ? "stopping" : "running"}
+                  aria-hidden="true"
+                >
+                  <div className="e-progress__track" />
+                </div>
+              </div>
+            )}
+            {ranOut ? (
+              outOfCreditsMessage
+            ) : failedNow ? (
+              <InlineMessage
+                tone="danger"
+                live={false}
+                actions={
+                  <Button
+                    icon="rotate-ccw"
+                    disabled={!retryEstimate.canStart}
+                    aria-label={retryLabel}
+                    onClick={retryEstimate.start}
+                  >
+                    {retryLabel}
+                  </Button>
+                }
+              >
+                {failureSentence} The others are ready on the right.
+              </InlineMessage>
+            ) : null}
+            {!ranOut && noCredits && <NoCreditsNote periodEnd={credits.periodEnd} />}
+            {activeBatch && !changingTypes && (
+              <LogoTypesSummary
+                inline
+                value={logoTypes}
+                disabled={!canChangeTypes}
+                onChange={() => setChangingTypes(true)}
+              />
+            )}
+          </div>,
+          chatSlot,
+        )
+      : null;
+
   const typesQuestion = !activeBatch ? (
     <LogoTypesQuestion
       value={logoTypes}
@@ -1197,7 +1287,7 @@ function OwnedLogoCreation({
           ? (types) => workspace.setBriefDraft({ ...draft.brief, logoTypes: types })
           : undefined
       }
-      note={noCredits ? <NoCreditsNote periodEnd={credits.periodEnd} /> : undefined}
+      note={noCredits && !inChat ? <NoCreditsNote periodEnd={credits.periodEnd} /> : undefined}
       action={
         external ? undefined : (
           <LogoGenerationAction
@@ -1228,11 +1318,12 @@ function OwnedLogoCreation({
         </Button>
       }
     />
-  ) : (
+  ) : inChat ? null : (
     <LogoTypesSummary value={logoTypes} disabled={!canChangeTypes} onChange={() => setChangingTypes(true)} />
   );
   return (
     <div className={`project-logo-creation ${styles.conceptsScreen}`} aria-label="Logo creation workspace">
+      {chatStatus}
       <div className={styles.stepStack}>
         {external ? (
           <>
@@ -1302,7 +1393,7 @@ function OwnedLogoCreation({
             {selectionState.error}
           </InlineMessage>
         )}
-        {!activeBatch && ranOut === "concepts" && outOfCreditsMessage}
+        {!inChat && !activeBatch && ranOut === "concepts" && outOfCreditsMessage}
         {(activeBatch || batchId || savedBatchLoading || savedBatchUnavailable || engineRun) && (
           <LogoConceptGridView
             batch={activeBatch}
@@ -1323,7 +1414,7 @@ function OwnedLogoCreation({
           />
         )}
         {/* The change box stays in one place below the concepts, so a draft survives the first set arriving. */}
-        {ranOut === "refine" && outOfCreditsMessage}
+        {!inChat && ranOut === "refine" && outOfCreditsMessage}
         {!external && conceptsComposer}
         {refinementHistoryState.error && (
           <InlineMessage tone="warning" form="field">

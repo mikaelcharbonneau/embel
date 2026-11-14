@@ -12,6 +12,7 @@ import { useWorkspaceOverlayHost, useWorkspaceResultRows } from "@/components/wo
 import { EmptyState } from "@/components/ui/feedback";
 import { Icon } from "@/components/ui/icon";
 import { InlineMessage } from "@/components/ui/message";
+import { MediaFrame } from "@/components/ui/media-frame";
 import styles from "./visual-directions-view.module.css";
 
 export type VisualDirectionCard = {
@@ -443,5 +444,76 @@ function DirectionCard({
         </div>
       </div>
     </article>
+  );
+}
+
+/**
+ * A finished brand (IMG-021): "Your brand" with the chosen direction's board large, marked as chosen, and the chosen
+ * logo beside it with its name. Change direction on the folded entry in the chat brings the three boards back.
+ * Presentation only: callers supply verified previews.
+ */
+export function ChosenBrandView({
+  title,
+  board,
+  enlarged,
+  logo,
+}: {
+  /** The chosen direction's name ("Editorial Soft Shapes"). */
+  title: string;
+  board: ReactNode;
+  /** The whole board for the larger view. */
+  enlarged: ReactNode;
+  logo: { url: string | null; failed: boolean; label: string | null };
+}) {
+  const titleId = useId();
+  const [open, setOpen] = useState(false);
+  const overlay = useWorkspaceOverlayHost();
+  return (
+    <section className={styles.workspace} aria-labelledby={titleId}>
+      <h1 className="sr-only">Creative direction</h1>
+      <h2 className={styles.title} id={titleId} tabIndex={-1}>
+        Your brand
+      </h2>
+      <div className={styles.brand}>
+        <article className="e-choice e-choice--image" data-selected aria-label={`Chosen direction: ${title}`}>
+          <div className={`e-media ${styles.board}`}>{board}</div>
+          <span className="e-choice__enlarge">
+            <IconButton
+              icon="maximize-2"
+              label={`Enlarge ${title}`}
+              variant="on-artwork"
+              size="sm"
+              onClick={() => setOpen(true)}
+            />
+          </span>
+          <div className={styles.brandFooter}>
+            <span className={styles.cardTitle}>{title}</span>
+            <span className="e-badge">
+              <Icon name="check" size="sm" />
+              Chosen direction
+            </span>
+          </div>
+        </article>
+        <figure className={styles.brandLogo}>
+          <MediaFrame
+            ratio="16x9"
+            contain
+            inset
+            src={logo.url ?? undefined}
+            alt="Your logo"
+            state={logo.url ? "loaded" : logo.failed ? "failed" : "loading"}
+            failedText="Your logo couldn’t be shown. It is still saved."
+          />
+          <figcaption className="e-muted">Your logo{logo.label ? ` · ${logo.label}` : ""}</figcaption>
+        </figure>
+      </div>
+      {open ? (
+        <WorkAreaLayer host={overlay} onEscape={() => setOpen(false)}>
+          <Dialog size="lg" media modal={!overlay} title={title} onClose={() => setOpen(false)}>
+            <div className={styles.enlarged}>{enlarged}</div>
+          </Dialog>
+        </WorkAreaLayer>
+      ) : null}
+    </section>
   );
 }

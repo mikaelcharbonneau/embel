@@ -340,6 +340,23 @@
   justify-content: space-between;
   gap: var(--space-2) var(--space-3);
 }
+/* The same in one small line under Embel's message in the Workspace chat. */
+.typesLine {
+  margin: 0;
+  font: var(--text-small);
+  color: var(--color-text-muted);
+}
+.typesLine :global(.e-link) {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+}
+.typesLine :global(.e-link:disabled) {
+  color: var(--color-text-disabled);
+  text-decoration: none;
+  cursor: not-allowed;
+}
 
 /* A start or More concepts button with its one-line status (never a cost). */
 .generationAction {

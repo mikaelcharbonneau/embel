@@ -90,11 +90,24 @@ export function LogoTypesSummary({
   value,
   onChange,
   disabled = false,
+  inline = false,
 }: {
   value: readonly LogoType[];
   onChange?: () => void;
   disabled?: boolean;
+  /** One small line with Change logo types as a link, under Embel's message in the Workspace chat. */
+  inline?: boolean;
 }) {
+  const types = value.length ? value.map((type) => LOGO_TYPE_LABELS[type]).join(", ") : "None chosen";
+  if (inline)
+    return (
+      <p className={styles.typesLine} role="group" aria-label="Logo types">
+        Logo types: {types} ·{" "}
+        <button type="button" className="e-link" disabled={disabled || !onChange} onClick={onChange}>
+          Change logo types
+        </button>
+      </p>
+    );
   return (
     <div className={styles.typesSummary} role="group" aria-label="Logo types">
       <p className="e-muted">

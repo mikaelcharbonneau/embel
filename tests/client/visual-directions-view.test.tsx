@@ -2,7 +2,9 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { WorkspaceSlotContext } from "@/components/workspace/workspace-slots";
 import {
+  ChosenBrandView,
   VisualDirectionsView,
   type VisualDirectionCard,
   type VisualDirectionsViewProps,
@@ -259,5 +261,59 @@ describe("visual direction comparison", () => {
     expect(c.onChoose).toHaveBeenCalledTimes(1);
     expect(a.onChoose).not.toHaveBeenCalled();
     expect(host.querySelector("dialog")).toBeNull();
+  });
+
+  it("opens the larger view over the work area, not modal, inside the Workspace, and asks for one row", async () => {
+    const overlay = document.createElement("div");
+    document.body.append(overlay);
+    const setRows = vi.fn(),
+      show = vi.fn();
+    Object.defineProperty(HTMLDialogElement.prototype, "show", { configurable: true, value: show });
+    const showModal = vi.spyOn(HTMLDialogElement.prototype, "showModal");
+    await act(async () =>
+      root!.render(
+        createElement(
+          WorkspaceSlotContext.Provider,
+          { value: { chat: null, overlay, setRows, setSummary: vi.fn() } },
+          createElement(
+            VisualDirectionsView,
+            props({ cards: [card("A"), null, null], generation: { status: "partial", completed: 1 } }),
+          ),
+        ),
+      ),
+    );
+    expect(setRows).toHaveBeenCalledWith(expect.any(Symbol), 1);
+    await click(host.querySelector<HTMLButtonElement>("[aria-label='Enlarge Direction 1, Direction A']")!);
+    expect(host.querySelector("dialog")).toBeNull();
+    expect(overlay.querySelector(".e-workspace__overlay dialog")?.textContent).toContain("Verified board A");
+    expect(show).toHaveBeenCalled();
+    expect(showModal).not.toHaveBeenCalled();
+    Reflect.deleteProperty(HTMLDialogElement.prototype, "show");
+  });
+});
+
+describe("a finished brand", () => {
+  it("shows the chosen board large, marked as chosen, beside the chosen logo and its name", async () => {
+    await act(async () =>
+      root!.render(
+        createElement(ChosenBrandView, {
+          title: "Editorial Soft Shapes",
+          board: createElement("p", null, "Verified board A"),
+          enlarged: createElement("p", null, "Whole board A"),
+          logo: { url: "blob:logo", failed: false, label: "Concept 1, version 2" },
+        }),
+      ),
+    );
+    expect(host.querySelector("h2")?.textContent).toBe("Your brand");
+    const chosen = host.querySelector("article")!;
+    expect(chosen.getAttribute("aria-label")).toBe("Chosen direction: Editorial Soft Shapes");
+    expect(chosen.hasAttribute("data-selected")).toBe(true);
+    expect(chosen.textContent).toContain("Chosen direction");
+    // No Choose buttons: the brand is chosen; Change direction in the chat brings the boards back.
+    expect(button("Choose")).toBeUndefined();
+    expect(host.querySelector("figure img")?.getAttribute("alt")).toBe("Your logo");
+    expect(host.querySelector("figcaption")?.textContent).toBe("Your logo · Concept 1, version 2");
+    await click(host.querySelector<HTMLButtonElement>("[aria-label='Enlarge Editorial Soft Shapes']")!);
+    expect(host.querySelector("dialog")?.textContent).toContain("Whole board A");
   });
 });

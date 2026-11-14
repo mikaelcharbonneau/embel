@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { webcrypto } from "node:crypto";
-import { act, createElement } from "react";
+import { act, createElement, type ComponentProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountSessionProvider, useAccountSession } from "@/components/workspace/account-session";
@@ -8,6 +8,7 @@ import { LogoCreationWorkspace } from "@/components/logo-creation/logo-creation-
 import { syntheticRefinementWorkspaceHttp } from "../fixtures/logo-refinement-workspace-http";
 import { logoFixtureId as id } from "../fixtures/logo-creation";
 import type { StepReply } from "@/features/logo-creation/model/step-reply";
+import { WorkspaceSlotContext } from "@/components/workspace/workspace-slots";
 
 // The Logo screen on the generation engine, with the actual account, client and memory
 // over synthetic same-origin HTTP. No provider, database or Storage service.
@@ -61,6 +62,7 @@ async function mount(
   projectId: string,
   fetcher: typeof fetch,
   props: Partial<Parameters<typeof LogoCreationWorkspace>[0]> = {},
+  slots: ComponentProps<typeof WorkspaceSlotContext.Provider>["value"] = null,
 ) {
   vi.stubGlobal("fetch", fetcher);
   function App() {
@@ -72,7 +74,15 @@ async function mount(
       createElement(LogoCreationWorkspace, { projectId, ...props }),
     );
   }
-  await act(async () => root.render(createElement(AccountSessionProvider, null, createElement(App))));
+  await act(async () =>
+    root.render(
+      createElement(
+        WorkspaceSlotContext.Provider,
+        { value: slots },
+        createElement(AccountSessionProvider, null, createElement(App)),
+      ),
+    ),
+  );
   await until(() => expect(grid()?.querySelector('img[src^="blob:"]')).toBeTruthy());
 }
 async function instruction(value: string) {
@@ -208,5 +218,42 @@ describe("the Logo screen on the generation engine", () => {
     await act(async () => reply!.send(""));
     expect(onContinue).toHaveBeenCalledTimes(1);
     expect(f.quotes).toEqual([]);
+  }, 30_000);
+
+  it("talks in the Workspace chat: Embel's words for the state, the logo types and credits in place", async () => {
+    const f = await syntheticRefinementWorkspaceHttp(),
+      projectId = f.workspace.projectId,
+      base = `/api/projects/${projectId}/logo`;
+    const fetcher: typeof fetch = async (input, init) => {
+      const path = String(input).split("?")[0]!;
+      if (path === `${base}/engine`) return Response.json({ engine: true, runs: [] });
+      if (path === "/api/credits")
+        return Response.json({ credits: { planId: "free", balance: 0, periodEnd: "2026-12-01T00:00:00.000Z" } });
+      return f.fetcher(input, init);
+    };
+    const chat = document.createElement("div");
+    document.body.append(chat);
+    const setMessage = vi.fn();
+    await mount(
+      projectId,
+      fetcher,
+      { reply: "external", onReplyChange: vi.fn(), onContinue: vi.fn() },
+      { chat, overlay: null, setRows: vi.fn(), setSummary: vi.fn(), setMessage },
+    );
+    await until(() =>
+      expect(setMessage).toHaveBeenLastCalledWith("logo", expect.stringMatching(/^Concept 1 is your logo\. /u)),
+    );
+    // The chat holds the status; the work area holds only the work.
+    await until(() => expect(chat.textContent).toContain("You have no credits left this month."));
+    expect(host.textContent).not.toContain("You have no credits left this month.");
+    expect(chat.querySelector('[aria-label="Logo types"]')?.textContent).toMatch(
+      /^Logo types: .+ · Change logo types$/u,
+    );
+    expect(host.querySelector('[aria-label="Logo types"]')).toBeNull();
+    // A failed concept is told in the chat with its retry; its tile alone says so in the work area.
+    expect(chat.textContent).toContain("Concept 6 couldn’t be drawn. The others are ready on the right.");
+    expect(chat.querySelector('button[aria-label="Retry 1 failed concept"]')).not.toBeNull();
+    expect(host.querySelector('button[aria-label="Retry 1 failed concept"]')).toBeNull();
+    chat.remove();
   }, 30_000);
 });

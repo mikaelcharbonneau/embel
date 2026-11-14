@@ -215,6 +215,41 @@
   color: var(--color-text-muted);
 }
 
+/* A finished brand: the chosen board large (560 px at 1440, IMG-021) and the chosen logo beside it. */
+.brand {
+  --brand-board-size: 560px;
+  display: grid;
+  grid-template-columns: minmax(0, var(--brand-board-size)) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--grid-gap);
+}
+.brandFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+.brandLogo {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+}
+.brandLogo :global(.e-media) {
+  border: 1px solid var(--color-border);
+}
+.brandLogo figcaption {
+  font: var(--text-small);
+}
+@media (max-width: 1023px) {
+  .brand {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .footer {
   display: flex;
   flex-wrap: wrap;
