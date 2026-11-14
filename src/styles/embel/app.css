@@ -21,3 +21,9 @@
   display: none;
   -webkit-appearance: none;
 }
+
+/* A single action centred under an empty state. */
+.app-center {
+  display: flex;
+  justify-content: center;
+}

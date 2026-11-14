@@ -98,7 +98,7 @@ export function AccountProjectWorkspaceShell({ projectId, children }: { projectI
             ) : (
               <>
                 <ProjectAccountState />
-                <p className="e-container">
+                <p className="app-center">
                   <Link className="e-link e-link--standalone" href="/brands">
                     Back to Projects
                   </Link>
