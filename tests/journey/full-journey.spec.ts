@@ -226,7 +226,7 @@ test("a new brand goes from the first prompt to downloadable assets", async ({ p
 
     const [boardFile] = await Promise.all([
       page.waitForEvent("download"),
-      assets.getByRole("button", { name: "Download brand board as PNG", exact: true }).click(),
+      assets.getByRole("button", { name: "Download PNG: brand board", exact: true }).click(),
     ]);
     expect(isPng(await downloadedBytes(boardFile))).toBe(true);
     const [kitFile] = await Promise.all([

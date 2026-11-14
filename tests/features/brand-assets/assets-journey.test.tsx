@@ -133,12 +133,12 @@ describe("Assets delivery page", () => {
 
   it("names every download by what it holds and passes the file", async () => {
     const { named, downloadFile, container } = await render();
-    const board = named("Download brand board as PNG")!;
+    const board = named("Download PNG: brand board")!;
     expect(board.textContent).toBe("Download PNG");
     expect(container.querySelector("img[alt='Northline final brand board']")).not.toBeNull();
     await act(async () => board.click());
     expect(downloadFile).toHaveBeenLastCalledWith(expect.objectContaining({ name: "brand-board.png" }));
-    await act(async () => named("Download profile image as PNG")!.click());
+    await act(async () => named("Download PNG: profile image")!.click());
     expect(downloadFile).toHaveBeenLastCalledWith(expect.objectContaining({ name: "social/profile.png" }));
     // Posts and banners offer the PNG and the editable SVG in one menu.
     await act(async () => named("Download square post template")!.click());
