@@ -132,14 +132,20 @@ describe("progress", () => {
 
 describe("navigation", () => {
   const items = [
-    { href: "/", label: "Home" },
-    { href: "/brands", label: "Projects" },
-    { href: "/assets", label: "Library" },
-  ];
+    { href: "/", label: "Home", icon: "house" },
+    { href: "/brands", label: "Projects", icon: "folder" },
+    { href: "/assets", label: "Library", icon: "library" },
+  ] as const;
   it("marks the current page and offers no Tools menu", async () => {
     await render(createElement(FloatingNav, { pathname: "/brands/123", items }));
     expect(host.querySelector("a[aria-current='page']")!.textContent).toBe("Projects");
     expect(host.querySelector("details")).toBeNull();
+    // At phone width the labels are hidden and each link shows its icon, so no destination disappears.
+    expect(
+      [...host.querySelectorAll("a.e-nav__item")].map((link) =>
+        link.querySelector(".e-nav__icon")?.getAttribute("data-icon"),
+      ),
+    ).toEqual(["house", "folder", "library"]);
     expect(host.textContent).not.toContain("Tools");
   });
   it("shows the four steps, the current one and confirmed save state inside a project", async () => {

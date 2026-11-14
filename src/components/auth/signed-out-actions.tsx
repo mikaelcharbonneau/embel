@@ -21,7 +21,7 @@ export function SignedOutActions({ placement }: { placement: "nav" | "page" }) {
         {nav ? <span className="e-nav__label">Sign in</span> : "Sign in"}
       </Link>
       <Link
-        className={nav ? "e-button e-button--primary e-button--sm" : "button secondary"}
+        className={nav ? "e-button e-button--primary e-button--sm e-nav__extra" : "button secondary"}
         href="/sign-up"
         onClick={keepPrompt}
       >
