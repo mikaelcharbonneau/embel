@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { EmbelMark } from "@/components/ui/icon";
+import { EmbelMark, Icon, type IconName } from "@/components/ui/icon";
 import styles from "./journey.module.css";
 
-export type NavItem = { href: string; label: string };
+/** At phone width the pill shows each item's icon in place of its label, which stays its accessible name. */
+export type NavItem = { href: string; label: string; icon: IconName };
 
 function isActiveHref(href: string, pathname: string) {
   return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
@@ -73,6 +74,7 @@ export function MainNavContent({ pathname, items }: { pathname: string; items: r
               className="e-nav__item"
               aria-current={isActiveHref(item.href, pathname) ? "page" : undefined}
             >
+              <Icon name={item.icon} className="e-nav__icon" />
               <span className="e-nav__label">{item.label}</span>
             </Link>
           </li>
