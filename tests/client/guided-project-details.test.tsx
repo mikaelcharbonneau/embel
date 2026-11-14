@@ -44,7 +44,9 @@ const projectId = "bbbbbbbb-1111-4111-8111-111111111111",
 let root: Root, host: HTMLDivElement, project: AccountProject, fetcher: ReturnType<typeof vi.fn>;
 async function render() {
   await act(async () => root.render(createElement(AccountProjectEditor, { projectId })));
-  await act(async () => host.querySelector<HTMLButtonElement>(".guided-brief-editor > button")!.click());
+  await act(async () =>
+    host.querySelector<HTMLButtonElement>(".guided-brief-editor button[aria-label='Edit brief']")!.click(),
+  );
 }
 async function fill(node: HTMLTextAreaElement, value: string) {
   await act(async () => {
@@ -117,11 +119,11 @@ describe("saved brief editing during unavailable Strategy", () => {
       ),
     ).toBeUndefined();
     expect(host.textContent).toContain("Edit brief");
-    // The only Embel message is the invitation to start research; it can't start while Strategy is unavailable.
-    const messages = host.querySelectorAll(".guided-assistant-message");
-    expect(messages).toHaveLength(1);
-    expect(messages[0]!.getAttribute("aria-label")).toBe("Start research");
-    expect(messages[0]!.querySelector<HTMLButtonElement>("button.button.primary")!.disabled).toBe(true);
+    // The only Embel message is the invitation to start research (plus why it can't start); Send can't start it
+    // while Strategy is unavailable.
+    const messages = [...host.querySelectorAll("article.e-turn")].map((item) => item.getAttribute("aria-label"));
+    expect(messages.filter((label) => label !== "Embel status")).toEqual(["Start research"]);
+    expect(host.querySelector<HTMLButtonElement>('button[aria-label="Start research"]')!.disabled).toBe(true);
     const details = host.querySelector<HTMLDetailsElement>(".guided-brief-editor")!;
     expect(details.querySelector('button[aria-haspopup="dialog"]')).not.toBeNull();
     expect(details.querySelector("summary")).toBeNull();

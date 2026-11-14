@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { AppMark } from "@/components/ui/app-mark";
 import { Icon } from "@/components/ui/icon";
+import { Menu, type MenuItem } from "@/components/ui/menu";
 import type { JourneyStepView } from "@/domain/journey";
 import { NavFrame } from "./floating-nav";
 import { JOURNEY_SECTION_EVENT, journeySectionOfHash } from "./project-header";
@@ -59,44 +60,53 @@ export function ProjectBarContent({
       {steps.length > 0 && (
         <>
           <span className={styles.sep} aria-hidden="true" />
+          {/* Decision 8: the current step has no fill; its ring-and-dot mark and ink text show it. */}
           <nav className={styles.stepsNav} aria-label="Brand journey">
-            <ol className={styles.steps}>
-              {steps.map((step) => (
-                <li key={step.id}>
-                  {step.status === "current" ? (
-                    <span className={styles.step} aria-current="step">
-                      <span className={styles.stepMark} aria-hidden="true" />
-                      <span className={styles.stepLabel}>{step.label}</span>
-                    </span>
-                  ) : step.status === "done" && step.href ? (
-                    <Link className={styles.step} href={step.href} onClick={showSection}>
-                      <span className={styles.stepMark} aria-hidden="true">
-                        <Icon name="check" size={11} />
+            <ol className="e-steps">
+              {steps.map((step) => {
+                const state = step.status === "done" ? "complete" : step.status === "current" ? undefined : "upcoming";
+                return (
+                  <li key={step.id}>
+                    {step.status === "current" ? (
+                      <span className="e-step" aria-current="step" data-complete={step.complete || undefined}>
+                        <span className="e-step__mark" aria-hidden="true" />
+                        <span>{step.label}</span>
                       </span>
-                      <span className={styles.stepLabel}>{step.label}</span>
-                      <span className="sr-only">, complete</span>
-                    </Link>
-                  ) : step.href ? (
-                    <Link className={`${styles.step} ${styles.stepNext}`} href={step.href} onClick={showSection}>
-                      <span className={styles.stepMark} aria-hidden="true">
-                        {step.number}
+                    ) : step.status === "done" && step.href ? (
+                      <Link className="e-step" data-state={state} href={step.href} onClick={showSection}>
+                        <span className="e-step__mark" aria-hidden="true">
+                          <Icon name="check" size="sm" />
+                        </span>
+                        <span>{step.label}</span>
+                        <span className="e-sr">, complete</span>
+                      </Link>
+                    ) : step.href ? (
+                      <Link className="e-step e-step--next" data-state={state} href={step.href} onClick={showSection}>
+                        <span className="e-step__mark" aria-hidden="true">
+                          {step.number}
+                        </span>
+                        <span>{step.label}</span>
+                        <span className="e-sr">, next step</span>
+                      </Link>
+                    ) : (
+                      <span
+                        className="e-step"
+                        data-state={state}
+                        aria-disabled={step.status === "done" ? undefined : "true"}
+                      >
+                        <span className="e-step__mark" aria-hidden="true">
+                          {step.status === "done" ? <Icon name="check" size="sm" /> : step.number}
+                        </span>
+                        <span>{step.label}</span>
+                        {step.status === "done" && <span className="e-sr">, complete</span>}
                       </span>
-                      <span className={styles.stepLabel}>{step.label}</span>
-                      <span className="sr-only">, next step</span>
-                    </Link>
-                  ) : (
-                    <span className={styles.step}>
-                      <span className={styles.stepMark} aria-hidden="true">
-                        {step.status === "done" ? <Icon name="check" size={11} /> : step.number}
-                      </span>
-                      <span className={styles.stepLabel}>{step.label}</span>
-                      {step.status === "done" && <span className="sr-only">, complete</span>}
-                    </span>
-                  )}
-                </li>
-              ))}
+                    )}
+                  </li>
+                );
+              })}
             </ol>
           </nav>
+          <StepsMenu steps={steps} />
         </>
       )}
       {saveState && (
@@ -109,6 +119,38 @@ export function ProjectBarContent({
         </>
       )}
     </>
+  );
+}
+
+/** Where the four step names do not fit (below 1280 px beside the side chat, below 1024 px everywhere), they collapse
+ * into one menu button that names the current step: "Identity · 3 of 4". */
+function StepsMenu({ steps }: { steps: readonly JourneyStepView[] }) {
+  const current = steps.find((step) => step.status === "current") ?? steps[0]!;
+  const items: MenuItem[] = steps.map((step) =>
+    step.status === "current"
+      ? { kind: "choice", label: step.label, checked: true, onSelect: () => undefined }
+      : step.href
+        ? {
+            kind: "link",
+            label: `${step.label}${step.status === "done" ? ", complete" : ", next step"}`,
+            href: step.href,
+          }
+        : { kind: "action", label: step.label, disabled: true, onSelect: () => undefined },
+  );
+  return (
+    <Menu
+      align="start"
+      className="e-steps-compact"
+      items={items}
+      trigger={(props) => (
+        <button type="button" className="e-nav__item" {...props}>
+          <span>
+            {current.label} · {current.number} of {steps.length}
+          </span>
+          <Icon name="chevron-down" size="sm" />
+        </button>
+      )}
+    />
   );
 }
 

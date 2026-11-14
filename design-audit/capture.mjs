@@ -641,9 +641,27 @@ state("home", "generation-activity-dialog-pro", "audit-pro", async (page) => {
 state("brand-conversation", "kestrel-change-name-open-pro", "audit-pro", async (page) => {
   await open(page, "audit-pro", `/brands/account/${brand("kestrel")}?view=strategy`);
   await page.waitForTimeout(2500);
+  // The name is folded in the chat with the rest of Voice: open it, then Change name.
+  await page
+    .locator("details.conversation-folded", { has: page.getByRole("button", { name: "Change name" }) })
+    .locator("summary")
+    .click();
   await page.getByRole("button", { name: "Change name" }).click();
   await page.waitForTimeout(2500);
   await loaded(page, { extra: 1200 });
+});
+// Name details: opening them only reads which checks are connected; nothing is looked up.
+state("brand-conversation", "kestrel-name-details-pro", "audit-pro", async (page) => {
+  await open(page, "audit-pro", `/brands/account/${brand("kestrel")}?view=strategy`);
+  await page.waitForTimeout(2500);
+  await page.getByRole("button", { name: "Change name" }).click();
+  await page
+    .getByRole("region", { name: "Naming exploration", exact: true })
+    .getByRole("button", { name: /^Details for / })
+    .first()
+    .click();
+  await page.getByRole("dialog").first().waitFor();
+  await loaded(page, { extra: 800 });
 });
 
 // ---- out-of-credits prompt (audit-free has 0 credits; nothing is spent) --------

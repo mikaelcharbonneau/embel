@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { Button, IconButton, Spinner } from "./button";
 import { MediaFrame, type MediaRatio, type MediaState } from "./media-frame";
 
@@ -15,32 +15,47 @@ export function ChoiceGroup({
   hint,
   columns = 2,
   hideLegend = false,
+  describedBy,
+  className,
   children,
 }: {
   legend: ReactNode;
   /** "Choose one" or "Choose any that apply". */
   hint?: ReactNode;
-  columns?: 1 | 2;
+  /** 1: one large card per row at compact width, three wider; 2: two, then three; "list": one card per row. */
+  columns?: 1 | 2 | "list";
   hideLegend?: boolean;
+  /** The id of a visible hint shown outside the legend, so the legend alone names the group. */
+  describedBy?: string;
+  className?: string;
   children: ReactNode;
 }) {
+  const grid =
+    columns === "list"
+      ? "e-stack e-stack--md"
+      : columns === 1
+        ? "e-grid-choices e-grid-choices--large"
+        : "e-grid-choices";
   return (
-    <fieldset className="e-stack e-stack--md">
+    <fieldset className={["e-stack e-stack--md", className].filter(Boolean).join(" ")} aria-describedby={describedBy}>
       <legend className={hideLegend ? "e-sr" : "e-field__label"}>
         {legend}
         {hint ? <span className="e-field__hint"> {hint}</span> : null}
       </legend>
-      <div className={columns === 1 ? "e-grid-choices e-grid-choices--large" : "e-grid-choices"}>{children}</div>
+      <div className={grid}>{children}</div>
     </fieldset>
   );
 }
 
-/** A text choice: a real radio or checkbox inside the card, which is its label. */
+/** A text choice: a real radio or checkbox inside the card, which is its label. The title names the input; the
+ * description and any details describe it. */
 export function ChoiceCard({
   name,
   value,
   title,
   description,
+  leading,
+  children,
   checked,
   multiple = false,
   disabled = false,
@@ -52,6 +67,10 @@ export function ChoiceCard({
   value: string;
   title: ReactNode;
   description?: ReactNode;
+  /** A small picture before the text (a competitor's site icon). */
+  leading?: ReactNode;
+  /** More about the option under its description; phrasing content only, since it sits inside the label. */
+  children?: ReactNode;
   checked: boolean;
   multiple?: boolean;
   disabled?: boolean;
@@ -60,7 +79,16 @@ export function ChoiceCard({
   error?: boolean;
   onChange: (checked: boolean) => void;
 }) {
-  const classes = ["e-choice", multiple && "e-choice--multiple", error && "e-choice--error"].filter(Boolean).join(" ");
+  const id = useId();
+  const classes = [
+    "e-choice",
+    multiple && "e-choice--multiple",
+    error && "e-choice--error",
+    leading ? "e-choice--leading" : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const described = [description ? `${id}-desc` : null, children ? `${id}-more` : null].filter(Boolean).join(" ");
   return (
     <label className={classes} aria-busy={busy || undefined}>
       <input
@@ -69,13 +97,27 @@ export function ChoiceCard({
         value={value}
         checked={checked}
         disabled={disabled}
+        aria-labelledby={`${id}-title`}
+        aria-describedby={described || undefined}
         onChange={(event) => onChange(event.currentTarget.checked)}
       />
       <span className="e-choice__mark" aria-hidden="true">
         {busy ? <Spinner /> : null}
       </span>
-      <span className="e-choice__title">{title}</span>
-      {description ? <span className="e-choice__desc">{description}</span> : null}
+      {leading ? <span className="e-choice__leading">{leading}</span> : null}
+      <span className="e-choice__title" id={`${id}-title`}>
+        {title}
+      </span>
+      {description ? (
+        <span className="e-choice__desc" id={`${id}-desc`}>
+          {description}
+        </span>
+      ) : null}
+      {children ? (
+        <span className="e-choice__more" id={`${id}-more`}>
+          {children}
+        </span>
+      ) : null}
     </label>
   );
 }

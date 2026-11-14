@@ -1,0 +1,7 @@
+/* Icon buttons before Close in a dialog header sit where Close alone would, pulled into the header's corner. */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0 0;
+}

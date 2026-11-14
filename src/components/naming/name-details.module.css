@@ -1,0 +1,97 @@
+/* Name details (extra-large dialog) and its second dialogs. Tokens only. */
+.details {
+  min-height: min(90dvh, calc(var(--space-16) * 12));
+}
+.panel {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  padding-top: var(--space-2);
+}
+.searchRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: end;
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font: var(--text-small);
+}
+.note > p {
+  flex: 1 1 calc(var(--space-16) * 6);
+  max-width: var(--measure);
+}
+.domain {
+  font: var(--text-label);
+  overflow-wrap: anywhere;
+}
+.statusCell {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-0-5);
+}
+.statusCell small,
+.small {
+  font: var(--text-small);
+}
+.error {
+  font: var(--text-small);
+  color: var(--color-text-danger);
+}
+.rowAction {
+  text-align: right;
+  white-space: nowrap;
+}
+.footerStart {
+  margin-inline-end: auto;
+}
+.groupTitle {
+  font: var(--text-label);
+}
+.ownWord {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-2);
+}
+.fieldset {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.handleFields {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-2);
+}
+.markFields {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--space-2);
+}
+.hits {
+  display: grid;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+@media (max-width: 639px) {
+  .handleFields,
+  .markFields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

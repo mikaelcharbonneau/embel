@@ -610,27 +610,50 @@ async function openHomeAndSend(page: Page, prompt = initialPrompt) {
 }
 
 function researchCard(page: Page) {
-  return page.getByRole("region", { name: "Researching your competitors", exact: true });
+  return page.getByRole("status", { name: "Researching your competitors", exact: true });
 }
 
 /** Embel working on a reply: the research card for competitors, the thinking line otherwise. */
 function working(page: Page) {
   return page
-    .locator(".guided-thinking[role=status]")
-    .or(page.getByRole("region", { name: /^(Researching your competitors|Cancelling research…)$/ }));
+    .locator(".e-thinking[role=status]")
+    .or(page.getByRole("status", { name: "Researching your competitors", exact: true }));
 }
 
 function widget(page: Page, stage: GuidedStage) {
   return page.getByRole("group", { name: questions[stage], exact: true });
 }
 
+/** Send is the one way forward (decision 2): the reply box's Send confirms the chosen options. */
+const continueTo: Record<GuidedStage, string> = {
+  competitors: "Continue to Audience",
+  audience: "Continue to Positioning",
+  positioning: "Continue to Voice",
+  personality: "Continue to Name",
+  slogan: "Continue to Identity",
+};
+function sendButton(page: Page, stage: GuidedStage) {
+  return page.getByRole("form", { name: "Reply", exact: true }).getByRole("button", { name: continueTo[stage] });
+}
+async function sendChoice(page: Page, stage: GuidedStage) {
+  await sendButton(page, stage).click();
+}
+/** A finished answer is folded in the chat: open it, then press its Edit button. */
+async function editAnswer(page: Page, question: string) {
+  const edit = page.getByRole("button", { name: `Edit your answer: ${question}`, exact: true });
+  const folded = page.locator("details.conversation-folded", { has: edit });
+  if (!(await folded.evaluate((element) => (element as HTMLDetailsElement).open)))
+    await folded.locator("summary").click();
+  await edit.click();
+}
+
 function userMessage(page: Page, text: string) {
-  return page.locator(".guided-user-message").getByText(text, { exact: true });
+  return page.locator(".e-turn--user .e-turn__bubble").getByText(text, { exact: true });
 }
 
 async function expectSingleWidget(page: Page, stage: GuidedStage) {
   await expect(widget(page, stage)).toBeVisible();
-  await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(1);
+  await expect(page.locator("fieldset.guided-choices")).toHaveCount(1);
 }
 
 async function expectReplyArrivalInViewport(page: Page, stage: GuidedStage, firstChoiceLabel: string) {
@@ -669,10 +692,11 @@ async function expectNoLegacyClutter(page: Page) {
   ).toHaveCount(0);
 }
 
-async function expectComposerInViewport(page: Page, naming = false) {
-  const composer = page.getByRole("textbox", { name: naming ? "Naming message" : "Message Embel", exact: true });
+/** The Workspace's one reply box, also while the naming questions are open. */
+async function expectComposerInViewport(page: Page) {
+  const composer = page.getByRole("textbox", { name: "Message Embel", exact: true });
   await expect(composer).toBeVisible();
-  const send = page.getByRole("button", { name: naming ? "Save naming guidance" : "Send prompt", exact: true });
+  const send = page.getByRole("button", { name: "Send prompt", exact: true });
   await expect(send).toBeVisible();
   const bounds = await send.boundingBox();
   expect(bounds).not.toBeNull();
@@ -716,7 +740,7 @@ test("the first prompt stays in place through the handoff from Home to Strategy"
     finishCreate();
     // Hold both project re-reads. The confirmed new project must render immediately.
     await expect(page).toHaveURL(`/brands/account/${projectId}?view=strategy`);
-    await expect(page.getByRole("button", { name: "Cancel research", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Stop research", exact: true })).toBeVisible();
     await expect(bubble).toBeInViewport({ ratio: 1 });
     await expect(composer).toBeInViewport({ ratio: 1 });
     const after = await bubble.boundingBox(),
@@ -784,7 +808,7 @@ test("managed Strategy fixture: Home consent survives saved research and reload 
   completeLatest(state);
   await expect(widget(page, "competitors")).toBeVisible();
   await widget(page, "competitors").getByRole("checkbox").first().check();
-  await widget(page, "competitors").getByRole("button", { name: "Continue", exact: true }).click();
+  await sendChoice(page, "competitors");
   await expect.poll(() => state.enqueues.length).toBe(2);
   expect(state.enqueues[1]).toEqual({
     operation: "strategy.audience",
@@ -821,8 +845,8 @@ test("guided interview: Home opens the conversation and keeps the prompt and thi
   await expect(
     loading.getByText("Your idea is saved. Suggestions appear here when they’re ready.", { exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Cancel research", exact: true })).toBeEnabled();
-  await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Stop research", exact: true })).toBeEnabled();
+  await expect(page.locator("fieldset.guided-choices")).toHaveCount(0);
   await page.screenshot({ path: info.outputPath("guided-research-pending.png"), fullPage: true, scale: "css" });
   state.jobs[0] = strategyJobSchema.parse({ ...state.jobs[0], state: "running", progress: 40 });
   await page.reload();
@@ -833,7 +857,7 @@ test("guided interview: Home opens the conversation and keeps the prompt and thi
   await page.screenshot({ path: info.outputPath("guided-competitor-arrival-viewport.png"), scale: "css" });
   await expect(loading).toHaveCount(0);
   await expect(widget(page, "competitors").getByRole("checkbox", { checked: true })).toHaveCount(0);
-  await expect(widget(page, "competitors").getByRole("button", { name: "Continue", exact: true })).toBeDisabled();
+  await expect(sendButton(page, "competitors")).toBeDisabled();
   await expect(widget(page, "competitors").getByText("Recommended", { exact: true })).toHaveCount(1);
   await expect(widget(page, "competitors").getByText("Why we recommend it", { exact: true })).toHaveCount(0);
   const references = page.getByRole("group", { name: "References for Table Next Door", exact: true });
@@ -913,11 +937,11 @@ for (const reason of ["request_unresolved", "request_active"] as const)
     await expect(page.locator(".guided-conversation-error")).toContainText(
       reason === "request_unresolved" ? "A previous request needs review" : "A request is already in progress",
     );
-    await expect(page.getByRole("button", { name: "Retry research", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Try again", exact: true })).toHaveCount(0);
     await expect(page.locator(".guided-conversation-error")).not.toContainText("You can retry research");
     state.runtimeUnavailable = false;
     await page.getByRole("button", { name: "Check status", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Retry research", exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Try again", exact: true })).toBeEnabled();
     expect(state.enqueues).toEqual([]);
     expect(state.patches).toEqual([]);
   });
@@ -973,7 +997,7 @@ test("competitor cards keep their selection, descriptions and sources across sug
   await expect(group.getByRole("checkbox", { name: "Fresh Table" })).toBeVisible();
   await expect(previous).toBeChecked();
   const previousCard = group
-    .locator(".guided-choice-card")
+    .locator(".guided-option")
     .filter({ has: page.getByRole("checkbox", { name: competitors[0]!.name, exact: true }) });
   await expect(
     previousCard.getByText("A close comparison for seasonal lunches and neighborhood familiarity."),
@@ -981,21 +1005,21 @@ test("competitor cards keep their selection, descriptions and sources across sug
   await expect(previousCard.getByText("Recommended", { exact: true })).toBeVisible();
   await expect(previousCard.getByRole("link", { name: /Synthetic source/ })).toBeVisible();
   const manualCard = group
-    .locator(".guided-choice-card")
+    .locator(".guided-option")
     .filter({ has: page.getByRole("checkbox", { name: "Coursera", exact: true }) });
   await expect(manualCard.getByRole("link", { name: /Visit website/ })).toHaveAttribute(
     "href",
     "https://coursera.org/",
   );
   await expect(manualCard.getByRole("checkbox")).toBeChecked();
-  const lists = group.locator(".guided-choice-options");
+  const lists = group.locator(":scope > div");
   await expect(lists).toHaveCount(1);
   await expect(lists.getByRole("checkbox")).toHaveCount(4);
   await expect(page.getByRole("heading", { name: "Brand strategy", exact: true })).toHaveCount(0);
   await expect(page.getByText("You can also write your own answer below.")).toHaveCount(0);
   await previousCard.scrollIntoViewIfNeeded();
   await page.screenshot({ path: info.outputPath("unified-competitors.png"), scale: "css" });
-  await group.getByRole("button", { name: "Continue", exact: true }).click();
+  await sendChoice(page, "competitors");
   await expectRequest(state, 2, "strategy.audience");
   expect(
     state.project.context.competitors
@@ -1003,9 +1027,9 @@ test("competitor cards keep their selection, descriptions and sources across sug
       .map((item) => item.name)
       .sort(),
   ).toEqual(["Coursera", competitors[0]!.name].sort());
-  const confirmed = page.locator(".guided-choice-answer").filter({ hasText: "Coursera" });
-  await expect(confirmed.getByRole("listitem")).toHaveCount(2);
-  await expect(confirmed.getByRole("listitem").filter({ hasText: competitors[0]!.name })).toBeVisible();
+  const confirmed = page.locator(".conversation-folded").filter({ hasText: "Coursera" });
+  await expect(confirmed.locator("summary")).toContainText("2 kept");
+  await expect(confirmed).toContainText(competitors[0]!.name);
 });
 
 test("guided interview: explicit selections save, reload, and finish Strategy with positioning before personality", async ({
@@ -1020,7 +1044,7 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
   await expect(firstChoice).toBeChecked();
   expect(state.enqueues).toHaveLength(0);
   expect(state.patches).toHaveLength(0);
-  await widget(page, "competitors").getByRole("button", { name: "Continue", exact: true }).click();
+  await sendChoice(page, "competitors");
   await expectRequest(state, 1, "strategy.audience");
   expect(state.project.context.competitorReviewComplete).toBe(true);
   expect(state.project.context.competitors.filter((item) => item.selected).map((item) => item.id)).toEqual([
@@ -1034,7 +1058,7 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
   await page.reload();
   await expect(
     page.getByRole("button", { name: `Edit your answer: ${questions.competitors}`, exact: true }),
-  ).toBeVisible();
+  ).toBeAttached();
   expect(state.enqueues).toHaveLength(1);
   completeLatest(state);
   await expectReplyArrivalInViewport(page, "audience", "Nearby office workers");
@@ -1045,7 +1069,7 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
   ).toBeVisible();
   await widget(page, "audience").getByRole("checkbox", { name: "Nearby office workers", exact: true }).check();
   await widget(page, "audience").getByRole("checkbox", { name: "Neighborhood families", exact: true }).check();
-  await widget(page, "audience").getByRole("button", { name: "Continue", exact: true }).click();
+  await sendChoice(page, "audience");
   await expectRequest(state, 2, "strategy.positioning");
   expect(state.project.context.audienceSegments.filter((item) => item.selected)).toHaveLength(2);
   expect(state.project.context.intake.audienceReviewedAt).not.toBeNull();
@@ -1053,15 +1077,15 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
   await expectReplyArrivalInViewport(page, "positioning", "Lunch made easy");
   await expect(widget(page, "positioning").getByText("What you’ll lead with", { exact: true })).toHaveCount(2);
   await widget(page, "positioning").getByRole("radio", { name: "Lunch made easy", exact: true }).check();
-  await widget(page, "positioning").getByRole("button", { name: "Continue", exact: true }).click();
+  await sendChoice(page, "positioning");
   await expectRequest(state, 3, "strategy.personality");
   expect(state.project.context.positioning).toBe(positionings[0]!.payload.statement);
   expect(state.project.context.intake.positioningReviewedAt).not.toBeNull();
-  // Strategy is complete: its three answers collapse into one summary card.
-  await expect(page.getByRole("heading", { name: "Strategy", exact: true })).toBeVisible();
+  // Strategy is complete: its three answers fold into one entry in the chat.
+  await expect(page.locator('[data-journey-section="strategy"] .e-answer__question').first()).toHaveText("Strategy");
   await expect(
     page.getByRole("button", { name: `Edit your answer: ${questions.competitors}`, exact: true }),
-  ).toHaveCount(0);
+  ).toBeHidden();
   completeLatest(state);
   await expectReplyArrivalInViewport(page, "personality", "The warm guide");
   await page.screenshot({ path: info.outputPath("guided-personality-arrival-viewport.png"), scale: "css" });
@@ -1084,7 +1108,7 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
     },
   );
   try {
-    await widget(page, "personality").getByRole("button", { name: "Continue", exact: true }).click();
+    await sendChoice(page, "personality");
     await expect.poll(() => state.project.context.intake.guidedInterview?.stage).toBe("slogan");
     await expect(page.getByText("Opening naming choices…", { exact: true })).toBeVisible();
     expect(await transcript!.evaluate((node) => node.isConnected)).toBe(true);
@@ -1100,7 +1124,7 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
   await expect(namingQuestion).toBeInViewport({ ratio: 1 });
   expect(await transcript!.evaluate((node) => node.isConnected)).toBe(true);
   expect(await firstMessage!.evaluate((node) => node.isConnected)).toBe(true);
-  await expect(page.getByRole("textbox", { name: "Naming message", exact: true })).toBeEditable();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeEditable();
   expect(
     await floatingPanel!.evaluate(
       (panel) => panel.isConnected && panel.getAttribute("aria-label") === "Naming composer",
@@ -1111,7 +1135,7 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
       Math.abs(log.getBoundingClientRect().bottom - log.parentElement!.getBoundingClientRect().bottom),
     ),
   ).toBeLessThanOrEqual(1);
-  const after = await page.getByRole("textbox", { name: "Naming message", exact: true }).boundingBox();
+  const after = await page.getByRole("textbox", { name: "Message Embel", exact: true }).boundingBox();
   expect(Math.abs(after!.y - before!.y)).toBeLessThanOrEqual(1);
   // Each approach's check box sits in its own space, clear of the label.
   const overlaps = await page.locator(".naming-approach-options .naming-approach-option").evaluateAll((options) =>
@@ -1125,7 +1149,7 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
   expect(overlaps.filter(Boolean)).toHaveLength(0);
   await page.screenshot({ path: info.outputPath("inline-naming-arrival.png"), scale: "css" });
 
-  await expect(page.getByRole("button", { name: "Edit strategy", exact: true })).toBeVisible();
+  await expect(page.locator('[data-journey-section="strategy"] details > summary').first()).toContainText("Strategy");
   expect(state.project.context.personality).toEqual(personalities[0]!.profile);
   expect(state.project.context.intake.personalityReviewedAt).not.toBeNull();
   expect(state.project.context.intake.guidedInterview?.answers.map((answer) => answer.stage)).toEqual([
@@ -1134,7 +1158,7 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
     "positioning",
     "personality",
   ]);
-  await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
+  await expect(page.locator("fieldset.guided-choices")).toHaveCount(0);
   let finishReopen!: () => void;
   const reopening = new Promise<void>((resolve) => {
     finishReopen = resolve;
@@ -1151,7 +1175,7 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
     await page.reload();
     await expect(
       page.getByRole("button", { name: `Edit your answer: ${questions.personality}`, exact: true }),
-    ).toBeVisible();
+    ).toBeAttached();
     await expect(userMessage(page, initialPrompt)).toBeVisible();
   } finally {
     finishReopen();
@@ -1183,12 +1207,12 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
   }
   await expect(
     page.getByRole("button", { name: `Edit your answer: ${questions.personality}`, exact: true }),
-  ).toBeVisible();
+  ).toBeAttached();
   await expect(namingQuestion).toBeInViewport({ ratio: 1 });
   await expect(page.getByRole("button", { name: /View new response/ })).toHaveCount(0);
   // Accessible names come from <label>, not an aria-label attribute. Wait for
   // the completed Strategy handoff before measuring the Naming control.
-  await expectComposerInViewport(page, true);
+  await expectComposerInViewport(page);
   await expectNoLegacyClutter(page);
   expect(state.enqueues.map((item) => item.operation)).toEqual([
     "strategy.audience",
@@ -1200,7 +1224,7 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
     page.getByRole("heading", { name: "Which approaches would you like to explore?", exact: true }),
   ).toBeInViewport({ ratio: 1 });
   await expect(page.getByRole("button", { name: "Continue to Naming", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("textbox", { name: "Naming message", exact: true })).toBeEditable();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeEditable();
   expect(state.project.context.intake.guidedInterview?.answers).toHaveLength(4);
   expect(state.enqueues).toHaveLength(3);
   await page.screenshot({
@@ -1286,31 +1310,24 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
   await page.route(namesUrl, feedWithNames);
   await page.reload();
   const namesMessage = page.getByRole("article", { name: "Names", exact: true });
-  await expect(namesMessage.getByRole("heading", { name: "Which name feels right?", exact: true })).toBeVisible();
-  await expect(namesMessage.locator(".naming-feed-card")).toHaveCount(3);
+  const namesWork = page.getByRole("region", { name: "Naming exploration", exact: true });
+  await expect(namesWork.getByRole("heading", { name: "Which name feels right?", exact: true })).toBeVisible();
+  await expect(namesWork.locator(".e-name-card")).toHaveCount(3);
   await expect(namesMessage.getByText("Here are your first names.", { exact: false })).toBeVisible();
   await expect(page.locator("[data-naming-layout]")).toHaveCount(0);
   await expect(page.getByRole("log", { name: "Conversation", exact: true })).toBeVisible();
   await expect(
     page.getByRole("button", { name: `Edit your answer: ${questions.personality}`, exact: true }),
-  ).toBeVisible();
-  // As in the design: a click marks a name, and Continue confirms it.
-  const continueName = namesMessage.getByRole("button", { name: "Continue", exact: true });
-  await expect(namesMessage.getByRole("status").filter({ hasText: "Choose a name to continue" })).toBeVisible();
-  await expect(continueName).toBeDisabled();
-  await expect(namesMessage.getByRole("button", { name: "More names", exact: true })).toBeDisabled();
-  await expect(namesMessage.getByRole("button", { name: "Add your own name", exact: true })).toBeVisible();
-  await namesMessage
-    .locator(".naming-feed-card")
-    .filter({ hasText: "Good Measure" })
-    .getByRole("button", { name: /Good Measure/ })
-    .first()
-    .click();
-  await expect(
-    namesMessage.getByRole("status").filter({ hasText: "Your name: Good Measure · Next: Slogan (optional)" }),
-  ).toBeVisible();
+  ).toBeAttached();
+  // As in the design: a click marks a name (the ring alone shows it), and Send in the reply box moves on.
+  const continueName = page.getByRole("button", { name: "Continue to Slogan", exact: true });
+  await expect(continueName).toHaveCount(0);
+  await expect(namesWork.getByRole("button", { name: "Suggest more names", exact: true })).toBeDisabled();
+  await expect(namesWork.getByRole("button", { name: "Add your own name", exact: true })).toBeVisible();
+  await namesWork.getByRole("radio", { name: "Good Measure", exact: true }).check({ force: true });
+  await expect(page.getByText("Name: Good Measure", { exact: true })).toBeVisible();
   await expect(continueName).toBeEnabled();
-  expect((await namesMessage.locator(".naming-feed-card").first().boundingBox())!.height).toBeLessThanOrEqual(66);
+  expect((await namesWork.locator(".e-name-card").first().boundingBox())!.height).toBeLessThanOrEqual(66);
   expect(state.unhandledWrites).toEqual([]);
   await page.screenshot({ path: info.outputPath("guided-interview-names-in-conversation.png"), scale: "css" });
   await page.unroute(namesUrl, feedWithNames);
@@ -1318,8 +1335,8 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
   await expect(
     page.getByRole("heading", { name: "Which approaches would you like to explore?", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Edit strategy", exact: true }).click();
-  await page.getByRole("button", { name: `Edit your answer: ${questions.competitors}`, exact: true }).click();
+  await page.locator('[data-journey-section="strategy"] details > summary').first().click();
+  await editAnswer(page, questions.competitors);
   await expectRequest(state, 4, "strategy.competitors");
   await expect(page.locator(".project-naming-page")).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
@@ -1335,7 +1352,7 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
   await expectSingleWidget(page, "competitors");
   await widget(page, "competitors").getByRole("checkbox", { name: "Table Next Door", exact: true }).uncheck();
   await widget(page, "competitors").getByRole("checkbox", { name: "Everyday Pantry", exact: true }).check();
-  await widget(page, "competitors").getByRole("button", { name: "Continue", exact: true }).click();
+  await sendChoice(page, "competitors");
   await expectRequest(state, 5, "strategy.audience");
   expect(state.project.context.competitors.filter((item) => item.selected).map((item) => item.id)).toEqual([
     competitors[1]!.id,
@@ -1433,7 +1450,7 @@ for (const kind of ["answer", "question"] as const)
     await expectComposerInViewport(page);
     await expectSingleWidget(page, "competitors");
     await widget(page, "competitors").getByRole("checkbox", { name: "Table Next Door", exact: true }).check();
-    await widget(page, "competitors").getByRole("button", { name: "Continue", exact: true }).click();
+    await sendChoice(page, "competitors");
     await expectRequest(state, 2, "strategy.audience");
     expect(state.project.context.intake.guidedInterview?.answers[0]).toMatchObject({
       turnId: "initial-research",
@@ -1461,7 +1478,7 @@ for (const errorCode of ["provider_error", "operator_abandoned_billing_unresolve
     await openProject(page);
     await expect(userMessage(page, initialPrompt)).toBeVisible();
     await expect(working(page)).toHaveCount(0);
-    await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
+    await expect(page.locator("fieldset.guided-choices")).toHaveCount(0);
     await expect(
       page.getByText("Research could not produce verified suggestions. Your prompt is saved. You can retry research.", {
         exact: true,
@@ -1469,10 +1486,10 @@ for (const errorCode of ["provider_error", "operator_abandoned_billing_unresolve
     ).toBeVisible();
     expect(state.enqueues).toHaveLength(0);
     await page.reload();
-    await expect(page.getByRole("button", { name: "Retry research", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Try again", exact: true })).toBeVisible();
     expect(state.enqueues).toHaveLength(0);
     expect(state.project.current_revision).toBe(1);
-    await page.getByRole("button", { name: "Retry research", exact: true }).click();
+    await page.getByRole("button", { name: "Try again", exact: true }).click();
     await expectRequest(state, 1, "strategy.competitors");
     expect(currentTurn(state).id).not.toBe("initial-research");
     expect(state.project.context.intake.guidedInterview?.turns).toHaveLength(2);
@@ -1487,12 +1504,12 @@ test("guided interview: cancellation follows the job and never fabricates comple
   state.jobs = [queuedJob("strategy.competitors", 1, 1)];
   await openProject(page);
   await expect(working(page)).toBeVisible();
-  await page.getByRole("button", { name: "Cancel research", exact: true }).click();
+  await page.getByRole("button", { name: "Stop research", exact: true }).click();
   await expect.poll(() => state.cancels.length).toBe(1);
   await expect(working(page)).toHaveCount(0);
   await expect(userMessage(page, initialPrompt)).toBeVisible();
   await expect(page.getByText(/cancelled/i)).toBeVisible();
-  await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
+  await expect(page.locator("fieldset.guided-choices")).toHaveCount(0);
   await page.reload();
   await expect(page.getByText(/cancelled/i)).toBeVisible();
   expect(state.enqueues).toHaveLength(0);
@@ -1546,7 +1563,7 @@ test("guided interview: an uncertain provider outcome offers status recovery wit
   await openProject(page);
   await expect(userMessage(page, initialPrompt)).toBeVisible();
   await expect(working(page)).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /Retry research|Retry request/, exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Try again|Retry request/, exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Check status", exact: true }).click();
   expect(state.enqueues).toHaveLength(0);
   completeLatest(state);
@@ -1618,7 +1635,7 @@ test("guided interview: a selection save conflict retains the decision and block
   await openProject(page);
   await expectSingleWidget(page, "competitors");
   await widget(page, "competitors").getByRole("checkbox", { name: "Table Next Door", exact: true }).check();
-  await widget(page, "competitors").getByRole("button", { name: "Continue", exact: true }).click();
+  await sendChoice(page, "competitors");
   await expect(page.getByText("A newer version is saved in your account.", { exact: true })).toBeVisible();
   expect(state.patches).toHaveLength(1);
   expect(state.enqueues).toHaveLength(0);
@@ -1793,7 +1810,7 @@ for (const mismatch of ["turn", "revision"] as const)
     await openProject(page);
     await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
     await expect(page.getByText("Synthetic unrelated result must remain hidden.", { exact: true })).toHaveCount(0);
-    await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
+    await expect(page.locator("fieldset.guided-choices")).toHaveCount(0);
     expect(state.enqueues).toHaveLength(0);
     expect(state.patches).toHaveLength(0);
     expect(state.project.context.intake.guidedInterview?.answers).toEqual([]);
@@ -1843,7 +1860,7 @@ test("guided interview: an account change hides a delayed reply and clears the p
   await expect(page.getByText(privateMessage, { exact: true })).toHaveCount(0);
   await expect(page.getByText("Synthetic private delayed assistant answer.", { exact: true })).toHaveCount(0);
   await expect(page.getByText(initialPrompt, { exact: true })).toHaveCount(0);
-  await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
+  await expect(page.locator("fieldset.guided-choices")).toHaveCount(0);
   expect(state.enqueues).toHaveLength(1);
   expect(await page.evaluate(() => localStorage.getItem("fluid.local-drafts.v1"))).toBeNull();
 });
@@ -1871,7 +1888,7 @@ test("guided interview: delivery controls remain separate and retry only the sav
   await openProject(page);
   await expectSingleWidget(page, "competitors");
   await widget(page, "competitors").getByRole("checkbox", { name: "Table Next Door", exact: true }).check();
-  await widget(page, "competitors").getByRole("button", { name: "Continue", exact: true }).click();
+  await sendChoice(page, "competitors");
   await expectRequest(state, 1, "strategy.audience");
   const controls = page.getByRole("group", { name: "Delivery recovery", exact: true });
   await expect(controls).toBeVisible();
