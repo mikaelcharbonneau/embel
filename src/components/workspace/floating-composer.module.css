@@ -24,12 +24,12 @@
   background: var(--fc-backing, var(--color-bg-paper));
   pointer-events: none;
   -webkit-mask-image:
-    linear-gradient(to top, #000 calc(100% - 32px), transparent),
-    linear-gradient(to right, transparent, #000 80px, #000 calc(100% - 80px), transparent);
+    linear-gradient(to top, black calc(100% - 32px), transparent),
+    linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent);
   -webkit-mask-composite: source-in;
   mask-image:
-    linear-gradient(to top, #000 calc(100% - 32px), transparent),
-    linear-gradient(to right, transparent, #000 80px, #000 calc(100% - 80px), transparent);
+    linear-gradient(to top, black calc(100% - 32px), transparent),
+    linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent);
   mask-composite: intersect;
 }
 

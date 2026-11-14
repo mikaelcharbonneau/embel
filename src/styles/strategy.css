@@ -25,7 +25,7 @@
   justify-content: center;
   gap: 13px;
   min-height: 275px;
-  border: 1px dashed #c9c8c3;
+  border: 1px dashed var(--color-border-strong);
   border-radius: var(--radius-card);
   padding: 28px var(--space-6);
   text-align: center;
@@ -50,9 +50,9 @@
   padding: 14px var(--space-4);
   margin-bottom: 18px;
   background: var(--color-bg-warning-soft);
-  border: 1px solid #e6d7b3;
+  border: 1px solid var(--color-border-warning-soft);
   border-radius: 7px;
-  color: #71531f;
+  color: var(--color-text-warning);
   font-size: var(--font-size-2);
   line-height: 1.65;
 }
@@ -205,14 +205,14 @@
   min-height: 235px;
   padding: 14px;
   margin-top: 10px;
-  border: 1px solid #d8d7d3;
+  border: 1px solid var(--color-border-strong);
   border-radius: 6px;
   background: var(--color-bg-paper);
   font-size: 15px;
   line-height: 1.75;
 }
 .positioning-input::placeholder {
-  color: #82817b;
+  color: var(--color-text-muted);
   opacity: 1;
 }
 .positioning-input[aria-invalid="true"] {

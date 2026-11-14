@@ -277,7 +277,7 @@
   width: 36px;
   height: 36px;
   flex-shrink: 0;
-  border: 1px solid #00000016;
+  border: 1px solid var(--color-border);
   border-radius: 5px;
 }
 .identity-swatches li div {

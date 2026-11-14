@@ -28,7 +28,7 @@
   min-height: 56px;
   box-sizing: border-box;
   padding: 0 var(--space-1-5) 0 var(--space-2);
-  background: rgb(255 255 255 / 92%);
+  background: var(--chip-on-artwork-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   box-shadow: 0 12px 32px -16px rgb(25 25 25 / 28%);
@@ -81,7 +81,7 @@
   border: 0;
   border-radius: var(--radius-pill);
   background: transparent;
-  color: #3a3a37;
+  color: var(--color-text);
   font-size: var(--font-size-2);
   white-space: nowrap;
   cursor: pointer;
@@ -183,7 +183,7 @@
   color: var(--color-text-positive);
 }
 .save[data-state="error"] {
-  color: #8f4242;
+  color: var(--color-text-danger);
 }
 
 .pillButton {

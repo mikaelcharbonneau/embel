@@ -9,14 +9,14 @@
 .conversation-composer {
   position: relative;
   background: var(--color-bg-paper);
-  border: 1px solid #cbc9c5;
+  border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
   padding: 14px var(--space-4) var(--space-3);
   box-shadow: 0 3px 14px #19191904;
 }
 .conversation-composer:focus-within {
-  border-color: #8d8c88;
-  box-shadow: 0 0 0 1px #8d8c88;
+  border-color: var(--color-border-selected);
+  box-shadow: 0 0 0 1px var(--color-border-selected);
 }
 .conversation-composer.has-error {
   border-color: var(--color-border-danger);
@@ -38,7 +38,7 @@
   outline: none;
 }
 .conversation-composer textarea::placeholder {
-  color: #82817b;
+  color: var(--color-text-muted);
   opacity: 1;
 }
 .conversation-composer-footer {
@@ -64,7 +64,7 @@
 }
 .conversation-composer.is-initial {
   padding: 22px var(--space-6) var(--space-4);
-  border: 1px solid #d9d8d4;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-card);
   box-shadow: none;
 }
@@ -364,7 +364,7 @@
   background: var(--color-bg-canvas);
 }
 .conversation-widget-body .segment-card.is-selected {
-  border-color: #cbacc5;
+  border-color: var(--color-border-selected);
 }
 .conversation-widget-body .segment-top {
   margin-bottom: 9px;
@@ -729,7 +729,7 @@
 /* Preserve the newer conversation flow in the original neutral visual language. */
 .conversation-user-entry {
   border: 0;
-  background: #ecece8;
+  background: var(--color-bg-sunken);
   border-radius: 10px;
 }
 .conversation-message-meta > span {
@@ -751,7 +751,7 @@
   background: var(--color-bg-paper);
 }
 .conversation-widget-body .segment-card.is-selected {
-  border-color: #5e6056;
+  border-color: var(--color-border-selected);
 }
 .segment-card.is-selected::before {
   display: none;

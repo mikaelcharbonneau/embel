@@ -38,7 +38,7 @@
   overflow: auto;
 }
 .sheet::backdrop {
-  background: #19191955;
+  background: var(--color-bg-scrim);
 }
 .sheet > header {
   position: sticky;

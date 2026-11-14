@@ -29,14 +29,14 @@
   width: 100%;
   padding: var(--space-3);
   margin-top: 9px;
-  border: 1px solid #d8d7d3;
+  border: 1px solid var(--color-border-strong);
   border-radius: 6px;
   background: var(--color-bg-paper);
   font-size: var(--font-size-3);
   line-height: 1.55;
 }
 .competitor-input::placeholder {
-  color: #82817b;
+  color: var(--color-text-muted);
   opacity: 1;
 }
 .competitor-input[aria-invalid="true"] {
@@ -50,7 +50,7 @@
 }
 .competitor-field-error {
   margin-top: var(--space-1-5);
-  color: #a02929;
+  color: var(--color-text-danger);
   font-size: var(--font-size-2);
 }
 .competitor-none {

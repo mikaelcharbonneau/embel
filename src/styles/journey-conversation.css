@@ -69,7 +69,7 @@
   flex-wrap: wrap;
   padding: 14px 14px 14px var(--space-4);
   border-radius: var(--radius-card);
-  background: rgb(255 255 255 / 75%);
+  background: var(--chip-on-artwork-bg);
 }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-answer-copy {
   gap: 10px;
@@ -109,8 +109,8 @@
 .concept-project-workspace .workspace-main:has(.project-stage-strategy),
 .concept-project-workspace .workspace-main:has(.logo-conversation-message) {
   background-color: var(--color-bg-canvas);
-  background-image: radial-gradient(#dad9d4 1px, transparent 1px);
-  background-size: 22px 22px;
+  background-image: var(--pattern-dot-grid);
+  background-size: var(--pattern-dot-size) var(--pattern-dot-size);
 }
 
 /* The brief's edit button sits inside the bubble, below the "You" label. */
@@ -245,7 +245,7 @@
 .guided-naming-messages > .guided-choice-answer {
   margin-left: 44px;
   border-radius: var(--radius-card);
-  background: rgb(255 255 255 / 75%);
+  background: var(--chip-on-artwork-bg);
 }
 /* All / Saved filter above the names. */
 .naming-filter {
@@ -285,7 +285,7 @@
   padding: 0 14px 0 var(--space-1-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
-  background: rgb(255 255 255 / 80%);
+  background: var(--chip-on-artwork-bg);
   color: var(--color-text);
   font: inherit;
   font-size: var(--font-size-2);
@@ -380,8 +380,8 @@
 }
 .concept-project-workspace .workspace-main:has(.identity-conversation-message) {
   background-color: var(--color-bg-canvas);
-  background-image: radial-gradient(#dad9d4 1px, transparent 1px);
-  background-size: 22px 22px;
+  background-image: var(--pattern-dot-grid);
+  background-size: var(--pattern-dot-size) var(--pattern-dot-size);
 }
 
 /* Phase 5 · Identity · Inspiration: Embel's message above the gallery; Continue
@@ -425,8 +425,8 @@
 }
 .concept-project-workspace .workspace-main:has(.inspiration-message) {
   background-color: var(--color-bg-canvas);
-  background-image: radial-gradient(#dad9d4 1px, transparent 1px);
-  background-size: 22px 22px;
+  background-image: var(--pattern-dot-grid);
+  background-size: var(--pattern-dot-size) var(--pattern-dot-size);
 }
 .identity-chosen-logo {
   width: 56px;

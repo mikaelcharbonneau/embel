@@ -759,7 +759,7 @@ button.inspiration-continue {
   bottom: 6px;
   padding: var(--space-0-5) var(--space-2);
   border-radius: var(--radius-pill);
-  background: rgb(255 255 255 / 92%);
+  background: var(--chip-on-artwork-bg);
   color: var(--color-text);
   font-size: var(--font-size-1);
   line-height: 18px;
@@ -826,7 +826,7 @@ button.inspiration-continue {
   bottom: 16px;
   padding: var(--space-1) 10px;
   border-radius: var(--radius-pill);
-  background: rgb(255 255 255 / 92%);
+  background: var(--chip-on-artwork-bg);
   color: var(--color-text);
   font-size: var(--font-size-1);
   line-height: 18px;
@@ -842,7 +842,7 @@ button.inspiration-continue {
   padding: 0;
   border: 1px solid rgb(25 25 25 / 8%);
   border-radius: 50%;
-  background: rgb(255 255 255 / 94%);
+  background: var(--chip-on-artwork-bg);
   color: var(--color-text);
   box-shadow: 0 1px 4px rgb(25 25 25 / 22%);
   cursor: pointer;
