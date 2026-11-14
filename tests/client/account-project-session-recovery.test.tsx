@@ -9,7 +9,6 @@ import { AccountProjectEditor } from "@/components/workspace/account-project-edi
 import type { AccountGuidedInterview } from "@/components/workspace/account-guided-interview";
 import { accountProjectSchema, type AccountProject } from "@/domain/project-api";
 import { guidedMessageContext } from "@/components/workspace/guided-interview-client";
-import { getNamingReadiness } from "@/domain/project-naming";
 import { strategyJobSchema, type StrategyOverview } from "@/domain/strategy-jobs";
 import { contextSnapshotSchema } from "@/domain/projects";
 

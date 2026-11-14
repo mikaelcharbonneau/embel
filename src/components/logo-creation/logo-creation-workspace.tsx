@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useProjectLogoEvidence } from "@/components/workspace/project-workspace";
-import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState } from "react";
 import type { LogoRasterSource } from "@/domain/logo-workspace";
 import { logoUuidSchema } from "@/domain/logo-vector";
 import type { LogoConceptBatch, LogoRunRequest } from "@/domain/logo-jobs";
@@ -51,7 +51,8 @@ import type { StepReply } from "@/features/logo-creation/model/step-reply";
 import { useStepReply } from "@/features/logo-creation/use-step-reply";
 import { NoCreditsNote, OutOfCreditsInPlace, useCreditBalance } from "./credits-in-place";
 import { shownVersion } from "./concept-grid";
-import { LOGO_TYPE_LABELS } from "./presentation";
+import { logoScreenView } from "./logo-screen-view";
+import { LOGO_SCREEN_START, logoScreenReducer } from "./logo-screen-mode";
 import { journeyPartLabel } from "@/domain/journey";
 import { createPortal } from "react-dom";
 import {
@@ -215,22 +216,23 @@ function OwnedLogoCreation({
     batch: LogoConceptBatch | null;
     unavailable: boolean;
   } | null>(null);
-  const [checkingRequest, setCheckingRequest] = useState(false);
+  // The screen's own modes: what was opened or asked for in this tab (logo-screen-mode.ts).
+  const [screen, dispatch] = useReducer(logoScreenReducer, LOGO_SCREEN_START);
+  const { choosing, ranOut, changingTypes } = screen;
+  const checkingRequest = screen.checkingSave;
+  const confirmReload = screen.confirmingDiscard;
   const [batchReload, setBatchReload] = useState(0);
   const [viewedVersions, setViewedVersions] = useState<Record<string, { key: string; count: number }>>({});
   const selectedRefinementRequests = useRef(new Set<string>());
   const refreshedRefinementRequests = useRef(new Set<string>());
   const [refineInstruction, setRefineInstruction] = useState("");
-  const [selectionState, setSelectionState] = useState<{
+  const [chosen, setChosen] = useState<{
     selected: LogoRasterSource | null;
     workspaceRevision: number | null;
-    busy: boolean;
     error: string | null;
-  }>({ selected: null, workspaceRevision: null, busy: false, error: null });
+  }>({ selected: null, workspaceRevision: null, error: null });
+  const selectionState = { ...chosen, busy: screen.choiceSaving };
   const selecting = useRef(false);
-  // The concept being chosen right now: its card shows as chosen from the click, and goes back if saving fails.
-  const [choosing, setChoosing] = useState<LogoRasterSource | null>(null);
-  const [confirmReload, setConfirmReload] = useState(false);
   const [saveReadout, setSaveReadout] = useState<{ key: string; message: string } | null>(null);
   const [savedInputs, setSavedInputs] = useState<LogoSavedInputState>({ status: "idle" });
   const savedInputsBusy = savedInputs.status === "reading" || savedInputs.status === "saving";
@@ -302,8 +304,6 @@ function OwnedLogoCreation({
         ? "unavailable"
         : "loading"
       : undefined;
-  const initialConceptReadMessage =
-    initialConceptReadState === "unavailable" ? "Saved logo details unavailable." : "Loading saved logo details…";
   const drawingSlotIds = logoDrawingSlotIds(activeConceptRun, activeBatch);
   const undrawnSlotIds = logoUndrawnSlotIds(
     latestConceptRun && logoRunBatchId(latestConceptRun) === activeBatch?.id ? latestConceptRun : null,
@@ -422,29 +422,8 @@ function OwnedLogoCreation({
       record.billing.status === "recorded" &&
       record.preview?.publicationState === "committed",
   )?.record;
-  const composerStatus = selectionState.busy
-    ? "Saving your choice…"
-    : refinementBusy
-      ? "Refining your logo…"
-      : completedRefinement
-        ? "Your refined logo is ready on its card."
-        : initialConceptReadState
-          ? initialConceptReadMessage
-          : !selectedLogo
-            ? "Select a logo above to get started."
-            : focusedReview.loading
-              ? "Loading your chosen logo…"
-              : focusedReview.error
-                ? "Your chosen logo could not be loaded. Try choosing it again."
-                : !canRefine
-                  ? logoEngine.engine === false
-                    ? "Changing logos is unavailable right now. Your message is kept."
-                    : ""
-                  : "";
-
   // Logo types stay editable once concepts exist; a change saves the brief and
   // applies to the next set (More concepts). Not while a set is still drawing.
-  const [changingTypes, setChangingTypes] = useState(false);
   const batchDrawing = Boolean(
     activeBatch?.slots.some((slot) => ["queued", "running"].includes(slot.attempts.at(-1)?.state ?? "")),
   );
@@ -466,16 +445,14 @@ function OwnedLogoCreation({
   // Credits are shown, never money. At 0 the step marks it before the click (D-014); a start refused for lack of
   // credits shows the Out-of-credits message here, in place of the app-wide prompt (D-015). The server decides.
   const credits = useCreditBalance(account);
-  // Which control was refused for lack of credits: the message appears there.
-  const [ranOut, setRanOut] = useState<"concepts" | "refine" | null>(null);
   const noCredits = credits.balance !== null && credits.balance <= 0;
   const startEngine = (kind: LogoEngineKind, input: Record<string, unknown>) => {
-    setRanOut(null);
+    dispatch({ type: "start_asked" });
     void runWithCreditsInPlace(() => logoEngine.start(kind, input)).then(({ outOfCredits }) => {
       credits.refresh();
       if (!outOfCredits) return;
       logoEngine.clearError();
-      setRanOut(kind === LOGO_ENGINE_KINDS.refine ? "refine" : "concepts");
+      dispatch({ type: "credits_refused", control: kind === LOGO_ENGINE_KINDS.refine ? "refine" : "concepts" });
     });
   };
   const engineStarter: LogoEngineStarter | null = engineOn
@@ -712,7 +689,7 @@ function OwnedLogoCreation({
     const key = pendingSave.body.requestKey,
       controller = new AbortController();
     requestRead.current = controller;
-    setCheckingRequest(true);
+    dispatch({ type: "save_check_started" });
     const current = () =>
       !controller.signal.aborted &&
       isCurrent(account) &&
@@ -748,7 +725,7 @@ function OwnedLogoCreation({
     } finally {
       if (requestRead.current === controller) {
         requestRead.current = null;
-        if (!controller.signal.aborted) setCheckingRequest(false);
+        if (!controller.signal.aborted) dispatch({ type: "save_check_ended" });
       }
     }
   }
@@ -761,8 +738,8 @@ function OwnedLogoCreation({
       requestRead.current = controller;
       const current = () =>
         !controller.signal.aborted && isCurrent(account) && isAccountLogoClientCurrent(client, account, projectId);
-      setSelectionState((previous) => ({ ...previous, busy: true, error: null }));
-      setChoosing(source ?? null);
+      setChosen((previous) => ({ ...previous, error: null }));
+      dispatch({ type: "choice_started", source: source ?? null });
       try {
         const input = {
           client,
@@ -774,10 +751,9 @@ function OwnedLogoCreation({
         };
         const receipt = source ? await selectLogoCandidate(input, source) : await recoverLogoSelection(input, retry);
         if (current() && receipt?.revision.stage === "concepts") {
-          setSelectionState({
+          setChosen({
             selected: receipt.revision.payload.selected,
             workspaceRevision: receipt.workspace.heads.workspaceRevision,
-            busy: false,
             error: null,
           });
           if (!memory.get(projectId)?.dirty) void reloadWorkspace(false);
@@ -786,7 +762,7 @@ function OwnedLogoCreation({
         if (current() && error instanceof LogoSelectionConflictResolvedError) {
           const result = await reloadWorkspace(false);
           if (current())
-            setSelectionState((previous) => ({
+            setChosen((previous) => ({
               ...previous,
               error:
                 result === "reloaded"
@@ -794,7 +770,7 @@ function OwnedLogoCreation({
                   : "Your choice was not saved. Your logos and edits are kept. Refresh your saved brand, then choose your logo again.",
             }));
         } else if (current())
-          setSelectionState((previous) => ({
+          setChosen((previous) => ({
             ...previous,
             error:
               error instanceof AccountRequestError && error.status === 409
@@ -804,8 +780,7 @@ function OwnedLogoCreation({
       } finally {
         selecting.current = false;
         if (requestRead.current === controller) requestRead.current = null;
-        setChoosing(null);
-        if (current()) setSelectionState((previous) => ({ ...previous, busy: false }));
+        dispatch({ type: "choice_ended", current: current() });
       }
     },
     [client, projectId, account, isCurrent, memory, reloadWorkspace],
@@ -884,7 +859,7 @@ function OwnedLogoCreation({
     if (!canDiscard || requestRead.current) return;
     const latest = memory.get(projectId);
     if (!latest || latest.pendingMutation || latest.pendingExport) return;
-    setConfirmReload(false);
+    dispatch({ type: "discard_answered" });
     void workspace.reload(true);
   }
 
@@ -945,7 +920,7 @@ function OwnedLogoCreation({
       )}
       {canDiscard && (
         <div className={styles.recovery}>
-          <Button size="sm" onClick={() => setConfirmReload(true)}>
+          <Button size="sm" onClick={() => dispatch({ type: "discard_asked" })}>
             Discard local edits and reload
           </Button>
           {confirmReload && (
@@ -953,7 +928,7 @@ function OwnedLogoCreation({
               <p className="e-muted">
                 Replace the brief and reference changes in this tab with the latest saved version?
               </p>
-              <Button size="sm" onClick={() => setConfirmReload(false)}>
+              <Button size="sm" onClick={() => dispatch({ type: "discard_answered" })}>
                 Keep editing
               </Button>
               <Button size="sm" onClick={discardAndReload}>
@@ -983,6 +958,50 @@ function OwnedLogoCreation({
     markDirectionsIntent();
     onContinue();
   };
+  // The step's heading (decision 3): what the work area shows now, and actions about the chosen concept.
+  const brandName = draft?.brief.name || "your brand";
+  const readyCount = activeBatch?.slots.filter((slot) => acceptedConceptAttempt(slot)).length ?? 0;
+  const drawingNow = drawingSlotIds.size > 0 || batchDrawing;
+  const logoTypes = draft?.brief.logoTypes ?? [];
+  const refineStarter =
+    engineStarter && canEstimate && saved && selectedLogo && focusedReceipt && !refinementBusy && canRefine
+      ? (instruction: string) =>
+          engineStarter.start({ operation: "refine_preview", expected: saved.heads, source: selectedLogo, instruction })
+      : null;
+  // What the screen says in this situation: one function holds every sentence's priority (logo-screen-view.ts).
+  const view = logoScreenView({
+    brandName,
+    savedRead: initialConceptReadState ?? null,
+    hasBatch: Boolean(activeBatch),
+    savedBatchLoading,
+    savedBatchUnavailable,
+    drawingNow,
+    drawingSlotCount: drawingSlotIds.size,
+    readyCount,
+    failedCount: failedSlotIds.length,
+    conceptRunActive: Boolean(activeConceptRun),
+    refineRunActive: Boolean(activeRefineRun),
+    runActive: Boolean(engineRun),
+    stopping: step.stopping,
+    engine: logoEngine.engine,
+    runEndSentence,
+    hasChosenLogo: Boolean(selectedLogo),
+    chosenLabel: selectedLabel,
+    choiceSaving: selectionState.busy,
+    chosenLogoLoading: focusedReview.loading,
+    chosenLogoFailed: Boolean(focusedReview.error),
+    refinementBusy,
+    refinementReady: Boolean(completedRefinement),
+    canDescribeChange: Boolean(refineStarter),
+    logoTypes,
+    canStartConcepts: conceptEstimate.canStart,
+    noCredits,
+    canContinue,
+    chosenLogoOutdated,
+    continueHandled: Boolean(onContinue),
+    continueHidden: Boolean(continueHidden),
+  });
+  const { gridTitle, gridSubtitle, failedNow, stepMessage, progressSentence } = view;
   const continueAction =
     activeBatch && !continueHidden ? (
       canContinue ? (
@@ -1000,17 +1019,7 @@ function OwnedLogoCreation({
           </ButtonLink>
         )
       ) : (
-        <Button
-          variant="primary"
-          disabled
-          title={
-            initialConceptReadState
-              ? initialConceptReadMessage
-              : chosenLogoOutdated
-                ? "Choose a concept made with your current brand details and liked images"
-                : "Select a logo and wait for it to save"
-          }
-        >
+        <Button variant="primary" disabled title={view.continueHint}>
           Continue
         </Button>
       )
@@ -1040,7 +1049,7 @@ function OwnedLogoCreation({
       }
       idle={!activeBatch && !batchId && !initialConceptReadState}
       footer={continueAction}
-      status={composerStatus}
+      status={view.composerStatus}
       onShowResult={
         completedRefinement
           ? () => {
@@ -1069,10 +1078,6 @@ function OwnedLogoCreation({
       }
     />
   );
-  // The step's heading (decision 3): what the work area shows now, and actions about the chosen concept.
-  const brandName = draft?.brief.name || "your brand";
-  const readyCount = activeBatch?.slots.filter((slot) => acceptedConceptAttempt(slot)).length ?? 0;
-  const drawingNow = drawingSlotIds.size > 0 || batchDrawing;
   const external = reply === "external";
   const selectedHistory = selectedCard?.[1] ?? [];
   const selectedSlotId = selectedCard?.[0];
@@ -1092,24 +1097,6 @@ function OwnedLogoCreation({
     !workspace.dirty &&
     !draft?.conflict &&
     editing;
-  const gridTitle = !activeBatch
-    ? (drawingNow || engineRun) && !savedBatchUnavailable
-      ? "Drawing your concepts"
-      : "Logo concepts"
-    : drawingNow
-      ? "Drawing your concepts"
-      : selectedLogo && selectedLabel
-        ? "Your logo"
-        : "Choose the concept you like most";
-  const gridSubtitle = savedBatchUnavailable
-    ? "Saved concept details unavailable"
-    : savedBatchLoading
-      ? "Loading saved concepts…"
-      : selectionState.busy
-        ? "Saving your choice…"
-        : !drawingNow && selectedLogo && selectedLabel
-          ? `${selectedLabel.replace(" · ", ", ").replace("Version", "version")} · ${readyCount} concepts`
-          : `${readyCount} of 6 concepts ready`;
   const failedOrdinals =
     activeBatch?.slots.filter((slot) => failedSlotIds.includes(slot.id)).map((slot) => slot.ordinal + 1) ?? [];
   const retryLabel = `Retry ${failedSlotIds.length} failed concept${failedSlotIds.length === 1 ? "" : "s"}`;
@@ -1164,7 +1151,12 @@ function OwnedLogoCreation({
       )}
     </>
   );
-  const outOfCreditsMessage = <OutOfCreditsInPlace periodEnd={credits.periodEnd} onDismiss={() => setRanOut(null)} />;
+  const outOfCreditsMessage = (
+    <OutOfCreditsInPlace
+      periodEnd={credits.periodEnd}
+      onDismiss={() => dispatch({ type: "credits_message_dismissed" })}
+    />
+  );
   // In the Workspace the chat talks and the work area shows only the work: status, failures and credits sit in the
   // chat, under Embel's message for the step.
   const chatSlot = useWorkspaceChatSlot();
@@ -1211,79 +1203,34 @@ function OwnedLogoCreation({
     </InlineMessage>
   ) : null;
 
-  // The reply box (decision 2): logo types as chips before the first set, the chosen concept once there is one.
-  const logoTypes = draft?.brief.logoTypes ?? [];
   const typesEditable = Boolean(draft && editing && autoSave && !activeBatch);
-  const refineStarter =
-    engineStarter && canEstimate && saved && selectedLogo && focusedReceipt && !refinementBusy && canRefine
-      ? (instruction: string) =>
-          engineStarter.start({ operation: "refine_preview", expected: saved.heads, source: selectedLogo, instruction })
-      : null;
-  const stepReply: StepReply | null = initialConceptReadState
+  const stepReply: StepReply | null = !view.reply
     ? null
-    : !activeBatch
+    : view.reply.stage === "types"
       ? {
-          step: "logo",
-          chips: logoTypes.map((type) => ({
-            id: type,
-            label: LOGO_TYPE_LABELS[type],
+          ...view.reply.box,
+          chips: view.reply.chips.map((chip) => ({
+            ...chip,
             onRemove:
               typesEditable && draft
-                ? () => workspace.setBriefDraft({ ...draft.brief, logoTypes: toggleLogoType(logoTypes, type) })
+                ? () => workspace.setBriefDraft({ ...draft.brief, logoTypes: toggleLogoType(logoTypes, chip.id) })
                 : undefined,
           })),
-          placeholder: "Choose the logo types, then press Send…",
-          sendLabel: "Draw six concepts",
-          canSend: conceptEstimate.canStart && !noCredits,
-          acceptsText: false,
-          outOfCredits: noCredits,
-          working: Boolean(engineRun),
-          stopLabel: "Stop drawing",
           send: () => conceptEstimate.start(),
-          stopping: step.stopping,
           stop: stopRun,
         }
       : {
-          step: "logo",
-          chips: selectedLabel && selectedLogo ? [{ id: "logo", label: `Logo: ${selectedLabel}` }] : [],
-          placeholder: selectedLogo
-            ? "Describe a change, or press Send to continue…"
-            : "Choose a concept, then press Send…",
-          sendLabel: "Continue to Creative direction",
-          // Send continues where the owner opens Creative direction (onContinue), as in the Workspace.
-          canSend: canContinue && Boolean(onContinue) && !continueHidden && !noCredits && !engineRun,
-          acceptsText: Boolean(refineStarter),
-          outOfCredits: noCredits,
-          working: Boolean(engineRun),
-          stopLabel: activeRefineRun ? "Stop changing the logo" : "Stop drawing",
+          ...view.reply.box,
+          chips: view.reply.chips,
           send: (text) => {
             const instruction = text.trim();
             if (instruction && refineStarter) refineStarter(instruction);
             else if (!instruction && canContinue) continueToDirections();
           },
-          stopping: step.stopping,
           stop: stopRun,
         };
   useStepReply(stepReply, onReplyChange);
 
-  // Embel's message for this state, and the step's status in the chat (the logo types, the drawing progress, a
-  // failure with its retry, credits in place).
-  const conceptsDrawing = drawingNow || Boolean(activeConceptRun);
-  const failedNow = failedSlotIds.length > 0 && !conceptsDrawing;
-  const chosenConcept = selectedLabel?.split(" · ")[0];
-  const stateMessage = activeRefineRun
-    ? "I’m changing your logo. The new version appears on the right when it’s ready."
-    : conceptsDrawing
-      ? `I’m drawing six concepts for ${brandName}. They appear on the right as each one is ready.`
-      : !activeBatch
-        ? `Time for a logo. I’ll draw six concepts for ${brandName}, guided by the designs you liked. First, choose the kinds of logo to explore on the right, then press Send.`
-        : selectedLogo && chosenConcept
-          ? `${chosenConcept} is your logo. ${refineStarter ? "To change it, describe the change below. " : ""}When you’re happy with it, press Send to continue to Creative direction.`
-          : failedNow
-            ? ""
-            : `Here are six concepts for ${brandName}. Choose the one you like most on the right. You can change it afterwards.`;
-  // A run that just ended without its result is said first, then what the person can do now.
-  const stepMessage = [runEndSentence, stateMessage].filter(Boolean).join(" ");
   useWorkspaceStepMessage("logo", inChat ? stepMessage : null);
   // The folded Logo entry once the step is finished: the chosen concept and a small copy of it.
   const chosenPreview = useVerifiedPreview(inChat ? client : null, inChat ? focusedReceipt : null);
@@ -1292,14 +1239,6 @@ function OwnedLogoCreation({
     inChat && selectedLogo && chosenLabel ? chosenLogoAnswer(chosenLabel) : null,
     chosenPreview.failed ? null : { url: chosenPreview.url, alt: "Chosen logo concept" },
   );
-  const drawingCount = drawingSlotIds.size || 6;
-  const progressSentence = activeRefineRun
-    ? "Changing your logo."
-    : conceptsDrawing
-      ? drawingCount === 6
-        ? "Drawing six logo concepts. This usually takes about a minute."
-        : `Drawing ${drawingCount === 1 ? "one logo concept" : `${drawingCount} logo concepts`}.`
-      : null;
   const chatStatus =
     inChat && chatSlot
       ? createPortal(
@@ -1340,7 +1279,7 @@ function OwnedLogoCreation({
                 inline
                 value={logoTypes}
                 disabled={!canChangeTypes}
-                onChange={() => setChangingTypes(true)}
+                onChange={() => dispatch({ type: "types_change_opened" })}
               />
             )}
           </div>,
@@ -1384,13 +1323,17 @@ function OwnedLogoCreation({
       }
       note="Your next concepts use these types. The concepts you already have stay available to choose."
       action={
-        <Button disabled={!logoTypes.length} onClick={() => setChangingTypes(false)}>
+        <Button disabled={!logoTypes.length} onClick={() => dispatch({ type: "types_change_done" })}>
           Done
         </Button>
       }
     />
   ) : inChat ? null : (
-    <LogoTypesSummary value={logoTypes} disabled={!canChangeTypes} onChange={() => setChangingTypes(true)} />
+    <LogoTypesSummary
+      value={logoTypes}
+      disabled={!canChangeTypes}
+      onChange={() => dispatch({ type: "types_change_opened" })}
+    />
   );
   // In the project conversation the brand's name is the page's heading and the step is a second-level heading.
   const StepHeading = onContinue ? "h2" : "h1";
