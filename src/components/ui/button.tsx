@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ComponentProps, ReactNode } from "react";
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ComponentProps, ReactNode, Ref } from "react";
 import { Icon, type IconName } from "./icon";
 
 /** primary: the one main action of a view; secondary: every other action; quiet: low emphasis beside a primary;
@@ -36,6 +36,7 @@ export type ButtonProps = Look &
     children: ReactNode;
     /** Busy keeps the label and focus: the button stays enabled for focus but ignores presses. */
     loading?: boolean;
+    ref?: Ref<HTMLButtonElement>;
   };
 
 /** The one way to trigger an action. Labels are verbs in sentence case. */
@@ -140,6 +141,7 @@ export function IconButton({
   pressed?: boolean;
   /** Show the label as a tooltip on hover and keyboard focus. */
   tooltip?: boolean;
+  ref?: Ref<HTMLButtonElement>;
 }) {
   const classes = ["e-icon-button", `e-icon-button--${variant}`, size === "sm" && "e-icon-button--sm", className]
     .filter(Boolean)

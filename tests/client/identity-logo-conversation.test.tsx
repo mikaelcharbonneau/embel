@@ -29,6 +29,7 @@ vi.mock("@/components/workspace/project-progress", () => ({ useProjectProgress: 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: fixture.replace, push: vi.fn(), refresh: vi.fn() }),
 }));
+vi.mock("@/components/inspiration/inspiration-like-count", () => ({ InspirationLikeCount: () => null }));
 vi.mock("@/components/inspiration/inspiration-workspace", () => ({
   InspirationWorkspace: ({ onContinue, continueHidden }: { onContinue?: () => void; continueHidden?: boolean }) => (
     <article className="guided-assistant-message" data-inspiration>

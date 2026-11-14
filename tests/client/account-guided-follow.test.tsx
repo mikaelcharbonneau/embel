@@ -75,7 +75,7 @@ function reply(turnId = workspace.saved.context.intake.guidedInterview!.turns[0]
   });
 }
 function area() {
-  return host.querySelector<HTMLDivElement>(".guided-interview-scroll")!;
+  return host.querySelector<HTMLDivElement>(".e-workspace__log")!;
 }
 async function render() {
   await act(async () =>
@@ -139,30 +139,37 @@ afterEach(async () => {
 });
 
 describe("guided conversation response arrival", () => {
-  it("exposes an accessible jump for a verified new reply without moving the reader or saving anything", async () => {
+  // The chat log is anchored to its newest message (design system, Workspace), so a reply arrives in view without
+  // the page scrolling the reader somewhere else or taking focus from the reply box.
+  it("shows a verified new reply in the chat without moving the reader or saving anything", async () => {
     await render();
-    const composer = host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!;
+    const composer = host.querySelector<HTMLTextAreaElement>(".workspace-reply textarea")!;
     composer.focus();
-    await act(async () => {
-      area().scrollTop = 100;
-      area().dispatchEvent(new Event("scroll", { bubbles: true }));
-    });
     scrollTo.mockClear();
-    height = 1600;
     strategy.overview!.jobs = [reply()];
     await render();
     expect(scrollTo).not.toHaveBeenCalled();
-    expect(area().scrollTop).toBe(100);
     expect(document.activeElement).toBe(composer);
-    const jump = host.querySelector<HTMLButtonElement>(".guided-new-response button")!;
-    expect(jump.textContent).toContain("View new response");
-    expect(jump.getAttribute("aria-controls")).toBe(area().id);
-    await act(async () => jump.click());
-    expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 876, behavior: "auto" });
-    expect(document.activeElement).toBe(host.querySelector(".guided-assistant-message"));
-    expect(host.querySelector(".guided-new-response")).toBeNull();
+    const response = area().querySelector('article[aria-label="Embel response"]')!;
+    expect(response.textContent).toContain("I need one useful detail.");
+    expect(response.textContent).toContain("Which city will you serve?");
     expect(saveContext).not.toHaveBeenCalled();
     expect(strategy.enqueue).not.toHaveBeenCalled();
+  });
+
+  it("marks Show chat when a reply arrives while the chat is hidden", async () => {
+    await render();
+    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Hide chat"]')!.click());
+    const show = () =>
+      [...host.querySelectorAll<HTMLButtonElement>("button")].find((item) => item.textContent?.startsWith("Show chat"));
+    expect(show()).toBeDefined();
+    expect(show()!.querySelector('[aria-label="New message"]')).toBeNull();
+    strategy.overview!.jobs = [reply()];
+    await render();
+    expect(show()!.querySelector('[aria-label="New message"]')).not.toBeNull();
+    await act(async () => show()!.click());
+    expect(show()).toBeUndefined();
+    expect(saveContext).not.toHaveBeenCalled();
   });
 
   it("does not move or announce new content for an unmatched completed job", async () => {
@@ -171,8 +178,7 @@ describe("guided conversation response arrival", () => {
     strategy.overview!.jobs = [reply("unmatched-turn")];
     await render();
     expect(scrollTo).not.toHaveBeenCalled();
-    expect(host.querySelector(".guided-new-response")).toBeNull();
-    expect(host.querySelector(".guided-assistant-message")).toBeNull();
+    expect(area().querySelector('article[aria-label="Embel response"]')).toBeNull();
     expect(saveContext).not.toHaveBeenCalled();
     expect(strategy.enqueue).not.toHaveBeenCalled();
   });

@@ -75,7 +75,7 @@ function boundJob(state: StrategyJob["state"]) {
   });
 }
 function button(label: string) {
-  return [...host.querySelectorAll<HTMLButtonElement>("button")].find((item) => item.textContent === label);
+  return [...host.querySelectorAll<HTMLButtonElement>("button")].find((item) => (item.textContent || item.getAttribute("aria-label")) === label);
 }
 function notice() {
   return host.querySelector(".guided-conversation-error")?.textContent ?? "";
@@ -172,10 +172,10 @@ describe("guided Strategy availability presentation", () => {
       expect(notice()).toContain("You can still edit and save your project.");
       expect(notice()).not.toMatch(/Your brief is saved|No AI request was sent|exhausted|billing|database|storage/i);
       expect(button("Start competitor research")).toBeUndefined();
-      // Only Embel's fixed invitation to start, with its button unavailable.
+      // Only Embel's fixed invitation to start and the reason; Send (Start research) is unavailable.
       expect(
-        [...host.querySelectorAll(".guided-assistant-message")].map((item) => item.getAttribute("aria-label")),
-      ).toEqual(["Start research"]);
+        [...host.querySelectorAll("article.e-turn")].map((item) => item.getAttribute("aria-label")),
+      ).toEqual(["Start research", "Embel status"]);
       expect(button("Start research")?.disabled).toBe(true);
       expect(host.querySelector('[role="status"][aria-label="Project save status"]')?.textContent).toBe("Saved");
       await act(async () => button("Check status")!.click());
@@ -219,7 +219,7 @@ describe("guided Strategy availability presentation", () => {
     expect(notice()).not.toMatch(/brief is saved|prompt is saved/i);
     const saveState =
       saveLabel === "Saving…"
-        ? host.querySelector('.conversation-compose-notices > p[role="status"]')
+        ? host.querySelector('.workspace-reply__notice [role="status"]')
         : host.querySelector('[role="alert"][aria-label="Project save status"]');
     expect(saveState?.textContent).toBe(saveLabel);
     expect(workspace.draft).toBe(draft);
@@ -255,7 +255,7 @@ describe("guided Strategy availability presentation", () => {
     await act(async () => button("Send prompt")!.click());
     expect(notice()).toContain("A previous request needs review before another can start.");
     expect(notice()).toContain("No AI request was sent. Your prompt is kept.");
-    expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")?.value).toBe(
+    expect(host.querySelector<HTMLTextAreaElement>(".workspace-reply textarea")?.value).toBe(
       "Synthetic follow-up to keep",
     );
     expect(saveContext).not.toHaveBeenCalled();
@@ -270,7 +270,7 @@ describe("guided Strategy availability presentation", () => {
       strategy.overview!.jobs = [boundJob("failed")];
       await render();
       expect(notice()).toContain(reasons.find(([value]) => value === reason)![1]);
-      expect(notice()).not.toContain("You can retry research.");
+      expect(button("Try again")).toBeUndefined();
       expect(button("Retry research")).toBeUndefined();
       expect(button("Check status")?.disabled).toBe(false);
       expect(saveContext).not.toHaveBeenCalled();
@@ -283,10 +283,10 @@ describe("guided Strategy availability presentation", () => {
     strategy.overview = { availability: available, jobs: [boundJob("failed")] };
     await render();
     expect(notice()).toContain(
-      "Research could not produce verified suggestions. Your prompt is saved. You can retry research.",
+      "Research could not produce verified suggestions. Your brief is saved.",
     );
-    expect(button("Retry research")?.disabled).toBe(false);
-    await act(async () => button("Retry research")!.click());
+    expect(button("Try again")?.disabled).toBe(false);
+    await act(async () => button("Try again")!.click());
     expect(saveContext).toHaveBeenCalledOnce();
     const retryContext = saveContext.mock.calls[0]![0];
     expect(retryContext.intake.guidedInterview.turns).toHaveLength(2);
@@ -302,8 +302,8 @@ describe("guided Strategy availability presentation", () => {
     await render();
     expect(host.querySelector('[aria-label="Researching your competitors"]')).not.toBeNull();
     expect(notice()).toBe("");
-    expect(button("Cancel research")?.disabled).toBe(false);
-    await act(async () => button("Cancel research")!.click());
+    expect(button("Stop research")?.getAttribute("aria-disabled")).toBeNull();
+    await act(async () => button("Stop research")!.click());
     expect(strategy.cancel).toHaveBeenCalledWith(job);
     expect(strategy.enqueue).not.toHaveBeenCalled();
   });

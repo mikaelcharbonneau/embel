@@ -222,7 +222,7 @@ describe("Home account persistence and sign-in continuation", () => {
     await act(async () => held.resolve(await defaultFetch("/api/projects", creations()[0]![1])));
     expect(host.textContent).toContain("Project saved. Opening your project…");
     expect(host.querySelector(".home-composer")).toBeNull();
-    expect(host.querySelector<HTMLAnchorElement>("a.text-link")?.textContent).toBe("Open saved project");
+    expect(host.querySelector<HTMLAnchorElement>("a.e-link")?.textContent).toBe("Open saved project");
     expect(creations()).toHaveLength(1);
     expect(mock.push).toHaveBeenCalledOnce();
   });

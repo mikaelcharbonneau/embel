@@ -11,6 +11,7 @@ const tracker = vi.hoisted(() => ({ mounts: 0, unmounts: 0 }));
 vi.mock("@/domain/project-handoff", () => ({ getProjectHandoff: () => ({ next: { stage: "naming" } }) }));
 vi.mock("@/domain/project-naming", () => ({ getNamingReadiness: () => ({ ready: true }) }));
 vi.mock("@/components/inspiration/inspiration-workspace", () => ({ InspirationWorkspace: () => null }));
+vi.mock("@/components/inspiration/inspiration-like-count", () => ({ InspirationLikeCount: () => null }));
 vi.mock("@/components/logo-creation/logo-creation-workspace", () => ({ LogoCreationWorkspace: () => null }));
 vi.mock("@/components/visual-directions/visual-directions-page", () => ({ VisualDirectionsPage: () => null }));
 vi.mock("@/components/naming/project-naming-workspace", () => ({
@@ -87,7 +88,7 @@ it("keeps the Naming canvas mounted while editing the brief and awaiting its sav
     await render();
     const canvas = host.querySelector("[data-naming]");
     const input = host.querySelector<HTMLInputElement>('[aria-label="Naming draft"]')!;
-    await act(async () => host.querySelector<HTMLButtonElement>(".guided-brief-editor > button")!.click());
+    await act(async () => host.querySelector<HTMLButtonElement>(".guided-brief-editor button[aria-label='Edit brief']")!.click());
     expect(host.querySelector("[data-naming]")).toBe(canvas);
     expect(tracker.unmounts).toBe(0);
     workspace = { ...workspace, draft: { ...workspace.draft, title: "An edited title" } };

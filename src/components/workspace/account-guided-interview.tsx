@@ -1,24 +1,27 @@
 "use client";
 
 import {
-  Fragment,
   useCallback,
   useEffect,
   useEffectEvent,
-  useId,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
   type ComponentProps,
+  type ComponentType,
   type ReactNode,
-  type RefObject,
 } from "react";
+import { useRouter } from "next/navigation";
 import { AccountBriefEditor } from "./account-brief-editor";
 import { ProjectNamingWorkspace } from "@/components/naming/project-naming-workspace";
 import { InspirationWorkspace } from "@/components/inspiration/inspiration-workspace";
+import { InspirationLikeCount } from "@/components/inspiration/inspiration-like-count";
 import { LogoCreationWorkspace } from "@/components/logo-creation/logo-creation-workspace";
 import { VisualDirectionsPage } from "@/components/visual-directions/visual-directions-page";
+import { Button, Spinner } from "@/components/ui/button";
+import { InlineMessage } from "@/components/ui/message";
 import { useProjectProgress } from "./project-progress";
 import { getNamingReadiness } from "@/domain/project-naming";
 import {
@@ -32,7 +35,7 @@ import {
 } from "@/domain/guided-interview";
 import { competitorSchema, contextSnapshotSchema, type ContextSnapshot } from "@/domain/projects";
 import { CompetitorWidgetControls } from "./competitor-widget-controls";
-import { EmbelIdentity, guidedStageLabel } from "./embel-identity";
+import { guidedStageLabel } from "./embel-identity";
 import {
   JOURNEY_SECTION_EVENT,
   journeySectionId,
@@ -43,13 +46,22 @@ import { journeyPartLabel, type JourneyStepId } from "@/domain/journey";
 import { accountDraftChanged, type AccountWorkspace, type GuidedInterviewInput } from "./account-draft-memory";
 import { strategyAvailabilityMessage, strategyJobActive } from "./account-strategy-client";
 import type { VerifiedAccount } from "./account-session";
-import { ConversationComposer } from "./conversation-composer";
-import { FloatingComposer } from "./floating-composer";
-import { GuidedChoiceWidget } from "./guided-interview-widgets";
-import { GuidedSloganWidget, type SloganDecision } from "./guided-slogan-widget";
-import { StrategySummary } from "./strategy-summary";
-import { GuidedThinking } from "./guided-thinking";
-import { ProgressCard } from "@/components/journey/progress-card";
+import {
+  FoldedAnswer,
+  FoldedPart,
+  GuidedChoices,
+  GuidedChoicesEmpty,
+  GuidedChoicesLoading,
+  selectedOptions,
+  stageQuestions,
+} from "./guided-interview-widgets";
+import {
+  GuidedSlogan,
+  sloganDecision,
+  sloganText,
+  type SloganChoice,
+  type SloganDecision,
+} from "./guided-slogan-widget";
 import {
   guidedAllowance,
   guidedMessageContext,
@@ -63,7 +75,17 @@ import {
 } from "./guided-interview-client";
 import type { ProjectEditorForm } from "./project-editor";
 import { useStrategyJobs } from "./use-strategy-jobs";
-import { useConversationFollow } from "./use-conversation-follow";
+import { Workspace } from "./workspace-layout";
+import {
+  useReplyRegistry,
+  useWorkspaceReply,
+  WorkspaceReplyBox,
+  WorkspaceReplyRegistry,
+  stepReplyAction,
+  type StepReplyLike,
+  type WorkspaceReplyAction,
+} from "./workspace-reply";
+import { WorkspaceSlotContext, type WorkspaceStepSummary, type WorkspaceSummaryStep } from "./workspace-slots";
 import "@/styles/conversation.css";
 
 function subscribeToHash(onChange: () => void) {
@@ -73,50 +95,12 @@ function subscribeToHash(onChange: () => void) {
 const readHash = () => window.location.hash;
 const noHash = () => "";
 
-/** Brings a step that opens below into view, once: after its Continue (request()) or
- * when a link points at it. Images above keep loading after the first jump and push
- * the step down; it stays in view while the layout settles, unless the reader takes
- * over (wheel, touch, keys or a click) in the meantime. */
-function useStepReveal(
-  anchor: RefObject<HTMLDivElement | null>,
-  shown: boolean,
-  linked: boolean,
-  transcript: RefObject<HTMLDivElement | null>,
-  jumpTo: (target: HTMLElement) => void,
-) {
-  const requested = useRef(false),
-    linkPending = useRef(true);
-  const jump = useEffectEvent((target: HTMLElement) => jumpTo(target));
-  useEffect(() => {
-    const target = anchor.current,
-      area = transcript.current;
-    if (!shown || !target || !area || (!requested.current && !(linked && linkPending.current))) return;
-    requested.current = false;
-    linkPending.current = false;
-    let reader = false;
-    const takeOver = () => {
-      reader = true;
-    };
-    const events = ["wheel", "touchstart", "keydown", "pointerdown"] as const;
-    events.forEach((name) => area.addEventListener(name, takeOver, { passive: true }));
-    jump(target);
-    const timers = [300, 800, 1600, 3000].map((delay) =>
-      setTimeout(() => {
-        if (!reader) jump(target);
-      }, delay),
-    );
-    const release = setTimeout(() => events.forEach((name) => area.removeEventListener(name, takeOver)), 3200);
-    return () => {
-      timers.forEach(clearTimeout);
-      clearTimeout(release);
-      events.forEach((name) => area.removeEventListener(name, takeOver));
-    };
-  }, [anchor, shown, linked, transcript]);
-  return () => {
-    requested.current = true;
-  };
-}
-
+/**
+ * The project conversation. At 1024 px and up it is the Workspace (decision 1): Embel's messages, the folded
+ * finished steps and the reply box in the side chat, the step's work on the right. Send in the reply box is the one
+ * way forward (decision 2): it confirms the chosen options, starts research or moves to the next step, with exactly
+ * the same saved changes and requests the step's own button used to make.
+ */
 export function AccountGuidedInterview({
   account,
   workspace,
@@ -155,7 +139,6 @@ export function AccountGuidedInterview({
   const setSelection = (selection: GuidedInterviewInput["selection"]) =>
     changeInput((previous) => ({ ...previous, selection }));
   const [error, setError] = useState<string | null>(null);
-  const [strategyExpanded, setStrategyExpanded] = useState(false);
   const [namingReopened, setNamingReopened] = useState(false);
   const [working, setWorking] = useState(false);
   const [briefOpen, setBriefOpen] = useState(false);
@@ -173,11 +156,9 @@ export function AccountGuidedInterview({
     setReopenedFor(null);
   }
   const [namingQuestionId, setNamingQuestionId] = useState<string | null>(null);
-  const [namingCanvas, setNamingCanvas] = useState(false);
   const lock = useRef(false),
     mounted = useRef(false);
   const attempts = useRef(new Set<string>());
-  const transcriptId = useId();
   const saved = workspace.saved;
   const context = workspace.pendingGuidedContext ?? saved.context;
   const state = context.intake.guidedInterview;
@@ -744,6 +725,7 @@ export function AccountGuidedInterview({
     }
   }
 
+
   const checkingResearch =
     currentTurn?.stage === "competitors" &&
     currentTurn.purpose !== "message" &&
@@ -780,233 +762,28 @@ export function AccountGuidedInterview({
     !workspace.pendingGuidedContext &&
     saved.scope === "complete_brand" &&
     getNamingReadiness(saved.context, saved.scope).ready;
-  // On a cold reopen, let the saved Strategy cards take their place before
-  // positioning the first Naming question. A failed history read keeps its retry.
+  // On a cold reopen, let the saved Strategy answers load before the first Naming question.
   const historyChecked = Boolean(strategy.overview || strategy.readError);
   const showNaming = (briefOpen ? briefFromNaming : namingReady) && historyChecked;
-  // Once a name is chosen and the slogan is proposed for it, the names collapse
-  // into one answer and the conversation continues below. Change name reopens them.
+  // Once a name is chosen and the slogan is proposed for it, the names fold into
+  // one answer and the conversation continues. Change name reopens them.
   const nameChosen = Boolean(context.selectedName) && Boolean(state?.turns.some((turn) => turn.stage === "slogan"));
   const namingOpen = showNaming && (!nameChosen || namingReopened);
   const reached: JourneyStepId =
     showNaming || state?.stage === "personality" || state?.stage === "slogan" || state?.stage === "complete"
       ? "voice"
       : "strategy";
-  // Once Strategy is complete its saved replies are history. They can load
-  // after the Naming checkpoint and must not take the reader to an old turn.
-  const responseIds = namingOpen
-    ? namingQuestionId && !namingCanvas
-      ? [namingQuestionId]
-      : []
-    : [
-        ...legacyJobs.flatMap((job) => job.results.map((result) => `guided-result-${job.id}-${result.stepKey}`)),
-        ...timeline.flatMap((item) => {
-          if (item.kind !== "turn") return [];
-          const output = guidedTurnResult(jobs, item.turn, account.userId, saved.id)?.reply;
-          return output && output.kind !== "accepted" && output.kind !== "redirect"
-            ? [`guided-turn-${item.turn.id}`]
-            : [];
-        }),
-      ];
-  const { transcript, onScroll, hasNewResponse, revealNewResponse, jumpTo } = useConversationFollow({
-    conversationKey: `${account.userId}:${account.generation}:${saved.id}`,
-    contentKey: JSON.stringify([
-      timeline.map((item) => (item.kind === "user" ? item.event.id : item.turn.id)),
-      state?.answers.map((answer) => answer.turnId),
-      Boolean(active || checkingResearch),
-      state?.stage,
-      showNaming,
-    ]),
-    responseIds,
-  });
-  const legacyReplies = legacyJobs.map((job) => (
-    <Fragment key={job.id}>
-      {job.results.map((result) => (
-        <article
-          key={result.stepKey}
-          id={`guided-result-${job.id}-${result.stepKey}`}
-          tabIndex={-1}
-          className="guided-assistant-message flow-enter"
-          aria-label="Earlier Embel response"
-        >
-          <EmbelIdentity />
-          <p className="guided-assistant-copy">{result.output.proposal.message}</p>
-        </article>
-      ))}
-    </Fragment>
-  ));
+  const brandName = context.selectedName?.trim() || saved.title;
 
-  const briefEditor = (
-    <AccountBriefEditor
-      workspace={workspace}
-      open={briefOpen}
-      onOpen={() => {
-        setBriefFromNaming(Boolean(namingReady));
-        setBriefOpen(true);
-      }}
-      onClose={() => setBriefOpen(false)}
-      readOnly={Boolean(pending || workspace.conflict || workspace.pendingDraftSave || workspace.pendingGuidedContext)}
-      saveLabel={storage.saveLabel}
-      onUpdate={storage.onUpdate}
-      navigation={navigation}
-    />
-  );
-  const firstMessage = timeline.find((item) => item.kind === "user");
-  // Choosing cards records the labels as your message so the next question can
-  // refer to it. The answered card already shows them, so that echo is not repeated.
-  const choiceEchoes = new Set(
-    (state?.answers ?? []).flatMap((answer) => {
-      const answeredTurn = state?.turns.find((turn) => turn.id === answer.turnId);
-      const answeredReply = answeredTurn ? guidedTurnResult(jobs, answeredTurn, account.userId, saved.id)?.reply : null;
-      if (answeredReply?.kind !== "choices") return [];
-      const labels = [
-        ...answer.optionIds.map((id) => answeredReply.options.find((option) => option.id === id)?.label),
-        ...(retainedAnswerNames(answer.customText, context.competitors) ?? []),
-      ].filter(Boolean);
-      return labels.length ? [labels.join("; ")] : [];
-    }),
-  );
-  const renderItem = (item: (typeof timeline)[number]) => {
-    if (item.kind === "user" && item !== firstMessage && choiceEchoes.has(item.event.text.trim())) return null;
-    if (item.kind === "user") {
-      const first = item === firstMessage;
-      const message = (
-        <div className="guided-user-turn">
-          <span className="guided-user-label">You</span>
-          <div className={first ? "guided-user-message guided-brief-message" : "guided-user-message"}>
-            <p>{item.event.text}</p>
-          </div>
-        </div>
-      );
-      return first ? (
-        <div key={item.event.id} className="guided-brief-turn">
-          {message}
-          {briefEditor}
-        </div>
-      ) : (
-        <Fragment key={item.event.id}>{message}</Fragment>
-      );
-    }
-    const output = guidedTurnResult(jobs, item.turn, account.userId, saved.id)?.reply;
-    if (!output || output.kind === "accepted" || output.kind === "redirect")
-      return item.turn.id === state?.turns[0]?.id ? <Fragment key={item.turn.id}>{legacyReplies}</Fragment> : null;
-    const answer = state?.answers.find((answer) => answer.turnId === item.turn.id);
-    const current = choiceTurn?.id === item.turn.id && !answer;
-    return (
-      <Fragment key={item.turn.id}>
-        {item.turn.id === state?.turns[0]?.id && legacyReplies}
-        <article
-          id={`guided-turn-${item.turn.id}`}
-          tabIndex={-1}
-          className="guided-assistant-message flow-enter"
-          aria-label="Embel response"
-        >
-          <EmbelIdentity label={guidedStageLabel(item.turn.stage)} />
-          <p className="guided-assistant-copy">
-            {item.turn.stage === "personality" ? withoutScoreScaleNote(output.message) : output.message}
-          </p>
-          {output.kind === "choices" && output.stage === "slogan" ? (
-            <GuidedSloganWidget
-              reply={output}
-              brandName={context.selectedName ?? saved.title}
-              disabled={blocked}
-              answered={!current || Boolean(answer)}
-              answer={answer ? answer.customText : undefined}
-              onContinue={(decision) => void confirmSlogan(output, decision)}
-              onSkip={() => void skipSlogan(output.turnId)}
-              onMore={current ? () => void moreSlogans() : undefined}
-              canMore={!requestBlocked && Boolean(guidedAllowance(availability, "strategy.reformulate"))}
-              onRevisit={!current ? () => void revisit("slogan", item.turn.userMessageId) : undefined}
-            />
-          ) : output.kind === "choices" ? (
-            <GuidedChoiceWidget
-              projectId={saved.id}
-              reply={output}
-              selectedIds={answer?.optionIds ?? selectedCompetitors(output)}
-              additionalControls={
-                current && output.stage === "competitors" ? (
-                  <CompetitorWidgetControls
-                    draft={competitorDraft}
-                    onDraft={(value) => changeInput((previous) => ({ ...previous, competitorDraft: value }))}
-                    onAdd={() => addCompetitor(output)}
-                    onMore={() => void moreCompetitors(output)}
-                    disabled={Boolean(blocked)}
-                    canGenerate={!requestBlocked && Boolean(guidedAllowance(availability, "strategy.competitors"))}
-                    generating={active}
-                  />
-                ) : undefined
-              }
-              retainedOptions={current && output.stage === "competitors" ? retainedOptions(output) : undefined}
-              onSelectionChange={(ids) => setSelection({ turnId: output.turnId, ids })}
-              onContinue={() => void confirm(output)}
-              disabled={blocked}
-              answered={!current || Boolean(answer)}
-              additionalAnswer={answer?.customText}
-              retainedAnswerLabels={
-                output.stage === "competitors"
-                  ? retainedAnswerNames(answer?.customText, context.competitors)
-                  : undefined
-              }
-              onRevisit={!current ? () => void revisit(item.turn.stage, item.turn.userMessageId) : undefined}
-            />
-          ) : output.kind === "question" ? (
-            <p className="guided-assistant-question">{output.question}</p>
-          ) : null}
-        </article>
-      </Fragment>
-    );
-  };
-  // Once Positioning is chosen, Strategy collapses into one summary card;
-  // Edit strategy shows its answers again. The slogan follows the name.
-  const strategyAnswer = state?.answers.find((answer) => answer.stage === "positioning");
-  const voiceStart = timeline.findIndex(
-    (item) => item.kind === "turn" && (item.turn.stage === "personality" || item.turn.stage === "slogan"),
-  );
-  const sloganStart = timeline.findIndex((item) => item.kind === "turn" && item.turn.stage === "slogan");
-  const beforeVoice = voiceStart < 0 ? timeline : timeline.slice(0, voiceStart);
-  const voiceItems = voiceStart < 0 ? [] : timeline.slice(voiceStart, sloganStart < 0 ? undefined : sloganStart);
-  const sloganItems = sloganStart < 0 ? [] : timeline.slice(sloganStart);
-  const positioningTurn = strategyAnswer ? state?.turns.find((turn) => turn.id === strategyAnswer.turnId) : undefined;
-  const positioningReply = positioningTurn
-    ? guidedTurnResult(jobs, positioningTurn, account.userId, saved.id)?.reply
-    : null;
-  const positioningChoice =
-    positioningReply?.kind === "choices"
-      ? positioningReply.options.find((option) => strategyAnswer?.optionIds.includes(option.id))
-      : undefined;
-  const strategySummary = strategyAnswer ? (
-    <StrategySummary
-      projectId={saved.id}
-      context={context}
-      angle={positioningChoice?.stage === "positioning" ? positioningChoice.payload.angle : null}
-      expanded={strategyExpanded}
-      onToggle={() => setStrategyExpanded((value) => !value)}
-    />
-  ) : null;
-  const strategyHistory = (
-    <>
-      {!firstMessage && briefEditor}
-      {(strategyAnswer && !strategyExpanded
-        ? beforeVoice.filter((item) => item === firstMessage)
-        : beforeVoice.slice(0, 1)
-      ).map(renderItem)}
-      {strategySummary}
-      {(strategyAnswer && !strategyExpanded ? [] : beforeVoice.slice(1)).map(renderItem)}
-    </>
-  );
-  const voiceHistory = voiceItems.map(renderItem);
-  const sloganHistory = sloganItems.map(renderItem);
-  const canvasActive = namingOpen && namingCanvas;
-  const completed = null;
-
-  // The conversation holds Strategy, then Voice from the first personality
-  // question on, then Identity (Inspiration) as soon as Voice is finished: the
-  // slogan answered or skipped. The project bar highlights the one on screen.
-  const voiceShown = reached === "voice" || voiceItems.length > 0 || sloganItems.length > 0 || nameChosen;
+  // Strategy, then Voice from the first personality question on, then Identity
+  // (Inspiration) once Voice is finished: the slogan answered or skipped.
+  const voiceShown =
+    reached === "voice" ||
+    Boolean(state?.answers.some((answer) => answer.stage === "personality")) ||
+    timeline.some((item) => item.kind === "turn" && (item.turn.stage === "personality" || item.turn.stage === "slogan"));
   const identityShown = state?.stage === "complete" && nameChosen && saved.scope === "complete_brand";
-  // Logo and Creative direction follow Inspiration in the same Identity section,
-  // each after the previous step's Continue, when the project has already reached
-  // it (its next step is that step or a later one), or when a link points at it.
+  // Logo and Creative direction follow Inspiration, each after the previous step's
+  // Send, when the project has already reached it, or when a link points at it.
   const progress = useProjectProgress(),
     projectBase = `/brands/account/${saved.id}`;
   const nextPath = progress?.projectId === saved.id ? progress.nextHref?.split(/[?#]/, 1)[0] : undefined;
@@ -1014,6 +791,8 @@ export function AccountGuidedInterview({
   const directionsReached = Boolean(
     nextPath?.startsWith(`${projectBase}/logo/directions`) || nextPath?.startsWith(`${projectBase}/logo/deliverables`),
   );
+  // A brand whose next step is Assets is finished: its steps fold and the work shows the brand.
+  const finished = Boolean(nextPath?.startsWith(`${projectBase}/logo/deliverables`));
   const [logoOpened, setLogoOpened] = useState(false),
     [directionsOpened, setDirectionsOpened] = useState(false);
   // A redirect from an old step page commits its `#journey-…` address with this
@@ -1021,58 +800,103 @@ export function AccountGuidedInterview({
   const hash = useSyncExternalStore(subscribeToHash, readHash, noHash);
   const logoLinked = hash === "#journey-logo",
     directionsLinked = hash === "#journey-directions";
-  // Shown once the earlier replies have loaded: their images change the page
-  // height, and replies that arrive after that would be announced as new.
   const logoShown = identityShown && historyChecked && (logoOpened || logoLinked || directionsLinked || logoReached);
   const directionsShown = logoShown && (directionsOpened || directionsLinked || directionsReached);
-  const [viewed, setViewed] = useState<JourneyStepId | null>(null);
-  // Right after showing a step, its scroll position stands until the reader scrolls.
-  const jumped = useRef<number | null>(null);
-  const sections: JourneyStepId[] = canvasActive
-    ? []
+
+  // The work area shows one step: the latest one, or a finished one reopened from its folded entry in the chat.
+  const latestView: WorkView = namingOpen
+    ? "naming"
     : identityShown
-      ? ["strategy", "voice", "identity"]
-      : voiceShown
-        ? ["strategy", "voice"]
-        : ["strategy"];
-  useConversationSteps(reached, viewed, sections);
-  // The latest section whose top has reached the middle of the view (or the
-  // last one at the very end) is the step on screen.
-  function sectionOnScreen(area: HTMLElement): JourneyStepId {
-    const atEnd = area.scrollHeight - area.clientHeight - area.scrollTop <= 8;
-    const top = area.getBoundingClientRect().top;
-    let current: JourneyStepId = "strategy";
-    for (const step of ["voice", "identity"] as const) {
-      const section = document.getElementById(journeySectionId(step));
-      if (!section || !area.contains(section)) break;
-      if (atEnd || section.getBoundingClientRect().top - top <= area.clientHeight / 2) current = step;
-      else break;
-    }
-    return current;
-  }
-  function scrolled() {
-    onScroll();
-    const area = transcript.current;
-    if (!area) return;
-    if (jumped.current !== null && Math.abs(area.scrollTop - jumped.current) < 2) return;
-    jumped.current = null;
-    setViewed(sectionOnScreen(area));
-  }
-  const logoAnchor = useRef<HTMLDivElement>(null),
-    directionsAnchor = useRef<HTMLDivElement>(null);
-  const requestLogo = useStepReveal(logoAnchor, logoShown, logoLinked, transcript, jumpTo);
-  const requestDirections = useStepReveal(directionsAnchor, directionsShown, directionsLinked, transcript, jumpTo);
+      ? directionsShown
+        ? "directions"
+        : logoShown
+          ? "logo"
+          : "inspiration"
+      : state?.stage === "slogan" || (state?.stage === "complete" && saved.scope === "complete_brand")
+        ? "slogan"
+        : "choices";
+  const [reopened, setReopened] = useState<WorkView | null>(null);
+  // A link to the Logo step opens it even when the project has moved past it.
+  const [linkedLogo, setLinkedLogo] = useState(logoLinked);
+  if (logoLinked && !linkedLogo) setLinkedLogo(true);
+  const requested = reopened ?? (linkedLogo && logoShown && !directionsLinked ? "logo" : null);
+  const view: WorkView =
+    !namingOpen &&
+    requested &&
+    ((requested === "inspiration" && identityShown) ||
+      (requested === "logo" && logoShown) ||
+      (requested === "directions" && directionsShown))
+      ? requested
+      : latestView;
+  const viewStep: JourneyStepId =
+    view === "choices"
+      ? state?.stage === "personality"
+        ? "voice"
+        : "strategy"
+      : view === "naming" || view === "slogan"
+        ? "voice"
+        : "identity";
+  const continueLatest = () => {
+    setReopened(null);
+    setLinkedLogo(false);
+  };
+
+  const sections: JourneyStepId[] = identityShown
+    ? ["strategy", "voice", "identity"]
+    : voiceShown
+      ? ["strategy", "voice"]
+      : ["strategy"];
+  const [sectionViewed, setSectionViewed] = useState<JourneyStepId | null>(null);
+  useConversationSteps(reached, sectionViewed ?? viewStep, sections);
+
+  // Steps in the work area report their reply box action, result rows and folded summaries here.
+  const replyRegistry = useReplyRegistry();
+  const [chatSlot, setChatSlot] = useState<HTMLDivElement | null>(null);
+  const [overlayHost, setOverlayHost] = useState<HTMLDivElement | null>(null);
+  const [rowOwners, setRowOwners] = useState<ReadonlyMap<symbol, 1 | 2>>(new Map());
+  const [summaries, setSummaries] = useState<Partial<Record<WorkspaceSummaryStep, WorkspaceStepSummary>>>({});
+  const setRows = useCallback((owner: symbol, rows: 1 | 2 | null) => {
+    setRowOwners((previous) => {
+      if ((previous.get(owner) ?? null) === rows) return previous;
+      const next = new Map(previous);
+      if (rows) next.set(owner, rows);
+      else next.delete(owner);
+      return next;
+    });
+  }, []);
+  const setSummary = useCallback((step: WorkspaceSummaryStep, summary: WorkspaceStepSummary | null) => {
+    setSummaries((previous) => {
+      if (JSON.stringify(previous[step] ?? null) === JSON.stringify(summary)) return previous;
+      const next = { ...previous };
+      if (summary) next[step] = summary;
+      else delete next[step];
+      return next;
+    });
+  }, []);
+  const slots = useMemo(
+    () => ({ chat: chatSlot, overlay: overlayHost, setRows, setSummary }),
+    [chatSlot, overlayHost, setRows, setSummary],
+  );
+  const rows = [...rowOwners.values()].at(-1);
+  const [likes, setLikes] = useState<number | null>(null);
+  const [sloganChoice, setSloganChoice] = useState<SloganChoice | null>(null);
+  // The Logo and Creative direction steps hand their reply box (chips, Send, Stop) to the conversation.
+  const [stepReply, setStepReply] = useState<StepReplyLike | null>(null);
+
+  // The project bar's steps open their part of the chat.
+  const root = useRef<HTMLDivElement>(null);
   const showSection = useEffectEvent((step: JourneyStepId) => {
-    const area = transcript.current,
-      section = document.getElementById(journeySectionId(step));
-    if (!area || !section || !area.contains(section)) return;
-    jumpTo(section);
-    jumped.current = area.scrollTop;
-    setViewed(step);
+    const section = document.getElementById(journeySectionId(step));
+    if (!section || !root.current?.contains(section)) return;
+    if (step === "identity") continueLatest();
+    setSectionViewed(step === viewStep ? null : step);
+    const folded = section.querySelector<HTMLDetailsElement>("details");
+    if (folded && step !== viewStep) folded.open = true;
+    section.scrollIntoView({ block: "nearest" });
     section.focus({ preventScroll: true });
   });
   useEffect(() => {
-    const area = transcript.current;
+    const area = root.current;
     if (!area) return;
     const listener = (event: Event) => {
       const step = (event as CustomEvent<unknown>).detail;
@@ -1080,9 +904,8 @@ export function AccountGuidedInterview({
     };
     area.addEventListener(JOURNEY_SECTION_EVENT, listener);
     return () => area.removeEventListener(JOURNEY_SECTION_EVENT, listener);
-  }, [transcript]);
-  // A `#journey-strategy` or `#journey-voice` link opens at that step once the
-  // saved conversation has loaded; without one, the latest response is shown.
+  }, []);
+  // A `#journey-strategy` or `#journey-voice` link opens that part of the chat once the saved conversation has loaded.
   const linkedSection = useRef<JourneyStepId | null | undefined>(undefined);
   useLayoutEffect(() => {
     if (linkedSection.current === undefined) linkedSection.current = journeySectionOfHash(window.location.hash);
@@ -1091,6 +914,8 @@ export function AccountGuidedInterview({
     linkedSection.current = null;
     showSection(step);
   }, [historyChecked, voiceShown]);
+  // Working on the step on screen again puts the bar back on it.
+  if (sectionViewed && sectionViewed === viewStep) setSectionViewed(null);
 
   const runningJob = bound && strategyJobActive(bound.job) ? bound.job : null;
   const stop = runningJob ? () => void strategy.cancel(runningJob) : undefined;
@@ -1111,254 +936,705 @@ export function AccountGuidedInterview({
         : "Starting response…"
       : "Checking research status…";
   const hasComposer = saved.scope === "complete_brand" || Boolean(state);
-  const notices = (
-    <div className="conversation-compose-notices" role="region" aria-label="Conversation notices" tabIndex={0}>
-      {(error || strategy.actionError || strategy.readError || failed || unverified || unavailable || stale) && (
-        <div className="guided-conversation-error" role="alert">
-          <p>
-            {error ||
-              strategy.actionError ||
-              statusReadError ||
-              (stale
-                ? "The project changed after this response was requested. Your conversation is kept. Send a new message to continue from the current version."
-                : bound?.job.state === "needs_reconciliation"
-                  ? "This research outcome needs verification before another request can start. Your prompt is saved."
-                  : requestBlocked
-                    ? strategyAvailabilityMessage(availability, "project")
-                    : failed
-                      ? bound?.job.state === "cancelled"
-                        ? "Research was cancelled. Your prompt is saved."
-                        : currentTurn?.stage === "competitors" && currentTurn.purpose !== "message"
-                          ? "Research could not produce verified suggestions. Your prompt is saved. You can retry research."
-                          : "This response did not finish. Your prompt is saved."
-                      : unverified
-                        ? "This response could not be matched to your question. Your conversation is kept."
-                        : strategyAvailabilityMessage(availability ?? null, "project"))}
-          </p>
-          <button
-            type="button"
-            className="text-link"
-            disabled={busy || working || strategy.pending}
-            onClick={strategy.refresh}
-          >
-            Check status
-          </button>
-          {currentTurn &&
-            !stale &&
-            !requestBlocked &&
-            (!bound || bound.job.state === "failed" || bound.job.state === "cancelled") && (
-              <button type="button" className="text-link" disabled={blocked} onClick={() => void retry()}>
-                {currentTurn.stage === "competitors" && currentTurn.purpose !== "message"
-                  ? "Retry research"
-                  : "Retry request"}
-              </button>
-            )}
-        </div>
-      )}
-      {busy && <p role="status">{storage.saveLabel}</p>}
-      {!busy && storage.actions}
-      {storage.resultNavigation}
-    </div>
-  );
-
+  const embelWorking = Boolean(active || checkingResearch);
+  const researchFailed =
+    Boolean(failed) && currentTurn?.stage === "competitors" && currentTurn.purpose !== "message";
   const canStartResearch = Boolean(
     strategy.overview && !strategy.readError && guidedAllowance(availability, "strategy.competitors"),
   );
-  const indicator =
-    (active || checkingResearch) &&
-    (researching ? (
-      <article className="guided-assistant-message flow-enter" aria-label="Embel response">
-        <EmbelIdentity label={guidedStageLabel("competitors")} />
-        <ProgressCard
-          title={stopping ? "Cancelling research…" : "Researching your competitors"}
-          description={
-            runningJob?.state === "queued" || !runningJob
-              ? "Starting your research. Relevant brands and their sources appear here."
-              : "Finding relevant brands and the sources behind them."
-          }
-          note="Your idea is saved. Suggestions appear here when they’re ready."
-          onStop={stop}
-          stopping={stopping}
-          stopDisabled={strategy.pending}
-          stopLabel="Cancel research"
+
+  // ----- The chat -----
+  const firstMessage = timeline.find((item) => item.kind === "user");
+  // Choosing cards records the labels as your message so the next question can
+  // refer to it. The folded answer already shows them, so that echo is not repeated.
+  const choiceEchoes = new Set(
+    (state?.answers ?? []).flatMap((answer) => {
+      const labels = answerLabels(answer);
+      return labels.length ? [labels.join("; ")] : [];
+    }),
+  );
+  function replyOf(turnId: string) {
+    const answeredTurn = state?.turns.find((item) => item.id === turnId);
+    return answeredTurn ? guidedTurnResult(jobs, answeredTurn, account.userId, saved.id)?.reply : null;
+  }
+  function answerLabels(answer: NonNullable<typeof state>["answers"][number]): string[] {
+    const answeredReply = replyOf(answer.turnId);
+    if (answeredReply?.kind !== "choices") return [];
+    return [
+      ...answer.optionIds.map((id) => answeredReply.options.find((option) => option.id === id)?.label),
+      ...(answer.stage === "competitors" ? (retainedAnswerNames(answer.customText, context.competitors) ?? []) : []),
+    ].filter((label): label is string => Boolean(label));
+  }
+  const answerFor = (stage: GuidedStage) => state?.answers.find((answer) => answer.stage === stage);
+  const answeredTurnIds = new Set(state?.answers.map((answer) => answer.turnId));
+  let cut = -1;
+  timeline.forEach((item, index) => {
+    if (item.kind === "turn" && answeredTurnIds.has(item.turn.id)) cut = index;
+  });
+  // Only what happened since the last finished answer stays open in the chat; earlier steps are folded.
+  const liveItems = timeline.slice(cut + 1).filter((item) => {
+    if (item === firstMessage) return false;
+    if (item.kind === "user") return !choiceEchoes.has(item.event.text.trim());
+    const output = guidedTurnResult(jobs, item.turn, account.userId, saved.id)?.reply;
+    if (!output || output.kind === "accepted" || output.kind === "redirect") return false;
+    // Options that were replaced by newer ones are not offered again.
+    return output.kind !== "choices" || item.turn.id === choiceTurn?.id;
+  });
+
+  const editDisabled = Boolean(blocked);
+  const turnOf = (stage: GuidedStage) => state?.turns.find((item) => item.id === answerFor(stage)?.turnId);
+  const competitorsAnswer = answerFor("competitors"),
+    audienceAnswer = answerFor("audience"),
+    positioningAnswer = answerFor("positioning"),
+    personalityAnswer = answerFor("personality"),
+    sloganAnswer = answerFor("slogan");
+  const competitorNames = competitorsAnswer
+    ? answerLabels(competitorsAnswer).length
+      ? answerLabels(competitorsAnswer)
+      : context.competitors.filter((item) => item.selected).map((item) => item.name)
+    : [];
+  const strategyFolded = positioningAnswer ? (
+    <FoldedAnswer
+      label="Strategy"
+      answers={[...(audienceAnswer ? answerLabels(audienceAnswer) : []), ...answerLabels(positioningAnswer)].map(
+        (text) => ({ text }),
+      )}
+    >
+      <FoldedPart
+        label="Competitors"
+        answers={competitorNames}
+        editName={`Edit your answer: ${stageQuestions.competitors}`}
+        disabled={editDisabled}
+        onEdit={() => void revisit("competitors", turnOf("competitors")?.userMessageId ?? null)}
+      />
+      <FoldedPart
+        label="Audience"
+        answers={audienceAnswer ? answerLabels(audienceAnswer) : []}
+        editName={`Edit your answer: ${stageQuestions.audience}`}
+        disabled={editDisabled}
+        onEdit={() => void revisit("audience", turnOf("audience")?.userMessageId ?? null)}
+      />
+      <FoldedPart
+        label="Positioning"
+        answers={answerLabels(positioningAnswer)}
+        editName={`Edit your answer: ${stageQuestions.positioning}`}
+        disabled={editDisabled}
+        onEdit={() => void revisit("positioning", turnOf("positioning")?.userMessageId ?? null)}
+      />
+    </FoldedAnswer>
+  ) : (
+    <>
+      {competitorsAnswer && (
+        <FoldedAnswer
+          label="Competitors"
+          answers={[{ text: `${competitorNames.length} kept` }]}
+          editName={`Edit your answer: ${stageQuestions.competitors}`}
+          onEdit={() => void revisit("competitors", turnOf("competitors")?.userMessageId ?? null)}
+          editDisabled={editDisabled}
+        >
+          <p>{competitorNames.join(", ") || "None kept"}</p>
+        </FoldedAnswer>
+      )}
+      {audienceAnswer && (
+        <FoldedAnswer
+          label="Audience"
+          answers={answerLabels(audienceAnswer).map((text) => ({ text }))}
+          editName={`Edit your answer: ${stageQuestions.audience}`}
+          onEdit={() => void revisit("audience", turnOf("audience")?.userMessageId ?? null)}
+          editDisabled={editDisabled}
         />
+      )}
+    </>
+  );
+  const nameFolded = nameChosen && !namingReopened;
+  const changeName = () => {
+    setNamingReopened(true);
+    setReopenedFor(context.selectedName ?? "");
+  };
+  const voiceDone = state?.stage === "complete" && Boolean(sloganAnswer) && nameFolded;
+  const voiceFolded = voiceDone ? (
+    <FoldedAnswer
+      label="Voice"
+      answers={[
+        ...(personalityAnswer ? answerLabels(personalityAnswer) : []),
+        context.selectedName ?? "",
+        ...(sloganAnswer?.customText ? [sloganAnswer.customText] : []),
+      ]
+        .filter(Boolean)
+        .map((text) => ({ text }))}
+    >
+      {personalityAnswer && (
+        <FoldedPart
+          label="Personality"
+          answers={answerLabels(personalityAnswer)}
+          editName={`Edit your answer: ${stageQuestions.personality}`}
+          disabled={editDisabled}
+          onEdit={() => void revisit("personality", turnOf("personality")?.userMessageId ?? null)}
+        />
+      )}
+      <FoldedPart
+        label="Name"
+        answers={[context.selectedName ?? ""]}
+        editLabel="Change name"
+        disabled={editDisabled}
+        onEdit={changeName}
+      />
+      <FoldedPart
+        label="Slogan"
+        answers={sloganAnswer?.customText ? [sloganAnswer.customText] : []}
+        editName={`Edit your answer: ${stageQuestions.slogan}`}
+        disabled={editDisabled}
+        onEdit={() => void revisit("slogan", turnOf("slogan")?.userMessageId ?? null)}
+      />
+    </FoldedAnswer>
+  ) : (
+    <>
+      {personalityAnswer && (
+        <FoldedAnswer
+          label="Personality"
+          answers={answerLabels(personalityAnswer).map((text) => ({ text }))}
+          editName={`Edit your answer: ${stageQuestions.personality}`}
+          onEdit={() => void revisit("personality", turnOf("personality")?.userMessageId ?? null)}
+          editDisabled={editDisabled}
+        />
+      )}
+      {nameFolded && (
+        <FoldedAnswer
+          label="Name"
+          answers={[{ text: context.selectedName ?? "" }]}
+          editLabel="Change name"
+          onEdit={changeName}
+          editDisabled={editDisabled}
+        />
+      )}
+    </>
+  );
+  const thumbnail = (summary?: WorkspaceStepSummary) =>
+    summary?.thumbnail ? (
+      // A small private preview the step supplies; its size is fixed by the folded entry.
+      // eslint-disable-next-line @next/next/no-img-element
+      <img className="conversation-folded__thumb" src={summary.thumbnail.src} alt={summary.thumbnail.alt} />
+    ) : undefined;
+  const identityFolded = identityShown && (
+    <>
+      {logoShown && view !== "inspiration" && (
+        <FoldedAnswer
+          label="Inspiration"
+          answers={likes === null ? [{ text: "Your likes", icon: "heart" }] : [{ text: `${likes} liked`, icon: "heart" }]}
+          editLabel="Edit inspiration"
+          onEdit={() => setReopened("inspiration")}
+        />
+      )}
+      {directionsShown && view !== "logo" && (
+        <FoldedAnswer
+          label="Logo"
+          thumbnail={thumbnail(summaries.logo)}
+          answers={[{ text: summaries.logo?.answer ?? "Chosen" }]}
+          editLabel="Change logo"
+          onEdit={() => setReopened("logo")}
+        />
+      )}
+      {finished && summaries.directions && (
+        <FoldedAnswer
+          label="Creative direction"
+          thumbnail={thumbnail(summaries.directions)}
+          answers={[{ text: summaries.directions.answer }]}
+        />
+      )}
+    </>
+  );
+
+  const turnMessage = (stage: GuidedStage | null, children: ReactNode, label = "Embel response") => (
+    <article className="e-turn e-turn--settled" aria-label={label}>
+      <div className="e-turn__main">
+        <p className="e-turn__meta">{stage ? `Embel · ${guidedStageLabel(stage)}` : "Embel"}</p>
+        {children}
+      </div>
+    </article>
+  );
+  const userMessage = (text: string, key: string, extra?: ReactNode) => (
+    <div key={key} className="e-turn e-turn--user e-turn--settled">
+      <div className="e-turn__bubble">
+        <p className="e-turn__text">{text}</p>
+        {extra}
+      </div>
+    </div>
+  );
+  const briefEditor = (
+    <AccountBriefEditor
+      workspace={workspace}
+      open={briefOpen}
+      onOpen={() => {
+        setBriefFromNaming(Boolean(namingReady));
+        setBriefOpen(true);
+      }}
+      onClose={() => setBriefOpen(false)}
+      readOnly={Boolean(pending || workspace.conflict || workspace.pendingDraftSave || workspace.pendingGuidedContext)}
+      saveLabel={storage.saveLabel}
+      onUpdate={storage.onUpdate}
+      navigation={navigation}
+    />
+  );
+  const legacyReplies = legacyJobs.flatMap((job) =>
+    job.results.map((result) => (
+      <article
+        key={`${job.id}-${result.stepKey}`}
+        id={`guided-result-${job.id}-${result.stepKey}`}
+        className="e-turn e-turn--settled"
+        aria-label="Earlier Embel response"
+      >
+        <div className="e-turn__main">
+          <p className="e-turn__meta">Embel</p>
+          <p className="e-turn__text">{result.output.proposal.message}</p>
+        </div>
       </article>
+    )),
+  );
+  const liveMessages = liveItems.map((item) => {
+    if (item.kind === "user") return userMessage(item.event.text, item.event.id);
+    const output = guidedTurnResult(jobs, item.turn, account.userId, saved.id)?.reply;
+    if (!output || output.kind === "accepted" || output.kind === "redirect") return null;
+    return (
+      <article
+        key={item.turn.id}
+        id={`guided-turn-${item.turn.id}`}
+        tabIndex={-1}
+        className="e-turn e-turn--settled"
+        aria-label="Embel response"
+      >
+        <div className="e-turn__main">
+          <p className="e-turn__meta">Embel · {guidedStageLabel(item.turn.stage)}</p>
+          <p className="e-turn__text">
+            {item.turn.stage === "personality" ? withoutScoreScaleNote(output.message) : output.message}
+          </p>
+          {output.kind === "question" && <p className="e-turn__text e-strong">{output.question}</p>}
+        </div>
+      </article>
+    );
+  });
+
+  // What Embel is doing for the step that is open, said in the chat; its result appears in the work area.
+  const pendingStage = currentTurn && !reply ? currentTurn.stage : null;
+  const pendingCopy: Partial<Record<GuidedStage, string>> = {
+    competitors: "I’m looking for brands that compete with your idea. They appear on the right when they’re ready.",
+    audience: `I’m thinking about who ${brandName} should speak to first. The options appear on the right when they’re ready.`,
+    positioning: `I’m working out how ${brandName} could stand apart. The options appear on the right when they’re ready.`,
+    personality: `I’m writing three personalities for ${brandName}. They appear on the right when they’re ready.`,
+    slogan: `I’m writing a few slogans for ${brandName}. They appear on the right when they’re ready.`,
+  };
+  const status =
+    embelWorking &&
+    (researching ? (
+      <div className="e-stack e-stack--sm conversation-progress" role="status" aria-label="Researching your competitors">
+        <p>
+          {stopping ? "Cancelling research…" : "Researching your competitors and the pages they were found on."}
+        </p>
+        <div className="e-progress" data-state={stopping ? "stopping" : "running"} aria-hidden="true">
+          <div className="e-progress__track" />
+        </div>
+        <p className="e-section__hint">Your brief is saved.</p>
+      </div>
     ) : (
-      <GuidedThinking label={thinkingLabel} onStop={stop} stopping={stopping} stopDisabled={strategy.pending} />
+      <div
+        className="e-thinking"
+        role="status"
+        aria-label={stopping ? "Stopping…" : thinkingLabel === "Thinking…" ? "Embel is thinking" : thinkingLabel}
+      >
+        <Spinner />
+        <span>{stopping ? "Stopping…" : thinkingLabel}</span>
+      </div>
     ));
+  const problem =
+    error || strategy.actionError || strategy.readError || failed || unverified || unavailable || stale
+      ? (error ??
+        strategy.actionError ??
+        statusReadError ??
+        (stale
+          ? "The project changed after this response was requested. Your conversation is kept. Send a new message to continue from the current version."
+          : bound?.job.state === "needs_reconciliation"
+            ? "This research outcome needs verification before another request can start. Your prompt is saved."
+            : requestBlocked
+              ? strategyAvailabilityMessage(availability, "project")
+              : failed
+                ? bound?.job.state === "cancelled"
+                  ? researchFailed
+                    ? "Research was cancelled. Your brief is saved."
+                    : "Research was cancelled. Your prompt is saved."
+                  : researchFailed
+                    ? "Research could not produce verified suggestions. Your brief is saved."
+                    : "Your prompt is saved."
+                : unverified
+                  ? "This response could not be matched to your question. Your conversation is kept."
+                  : strategyAvailabilityMessage(availability ?? null, "project")))
+      : null;
+  const canRetry =
+    Boolean(currentTurn) &&
+    !stale &&
+    !requestBlocked &&
+    (!bound || bound.job.state === "failed" || bound.job.state === "cancelled");
+  const problemMessage = problem && (
+    <InlineMessage
+      tone="danger"
+      className="guided-conversation-error"
+      title={
+        failed && !error && !strategy.actionError && !strategy.readError
+          ? researchFailed
+            ? "The competitor research didn’t finish"
+            : "This response didn’t finish"
+          : undefined
+      }
+      actions={
+        <>
+          {canRetry && (
+            <Button variant="primary" size="sm" icon="rotate-ccw" disabled={blocked} onClick={() => void retry()}>
+              {researchFailed ? "Try again" : "Retry request"}
+            </Button>
+          )}
+          {!(researchFailed && canRetry) && (
+            <Button
+              variant="quiet"
+              size="sm"
+              disabled={busy || working || strategy.pending}
+              onClick={strategy.refresh}
+            >
+              Check status
+            </Button>
+          )}
+        </>
+      }
+    >
+      <p>{problem}</p>
+    </InlineMessage>
+  );
+  const sloganTurn = choiceTurn?.stage === "slogan" ? choiceTurn : null;
+  const sloganReply = sloganTurn ? guidedTurnResult(jobs, sloganTurn, account.userId, saved.id)?.reply : null;
+  const choiceReply =
+    choiceTurn && choiceTurn.stage !== "slogan" ? guidedTurnResult(jobs, choiceTurn, account.userId, saved.id)?.reply : null;
+
+  const identityCopy: Record<"inspiration" | "logo" | "directions" | "finished", { label: string; text: string }> = {
+    inspiration: {
+      label: journeyPartLabel("identity", "Inspiration"),
+      text: `${reopened === "inspiration" ? "" : `Your voice is set. Now let’s shape how ${brandName} looks. `}Like the brands you’re drawn to: a whole brand, or just its logo, colors, typefaces, socials or visuals. Your likes guide the logo concepts. When you’re done, press Send to continue.`,
+    },
+    logo: {
+      label: journeyPartLabel("identity", "Logo"),
+      text: `Let’s draw the logo for ${brandName}. The concepts appear on the right; choose the one you like most, then press Send to continue to Creative direction.`,
+    },
+    directions: {
+      label: journeyPartLabel("identity", "Creative direction"),
+      text: "Each creative direction uses your chosen logo. Choose one on the right, then press Send to continue.",
+    },
+    finished: {
+      label: "",
+      text: "Your logo and creative direction are chosen. Your brand kit is in Assets. Press Send to go there, or describe a change.",
+    },
+  };
+  const identityKey =
+    view === "directions"
+      ? finished
+        ? "finished"
+        : "directions"
+      : view === "logo" || view === "inspiration"
+        ? view
+        : null;
+  const identityMessage =
+    identityShown &&
+    identityKey &&
+    (() => {
+      const copy = identityCopy[identityKey];
+      return (
+        <article className="e-turn e-turn--settled" aria-label="Embel response">
+          <div className="e-turn__main">
+            <p className="e-turn__meta">{copy.label ? `Embel · ${copy.label}` : "Embel"}</p>
+            <p className="e-turn__text">{copy.text}</p>
+          </div>
+        </article>
+      );
+    })();
+  const startMessage =
+    !state &&
+    saved.scope === "complete_brand" &&
+    turnMessage(
+      "competitors",
+      <p className="e-turn__text">
+        Your brief is saved. Next, I’ll find the brands you compete with, so you can choose the ones to compare against.
+        Press Send to start research.
+      </p>,
+      "Start research",
+    );
+  const pendingMessage =
+    pendingStage &&
+    embelWorking &&
+    currentTurn?.purpose !== "message" &&
+    !liveItems.some((item) => item.kind === "turn" && item.turn.id === currentTurn?.id)
+      ? pendingCopy[pendingStage]
+      : null;
+  const metaStage: GuidedStage | null = currentTurn?.stage ?? (!state ? "competitors" : null);
+  const statusMessage = (status || problemMessage || pendingMessage) && (
+    <article className="e-turn e-turn--settled" aria-label="Embel status">
+      <div className="e-turn__main">
+        <p className="e-turn__meta">{metaStage ? `Embel · ${guidedStageLabel(metaStage)}` : "Embel"}</p>
+        {pendingMessage && <p className="e-turn__text">{pendingMessage}</p>}
+        {status}
+        {problemMessage}
+      </div>
+    </article>
+  );
+
+  const chatLog = (
+    <>
+      {firstMessage?.kind === "user"
+        ? userMessage(firstMessage.event.text, firstMessage.event.id, briefEditor)
+        : saved.scope !== "complete_brand"
+          ? userMessage(saved.context.description, "description", briefEditor)
+          : briefEditor}
+      {legacyReplies}
+      <section
+        id={journeySectionId("strategy")}
+        className="e-stack e-stack--sm conversation-section"
+        data-journey-section="strategy"
+        aria-label="Strategy"
+        tabIndex={-1}
+      >
+        {strategyFolded}
+      </section>
+      {voiceShown && (
+        <section
+          id={journeySectionId("voice")}
+          className="e-stack e-stack--sm conversation-section"
+          data-journey-section="voice"
+          aria-label="Voice"
+          tabIndex={-1}
+        >
+          {voiceFolded}
+        </section>
+      )}
+      {identityShown && (
+        <section
+          id={journeySectionId("identity")}
+          className="e-stack e-stack--sm conversation-section"
+          data-journey-section="identity"
+          aria-label="Identity"
+          tabIndex={-1}
+        >
+          {identityFolded}
+        </section>
+      )}
+      {startMessage}
+      {liveMessages}
+      {namingOpen && <div ref={setNamingMessages} className="guided-naming-messages" />}
+      {identityMessage}
+      <div ref={setChatSlot} className="conversation-chat-slot" />
+      {statusMessage}
+      {storage.actions}
+      {storage.resultNavigation}
+    </>
+  );
+
+  // ----- The work area -----
+  const workStage: GuidedStage =
+    currentTurn?.stage ?? (state?.stage && state.stage !== "complete" ? state.stage : "competitors");
+  const choicesWork = (() => {
+    if (choiceReply?.kind === "choices")
+      return (
+        <GuidedChoices
+          projectId={saved.id}
+          reply={choiceReply}
+          selectedIds={selectedCompetitors(choiceReply)}
+          additionalControls={
+            choiceReply.stage === "competitors" ? (
+              <CompetitorWidgetControls
+                draft={competitorDraft}
+                onDraft={(value) => changeInput((previous) => ({ ...previous, competitorDraft: value }))}
+                onAdd={() => addCompetitor(choiceReply)}
+                onMore={() => void moreCompetitors(choiceReply)}
+                disabled={Boolean(blocked)}
+                canGenerate={!requestBlocked && Boolean(guidedAllowance(availability, "strategy.competitors"))}
+                generating={active}
+              />
+            ) : undefined
+          }
+          retainedOptions={choiceReply.stage === "competitors" ? retainedOptions(choiceReply) : undefined}
+          onSelectionChange={(ids) => setSelection({ turnId: choiceReply.turnId, ids })}
+          disabled={Boolean(blocked)}
+        />
+      );
+    const stage = workStage;
+    const title = stage === "competitors" ? "Competitors" : undefined;
+    if (embelWorking || (state && !problem && pendingStage)) return <GuidedChoicesLoading stage={stage} title={title} />;
+    if (!state && saved.scope !== "complete_brand") return null;
+    return <GuidedChoicesEmpty stage={stage} title={title} research={stage === "competitors"} />;
+  })();
+  const sloganWork =
+    sloganReply?.kind === "choices" && sloganTurn ? (
+      <GuidedSlogan
+        reply={sloganReply}
+        brandName={brandName}
+        choice={sloganChoice?.turnId === sloganTurn.id ? sloganChoice : { turnId: sloganTurn.id, chosen: null, own: "" }}
+        onChoice={setSloganChoice}
+        disabled={Boolean(blocked)}
+        onSkip={() => void skipSlogan(sloganTurn.id)}
+        onMore={() => void moreSlogans()}
+        canMore={!requestBlocked && Boolean(guidedAllowance(availability, "strategy.reformulate"))}
+      />
+    ) : embelWorking || !problem ? (
+      <GuidedChoicesLoading stage="slogan" />
+    ) : (
+      <GuidedChoicesEmpty stage="slogan" />
+    );
+  const work =
+    view === "naming" ? (
+      <div ref={setNamingResults} className="guided-naming-results" />
+    ) : view === "slogan" ? (
+      sloganWork
+    ) : view === "inspiration" ? (
+      <InspirationWorkspace projectId={saved.id} variant="workspace" continueHidden onLikes={setLikes} />
+    ) : view === "logo" ? (
+      <div id="journey-logo" className="conversation-slot" tabIndex={-1}>
+        <LogoStep
+          projectId={saved.id}
+          continueHidden={directionsShown}
+          onContinue={() => {
+            continueLatest();
+            setDirectionsOpened(true);
+          }}
+          reply="external"
+          onReplyChange={(next) => setStepReply(next && { ...next, step: "logo" })}
+        />
+      </div>
+    ) : view === "directions" ? (
+      <div id="journey-directions" className="conversation-slot" tabIndex={-1}>
+        <DirectionsStep
+          projectId={saved.id}
+          variant="conversation"
+          reply="external"
+          onReplyChange={(next) => setStepReply(next && { ...next, step: "directions" })}
+        />
+      </div>
+    ) : (
+      choicesWork
+    );
+
+  // ----- The reply box: Send is the one way forward -----
+  const nextStepName: Record<GuidedStage, string> = {
+    competitors: "Audience",
+    audience: "Positioning",
+    positioning: "Voice",
+    personality: "Name",
+    slogan: "Identity",
+  };
+  const chipPrefix: Record<GuidedStage, string> = {
+    competitors: "Competitors",
+    audience: "Audience",
+    positioning: "Positioning",
+    personality: "Personality",
+    slogan: "Slogan",
+  };
+  const stopControl: WorkspaceReplyAction["working"] = embelWorking
+    ? { label: researching ? "Stop research" : "Stop response", onStop: stop, stopping }
+    : undefined;
+  const ownAction: WorkspaceReplyAction | null = (() => {
+    if (stopControl) return { working: stopControl };
+    if (view === "choices" && choiceReply?.kind === "choices") {
+      const chosen = selectedOptions(
+        choiceReply,
+        choiceReply.stage === "competitors" ? retainedOptions(choiceReply) : [],
+        selectedCompetitors(choiceReply),
+      );
+      const prefix = chipPrefix[choiceReply.stage];
+      const chips =
+        choiceReply.stage === "competitors"
+          ? chosen.length === 1
+            ? [`${prefix}: ${chosen[0]!.label}`]
+            : chosen.length
+              ? [`${prefix}: ${chosen.length} chosen`]
+              : []
+          : chosen.map((option) => `${prefix}: ${option.label}`);
+      return {
+        chips,
+        label: `Continue to ${nextStepName[choiceReply.stage]}`,
+        onSend: chosen.length && !blocked ? () => void confirm(choiceReply) : undefined,
+      };
+    }
+    if (view === "slogan" && sloganReply?.kind === "choices" && sloganTurn) {
+      const choice = sloganChoice?.turnId === sloganTurn.id ? sloganChoice : null;
+      const decision = sloganDecision(choice);
+      const line = sloganText(sloganReply, choice);
+      return {
+        chips: line ? [`Slogan: ${line}`] : [],
+        label: "Continue to Identity",
+        onSend: decision && !blocked ? () => void confirmSlogan(sloganReply, decision) : undefined,
+      };
+    }
+    if (view === "choices" && !state && saved.scope === "complete_brand")
+      return {
+        label: "Start research",
+        onSend: !blocked && canStartResearch ? () => void startResearch() : undefined,
+      };
+    if (view === "inspiration") {
+      const next = !logoShown
+        ? "Continue to Logo"
+        : latestView === "directions"
+          ? finished
+            ? "Back to your brand"
+            : "Continue to Creative direction"
+          : "Continue to Logo";
+      return {
+        chips: likes === null ? [] : [`Inspiration: ${likes} liked`],
+        label: next,
+        onSend: () => {
+          continueLatest();
+          setLogoOpened(true);
+        },
+      };
+    }
+    return null;
+  })();
+  const stepAction = (view === "logo" || view === "directions") && stepReply?.step === view ? stepReplyAction(stepReply) : null;
+  const action = replyRegistry.action ?? stepAction ?? ownAction ?? replyRegistry.fallback;
+  const namingComposerShown = namingOpen && Boolean(namingQuestionId);
+  const replyBox = (
+    <section className="conversation-reply" aria-label={namingOpen ? "Naming composer" : "Strategy composer"}>
+      <div ref={setNamingComposer} className="guided-floating-input" />
+      {!namingComposerShown && (
+        <WorkspaceReplyBox
+          value={prompt}
+          onChange={setPrompt}
+          onSendText={() => void send()}
+          action={action}
+          label="Message Embel"
+          placeholder={
+            identityShown
+              ? "Describe a change, or press Send to continue…"
+              : "Reply in your own words, or ask a question…"
+          }
+          readOnly={namingOpen || pending}
+          textDisabled={namingOpen || Boolean(blocked)}
+          notice={busy ? <span role="status">{storage.saveLabel}</span> : undefined}
+        />
+      )}
+    </section>
+  );
 
   return (
-    <>
-      <div
-        className="guided-interview"
-        data-composer={hasComposer ? "floating" : undefined}
-        hidden={canvasActive}
-        aria-label="Brand conversation"
-      >
-        <div
-          ref={transcript}
-          id={transcriptId}
-          onScroll={scrolled}
-          tabIndex={0}
-          className="guided-interview-scroll"
-          role="log"
-          aria-label="Conversation"
-          aria-live="polite"
-          data-naming-results-scroll={namingOpen ? "" : undefined}
-        >
-          <section
-            id={journeySectionId("strategy")}
-            className="guided-journey-section"
-            data-journey-section="strategy"
-            aria-label="Strategy"
-            tabIndex={-1}
-          >
-            {!canvasActive && strategyHistory}
-            {!state?.turns.length && legacyReplies}
-            {!state && saved.scope === "complete_brand" && (
-              <article className="guided-assistant-message flow-enter" aria-label="Start research">
-                <EmbelIdentity label={guidedStageLabel("competitors")} />
-                <p className="guided-assistant-copy">
-                  Your brief is saved. Next, I’ll find the brands you compete with, so you can choose the ones to
-                  compare against.
-                </p>
-                <div className="guided-next-step">
-                  <button
-                    type="button"
-                    className="button primary"
-                    disabled={blocked || !canStartResearch}
-                    onClick={() => void startResearch()}
-                  >
-                    {working ? "Starting research…" : "Start research"}
-                  </button>
-                </div>
-              </article>
-            )}
-            {!state && saved.scope !== "complete_brand" && (
-              <p className="guided-assistant-copy">{saved.context.description}</p>
-            )}
-            {!voiceShown && indicator}
-          </section>
-          {voiceShown && (
-            <section
-              id={journeySectionId("voice")}
-              className="guided-journey-section"
-              data-journey-section="voice"
-              aria-label="Voice"
-              tabIndex={-1}
-            >
-              {!canvasActive && voiceHistory}
-              {indicator}
-              {!canvasActive && completed}
-              <div ref={setNamingMessages} className="guided-naming-messages" />
-              <div ref={setNamingResults} className="guided-naming-results" />
-              {!canvasActive && nameChosen && !namingReopened && (
-                <article className="guided-assistant-message flow-enter" aria-label="Your name">
-                  <EmbelIdentity label={journeyPartLabel("voice", "Name")} />
-                  <section className="guided-choice-answer" aria-label="Your answer: Which name feels right?">
-                    <div className="guided-choice-answer-copy">
-                      <h3>Which name feels right?</h3>
-                      <ul aria-label="Your answer">
-                        <li>
-                          <span>{context.selectedName}</span>
-                        </li>
-                      </ul>
-                    </div>
-                    <button
-                      className="button secondary small"
-                      type="button"
-                      disabled={blocked}
-                      onClick={() => {
-                        setNamingReopened(true);
-                        setReopenedFor(context.selectedName ?? "");
-                      }}
-                    >
-                      Change name
-                    </button>
-                  </section>
-                </article>
-              )}
-              {!canvasActive && sloganHistory}
-            </section>
+    <div ref={root} className="guided-interview" data-composer={hasComposer ? "workspace" : undefined}>
+      <WorkspaceSlotContext.Provider value={slots}>
+        <WorkspaceReplyRegistry.Provider value={replyRegistry.register}>
+          <Workspace
+            log={chatLog}
+            reply={hasComposer ? replyBox : null}
+            work={work}
+            workLabel={viewStep === "identity" ? "Identity" : viewStep === "voice" ? "Voice" : "Strategy"}
+            rows={view === "logo" || view === "directions" ? rows : undefined}
+            logKey={JSON.stringify([liveItems.length, Boolean(statusMessage), Boolean(problem), view])}
+            overlayHost={setOverlayHost}
+          />
+          {finished && view === "directions" && <FinishedBrandReply href={`${projectBase}/logo/deliverables`} />}
+          {identityShown && likes === null && view !== "inspiration" && (
+            <InspirationLikeCount account={account} projectId={saved.id} onCount={setLikes} />
           )}
-          {!canvasActive && identityShown && (
-            <section
-              id={journeySectionId("identity")}
-              className="guided-journey-section flow-enter"
-              data-journey-section="identity"
-              aria-label="Identity"
-              tabIndex={-1}
-            >
-              <InspirationWorkspace
-                projectId={saved.id}
-                variant="conversation"
-                continueHidden={logoShown}
-                onContinue={() => {
-                  requestLogo();
-                  setLogoOpened(true);
-                }}
-                lead={`Your voice is set. Now let’s shape how ${context.selectedName} looks. Like the brands you’re drawn to: a whole brand, or just its logo, colors, typefaces, socials or visuals. Your likes guide the logo concepts.`}
-              />
-              {logoShown && (
-                <div ref={logoAnchor} id="journey-logo" className="logo-in-conversation flow-enter" tabIndex={-1}>
-                  <LogoCreationWorkspace
-                    projectId={saved.id}
-                    continueHidden={directionsShown}
-                    onContinue={() => {
-                      requestDirections();
-                      setDirectionsOpened(true);
-                    }}
-                  />
-                </div>
-              )}
-              {directionsShown && (
-                <div
-                  ref={directionsAnchor}
-                  id="journey-directions"
-                  className="directions-in-conversation flow-enter"
-                  tabIndex={-1}
-                >
-                  <VisualDirectionsPage projectId={saved.id} variant="conversation" />
-                </div>
-              )}
-            </section>
-          )}
-          {!hasComposer && notices}
-        </div>
-        {hasComposer && (
-          <FloatingComposer label={namingOpen ? "Naming composer" : "Strategy composer"}>
-            <div ref={setNamingComposer} className="guided-floating-input">
-              {hasNewResponse && (
-                <div className="guided-new-response flow-enter">
-                  <button
-                    type="button"
-                    className="button secondary small"
-                    aria-controls={transcriptId}
-                    onClick={revealNewResponse}
-                  >
-                    View new response<span aria-hidden="true"> ↓</span>
-                  </button>
-                </div>
-              )}
-              {notices}
-              {(!namingOpen || !namingQuestionId) && (
-                <ConversationComposer
-                  project
-                  value={prompt}
-                  onChange={setPrompt}
-                  onSend={() => void send()}
-                  label="Message Embel"
-                  placeholder="Reply in your own words, or ask a question…"
-                  disabled={namingOpen || blocked || !prompt.trim()}
-                  readOnly={namingOpen || pending}
-                  hint={null}
-                  sendLabel="Send prompt"
-                />
-              )}
-            </div>
-          </FloatingComposer>
-        )}
-      </div>
+        </WorkspaceReplyRegistry.Provider>
+      </WorkspaceSlotContext.Provider>
       {namingOpen && (
         <ProjectNamingWorkspace
           projectId={saved.id}
@@ -1367,11 +1643,35 @@ export function AccountGuidedInterview({
             results: namingResults,
             composer: namingComposer,
             onQuestion: setNamingQuestionId,
-            onCanvas: setNamingCanvas,
+            onCanvas: () => undefined,
+            // Integration with ui/names: pass `overlay: overlayHost` (name details over the work area) here.
             onNameConfirmed: closeNaming,
           }}
         />
       )}
-    </>
+    </div>
   );
+}
+
+type WorkView = "choices" | "naming" | "slogan" | "inspiration" | "logo" | "directions";
+
+/** The Logo and Creative direction steps hand their reply box to the Workspace (`reply="external"`, from branch
+ * ui/logo-direction): their chips, Send and Stop arrive through `onReplyChange`. Until those props exist on main the
+ * steps ignore them and keep their own controls. */
+type ExternalReply = {
+  reply?: "inline" | "external";
+  onReplyChange?: (reply: Omit<StepReplyLike, "step"> | null) => void;
+};
+const LogoStep = LogoCreationWorkspace as ComponentType<
+  ComponentProps<typeof LogoCreationWorkspace> & ExternalReply
+>;
+const DirectionsStep = VisualDirectionsPage as ComponentType<
+  ComponentProps<typeof VisualDirectionsPage> & ExternalReply
+>;
+
+/** A finished brand's Send goes to Assets, unless the step on screen offers its own. */
+function FinishedBrandReply({ href }: { href: string }) {
+  const router = useRouter();
+  useWorkspaceReply({ label: "Continue to Assets", onSend: () => router.push(href) }, { fallback: true });
+  return null;
 }
