@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { IconButton } from "./button";
 import { isDialogBackdropClick } from "./dialog-backdrop";
+import styles from "./dialog.module.css";
 
 export type DialogSize = "sm" | "md" | "lg" | "xl";
 
@@ -23,6 +24,8 @@ export function Dialog({
   footer,
   media = false,
   closeLabel = "Close",
+  aside,
+  actions,
   className,
   children,
 }: {
@@ -38,6 +41,10 @@ export function Dialog({
   /** A body that holds a large picture. */
   media?: boolean;
   closeLabel?: string;
+  /** A badge beside the title, outside its accessible name. */
+  aside?: ReactNode;
+  /** Icon buttons before Close in the header, such as a heart. */
+  actions?: ReactNode;
   className?: string;
   children?: ReactNode;
 }) {
@@ -95,16 +102,38 @@ export function Dialog({
     >
       <header className="e-dialog__header">
         <div className="e-stack e-stack--xs">
-          <h2 className="e-dialog__title" id={ids.title}>
-            {title}
-          </h2>
+          {aside ? (
+            <div className="e-cluster">
+              <h2 className="e-dialog__title" id={ids.title}>
+                {title}
+              </h2>
+              {aside}
+            </div>
+          ) : (
+            <h2 className="e-dialog__title" id={ids.title}>
+              {title}
+            </h2>
+          )}
           {description ? (
             <p className="e-muted" id={ids.description}>
               {description}
             </p>
           ) : null}
         </div>
-        <IconButton icon="x" label={closeLabel} tooltip={false} aria-disabled={busy || undefined} onClick={dismiss} />
+        {actions ? (
+          <div className={styles.actions}>
+            {actions}
+            <IconButton
+              icon="x"
+              label={closeLabel}
+              tooltip={false}
+              aria-disabled={busy || undefined}
+              onClick={dismiss}
+            />
+          </div>
+        ) : (
+          <IconButton icon="x" label={closeLabel} tooltip={false} aria-disabled={busy || undefined} onClick={dismiss} />
+        )}
       </header>
       <div className={media ? "e-dialog__body e-dialog__body--media" : "e-dialog__body"}>{children}</div>
       {footer ? <footer className="e-dialog__footer">{footer}</footer> : null}

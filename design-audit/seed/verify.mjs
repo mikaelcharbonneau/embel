@@ -40,9 +40,13 @@ const STATE = {
     }),
   inspiration: (page) =>
     expect(page.getByRole("article", { name: "Inspiration gallery", exact: true })).toBeVisible({ timeout: 60_000 }),
-  // Inspiration chosen (a liked brand and the liked upload). Until logo work starts, the app
-  // reopens such a brand on Inspiration showing "2 liked · Next: Logo"; Continue opens the Logo step.
-  logo: (page) => expect(page.getByText(/2 liked · Next: Logo/u)).toBeVisible({ timeout: 60_000 }),
+  // Inspiration chosen (a liked brand and the liked upload). Until logo work starts, the app reopens such a brand on
+  // Inspiration with its likes as a chip in the reply box; Send ("Continue to Logo") opens the Logo step.
+  logo: async (page) => {
+    const reply = page.getByRole("form", { name: "Reply", exact: true });
+    await expect(reply.getByText(/^Inspiration: [1-9]\d* liked$/u)).toBeVisible({ timeout: 60_000 });
+    await expect(reply.getByRole("button", { name: "Continue to Logo", exact: true })).toBeVisible();
+  },
   concepts: async (page, b) => {
     const grid = page.getByRole("region", { name: "Logo concepts", exact: true });
     await expect(grid.getByText(new RegExp(`${6 - (b.failedLogoSlots ?? 0)} of 6 concepts ready`, "u"))).toBeVisible({
@@ -50,12 +54,12 @@ const STATE = {
     });
     if (b.failedLogoSlots)
       await expect(page.getByRole("button", { name: `Retry ${b.failedLogoSlots} failed concepts` })).toBeVisible();
-    await expect(grid.getByText(/Logo chosen/u)).toHaveCount(0);
+    await expect(grid.getByRole("heading", { name: "Your logo", exact: true })).toHaveCount(0);
   },
   directions: async (page) => {
     const step = page.getByRole("region", { name: "Creative direction", exact: true });
     await expect(step.getByText("3 of 3 ready", { exact: true })).toBeVisible({ timeout: 60_000 });
-    await expect(step.getByRole("radio", { checked: true })).toHaveCount(0);
+    await expect(step.getByRole("button", { name: "Chosen", pressed: true })).toHaveCount(0);
   },
   complete: async (page, b, projectId) => {
     await page.goto(`/brands/account/${projectId}/logo/deliverables`);

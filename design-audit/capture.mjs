@@ -647,17 +647,54 @@ state("home", "generation-activity-dialog-pro", "audit-pro", async (page) => {
 state("brand-conversation", "kestrel-change-name-open-pro", "audit-pro", async (page) => {
   await open(page, "audit-pro", `/brands/account/${brand("kestrel")}?view=strategy`);
   await page.waitForTimeout(2500);
+  // The name is folded in the chat with the rest of Voice: open it, then Change name.
+  await page
+    .locator("details.conversation-folded", { has: page.getByRole("button", { name: "Change name" }) })
+    .locator("summary")
+    .click();
   await page.getByRole("button", { name: "Change name" }).click();
   await page.waitForTimeout(2500);
   await loaded(page, { extra: 1200 });
 });
+// Name details: opening them only reads which checks are connected; nothing is looked up.
+state("brand-conversation", "kestrel-name-details-pro", "audit-pro", async (page) => {
+  await open(page, "audit-pro", `/brands/account/${brand("kestrel")}?view=strategy`);
+  await page.waitForTimeout(2500);
+  await page.getByRole("button", { name: "Change name" }).click();
+  await page
+    .getByRole("region", { name: "Naming exploration", exact: true })
+    .getByRole("button", { name: /^Details for / })
+    .first()
+    .click();
+  await page.getByRole("dialog").first().waitFor();
+  await loaded(page, { extra: 800 });
+});
 
-// ---- out-of-credits prompt (audit-free has 0 credits; nothing is spent) --------
+// ---- out of credits at the Logo step (audit-free has 0 credits; nothing is spent) --------
+// The Logo step marks 0 credits before the click (D-014): the note sits in the chat and Send ("Draw six concepts",
+// the logo types as chips in the reply box) is off, so no request is refused.
+const replyBox = (page) => page.getByRole("form", { name: "Reply", exact: true });
 state("brand-conversation", "out-of-credits-prompt-free", "audit-free", async (page) => {
-  await open(page, "audit-free", `/brands/account/${brand("berenice")}?view=strategy`);
-  await page.getByRole("button", { name: /Explore six concepts/u }).click();
-  await page.getByText(/You.re out of credits/u).waitFor({ timeout: 30_000 });
+  await open(page, "audit-free", `/brands/account/${brand("berenice")}?view=strategy#journey-logo`);
+  await replyBox(page).getByRole("button", { name: "Draw six concepts", exact: true }).waitFor({ timeout: 60_000 });
+  await page.getByText("You have no credits left this month.").first().waitFor({ timeout: 30_000 });
   await loaded(page);
+});
+
+// ---- the larger views of a logo concept and a direction board (over the work area; the chat stays usable) -------
+state("brand-conversation", "quill-logo-larger-view-free", "audit-free", async (page) => {
+  await open(page, "audit-free", `/brands/account/${brand("quill")}?view=strategy#journey-logo`);
+  const grid = page.getByRole("region", { name: "Logo concepts", exact: true });
+  await grid.getByRole("button", { name: "Enlarge Concept 2", exact: true }).click({ timeout: 60_000 });
+  await page.getByRole("dialog", { name: "Concept 2" }).waitFor();
+  await loaded(page, { extra: 800 });
+});
+state("brand-conversation", "mosswood-direction-larger-view-free", "audit-free", async (page) => {
+  await open(page, "audit-free", `/brands/account/${brand("mosswood")}?view=strategy`);
+  const step = page.getByRole("region", { name: "Creative direction", exact: true });
+  await step.getByRole("button", { name: /^Enlarge Direction 1, /u }).click({ timeout: 60_000 });
+  await page.getByRole("dialog").first().waitFor();
+  await loaded(page, { extra: 800 });
 });
 
 // ---- hover, keyboard focus and disabled controls (viewport-wide captures, mouse left in place) -------
@@ -728,8 +765,10 @@ state(
   { keepMouse: true },
 );
 state("brand-conversation", "logo-step-no-type-selected-disabled-explore-free", "audit-free", async (page) => {
-  await open(page, "audit-free", `/brands/account/${brand("berenice")}?view=strategy`);
-  await page.getByRole("button", { name: /Explore six concepts/u }).waitFor({ timeout: 30_000 });
+  await open(page, "audit-free", `/brands/account/${brand("berenice")}?view=strategy#journey-logo`);
+  // The logo types are choice cards in the work area and chips in the reply box; with none, Send stays off.
+  const types = page.getByRole("group", { name: "Which logo types should I explore?", exact: true });
+  await types.waitFor({ timeout: 60_000 });
   for (const type of [
     "Wordmark",
     "Lettermark or monogram",
@@ -739,8 +778,8 @@ state("brand-conversation", "logo-step-no-type-selected-disabled-explore-free", 
     "Emblem",
     "Mascot",
   ]) {
-    const toggle = page.getByRole("button", { name: new RegExp(`^${type}`, "u") });
-    if ((await toggle.getAttribute("aria-pressed")) === "true") await toggle.click();
+    const toggle = types.getByRole("checkbox", { name: type, exact: true });
+    if (await toggle.isChecked()) await toggle.uncheck();
   }
   await page.getByText("Choose at least one type").first().waitFor({ timeout: 10_000 });
   await loaded(page);
@@ -788,10 +827,11 @@ if (RECIPES) {
     "audit-pro",
     async (page) => {
       await aiMode({ text: "normal", images: "slow", delayMs: 120_000 });
-      await open(page, "audit-pro", `/brands/account/${brand("aurelie")}?view=strategy`);
+      // A finished brand shows the brand; the link opens its Logo step in the work area.
+      await open(page, "audit-pro", `/brands/account/${brand("aurelie")}?view=strategy#journey-logo`);
       await page.getByRole("button", { name: "More concepts" }).first().click();
       await page
-        .getByText(/Creating your concept/u)
+        .getByRole("img", { name: /^Concept [1-6] is being drawn$/u })
         .first()
         .waitFor({ timeout: 60_000 });
       await loaded(page);
@@ -804,7 +844,7 @@ if (RECIPES) {
     "audit-pro",
     async (page) => {
       await aiMode({ images: "refuse" });
-      await open(page, "audit-pro", `/brands/account/${brand("brightharbor")}?view=strategy`);
+      await open(page, "audit-pro", `/brands/account/${brand("brightharbor")}?view=strategy#journey-logo`);
       await page.getByRole("button", { name: "More concepts" }).first().click();
       await page.getByRole("button", { name: /Retry \d+ failed concepts/u }).waitFor({ timeout: 180_000 });
       await loaded(page);

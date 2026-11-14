@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { act } from "react";
+import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { useReplyRegistry, WorkspaceReplyBox, WorkspaceReplyRegistry } from "@/components/workspace/workspace-reply";
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
-import { installNamePreviewDialog, namePreview, openNamePreviewActions } from "../fixtures/name-preview-dialog";
+import { installNamePreviewDialog, namePreview } from "../fixtures/name-preview-dialog";
 import { ProjectNamingWorkspace } from "@/components/naming/project-naming-workspace";
 import { createNamingBrainMemory } from "@/components/naming/naming-brain-memory";
 import { createAccountDraftMemory } from "@/components/workspace/account-draft-memory";
@@ -70,6 +71,7 @@ async function click(name: string) {
 }
 const posts = (suffix: string) => requests.filter((row) => row.method !== "GET" && row.path.endsWith(suffix));
 const names = () => hosts.results.textContent ?? "";
+const chat = () => hosts.messages.textContent ?? "";
 async function render() {
   await act(async () =>
     root.render(
@@ -349,12 +351,13 @@ it("adds and chooses your own name before any names are generated, without start
   await click("Add name");
   expect(manual).toHaveLength(1);
   expect(names()).toContain("My kitchen name");
-  expect(names()).toContain("Choose a name to continue");
-  await act(async () =>
-    hosts.results.querySelector<HTMLButtonElement>(".project-naming-card button[aria-pressed]")!.click(),
-  );
-  expect(names()).toContain("Your name: My kitchen name · Next: Slogan (optional)");
-  await click("Continue");
+  // Nothing is chosen yet: Send has nothing to continue with.
+  expect(button("Continue to Slogan")).toBeUndefined();
+  await act(async () => hosts.results.querySelector<HTMLInputElement>('input[type="radio"]')!.click());
+  // The reply box carries the chosen name; Send with nothing typed moves on with it.
+  expect(hosts.composer.textContent).toContain("Name: My kitchen name");
+  expect(state.currentSelection).toBeNull();
+  await click("Continue to Slogan");
   expect(state.currentSelection?.candidate.value).toBe("My kitchen name");
   expect(posts("/ensure")).toHaveLength(0);
   expect(requests.filter((row) => row.method !== "GET").every((row) => row.account === account.userId)).toBe(true);
@@ -380,24 +383,24 @@ it("shows progress with Stop while names arrive, then Stopped and More names", a
   server = { ...server, run: run({ savedCount: 2 }), entries: [generated(1), generated(2)] };
   await render();
   expect(names()).toContain("Synthetic 1");
-  expect(names()).toContain("Generating names… 2 of 100");
-  expect(button("More names")!.disabled).toBe(true);
+  expect(chat()).toContain("Generating names… 2 of 100");
+  expect(button("Suggest more names")!.disabled).toBe(true);
   server = { ...server, run: run({ savedCount: 3 }), entries: [...server.entries, generated(3)] };
   await act(async () => {
     await vi.advanceTimersByTimeAsync(1000);
   });
   expect(names()).toContain("Synthetic 3");
-  expect(names()).toContain("Generating names… 3 of 100");
+  expect(chat()).toContain("Generating names… 3 of 100");
   await click("Stop");
   expect(posts("/feed/stop")).toEqual([expect.objectContaining({ body: {}, account: account.userId })]);
-  expect(names()).toContain("Stopping… 3 names saved.");
+  expect(chat()).toContain("Stopping… 3 names saved.");
   server = { ...server, run: run({ state: "cancelled", savedCount: 3, finishedAt: when }) };
   await act(async () => {
     await vi.advanceTimersByTimeAsync(1000);
   });
-  expect(names()).toContain("Stopped. 3 names saved.");
-  expect(button("More names")!.disabled).toBe(false);
-  await click("More names");
+  expect(chat()).toContain("Stopped. 3 names saved.");
+  expect(button("Suggest more names")!.disabled).toBe(false);
+  await click("Suggest more names");
   expect(posts("/feed/ensure").map((row) => row.body)).toMatchObject([
     {
       version: 2,
@@ -408,7 +411,7 @@ it("shows progress with Stop while names arrive, then Stopped and More names", a
       instruction: null,
     },
   ]);
-  expect(names()).toContain("Generating names… 0 of 100");
+  expect(chat()).toContain("Generating names… 0 of 100");
 });
 
 it("shows fewer than 100 finished names without a warning", async () => {
@@ -421,14 +424,15 @@ it("shows fewer than 100 finished names without a warning", async () => {
   expect(names()).toContain("Synthetic 3");
   expect(names()).not.toMatch(/fewer|couldn’t|ended before|shortfall|incomplete/i);
   expect(hosts.results.querySelector('[role="alert"]')).toBeNull();
-  expect(button("More names")!.disabled).toBe(false);
+  expect(hosts.messages.querySelector('[role="alert"]')).toBeNull();
+  expect(button("Suggest more names")!.disabled).toBe(false);
 });
 
 it("explains a failed run and Try again starts the same kind with a new request", async () => {
   server = { ...server, run: run({ state: "failed", errorCode: "send_interrupted", finishedAt: when }) };
   await render();
-  expect(names()).toContain("Names appear here as they’re ready.");
-  expect(names()).toContain("Name generation was interrupted before it started. Try again.");
+  expect(chat()).toContain("Names appear as they’re ready.");
+  expect(chat()).toContain("Name generation was interrupted before it started. Try again.");
   await click("Try again");
   expect(posts("/feed/ensure").map((row) => row.body)).toMatchObject([{ kind: "initial" }]);
 });
@@ -441,22 +445,22 @@ it("says plainly when AI name generation is unavailable", async () => {
     run: run({ state: "succeeded", savedCount: 1, finishedAt: when }),
   };
   await render();
-  expect(names()).toContain("AI name generation is unavailable right now.");
-  expect(button("More names")!.disabled).toBe(true);
+  expect(chat()).toContain("AI name generation is unavailable right now.");
+  expect(button("Suggest more names")!.disabled).toBe(true);
 });
 
 it("keeps the name checks in the details overlay, offers More like this and no Explore variations", async () => {
   server = { ...server, run: run({ state: "succeeded", savedCount: 1, finishedAt: when }), entries: [generated(1)] };
   await render();
-  await click("Inspect name Synthetic 1");
+  await click("Details for Synthetic 1");
   expect(namePreview(host)?.querySelector("h2")?.textContent).toBe("Synthetic 1");
-  await openNamePreviewActions(host);
   expect(button("Explore variations")).toBeUndefined();
-  expect(button("Save Synthetic 1")).toBeDefined();
-  const seed = namePreview(host)!.querySelector<HTMLInputElement>(".naming-steering-choice input")!;
+  expect(button("Save name")).toBeDefined();
+  const seed = namePreview(host)!.querySelector<HTMLInputElement>('footer input[type="checkbox"]')!;
+  expect(seed.closest("label")?.textContent).toBe("More like this: Synthetic 1");
   await act(async () => seed.click());
   expect(mock.memory!.get(account, projectId)!.steeringDraft.candidateIds).toEqual([id(101)]);
-  await click("Close name preview");
+  await click("Close name details");
   await type(hosts.composer.querySelector("textarea")!, "Softer vowels");
   await act(async () => {
     button("Send naming direction")!.click();
@@ -544,14 +548,14 @@ it("starts the first names when the last choices answer is confirmed", async () 
       instruction: null,
     },
   ]);
-  expect(names()).toContain("Generating names… 0 of 100");
+  expect(chat()).toContain("Generating names… 0 of 100");
 });
 
 it("starts the first generated set from More names when only your own names exist", async () => {
   manual = [manualEntry("My own idea", 999)];
   await render();
   expect(names()).toContain("My own idea");
-  await click("More names");
+  await click("Suggest more names");
   expect(posts("/feed/ensure").map((row) => row.body)).toMatchObject([{ kind: "initial" }]);
 });
 
@@ -602,44 +606,122 @@ describe("domain checks on the Naming results", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(60_000);
     });
-    expect(button("Inspect name Synthetic 1")).toBeDefined();
-    expect(names()).toContain("Synthetic 100");
+    expect(button("Details for Synthetic 1")).toBeDefined();
+    expect(names()).toContain("Synthetic 40");
+    expect(names()).toContain("40 of 100 names");
     expect(checks()).toHaveLength(0);
     expect(names()).not.toMatch(/\.com|domain/i);
   });
 
   it("checks a name's domain once, only when Check domain is clicked in its details, and shows that result on reopening", async () => {
     await render();
-    await click("Inspect name Synthetic 7");
+    await click("Details for Synthetic 7");
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1_000);
     });
     const preview = namePreview(host)!;
-    expect(preview.querySelector<HTMLInputElement>("input")?.value).toBe("synthetic7.com");
+    expect(preview.querySelector<HTMLInputElement>("input")?.value).toBe("synthetic7");
     // Opening the details only reads which lookups are connected.
     expect(checks().map(([, options]) => options?.method ?? "GET")).toEqual(["GET"]);
     expect(domainLookups()).toHaveLength(0);
-    await click("Check domain");
+    await click("Check synthetic7.com");
     expect(domainLookups()).toEqual([{ tool: "domains", domain: "synthetic7.com" }]);
-    expect(preview.querySelector("[data-tone]")?.textContent).toBe("Taken");
+    expect(preview.querySelector("[data-status]")?.textContent).toBe("Taken");
     expect(preview.textContent).toContain("Checked with the public registry");
     expect(preview.querySelector("time")?.getAttribute("dateTime")).toBe("2026-11-08T15:00:00Z");
-    await click("Close name preview");
+    await click("Close name details");
     expect(names()).not.toMatch(/\.com|domain/i);
     // Reopening shows the earlier result with when it was checked, without a new lookup.
-    await click("Inspect name Synthetic 7");
+    await click("Details for Synthetic 7");
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1_000);
     });
-    expect(namePreview(host)!.querySelector("[data-tone]")?.textContent).toBe("Taken");
+    expect(namePreview(host)!.querySelector("[data-status]")?.textContent).toBe("Taken");
     expect(namePreview(host)!.querySelector("time")?.getAttribute("dateTime")).toBe("2026-11-08T15:00:00Z");
-    await click("Close name preview");
+    await click("Close name details");
     // Another name has no result until its own check.
-    await click("Inspect name Synthetic 8");
+    await click("Details for Synthetic 8");
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1_000);
     });
-    expect(namePreview(host)!.querySelector("[data-tone]")).toBeNull();
+    expect(namePreview(host)!.querySelector("[data-status]")?.textContent).toBe("Not checked");
     expect(domainLookups()).toHaveLength(1);
+  });
+});
+
+describe("in the Workspace's reply box", () => {
+  let overlay: HTMLDivElement;
+  function Harness() {
+    const registry = useReplyRegistry();
+    const [value, setValue] = useState("");
+    return (
+      <WorkspaceReplyRegistry.Provider value={registry.register}>
+        <ProjectNamingWorkspace
+          projectId={projectId}
+          inline={{ ...hosts, reply: "workspace", overlay, onQuestion: vi.fn(), onCanvas: vi.fn(), onNameConfirmed }}
+        />
+        <WorkspaceReplyBox
+          value={value}
+          onChange={setValue}
+          action={registry.action}
+          textDisabled={!registry.action?.onSendText}
+        />
+      </WorkspaceReplyRegistry.Provider>
+    );
+  }
+  async function renderInWorkspace() {
+    overlay = document.createElement("div");
+    host.append(overlay);
+    await act(async () => root.render(<Harness />));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+  }
+  const reply = () => host.querySelector<HTMLFormElement>('form[aria-label="Reply"]')!;
+  const chips = () => [...reply().querySelectorAll(".e-chip")].map((chip) => chip.textContent);
+
+  it("puts Stop in the reply box while names are written, and Send moves on once a name is marked", async () => {
+    server = { ...server, run: run({ savedCount: 2 }), entries: [generated(1), generated(2)] };
+    await renderInWorkspace();
+    // No naming composer of its own: the reply box carries the step.
+    expect(hosts.composer.childElementCount).toBe(0);
+    expect(hosts.messages.querySelector("textarea")).toBeNull();
+    expect(chat()).toContain("Generating names… 2 of 100");
+    expect([...hosts.messages.querySelectorAll("button")].map((item) => item.textContent)).not.toContain("Stop");
+    expect(reply().querySelector('button[type="submit"]')).toBeNull();
+    await act(async () => reply().querySelector<HTMLButtonElement>('button[aria-label="Stop writing names"]')!.click());
+    expect(posts("/feed/stop")).toEqual([expect.objectContaining({ body: {}, account: account.userId })]);
+    server = { ...server, run: run({ state: "succeeded", savedCount: 2, finishedAt: when }) };
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    await act(async () => hosts.results.querySelector<HTMLInputElement>('input[type="radio"]')!.click());
+    expect(chips()).toEqual(["Name: Synthetic 1"]);
+    const send = reply().querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    expect(send.getAttribute("aria-label")).toBe("Continue to Slogan");
+    await act(async () => send.click());
+    expect(state.currentSelection?.candidate.value).toBe("Synthetic 1");
+  });
+
+  it("steers the next names with typed text, then clears the reply box", async () => {
+    server = { ...server, run: run({ state: "succeeded", savedCount: 1, finishedAt: when }), entries: [generated(1)] };
+    await renderInWorkspace();
+    const textarea = reply().querySelector("textarea")!;
+    await type(textarea, "Shorter and warmer");
+    await act(async () => reply().querySelector<HTMLButtonElement>('button[type="submit"]')!.click());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(posts("/steering").map((row) => row.body)).toMatchObject([
+      { kind: "steer", seedIds: [], instruction: "Shorter and warmer" },
+    ]);
+    expect(textarea.value).toBe("");
+  });
+
+  it("opens name details in the work-area overlay, not as a modal", async () => {
+    server = { ...server, run: run({ state: "succeeded", savedCount: 1, finishedAt: when }), entries: [generated(1)] };
+    await renderInWorkspace();
+    await click("Details for Synthetic 1");
+    expect(overlay.querySelector(".e-workspace__overlay dialog[open] h2")?.textContent).toBe("Synthetic 1");
   });
 });

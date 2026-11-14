@@ -65,7 +65,10 @@ function gate() {
 }
 const grid = () => host.querySelector<HTMLElement>('[aria-label="Logo concepts"]')!;
 // Before the first set, Explore six concepts sits in the logo types question.
-const typesQuestion = () => host.querySelector<HTMLElement>("fieldset.logo-types-question")!;
+const typesQuestion = () =>
+  [...host.querySelectorAll<HTMLFieldSetElement>("fieldset")].find(
+    (node) => node.querySelector("legend")?.textContent === "Which logo types should I explore?",
+  ) ?? null!;
 const composer = () => host.querySelector<HTMLFormElement>('form[aria-label="Logo concept changes"]')!;
 const instruction = () =>
   composer().querySelector<HTMLTextAreaElement>('textarea[aria-label="Describe a change to this logo"]')!;
@@ -245,7 +248,8 @@ describe("saved Logo gallery filtering and initial read presentation", () => {
       expectInitialPresentation("loading");
       await act(async () => detail.release());
       await until(() => expect(images()).toHaveLength(6));
-      expect(grid().textContent).toContain("6 of 6 concepts ready");
+      // Concept 1 is the chosen logo: the heading names it and the number of concepts.
+      expect(grid().textContent).toContain("Concept 1 · 6 concepts");
       expect(grid().getAttribute("aria-busy")).not.toBe("true");
       expect(composer()).toBe(form);
       expect(instruction()).toBe(input);
@@ -253,7 +257,7 @@ describe("saved Logo gallery filtering and initial read presentation", () => {
       expect(input.value).toBe("Keep this local refinement message");
       expect(document.activeElement).toBe(button("Recheck account"));
       cards().forEach((card, index) => expect(card).toBe(initialCards[index]));
-      expect(grid().textContent).toContain("Logo chosen");
+      expect(grid().textContent).toContain("Your logo");
       expect(input.placeholder).toBe("Describe a change to this logo…");
       expect(composer().getAttribute("aria-busy")).toBe("false");
       noWrites(f);
@@ -370,7 +374,8 @@ describe("saved Logo gallery filtering and initial read presentation", () => {
       await act(async () => workspace.release());
       await until(() => expect(typesQuestion().textContent).toContain("Explore six concepts"));
       expect(host.textContent).toContain("Which logo types should I explore?");
-      expect(grid().getAttribute("aria-busy")).not.toBe("true");
+      // Before the first request there are no concept tiles at all, only the question.
+      expect(grid()).toBeNull();
       expect(cards()).toHaveLength(0);
       expect(composer()).toBe(form);
       expect(instruction()).toBe(input);
@@ -439,7 +444,7 @@ describe("logo types once concepts exist", () => {
     await mount(f.workspace.projectId, fetcher);
     await until(() => {
       expect(images()).toHaveLength(6);
-      expect(grid().textContent).toContain("Logo chosen");
+      expect(grid().textContent).toContain("Your logo");
     });
     return { f, saves };
   }
@@ -449,12 +454,10 @@ describe("logo types once concepts exist", () => {
   async function dropMascot() {
     await until(() => expect(button("Change logo types").disabled).toBe(false));
     await click("Change logo types");
-    const mascot = [...typesQuestion().querySelectorAll("button")].find((node) =>
-      node.textContent?.startsWith("Mascot"),
-    )!;
-    expect(mascot.getAttribute("aria-pressed")).toBe("true");
+    const mascot = typesQuestion().querySelector<HTMLInputElement>('input[type="checkbox"][value="mascot"]')!;
+    expect(mascot.checked).toBe(true);
     await act(async () => mascot.click());
-    expect(mascot.getAttribute("aria-pressed")).toBe("false");
+    expect(mascot.checked).toBe(false);
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 700));
     });

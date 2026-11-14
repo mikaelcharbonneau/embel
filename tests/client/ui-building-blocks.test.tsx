@@ -171,6 +171,27 @@ describe("Dialog", () => {
     await press(host.querySelector('dialog button[aria-label="Close"]'));
     expect(host.querySelector("dialog")).not.toBeNull();
   });
+
+  it("keeps a badge beside the title out of its name and puts header actions before Close", async () => {
+    const favorite = vi.fn();
+    await render(
+      <Dialog
+        title="Kestrel Analytics"
+        size="xl"
+        aside={<span className="e-badge">Your name</span>}
+        actions={<IconButton icon="heart" label="Favorite Kestrel Analytics" tooltip={false} onClick={favorite} />}
+        onClose={() => {}}
+      />,
+    );
+    const dialog = host.querySelector("dialog")!;
+    expect(dialog.className).toContain("e-dialog--xl");
+    expect(document.getElementById(dialog.getAttribute("aria-labelledby")!)?.textContent).toBe("Kestrel Analytics");
+    expect(dialog.querySelector("header")!.textContent).toContain("Your name");
+    const headerButtons = [...dialog.querySelectorAll("header button")].map((b) => b.getAttribute("aria-label"));
+    expect(headerButtons).toEqual(["Favorite Kestrel Analytics", "Close"]);
+    await press(dialog.querySelector('button[aria-label="Favorite Kestrel Analytics"]'));
+    expect(favorite).toHaveBeenCalledOnce();
+  });
 });
 
 describe("Menu", () => {
@@ -293,6 +314,34 @@ describe("Choice cards", () => {
     await render(<ArtworkChoice label="Concept 3" state="drawing" selected={false} onChoose={choose} />);
     expect(host.querySelector(".e-choice__hit")).toBeNull();
     expect(host.querySelector('[role="img"]')?.getAttribute("aria-label")).toBe("Concept 3 is being drawn");
+
+    await render(
+      <ArtworkChoice
+        label="Concept 5"
+        state="failed"
+        failedText="Concept 5 couldn't be drawn."
+        selected={false}
+        onChoose={choose}
+      />,
+    );
+    expect(host.querySelector(".e-choice__hit")).toBeNull();
+    expect(host.querySelector(".e-media")?.textContent).toBe("Concept 5 couldn't be drawn.");
+
+    await render(
+      <ArtworkChoice
+        label="Concept 1"
+        src="/logo.png"
+        selected={false}
+        onChoose={choose}
+        disabled
+        mediaClassName="e-media--revealing"
+        overlay={<span className="e-media__status">Sketch</span>}
+      />,
+    );
+    const frame = host.querySelector(".e-media")!;
+    expect(frame.classList.contains("e-media--revealing")).toBe(true);
+    expect(frame.querySelector(".e-media__status")?.textContent).toBe("Sketch");
+    expect(host.querySelector<HTMLButtonElement>(".e-choice__hit")?.disabled).toBe(true);
   });
 });
 

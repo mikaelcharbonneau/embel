@@ -175,8 +175,8 @@ test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));
 /** Embel working on a reply: the research card for competitors, the thinking line otherwise. */
 function working(page: Page) {
   return page
-    .locator(".guided-thinking[role=status]")
-    .or(page.getByRole("region", { name: /^(Researching your competitors|Cancelling research…)$/ }));
+    .locator(".e-thinking[role=status]")
+    .or(page.getByRole("status", { name: "Researching your competitors", exact: true }));
 }
 
 test("strategy fixture: rejected saves retain the prompt and never enqueue provider work", async ({ page }) => {
@@ -202,10 +202,12 @@ test("strategy fixture: unconfirmed enqueue shows no invented progress and retri
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect.poll(() => state.enqueues.length).toBe(1);
   await expect(
-    page.locator(".guided-user-message").getByText("Keep the saved prompt after a queue failure.", { exact: true }),
+    page
+      .locator(".e-turn--user .e-turn__bubble")
+      .getByText("Keep the saved prompt after a queue failure.", { exact: true }),
   ).toBeVisible();
   expect(state.project.current_revision).toBe(2);
-  const retry = page.getByRole("button", { name: "Retry research", exact: true });
+  const retry = page.getByRole("button", { name: "Try again", exact: true });
   await expect(retry).toBeEnabled();
   await expect(working(page)).toHaveCount(0);
   expect(state.enqueues[0]).toMatchObject({

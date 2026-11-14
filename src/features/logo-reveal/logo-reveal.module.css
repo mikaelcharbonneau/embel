@@ -1,0 +1,34 @@
+/* The reveal's drawing (transitions.dev "image" variant, see vendor/image-reveal.ts), in the design system's colours.
+   The frame, handles and labels are the design system's own (e-media--revealing); this styles only the sketch and the
+   dot colours the script reads from the media frame. Monochrome: the picture's colours arrive with its dots. */
+.frame {
+  --reveal-ink: var(--color-text);
+  --reveal-strong: var(--color-icon-muted);
+  --reveal-dot: calc(var(--space-0-5) + var(--space-0-5) / 20);
+}
+
+.layer {
+  inset: 0;
+}
+
+.layer > canvas,
+.svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.sketch {
+  stroke-width: calc(var(--reveal-dot) * 0.75);
+}
+
+.wire {
+  fill: none;
+  stroke: var(--color-border-control);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.head {
+  fill: var(--reveal-strong);
+}
