@@ -7,14 +7,9 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { InlineMessage } from "@/components/ui/message";
 import { boundedAccountRequest } from "../workspace/bounded-account-request";
 import { useAccountSession, type VerifiedAccount } from "../workspace/account-session";
+import { creditsRenewDate } from "../workspace/credits-message";
 
-/** When the monthly credits renew, as "December 1" (the period ends at midnight UTC). */
-export function creditsRenewDate(periodEnd: string | null) {
-  const renews = periodEnd ? new Date(periodEnd) : null;
-  return renews && !Number.isNaN(renews.getTime())
-    ? renews.toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" })
-    : null;
-}
+export { creditsRenewDate };
 
 export type CreditBalance = { balance: number | null; periodEnd: string | null; refresh(): void };
 
