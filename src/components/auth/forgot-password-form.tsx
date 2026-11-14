@@ -72,9 +72,9 @@ export function ForgotPasswordForm({ configured, overlay = false }: { configured
             If an account uses this address, a reset link will arrive shortly. Open it in this browser. The link works
             once and expires after a short time. Check your spam folder too.
           </InlineMessage>
-          <button type="button" className="e-link auth-card__action" onClick={() => setSent(false)}>
+          <Button variant="secondary" block onClick={() => setSent(false)}>
             Send another link
-          </button>
+          </Button>
         </>
       ) : (
         <form

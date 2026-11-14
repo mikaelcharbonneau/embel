@@ -200,7 +200,7 @@ test("signup: failed confirmation offers generic bounded-provider resend recover
   const { state } = await fixtures(page);
   await page.goto("/sign-in?confirmation=failed");
   await expect(page.locator(".auth-card").getByRole("alert")).toContainText("couldn't complete this confirmation link");
-  await page.getByRole("button", { name: "Request another confirmation email", exact: true }).click();
+  await page.getByRole("button", { name: "Send a new confirmation email", exact: true }).click();
   const form = page.getByRole("form", { name: "Resend confirmation", exact: true });
   state.resendStatus = 429;
   await form.getByLabel("Email", { exact: true }).fill(email);
