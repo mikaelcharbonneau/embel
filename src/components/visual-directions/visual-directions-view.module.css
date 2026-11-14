@@ -1,515 +1,224 @@
-/* Creative direction: one centered column of the wide journey width, with
-   Embel's message, the toolbar and the three boards on the same edges. */
-/* section.workspace outranks the shared stage frame width and padding. */
-section.workspace {
-  max-width: calc(var(--container-page) + 2 * var(--branding-gutter, 32px));
-  padding-top: var(--space-10);
-  padding-bottom: 120px;
+/* Creative direction (November 13 redesign): the heading row, then three direction boards in one row with their
+   number, name, palette and typography and a real Choose button. The chosen card keeps its size and place and is
+   marked by the selection ring only (e-choice[data-selected]). */
+.page {
+  width: min(100%, var(--container-page));
+  margin: 0 auto;
+  padding: var(--space-10) var(--space-gutter) var(--space-16);
+}
+.workspace {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
   color: var(--color-text);
 }
-.workspace *,
-.workspace *::before,
-.workspace *::after {
-  box-sizing: border-box;
-}
-.workspace h1,
+.workspace p,
 .workspace h2,
-.workspace h3,
-.workspace p {
+.workspace h3 {
   margin: 0;
 }
-.workspace button,
-.workspace a {
-  font: inherit;
-}
-.workspace button:disabled {
-  opacity: 1;
-}
-.workspace :is(button, a):focus-visible {
-  outline: 2px solid var(--color-text);
-  outline-offset: 4px;
-}
-.label {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-1);
-  line-height: 1.5;
-}
 
-/* The chosen logo and Change logo share one compact row inside the message. */
+/* The chosen logo and Change logo share one compact row inside Embel's message (one-column conversation). */
 .chosenLogo {
   gap: var(--space-3);
 }
 .chosenLogo :global(.identity-chosen-logo) {
-  width: 48px;
-  height: 48px;
+  width: var(--space-12);
+  height: var(--space-12);
   padding: var(--space-1);
   border-radius: var(--radius-control);
 }
-.chosenLogo :global(.identity-chosen-logo) img {
-  mix-blend-mode: multiply;
-  filter: brightness(1.04);
-}
 .chosenLogoLabel {
-  font-size: var(--font-size-2);
+  font: var(--text-small);
   color: var(--color-text-muted);
-}
-.changeLogo {
-  display: inline-flex;
-  align-items: center;
-  min-height: 36px;
-  padding: 0 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-paper);
-  color: var(--color-text);
-  font-size: var(--font-size-2) !important;
-  text-decoration: none;
-}
-.changeLogo:hover {
-  background: var(--color-bg-canvas);
-  border-color: var(--color-border-strong);
 }
 
 .generation {
-  margin: var(--space-6) 0 var(--space-4);
+  display: grid;
+  gap: var(--space-4);
   min-width: 0;
 }
-.toolbar {
+.header {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  align-items: flex-start;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
-  min-height: 44px;
+  gap: var(--space-3) var(--space-4);
 }
-.toolbarStatus {
+.title {
+  font: var(--text-title-md);
+  letter-spacing: var(--tracking-title-md);
+}
+.actions {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1) var(--space-2);
-  min-width: 0;
-  font-size: var(--font-size-2);
-  line-height: 20px;
-  color: var(--color-text-muted);
+  justify-content: flex-end;
+  gap: var(--space-2);
 }
-.toolbarStatus > span + span::before {
-  content: "·";
-  margin-right: var(--space-2);
-  color: var(--color-text-placeholder);
-}
-.toolbarStatus .selectionStatus {
-  color: var(--color-text-positive);
-}
-.progressCount {
-  color: var(--color-text);
-}
-.toolbarActions {
+.messages {
   display: flex;
-  align-items: center;
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
-  margin-left: auto;
+  gap: var(--space-1) var(--space-3);
 }
-.primaryButton,
-.secondaryButton {
-  min-height: var(--branding-action-height);
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  gap: var(--space-1-5);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  padding: 10px 18px;
-  font-size: var(--font-size-2) !important;
-  line-height: 1.4;
-  text-align: center;
-  cursor: pointer;
-}
-.primaryButton {
-  background: var(--color-text);
-  border-color: var(--color-text);
-  color: var(--color-bg-paper);
-}
-.primaryButton:hover:not(:disabled) {
-  background: var(--color-accent-hover);
-}
-.secondaryButton {
-  background: var(--color-bg-paper);
-  color: var(--color-text);
-}
-.secondaryButton:hover:not(:disabled) {
-  background: var(--color-bg-canvas);
-  border-color: var(--color-border-strong);
-}
-.primaryButton:disabled,
-.secondaryButton:disabled {
-  background: var(--color-bg-sunken);
-  border-color: var(--color-border);
-  color: var(--color-text-muted);
-  cursor: not-allowed;
-}
-.textButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-height: var(--branding-action-height);
-  padding: var(--space-2) 0;
-  color: var(--color-text-muted);
-  border: 0;
-  background: none;
-  font-size: var(--font-size-2) !important;
-  text-decoration: none;
-  cursor: pointer;
-}
-.textButton:hover:not(:disabled) {
-  color: var(--color-text);
-}
-.textButton:disabled {
-  color: var(--color-text-placeholder);
-  cursor: not-allowed;
-}
-.helper {
-  font-size: var(--font-size-2);
-  line-height: 1.6;
-  color: var(--color-text-muted);
-  margin-top: var(--space-2) !important;
-}
-.error {
-  margin-top: var(--space-3) !important;
-  color: var(--color-text-danger);
-  font-size: var(--font-size-2);
-  line-height: 1.6;
-}
-.progressActions {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  flex-wrap: wrap;
-  margin-bottom: var(--space-4);
-}
-.progressActions .secondaryButton {
-  padding: 7px 14px;
+.messages:empty {
+  display: none;
 }
 
+/* Results fit the window (decisions 1 and 3): one row of three boards, sized from this container so they shrink as
+   the chat widens; never taller than the window allows (the Workspace sets --result-size, this is the same rule for
+   the one-column conversation). */
+.results {
+  container-type: inline-size;
+  min-width: 0;
+}
 .cards {
-  display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: stretch;
-  gap: var(--space-4);
+  max-width: calc(var(--result-size, 100dvh - var(--space-24) * 5) * 3 + var(--grid-gap) * 2);
+  margin-inline: auto;
 }
-.card {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  background: var(--color-bg-paper);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  overflow: hidden;
-  transition: border-color 120ms;
+@container (max-width: 34rem) {
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
-.card:hover:not([data-selected="true"]):not([aria-disabled="true"]) {
-  border-color: var(--color-border-strong);
+@container (max-width: 20rem) {
+  .cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
-.card[data-selected="true"] {
-  border-color: var(--color-text);
-  box-shadow: 0 0 0 1px var(--color-text);
-}
-.cardTop {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 42px;
-  padding: 10px var(--space-4);
-}
-.cardNumber {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-1);
-}
-.selectedBadge,
-.staleBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: var(--font-size-1);
-  line-height: 1.4;
-}
-.selectedBadge {
-  color: var(--color-text-positive);
-}
-.staleBadge {
-  color: var(--color-text-warning);
-}
-.preview {
-  min-width: 0;
-  aspect-ratio: 1;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  background: var(--color-bg-canvas);
-}
-.preview > * {
-  min-width: 0;
-  max-width: 100%;
+
+/* The board fills its square frame. */
+.board :global(.identity-board),
+.board :global(.identity-board-image) {
   width: 100%;
-}
-.preview :is(figure, div):has(img) {
+  height: 100%;
   margin: 0;
-  max-width: 100%;
-  width: 100%;
-}
-.preview :global(.identity-board-image) {
-  aspect-ratio: 1;
   border-radius: 0;
 }
-.preview img {
+.board img {
   display: block;
   width: 100%;
   height: 100%;
-  max-height: 100%;
-  object-fit: contain;
+  object-fit: cover;
+  /* the simple blur reveal (the design system's e-media--reveal), for a board nested in its figure */
+  animation: board-reveal calc(var(--duration-slow) * 2) cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.preview figcaption {
-  display: none;
+@keyframes board-reveal {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
 }
-.preview p {
-  padding: var(--space-5);
-  font-size: var(--font-size-1);
-  line-height: 1.6;
+@media (prefers-reduced-motion: reduce) {
+  .board img {
+    animation: board-fade var(--duration-base) ease both;
+  }
+  @keyframes board-fade {
+    from {
+      opacity: 0;
+    }
+  }
+}
+.board :global(.identity-board-state) {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-2);
+  height: 100%;
+  padding: var(--space-4);
+  font: var(--text-small);
   color: var(--color-text-muted);
   text-align: center;
 }
-.cardIntro {
-  padding: 0 var(--space-4) var(--space-3);
-}
-.cardBody {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 9px;
-  padding: var(--space-3) var(--space-4) var(--space-4);
-}
-.cardBody:not(:has(p, button)) {
+.board figcaption {
   display: none;
 }
-.cardTitle {
+
+.cardBody {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+.cardTop {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  min-height: 36px;
+  gap: var(--space-2);
 }
-.expandButton {
-  flex: 0 0 var(--branding-action-height);
-  display: grid;
-  place-items: center;
-  width: var(--branding-action-height);
-  height: var(--branding-action-height);
-  margin-right: -7px !important;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: transparent;
+.cardTitle {
+  font: var(--text-label);
+}
+.drawing {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  font: var(--text-small);
   color: var(--color-text-muted);
-  cursor: pointer;
 }
-.expandButton:hover {
-  background: var(--color-bg-sunken);
-  color: var(--color-text);
-}
-.designDetails {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--space-4);
-  align-items: start;
-  margin: 0 var(--space-4);
-  padding: var(--space-3) 0 14px;
-  border-top: 1px solid var(--color-border);
-}
-.designDetails > div {
+.details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
   min-width: 0;
 }
-.detailLabel {
-  font-size: var(--font-size-1);
-  line-height: 1.4;
-  font-weight: 500;
-  margin-bottom: var(--space-1-5) !important;
+.details > * {
+  min-width: 0;
 }
 .swatches {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px;
+  gap: var(--space-1);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 .swatches li {
-  width: 21px;
-  height: 21px;
-  border-radius: 6px;
-  box-shadow: inset 0 0 0 1px rgb(18 18 20 / 7%);
-}
-.visuallyHidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-.cardNotice {
-  color: var(--color-text-warning);
-  font-size: var(--font-size-1);
-  line-height: 1.6;
+  width: var(--space-6);
+  height: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inset);
 }
 .cardActions {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0;
-  margin-top: auto;
-}
-.cardActions:empty {
-  display: none;
-}
-.cardActions .textButton {
-  margin-top: 3px;
-}
-.placeholder {
-  display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-4);
-  aspect-ratio: 1;
-  min-width: 0;
-  padding: var(--space-5);
-  background: var(--color-bg-canvas);
-  color: var(--color-border-strong);
-}
-.placeholder p {
-  max-width: 160px;
-  text-align: center;
-  font-size: var(--font-size-2);
-  line-height: 1.6;
-  color: var(--color-text-muted);
-}
-.emptyCaption {
-  padding: var(--space-5) var(--space-4);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-1);
-  line-height: 1.6;
-}
-.workspace .nextHint {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-2);
-}
-.dialog {
-  position: fixed;
-  inset: 0;
-  width: min(860px, calc(100vw - 40px));
-  max-height: calc(100dvh - 40px);
-  margin: auto;
-  padding: 0;
-  overflow: auto;
-  color: var(--color-text);
-  background: var(--color-bg-paper);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-panel);
-}
-.dialog::backdrop {
-  background: rgb(25 25 25 / 53%);
-}
-.dialogHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-5);
-  padding: 18px var(--space-6);
-  border-bottom: 1px solid var(--color-border);
-}
-.dialogHeader h2 {
-  margin-top: 3px;
-}
-.closeButton {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: var(--branding-action-height);
-  height: var(--branding-action-height);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  color: var(--color-text);
-  background: var(--color-bg-paper);
-  font-size: var(--font-size-6) !important;
-  cursor: pointer;
-}
-.dialogPreview {
-  min-width: 0;
-  background: var(--color-bg-canvas);
-}
-.dialogPreview :is(figure, div):has(img) {
-  margin: 0;
-  width: 100%;
-  max-width: none;
-}
-.dialogPreview :global(.identity-board-image) {
-  aspect-ratio: auto;
-  border-radius: 0;
-}
-.dialogPreview img {
-  display: block;
-  width: 100%;
-  height: auto;
-  max-height: none;
-  object-fit: contain;
-}
-.dialogPreview figcaption {
-  padding: var(--space-3) var(--space-6);
-}
-.dialogSummary {
-  padding: 18px var(--space-6) 22px;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-2);
-  line-height: 1.7;
+  gap: var(--space-2);
 }
 
-@media (max-width: 1150px) {
-  .cards {
-    gap: 14px;
-  }
-  .cardTop,
-  .cardIntro,
-  .cardBody {
-    padding-inline: var(--space-3);
-  }
-  .designDetails {
-    margin-inline: var(--space-3);
-  }
+/* The larger view: the whole board, up to 62% of the window's height. */
+.enlarged {
+  display: grid;
+  place-items: center;
+  min-width: 0;
 }
-@media (max-width: 760px) {
-  .cards {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-5);
-  }
-  .cardTop,
-  .cardIntro,
-  .cardBody {
-    padding-inline: var(--space-4);
-  }
-  .designDetails {
-    margin-inline: var(--space-4);
-  }
-  .dialog {
-    width: calc(100vw - 24px);
-    max-height: calc(100dvh - 24px);
-  }
-  .dialogHeader {
-    padding: var(--space-3) var(--space-4);
-  }
-  .dialogSummary {
-    padding: var(--space-4);
-  }
+.enlarged :global(.identity-board),
+.enlarged :global(.identity-board-image) {
+  margin: 0;
+}
+.enlarged img {
+  display: block;
+  max-width: 100%;
+  max-height: 62dvh;
+  width: auto;
+  height: auto;
+  border-radius: var(--radius-small);
+}
+.enlarged figcaption {
+  padding-top: var(--space-2);
+  font: var(--text-small);
+  color: var(--color-text-muted);
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
 }

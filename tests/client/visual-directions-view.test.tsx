@@ -71,7 +71,11 @@ async function click(node: HTMLElement) {
   await act(async () => node.click());
 }
 
-const choice = (index = 0) => [...document.querySelectorAll<HTMLElement>("article[role=radio]")][index]!;
+// Each board has a real Choose button (decision 10); the chosen card is marked by its ring (data-selected) only.
+const choice = (index = 0) =>
+  [...document.querySelectorAll<HTMLElement>("article")][index]!.querySelector<HTMLButtonElement>(
+    "button[aria-pressed]",
+  )!;
 
 describe("visual direction comparison", () => {
   it("starts only on a deliberate click, without showing a cost estimate", async () => {
@@ -84,7 +88,7 @@ describe("visual direction comparison", () => {
     expect(generate.hasAttribute("aria-describedby")).toBe(false);
     await click(generate);
     expect(value.generation.onGenerate).toHaveBeenCalledTimes(1);
-    expect(host.querySelector("dialog")?.open).toBe(false);
+    expect(host.querySelector("dialog")).toBeNull();
   });
 
   it("keeps completed boards visible and prevents a second request while the original is uncertain", async () => {
@@ -136,11 +140,13 @@ describe("visual direction comparison", () => {
       }),
     );
     const articles = host.querySelectorAll("article");
-    expect(articles[0]!.dataset.selected).toBe("false");
-    expect(articles[0]!.textContent).toContain("Earlier inputs");
-    expect(articles[0]!.getAttribute("aria-disabled")).toBe("true");
+    expect(articles[0]!.hasAttribute("data-selected")).toBe(false);
+    expect(articles[0]!.textContent).toContain("This board uses earlier inputs.");
+    expect(choice(0).disabled).toBe(true);
+    expect(choice(0).getAttribute("aria-pressed")).toBe("false");
     expect(articles[1]!.dataset.selected).toBe("true");
-    expect(articles[1]!.getAttribute("aria-checked")).toBe("true");
+    expect(choice(1).getAttribute("aria-pressed")).toBe("true");
+    expect(choice(1).textContent).toBe("Chosen");
     expect(host.textContent).toContain("Direction saved.");
     expect(host.querySelector('a[href="/kit"]')?.textContent).toBe("View brand assets");
   });
@@ -166,27 +172,29 @@ describe("visual direction comparison", () => {
   it("opens a larger board without choosing it and returns keyboard focus on close", async () => {
     const saved = card("A");
     await render(props({ cards: [saved, null, null] }));
-    const trigger = host.querySelector<HTMLButtonElement>("[aria-label='View Direction A larger']")!;
+    const trigger = host.querySelector<HTMLButtonElement>("[aria-label='Enlarge Direction 1, Direction A']")!;
     trigger.focus();
     await click(trigger);
     const dialog = host.querySelector("dialog")!;
     expect(dialog.open).toBe(true);
     expect(dialog.textContent).toContain("Verified board A");
+    expect(dialog.textContent).toContain("Direction 1 of 3");
     expect(saved.onChoose).not.toHaveBeenCalled();
-    await click(host.querySelector<HTMLButtonElement>("[aria-label='Close larger preview']")!);
-    expect(dialog.open).toBe(false);
+    await click(dialog.querySelector<HTMLButtonElement>("[aria-label='Close']")!);
+    expect(host.querySelector("dialog")).toBeNull();
     expect(document.activeElement).toBe(trigger);
   });
 
   it("clears an expanded private preview when its board leaves the current comparison", async () => {
     const initial = props({ cards: [card("A"), null, null] });
     await render(initial);
-    await click(host.querySelector<HTMLButtonElement>("[aria-label='View Direction A larger']")!);
+    await click(host.querySelector<HTMLButtonElement>("[aria-label='Enlarge Direction 1, Direction A']")!);
+    expect(host.querySelector("dialog")).not.toBeNull();
     await render(props());
-    expect(host.querySelector("dialog")!.open).toBe(false);
+    expect(host.querySelector("dialog")).toBeNull();
     expect(host.textContent).not.toContain("Verified board A");
     await render(initial);
-    expect(host.querySelector("dialog")!.open).toBe(false);
+    expect(host.querySelector("dialog")).toBeNull();
   });
 
   it("keeps disabled generation and selection reasons available without relying on hover", async () => {
@@ -205,7 +213,7 @@ describe("visual direction comparison", () => {
       }),
     );
     expect(button("Create three directions").disabled).toBe(true);
-    expect(choice(0).getAttribute("aria-disabled")).toBe("true");
+    expect(choice(0).disabled).toBe(true);
     expect(host.textContent).toContain("Choose a saved logo first.");
     expect(host.textContent).toContain("Your logo choice is still saving.");
     await click(choice(0));
@@ -226,7 +234,7 @@ describe("visual direction comparison", () => {
       selectionCheck: { busy: false, onCheck },
     });
     await render(value);
-    expect(choice(0).getAttribute("aria-disabled")).toBe("true");
+    expect(choice(0).disabled).toBe(true);
     expect(host.textContent).not.toContain("Checking your saved choice…");
     await click(button("Check saved choice"));
     expect(onCheck).toHaveBeenCalledTimes(1);
@@ -236,5 +244,20 @@ describe("visual direction comparison", () => {
     expect(button("Checking saved choice…").disabled).toBe(true);
     await click(button("Checking saved choice…"));
     expect(onCheck).toHaveBeenCalledTimes(1);
+  });
+
+  it("moves through the boards in the larger view and chooses from it", async () => {
+    const a = card("A"),
+      c = card("C");
+    await render(props({ cards: [a, null, c], generation: { status: "partial", completed: 2, onGenerate: vi.fn() } }));
+    await click(host.querySelector<HTMLButtonElement>("[aria-label='Enlarge Direction 1, Direction A']")!);
+    const dialog = () => host.querySelector("dialog")!;
+    await click(button("Next"));
+    expect(dialog().textContent).toContain("Direction 3 of 3");
+    expect(dialog().textContent).toContain("Verified board C");
+    await click(button("Choose this direction"));
+    expect(c.onChoose).toHaveBeenCalledTimes(1);
+    expect(a.onChoose).not.toHaveBeenCalled();
+    expect(host.querySelector("dialog")).toBeNull();
   });
 });
