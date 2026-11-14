@@ -123,7 +123,10 @@ describe("groupJobActivity", () => {
       ],
     });
     const { attention, finished } = splitJobActivity(groups);
-    expect(titles(attention)).toEqual(["Kestrel Analytics · Logo change", "Maison Aurélie · Three creative directions"]);
+    expect(titles(attention)).toEqual([
+      "Kestrel Analytics · Logo change",
+      "Maison Aurélie · Three creative directions",
+    ]);
     expect(titles(finished)).toEqual(["Kestrel Analytics · Six logo concepts", "Maison Aurélie · Names"]);
   });
 });

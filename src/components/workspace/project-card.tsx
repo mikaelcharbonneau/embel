@@ -240,10 +240,7 @@ export function ProjectCard({
           </Heading>
           {deletionStatus}
           <div className={`${styles.footer} project-footer`}>
-            <RelativeDate
-              prefix="Deleted"
-              dateTime={project.deletion_requested_at ?? project.deleted_at ?? ""}
-            />
+            <RelativeDate prefix="Deleted" dateTime={project.deletion_requested_at ?? project.deleted_at ?? ""} />
             {menu}
           </div>
         </div>

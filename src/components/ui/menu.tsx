@@ -86,10 +86,13 @@ export function Menu({
       event.stopPropagation();
       // The click that follows this press must not reach what is underneath either.
       const swallow = (click: MouseEvent) => {
+        document.removeEventListener("click", swallow, true);
+        if (click.target !== target) return;
         click.preventDefault();
         click.stopPropagation();
       };
-      document.addEventListener("click", swallow, { capture: true, once: true });
+      document.addEventListener("click", swallow, true);
+      window.setTimeout(() => document.removeEventListener("click", swallow, true), 1000);
       window.setTimeout(() => document.removeEventListener("click", swallow, true), 600);
       setOpen(false);
     };
