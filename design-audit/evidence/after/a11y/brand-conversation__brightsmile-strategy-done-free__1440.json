@@ -1,0 +1,890 @@
+{
+ "slug": "brand-conversation__brightsmile-strategy-done-free",
+ "account": "audit-free",
+ "route": "/brands/account/14e7b0e5-5afb-4f5b-96a2-af8b1bfda342?view=strategy",
+ "width": 1440,
+ "doc": {
+  "url": "/brands/account/14e7b0e5-5afb-4f5b-96a2-af8b1bfda342?view=strategy",
+  "title": "Untitled brand · Voice · Embel",
+  "lang": "en",
+  "viewportMeta": "width=device-width, initial-scale=1",
+  "h1": [],
+  "headings": [
+   "H2 Chat",
+   "H2 Which personality feels right?"
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "header": 2,
+   "footer": 0,
+   "aside": 0,
+   "form": 1,
+   "[role=\"search\"]": 0,
+   "section[aria-label], section[aria-labelledby]": 5
+  },
+  "navLabels": [
+   "Brand journey",
+   "Project navigation"
+  ],
+  "skipLink": [
+   {
+    "text": "Skip to content",
+    "href": "#main-content",
+    "targetExists": true
+   }
+  ],
+  "liveRegions": 4,
+  "dialogsOpen": [],
+  "overflowX": 0,
+  "bodyText": "Skip to content Untitled brand Strategy , complete Voice 3 Identity 4 Assets Saved A Untitled brand Chat Hide chat A pediatric dental clinic in Halifax for children from birth to sixteen, with sensory-friendly rooms, weekend hours and dentists trained for anxious kids and children with autism. Paren",
+  "focusableCount": 11
+ },
+ "contrast": [
+  {
+   "fg": "#85847f",
+   "bg": "#fefefe",
+   "size": 12,
+   "weight": 400,
+   "ratio": 3.72,
+   "required": 4.5,
+   "disabled": true,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "span.e-step__mark «3» in ol.e-steps > li > span.e-step",
+    "span.e-step__mark «4» in ol.e-steps > li > span.e-step"
+   ],
+   "pass": false
+  },
+  {
+   "fg": "#85847f",
+   "bg": "#fefefe",
+   "size": 14,
+   "weight": 500,
+   "ratio": 3.72,
+   "required": 4.5,
+   "disabled": true,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "span «Identity» in ol.e-steps > li > span.e-step",
+    "span «Assets» in ol.e-steps > li > span.e-step"
+   ],
+   "pass": false
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "p#_r_4_-hint.e-section__hint «Choose one, then press Send.» in section.e-stack > div.e-cluster > div.e-stack"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#fefefe",
+   "size": 14,
+   "weight": 500,
+   "ratio": 5.48,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span «Strategy» in ol.e-steps > li > a.e-step"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 6,
+   "samples": [
+    "span.e-answer__question «Strategy» in section.e-stack > details.e-disclosure > summary",
+    "p.e-turn__meta «Embel ·» in div.e-workspace__thread > article.e-turn > div.e-turn__main",
+    "p.e-turn__meta «Personality · 1 of 3» in div.e-workspace__thread > article.e-turn > div.e-turn__main"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "placeholder": true,
+   "disabled": false,
+   "count": 1,
+   "samples": [
+    "textarea#_r_2_[message] placeholder «Reply in your own words, or ask a questi»"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#3d6448",
+   "bg": "#fefefe",
+   "size": 12,
+   "weight": 400,
+   "ratio": 6.7,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span.journey-module__MmLfbq__save \"Saved\" «Saved» in div.workspace-main > header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 14,
+   "weight": 500,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "button.e-avatar[Account menu] \"A\" «A» in div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > span.e-anchor"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 14,
+   "weight": 400,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p.e-turn__text «A pediatric dental clinic in Halifax for children » in div.e-workspace__thread > div.e-turn > div.e-turn__bubble"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 20,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "h2.e-section__title \"Which personality feels right?\" «Which personality feels right?» in section.e-stack > div.e-cluster > div.e-stack"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#fefefe",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.48,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "span.journey-module__MmLfbq__projectTitle «Untitled brand» in div.journey-module__MmLfbq__capsule > details.journey-module__MmLfbq__tools > summary.journey-module__MmLfbq__projectName",
+    "span «Voice» in ol.e-steps > li > span.e-step"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.skip-link \"Skip to content\" «Skip to content» in div.app-shell"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 11,
+   "samples": [
+    "h2.e-workspace__title \"Chat\" «Chat» in div.e-workspace > section.e-workspace__chat > div.e-workspace__head",
+    "span#_r_5_-title.e-choice__title «Warm and dependable» in fieldset.e-stack > div.e-grid-choices > label.e-choice",
+    "span.guided-option__label «Traits» in label.e-choice > span.e-choice__more > span.guided-option__detail"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 9,
+   "samples": [
+    "span.e-badge «Parents of anxious children» in section.e-stack > details.e-disclosure > summary",
+    "span.e-badge «The calm first visit» in section.e-stack > details.e-disclosure > summary",
+    "span.e-badge.guided-option__recommended «Recommended» in div.e-grid-choices > label.e-choice > span.e-choice__more"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p.e-turn__text «Three personality directions.» in div.e-workspace__thread > article.e-turn > div.e-turn__main"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 10,
+   "samples": [
+    "span.guided-option__tone «“» in span.e-choice__more > span.guided-option__detail > span",
+    "span.guided-option__tone «Little Lighthouse Dental: Friendly and steady.» in span.e-choice__more > span.guided-option__detail > span",
+    "span.guided-option__tone «”» in span.e-choice__more > span.guided-option__detail > span"
+   ],
+   "pass": true
+  }
+ ],
+ "edges": [
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#ffffff",
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": 1,
+   "best": 1,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Hide chat]"
+   ]
+  },
+  {
+   "kind": "field",
+   "fill": "#ffffff",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": null,
+   "best": 1,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "textarea#_r_2_[message]"
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#f1f0ee",
+   "border": null,
+   "outside": "#fefefe",
+   "fillRatio": 1.13,
+   "borderRatio": null,
+   "best": 1.13,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "button.e-avatar[Account menu] \"A\""
+   ]
+  }
+ ],
+ "targets": {
+  "total": 11,
+  "under44": 5,
+  "under24": []
+ },
+ "fields": [
+  {
+   "field": "textarea#_r_2_[message]",
+   "type": "textarea",
+   "label": "Message Embel",
+   "autocomplete": "off",
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 16
+  }
+ ],
+ "clipped": [],
+ "axe": {
+  "violations": [],
+  "incomplete": [
+   {
+    "id": "aria-valid-attr-value",
+    "count": 1,
+    "help": "ARIA attributes must conform to valid values"
+   },
+   {
+    "id": "color-contrast",
+    "count": 6,
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+   }
+  ]
+ },
+ "walk": [
+  {
+   "el": "a.skip-link \"Skip to content\"",
+   "where": "div.app-shell",
+   "x": 8,
+   "y": 8,
+   "w": 130,
+   "h": 45,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.skip-link \"Skip to content\"@8,8",
+   "crop": "focus/brand-conversation__brightsmile-strategy-done-free__1440__001.png"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__brandIcon[Embel home]",
+   "where": "div.workspace-main > header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule",
+   "x": 565,
+   "y": 22,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__brandIcon[Embel home]@565,22"
+  },
+  {
+   "el": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary[Project: Untitled brand. Switch project] \"Untitled brand\"",
+   "where": "header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule > details.journey-module__MmLfbq__tools",
+   "x": 615,
+   "y": 24,
+   "w": 139,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary[Project: Untitled brand. Switch project] \"Untitled brand\"@615,24"
+  },
+  {
+   "el": "a.e-step \"Strategy , complete\"",
+   "where": "nav.journey-module__MmLfbq__stepsNav > ol.e-steps > li",
+   "x": 775,
+   "y": 22,
+   "w": 104,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-step \"Strategy , complete\"@775,22"
+  },
+  {
+   "el": "button.e-avatar[Account menu] \"A\"",
+   "where": "div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > span.e-anchor",
+   "x": 1261,
+   "y": 28,
+   "w": 32,
+   "h": 32,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-avatar[Account menu] \"A\"@1261,28"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Hide chat]",
+   "where": "section.e-workspace__chat > div.e-workspace__head > span.e-tooltip-host",
+   "x": 371,
+   "y": 25,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Hide chat]@371,25"
+  },
+  {
+   "el": "div.e-workspace__log[Conversation] \"A pediatric dental clinic in Halifax for\"",
+   "where": "div.guided-interview > div.e-workspace > section.e-workspace__chat",
+   "x": 17,
+   "y": 70,
+   "w": 398,
+   "h": 666,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "div.e-workspace__log[Conversation] \"A pediatric dental clinic in Halifax for\"@17,70"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Edit brief]",
+   "where": "div.e-turn__bubble > div.guided-brief-editor > span.e-tooltip-host",
+   "x": 346,
+   "y": 99,
+   "w": 40,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Edit brief]@346,99"
+  },
+  {
+   "el": "summary \"Strategy Parents of anxious children The\"",
+   "where": "div.e-workspace__thread > section.e-stack > details.e-disclosure",
+   "x": 50,
+   "y": 288,
+   "w": 332,
+   "h": 68,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary \"Strategy Parents of anxious children The\"@50,288"
+  },
+  {
+   "el": "textarea#_r_2_[message]",
+   "where": "div.e-workspace__reply > section.conversation-reply > form.e-composer",
+   "x": 46,
+   "y": 762,
+   "w": 344,
+   "h": 48,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "textarea#_r_2_[message]@46,762"
+  },
+  {
+   "el": "div.e-workspace__resize[Resize chat]",
+   "where": "div.project-workspace-content > div.guided-interview > div.e-workspace",
+   "x": 416,
+   "y": 16,
+   "w": 32,
+   "h": 868,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "div.e-workspace__resize[Resize chat]@416,16"
+  },
+  {
+   "el": "input[_r_4_-choices]",
+   "where": "fieldset.e-stack > div.e-grid-choices > label.e-choice",
+   "x": 449,
+   "y": 181,
+   "w": 1,
+   "h": 1,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": true,
+   "covered": 2,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A pediatric dental clinic\" (fixed)",
+   "key": "input[_r_4_-choices]@449,181"
+  }
+ ],
+ "walkTruncated": false,
+ "hover": [
+  {
+   "kind": "a.skip-link",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#fefefe",
+    "ratio": 17.48,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.e-step",
+   "rest": {
+    "fg": "#696965",
+    "bg": "#fefefe",
+    "ratio": 5.48,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#696965",
+    "bg": "#f1f0ee",
+    "ratio": 4.84,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "button.e-avatar",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#e4e3df",
+    "ratio": 13.69,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "main.",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "div.e-workspace__log",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "section.e-stack.e-stack--sm.conversation-section",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "summary.",
+   "rest": {
+    "fg": "#3a3a37",
+    "bg": "#ffffff",
+    "ratio": 11.41,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#3a3a37",
+    "bg": "#ffffff",
+    "ratio": 11.41,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": false
+  },
+  {
+   "kind": "article.e-turn.e-turn--settled",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "div.e-workspace__main.conversation-work.e-focus-inset",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  }
+ ],
+ "reflow": {
+  "320": {
+   "viewport": "320x640",
+   "overflowX": 0,
+   "bodyScrollWidth": 320,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    },
+    {
+     "layer": "div.e-workspace__reply",
+     "top": 502,
+     "height": 122,
+     "width": 288,
+     "shareOfViewport": 19
+    }
+   ],
+   "minFontSize": 12,
+   "screenshot": "reflow/brand-conversation__brightsmile-strategy-done-free__320.png"
+  },
+  "zoom200": {
+   "viewport": "720x450",
+   "overflowX": 0,
+   "bodyScrollWidth": 720,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    }
+   ],
+   "minFontSize": 12,
+   "screenshot": "reflow/brand-conversation__brightsmile-strategy-done-free__zoom200.png"
+  }
+ }
+}

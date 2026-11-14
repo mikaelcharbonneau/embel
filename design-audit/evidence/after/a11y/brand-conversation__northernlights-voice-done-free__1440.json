@@ -1,0 +1,3552 @@
+{
+ "slug": "brand-conversation__northernlights-voice-done-free",
+ "account": "audit-free",
+ "route": "/brands/account/1eeb008d-5fca-4f35-a53f-fc1f6d0ea0cb?view=strategy",
+ "width": 1440,
+ "doc": {
+  "url": "/brands/account/1eeb008d-5fca-4f35-a53f-fc1f6d0ea0cb?view=strategy",
+  "title": "Northern Lights Community Physiotherapy and Sports Rehabilitation Collective · Identity · Embel",
+  "lang": "en",
+  "viewportMeta": "width=device-width, initial-scale=1",
+  "h1": [],
+  "headings": [
+   "H2 Chat",
+   "H2 What do you like?"
+  ],
+  "landmarks": {
+   "main": 1,
+   "nav": 2,
+   "header": 10,
+   "footer": 1,
+   "aside": 0,
+   "form": 1,
+   "[role=\"search\"]": 0,
+   "section[aria-label], section[aria-labelledby]": 5
+  },
+  "navLabels": [
+   "Brand journey",
+   "Project navigation"
+  ],
+  "skipLink": [
+   {
+    "text": "Skip to content",
+    "href": "#main-content",
+    "targetExists": true
+   }
+  ],
+  "liveRegions": 4,
+  "dialogsOpen": [],
+  "overflowX": 0,
+  "bodyText": "Skip to content Northern Lights Community Physiotherapy and Sports Rehabilitation Collective Strategy , complete Voice , complete Identity 4 Assets Saved A Northern Lights Community Physiotherapy and Sports Rehabilitation Collective Chat Hide chat A non-profit physiotherapy collective in Whitehorse,",
+  "focusableCount": 81
+ },
+ "contrast": [
+  {
+   "fg": "#85847f",
+   "bg": "#fefefe",
+   "size": 12,
+   "weight": 400,
+   "ratio": 3.72,
+   "required": 4.5,
+   "disabled": true,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span.e-step__mark «4» in ol.e-steps > li > span.e-step"
+   ],
+   "pass": false
+  },
+  {
+   "fg": "#85847f",
+   "bg": "#fefefe",
+   "size": 14,
+   "weight": 500,
+   "ratio": 3.72,
+   "required": 4.5,
+   "disabled": true,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span «Assets» in ol.e-steps > li > span.e-step"
+   ],
+   "pass": false
+  },
+  {
+   "fg": "#757575",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 4.6,
+   "required": 4.5,
+   "placeholder": true,
+   "disabled": false,
+   "count": 1,
+   "samples": [
+    "input[Search brands] placeholder «Search brands, colors or styles…»"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#f7f7f5",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.13,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 7,
+   "samples": [
+    "button \"Liked · 0\" «Liked» in article.inspiration-browse > div.inspiration-toolbar > div.inspiration-views",
+    "span «·» in div.inspiration-toolbar > div.inspiration-views > button",
+    "span «0» in div.inspiration-toolbar > div.inspiration-views > button"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#fefefe",
+   "size": 14,
+   "weight": 500,
+   "ratio": 5.48,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "span «Strategy» in ol.e-steps > li > a.e-step",
+    "span «Voice» in ol.e-steps > li > a.e-step"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 8,
+   "samples": [
+    "span.e-answer__question «Strategy» in section.e-stack > details.e-disclosure > summary",
+    "span.e-answer__question «Voice» in section.e-stack > details.e-disclosure > summary",
+    "p.e-turn__meta «Embel · Inspiration · 1 of 3» in div.e-workspace__thread > article.e-turn > div.e-turn__main"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#696965",
+   "bg": "#ffffff",
+   "size": 16,
+   "weight": 400,
+   "ratio": 5.51,
+   "required": 4.5,
+   "placeholder": true,
+   "disabled": false,
+   "count": 1,
+   "samples": [
+    "textarea#_r_2_[message] placeholder «Describe a change, or press Send to cont»"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#3d6448",
+   "bg": "#fefefe",
+   "size": 12,
+   "weight": 400,
+   "ratio": 6.7,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 1,
+   "samples": [
+    "span.journey-module__MmLfbq__save \"Saved\" «Saved» in div.workspace-main > header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 14,
+   "weight": 500,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "button.e-avatar[Account menu] \"A\" «A» in div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > span.e-anchor"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f1f0ee",
+   "size": 14,
+   "weight": 400,
+   "ratio": 15.43,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p.e-turn__text «A non-profit physiotherapy collective in Whitehors» in div.e-workspace__thread > div.e-turn > div.e-turn__bubble"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 17,
+   "weight": 500,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "h2.e-section__title.inspiration-question \"What do you like?\" «What do you like?» in div.e-workspace__main > div.inspiration-workspace > article.inspiration-browse"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#f7f7f5",
+   "size": 13,
+   "weight": 400,
+   "ratio": 16.39,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "button \"Browse\" «Browse» in article.inspiration-browse > div.inspiration-toolbar > div.inspiration-views"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#fefefe",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.48,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": true,
+   "count": 2,
+   "samples": [
+    "span.journey-module__MmLfbq__projectTitle «Northern Lights Community Physiotherapy and Sports» in div.journey-module__MmLfbq__capsule > details.journey-module__MmLfbq__tools > summary.journey-module__MmLfbq__projectName",
+    "span «Identity» in ol.e-steps > li > span.e-step"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "a.skip-link \"Skip to content\" «Skip to content» in div.app-shell"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 10,
+   "samples": [
+    "h2.e-workspace__title \"Chat\" «Chat» in div.e-workspace > section.e-workspace__chat > div.e-workspace__head",
+    "span.e-chip.e-chip--static «Inspiration: 0 liked» in form.e-composer > ul.e-cluster > li",
+    "strong «Archi-Tex» in article.inspiration-brand > header.inspiration-brand-header > button.inspiration-brand-title"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 500,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 4,
+   "samples": [
+    "span.e-badge «Northern athletes» in section.e-stack > details.e-disclosure > summary",
+    "span.e-badge «Care that belongs to the community» in section.e-stack > details.e-disclosure > summary",
+    "span.e-badge «Warm and grounded» in section.e-stack > details.e-disclosure > summary"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 14,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "p.e-turn__text «Your voice is set. Now let’s shape how Northern Li» in div.e-workspace__thread > article.e-turn > div.e-turn__main"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#ffffff",
+   "bg": "#191919",
+   "size": 13,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 1,
+   "samples": [
+    "button \"Brands\" «Brands» in article.inspiration-browse > div.inspiration-toolbar > div.inspiration-categories"
+   ],
+   "pass": true
+  },
+  {
+   "fg": "#191919",
+   "bg": "#ffffff",
+   "size": 13,
+   "weight": 400,
+   "ratio": 17.58,
+   "required": 4.5,
+   "disabled": false,
+   "bgImage": false,
+   "count": 3,
+   "samples": [
+    "button.inspiration-more \"Show more brands\" «Show more» in div.inspiration-workspace > article.inspiration-browse > div.inspiration-feed",
+    "button.inspiration-more \"Show more brands\" «brands» in div.inspiration-workspace > article.inspiration-browse > div.inspiration-feed",
+    "button.inspiration-footer-link \"Add your own references\" «Add your own references» in article.inspiration-browse > div.inspiration-feed > footer.inspiration-footer"
+   ],
+   "pass": true
+  }
+ ],
+ "edges": [
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#ffffff",
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": 1,
+   "best": 1,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Hide chat]"
+   ]
+  },
+  {
+   "kind": "field",
+   "fill": "#ffffff",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": null,
+   "best": 1,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "textarea#_r_2_[message]"
+   ]
+  },
+  {
+   "kind": "field",
+   "fill": "#ffffff",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 1,
+   "borderRatio": null,
+   "best": 1,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "input[Search brands]"
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#f1f0ee",
+   "border": null,
+   "outside": "#fefefe",
+   "fillRatio": 1.13,
+   "borderRatio": null,
+   "best": 1.13,
+   "pass": false,
+   "count": 1,
+   "samples": [
+    "button.e-avatar[Account menu] \"A\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#ffffff",
+   "border": "#e4e3df",
+   "outside": "#f7f7f5",
+   "fillRatio": 1.07,
+   "borderRatio": 1.19,
+   "best": 1.19,
+   "pass": false,
+   "count": 2,
+   "samples": [
+    "button.inspiration-more \"Show more brands\"",
+    "button.inspiration-footer-link \"Add your own references\""
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#191919",
+   "border": "#ffffff",
+   "outside": "#ffffff",
+   "fillRatio": 17.58,
+   "borderRatio": 1,
+   "best": 17.58,
+   "pass": true,
+   "count": 1,
+   "samples": [
+    "button.e-icon-button.e-icon-button--primary[Continue to Logo]"
+   ]
+  },
+  {
+   "kind": "button",
+   "fill": "#191919",
+   "border": null,
+   "outside": "#ffffff",
+   "fillRatio": 17.58,
+   "borderRatio": null,
+   "best": 17.58,
+   "pass": true,
+   "count": 1,
+   "samples": [
+    "button \"Brands\""
+   ]
+  }
+ ],
+ "targets": {
+  "total": 81,
+  "under44": 32,
+  "under24": [
+   {
+    "target": "input[Search brands]",
+    "where": "article.inspiration-browse > div.inspiration-toolbar > label.inspiration-search",
+    "width": 372,
+    "height": 19.5,
+    "inline": false,
+    "crowdedBy": "button \"Brands\"",
+    "fails258": true
+   },
+   {
+    "target": "button.inspiration-brand-title \"Archi-Tex Open brand\"",
+    "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+    "width": 364,
+    "height": 23,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "button.inspiration-brand-title \"Asteor Open brand\"",
+    "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+    "width": 400,
+    "height": 23,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "button.inspiration-brand-title \"Astrix Builders Open brand\"",
+    "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+    "width": 369,
+    "height": 23,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "button.inspiration-brand-title \"Auraic Open brand\"",
+    "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+    "width": 395,
+    "height": 23,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "button.inspiration-brand-title \"Aurox Open brand\"",
+    "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+    "width": 421,
+    "height": 23,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "button.inspiration-brand-title \"AutoNex Open brand\"",
+    "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+    "width": 343,
+    "height": 23,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "button.inspiration-brand-title \"Avelo Open brand\"",
+    "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+    "width": 297,
+    "height": 23,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   },
+   {
+    "target": "button.inspiration-brand-title \"Avoova Open brand\"",
+    "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+    "width": 467,
+    "height": 23,
+    "inline": false,
+    "crowdedBy": null,
+    "fails258": false
+   }
+  ]
+ },
+ "fields": [
+  {
+   "field": "textarea#_r_2_[message]",
+   "type": "textarea",
+   "label": "Message Embel",
+   "autocomplete": "off",
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 16
+  },
+  {
+   "field": "input[Search brands]",
+   "type": "search",
+   "label": "Search brands",
+   "autocomplete": null,
+   "inputmode": null,
+   "required": false,
+   "ariaInvalid": null,
+   "describedBy": null,
+   "disabled": false,
+   "fontSize": 13
+  }
+ ],
+ "clipped": [
+  "span.journey-module__MmLfbq__projectTitle (ellipsis, clamp none) «Northern Lights Community Physiotherapy and Sports»"
+ ],
+ "axe": {
+  "violations": [],
+  "incomplete": [
+   {
+    "id": "aria-valid-attr-value",
+    "count": 1,
+    "help": "ARIA attributes must conform to valid values"
+   },
+   {
+    "id": "color-contrast",
+    "count": 6,
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+   }
+  ]
+ },
+ "walk": [
+  {
+   "el": "a.skip-link \"Skip to content\"",
+   "where": "div.app-shell",
+   "x": 8,
+   "y": 8,
+   "w": 130,
+   "h": 45,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.skip-link \"Skip to content\"@8,8",
+   "crop": "focus/brand-conversation__northernlights-voice-done-free__1440__001.png"
+  },
+  {
+   "el": "a.journey-module__MmLfbq__brandIcon[Embel home]",
+   "where": "div.workspace-main > header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule",
+   "x": 501,
+   "y": 22,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.journey-module__MmLfbq__brandIcon[Embel home]@501,22"
+  },
+  {
+   "el": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary[Project: Northern Lights Community Physi] \"Northern Lights Community Physiotherapy \"",
+   "where": "header.journey-module__MmLfbq__navWrap > div.journey-module__MmLfbq__capsule > details.journey-module__MmLfbq__tools",
+   "x": 551,
+   "y": 24,
+   "w": 266,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary[Project: Northern Lights Community Physi] \"Northern Lights Community Physiotherapy \"@551,24"
+  },
+  {
+   "el": "a.e-step \"Strategy , complete\"",
+   "where": "nav.journey-module__MmLfbq__stepsNav > ol.e-steps > li",
+   "x": 838,
+   "y": 22,
+   "w": 104,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-step \"Strategy , complete\"@838,22"
+  },
+  {
+   "el": "a.e-step \"Voice , complete\"",
+   "where": "nav.journey-module__MmLfbq__stepsNav > ol.e-steps > li",
+   "x": 947,
+   "y": 22,
+   "w": 84,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "a.e-step \"Voice , complete\"@947,22"
+  },
+  {
+   "el": "button.e-avatar[Account menu] \"A\"",
+   "where": "div.journey-module__MmLfbq__capsule > div.journey-module__MmLfbq__end > span.e-anchor",
+   "x": 1325,
+   "y": 28,
+   "w": 32,
+   "h": 32,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.48,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-avatar[Account menu] \"A\"@1325,28"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Hide chat]",
+   "where": "section.e-workspace__chat > div.e-workspace__head > span.e-tooltip-host",
+   "x": 371,
+   "y": 25,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Hide chat]@371,25"
+  },
+  {
+   "el": "div.e-workspace__log[Conversation] \"A non-profit physiotherapy collective in\"",
+   "where": "div.guided-interview > div.e-workspace > section.e-workspace__chat",
+   "x": 17,
+   "y": 70,
+   "w": 398,
+   "h": 622,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "div.e-workspace__log[Conversation] \"A non-profit physiotherapy collective in\"@17,70"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Edit brief]",
+   "where": "div.e-turn__bubble > div.guided-brief-editor > span.e-tooltip-host",
+   "x": 346,
+   "y": 106,
+   "w": 40,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--quiet.e-icon-button--sm[Edit brief]@346,106"
+  },
+  {
+   "el": "summary \"Strategy Northern athletes Care that bel\"",
+   "where": "div.e-workspace__thread > section.e-stack > details.e-disclosure",
+   "x": 50,
+   "y": 442,
+   "w": 332,
+   "h": 68,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary \"Strategy Northern athletes Care that bel\"@50,442"
+  },
+  {
+   "el": "summary \"Voice Warm and grounded Northern Lights \"",
+   "where": "div.e-workspace__thread > section.e-stack > details.e-disclosure",
+   "x": 50,
+   "y": 532,
+   "w": 332,
+   "h": 86,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "summary \"Voice Warm and grounded Northern Lights \"@50,532"
+  },
+  {
+   "el": "textarea#_r_2_[message]",
+   "where": "div.e-workspace__reply > section.conversation-reply > form.e-composer",
+   "x": 46,
+   "y": 762,
+   "w": 344,
+   "h": 48,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "textarea#_r_2_[message]@46,762"
+  },
+  {
+   "el": "button.e-icon-button.e-icon-button--primary[Continue to Logo]",
+   "where": "form.e-composer > div.e-composer__actions > span.e-tooltip-host",
+   "x": 346,
+   "y": 818,
+   "w": 44,
+   "h": 44,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.e-icon-button.e-icon-button--primary[Continue to Logo]@346,818"
+  },
+  {
+   "el": "div.e-workspace__resize[Resize chat]",
+   "where": "div.project-workspace-content > div.guided-interview > div.e-workspace",
+   "x": 416,
+   "y": 16,
+   "w": 32,
+   "h": 868,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 2px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "div.e-workspace__resize[Resize chat]@416,16"
+  },
+  {
+   "el": "button \"Browse\"",
+   "where": "article.inspiration-browse > div.inspiration-toolbar > div.inspiration-views",
+   "x": 472,
+   "y": 194,
+   "w": 44,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Browse\"@472,194"
+  },
+  {
+   "el": "button \"Liked · 0\"",
+   "where": "article.inspiration-browse > div.inspiration-toolbar > div.inspiration-views",
+   "x": 536,
+   "y": 194,
+   "w": 55,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Liked · 0\"@536,194"
+  },
+  {
+   "el": "input[Search brands]",
+   "where": "article.inspiration-browse > div.inspiration-toolbar > label.inspiration-search",
+   "x": 754,
+   "y": 204,
+   "w": 372,
+   "h": 20,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 3,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "input[Search brands]@754,204",
+   "crop": "focus/brand-conversation__northernlights-voice-done-free__1440__017.png"
+  },
+  {
+   "el": "button \"Brands\"",
+   "where": "article.inspiration-browse > div.inspiration-toolbar > div.inspiration-categories",
+   "x": 914,
+   "y": 197,
+   "w": 74,
+   "h": 34,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Brands\"@914,197"
+  },
+  {
+   "el": "button \"Logos\"",
+   "where": "article.inspiration-browse > div.inspiration-toolbar > div.inspiration-categories",
+   "x": 990,
+   "y": 197,
+   "w": 68,
+   "h": 34,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Logos\"@990,197"
+  },
+  {
+   "el": "button \"Colors\"",
+   "where": "article.inspiration-browse > div.inspiration-toolbar > div.inspiration-categories",
+   "x": 1061,
+   "y": 197,
+   "w": 70,
+   "h": 34,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Colors\"@1061,197"
+  },
+  {
+   "el": "button \"Typefaces\"",
+   "where": "article.inspiration-browse > div.inspiration-toolbar > div.inspiration-categories",
+   "x": 1133,
+   "y": 197,
+   "w": 92,
+   "h": 34,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Typefaces\"@1133,197"
+  },
+  {
+   "el": "button \"Socials\"",
+   "where": "article.inspiration-browse > div.inspiration-toolbar > div.inspiration-categories",
+   "x": 1227,
+   "y": 197,
+   "w": 75,
+   "h": 34,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Socials\"@1227,197"
+  },
+  {
+   "el": "button \"Visuals\"",
+   "where": "article.inspiration-browse > div.inspiration-toolbar > div.inspiration-categories",
+   "x": 1304,
+   "y": 197,
+   "w": 75,
+   "h": 34,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button \"Visuals\"@1304,197"
+  },
+  {
+   "el": "button.inspiration-brand-title \"Archi-Tex Open brand\"",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 487,
+   "y": 272,
+   "w": 364,
+   "h": 23,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-title \"Archi-Tex Open brand\"@487,272"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-brand-like[Like the whole Archi-Tex brand]",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 859,
+   "y": 265,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-heart.inspiration-brand-like[Like the whole Archi-Tex brand]@859,265"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Archi-Tex: logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 481,
+   "y": 309,
+   "w": 204,
+   "h": 115,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Archi-Tex: logo]@481,309"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Archi-Tex logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 651,
+   "y": 313,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Archi-Tex logo]@651,313"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Archi-Tex: colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 691,
+   "y": 309,
+   "w": 204,
+   "h": 115,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Archi-Tex: colors]@691,309"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Archi-Tex colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 861,
+   "y": 313,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Archi-Tex colors]@861,313"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Archi-Tex: typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 481,
+   "y": 430,
+   "w": 414,
+   "h": 208,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.43,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Archi-Tex: typefaces]@481,430"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Archi-Tex typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 861,
+   "y": 434,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.43,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Archi-Tex typefaces]@861,434"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Archi-Tex: socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 481,
+   "y": 643,
+   "w": 170,
+   "h": 158,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Archi-Tex: socials]@481,643"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Archi-Tex socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 617,
+   "y": 647,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Archi-Tex socials]@617,647"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Archi-Tex: visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 657,
+   "y": 643,
+   "w": 238,
+   "h": 158,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Archi-Tex: visuals]@657,643"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Archi-Tex visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 861,
+   "y": 647,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Archi-Tex visuals]@861,647"
+  },
+  {
+   "el": "button.inspiration-brand-title \"Asteor Open brand\"",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 931,
+   "y": 272,
+   "w": 400,
+   "h": 23,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-title \"Asteor Open brand\"@931,272"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-brand-like[Like the whole Asteor brand]",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 1339,
+   "y": 265,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-heart.inspiration-brand-like[Like the whole Asteor brand]@1339,265"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Asteor: logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 925,
+   "y": 309,
+   "w": 450,
+   "h": 187,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 1.05,
+   "behind": "#1e1e1e",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Asteor: logo]@925,309"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Asteor logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1341,
+   "y": 313,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 1.05,
+   "behind": "#1e1e1e",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Asteor logo]@1341,313"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Asteor: colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 925,
+   "y": 502,
+   "w": 230,
+   "h": 116,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Asteor: colors]@925,502"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Asteor colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1121,
+   "y": 506,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Asteor colors]@1121,506"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Asteor: typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1161,
+   "y": 502,
+   "w": 214,
+   "h": 116,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Asteor: typefaces]@1161,502"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Asteor typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1341,
+   "y": 506,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Asteor typefaces]@1341,506"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Asteor: socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 925,
+   "y": 624,
+   "w": 219,
+   "h": 178,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.43,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Asteor: socials]@925,624"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Asteor socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1110,
+   "y": 628,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.43,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Asteor socials]@1110,628"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Asteor: visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1150,
+   "y": 624,
+   "w": 225,
+   "h": 178,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Asteor: visuals]@1150,624"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Asteor visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1341,
+   "y": 628,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Asteor visuals]@1341,628"
+  },
+  {
+   "el": "button.inspiration-brand-title \"Astrix Builders Open brand\"",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 487,
+   "y": 838,
+   "w": 369,
+   "h": 23,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-title \"Astrix Builders Open brand\"@487,838"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-brand-like[Like the whole Astrix Builders brand]",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 864,
+   "y": 831,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-heart.inspiration-brand-like[Like the whole Astrix Builders brand]@864,831"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Astrix Builders: logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 481,
+   "y": 750,
+   "w": 248,
+   "h": 150,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Astrix Builders: logo]@481,750"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Astrix Builders logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 695,
+   "y": 754,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Astrix Builders logo]@695,754"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Astrix Builders: colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 735,
+   "y": 750,
+   "w": 165,
+   "h": 150,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Astrix Builders: colors]@735,750"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Astrix Builders colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 866,
+   "y": 754,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Astrix Builders colors]@866,754"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Astrix Builders: typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 481,
+   "y": 340,
+   "w": 419,
+   "h": 236,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Astrix Builders: typefaces]@481,340"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Astrix Builders typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 866,
+   "y": 344,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Astrix Builders typefaces]@866,344"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Astrix Builders: socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 481,
+   "y": 582,
+   "w": 181,
+   "h": 148,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Astrix Builders: socials]@481,582"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Astrix Builders socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 628,
+   "y": 586,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Astrix Builders socials]@628,586"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Astrix Builders: visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 668,
+   "y": 582,
+   "w": 232,
+   "h": 148,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Astrix Builders: visuals]@668,582"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Astrix Builders visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 866,
+   "y": 586,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Astrix Builders visuals]@866,586"
+  },
+  {
+   "el": "button.inspiration-brand-title \"Auraic Open brand\"",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 936,
+   "y": 147,
+   "w": 395,
+   "h": 23,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-title \"Auraic Open brand\"@936,147"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-brand-like[Like the whole Auraic brand]",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 1339,
+   "y": 140,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-heart.inspiration-brand-like[Like the whole Auraic brand]@1339,140"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Auraic: logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 930,
+   "y": 184,
+   "w": 233,
+   "h": 146,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Auraic: logo]@930,184"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Auraic logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1129,
+   "y": 188,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Auraic logo]@1129,188"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Auraic: colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1169,
+   "y": 184,
+   "w": 206,
+   "h": 146,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Auraic: colors]@1169,184"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Auraic colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1341,
+   "y": 188,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Auraic colors]@1341,188"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Auraic: typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 930,
+   "y": 336,
+   "w": 200,
+   "h": 138,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Auraic: typefaces]@930,336"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Auraic typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1096,
+   "y": 340,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Auraic typefaces]@1096,340"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Auraic: socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1136,
+   "y": 336,
+   "w": 239,
+   "h": 138,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.43,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Auraic: socials]@1136,336"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Auraic socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1341,
+   "y": 340,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.43,
+   "behind": "#fefefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Auraic socials]@1341,340"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Auraic: visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 930,
+   "y": 479,
+   "w": 445,
+   "h": 250,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Auraic: visuals]@930,479"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Auraic visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1341,
+   "y": 483,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Auraic visuals]@1341,483"
+  },
+  {
+   "el": "button.inspiration-brand-title \"Aurox Open brand\"",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 487,
+   "y": 767,
+   "w": 421,
+   "h": 23,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-title \"Aurox Open brand\"@487,767"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-brand-like[Like the whole Aurox brand]",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 916,
+   "y": 760,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-heart.inspiration-brand-like[Like the whole Aurox brand]@916,760"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Aurox: logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 481,
+   "y": 720,
+   "w": 471,
+   "h": 180,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 1.02,
+   "behind": "#14173d",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Aurox: logo]@481,720"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Aurox logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 918,
+   "y": 724,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 1.02,
+   "behind": "#14173d",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Aurox logo]@918,724"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Aurox: colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 481,
+   "y": 395,
+   "w": 239,
+   "h": 126,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Aurox: colors]@481,395"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Aurox colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 686,
+   "y": 399,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Aurox colors]@686,399"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Aurox: typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 726,
+   "y": 395,
+   "w": 226,
+   "h": 126,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Aurox: typefaces]@726,395"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Aurox typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 918,
+   "y": 399,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Aurox typefaces]@918,399"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Aurox: socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 481,
+   "y": 527,
+   "w": 217,
+   "h": 174,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.46,
+   "behind": "#fffefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Aurox: socials]@481,527"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Aurox socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 664,
+   "y": 531,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.46,
+   "behind": "#fffefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Aurox socials]@664,531"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Aurox: visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 704,
+   "y": 527,
+   "w": 248,
+   "h": 174,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Aurox: visuals]@704,527"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Aurox visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 918,
+   "y": 531,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Aurox visuals]@918,531"
+  },
+  {
+   "el": "button.inspiration-brand-title \"AutoNex Open brand\"",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 988,
+   "y": 172,
+   "w": 343,
+   "h": 23,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-title \"AutoNex Open brand\"@988,172"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-brand-like[Like the whole AutoNex brand]",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 1339,
+   "y": 165,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-heart.inspiration-brand-like[Like the whole AutoNex brand]@1339,165"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open AutoNex: logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 982,
+   "y": 209,
+   "w": 393,
+   "h": 120,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.2,
+   "behind": "#ebeff2",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open AutoNex: logo]@982,209"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like AutoNex logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1341,
+   "y": 213,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.2,
+   "behind": "#ebeff2",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like AutoNex logo]@1341,213"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open AutoNex: colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 982,
+   "y": 335,
+   "w": 393,
+   "h": 82,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 1.06,
+   "behind": "#121212",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open AutoNex: colors]@982,335"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like AutoNex colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1341,
+   "y": 339,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 1.06,
+   "behind": "#121212",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like AutoNex colors]@1341,339"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open AutoNex: typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 982,
+   "y": 423,
+   "w": 393,
+   "h": 120,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 1.06,
+   "behind": "#121212",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open AutoNex: typefaces]@982,423"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like AutoNex typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1341,
+   "y": 427,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 1.06,
+   "behind": "#121212",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like AutoNex typefaces]@1341,427"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open AutoNex: socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 982,
+   "y": 549,
+   "w": 270,
+   "h": 152,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.19,
+   "behind": "#f4f6f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open AutoNex: socials]@982,549"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like AutoNex socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1218,
+   "y": 553,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.19,
+   "behind": "#f4f6f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like AutoNex socials]@1218,553"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open AutoNex: visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1258,
+   "y": 549,
+   "w": 117,
+   "h": 152,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open AutoNex: visuals]@1258,549"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like AutoNex visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1341,
+   "y": 553,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like AutoNex visuals]@1341,553"
+  },
+  {
+   "el": "button.inspiration-brand-title \"Avelo Open brand\"",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 487,
+   "y": 738,
+   "w": 297,
+   "h": 23,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-title \"Avelo Open brand\"@487,738"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-brand-like[Like the whole Avelo brand]",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 792,
+   "y": 731,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-heart.inspiration-brand-like[Like the whole Avelo brand]@792,731"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Avelo: logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 481,
+   "y": 775,
+   "w": 347,
+   "h": 117,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 1.11,
+   "behind": "#030436",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Avelo: logo]@481,775"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Avelo logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 794,
+   "y": 779,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 1.11,
+   "behind": "#030436",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Avelo logo]@794,779"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Avelo: colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 481,
+   "y": 726,
+   "w": 347,
+   "h": 175,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Avelo: colors]@481,726"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Avelo colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 794,
+   "y": 730,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Avelo colors]@794,730"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Avelo: typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 481,
+   "y": 443,
+   "w": 347,
+   "h": 185,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Avelo: typefaces]@481,443"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Avelo typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 794,
+   "y": 447,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Avelo typefaces]@794,447"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Avelo: socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 481,
+   "y": 634,
+   "w": 146,
+   "h": 130,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Avelo: socials]@481,634"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Avelo socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 593,
+   "y": 638,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Avelo socials]@593,638"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Avelo: visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 633,
+   "y": 634,
+   "w": 195,
+   "h": 130,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Avelo: visuals]@633,634"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Avelo visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 794,
+   "y": 638,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Avelo visuals]@794,638"
+  },
+  {
+   "el": "button.inspiration-brand-title \"Avoova Open brand\"",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 864,
+   "y": 103,
+   "w": 467,
+   "h": 23,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-title \"Avoova Open brand\"@864,103"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-brand-like[Like the whole Avoova brand]",
+   "where": "div.inspiration-brands > article.inspiration-brand > header.inspiration-brand-header",
+   "x": 1339,
+   "y": 96,
+   "w": 36,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.58,
+   "behind": "#ffffff",
+   "changed": [
+    "outline-style",
+    "outline-width"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-heart.inspiration-brand-like[Like the whole Avoova brand]@1339,96"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Avoova: logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 858,
+   "y": 140,
+   "w": 177,
+   "h": 183,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Avoova: logo]@858,140"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Avoova logo]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1001,
+   "y": 144,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Avoova logo]@1001,144"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Avoova: colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1041,
+   "y": 140,
+   "w": 334,
+   "h": 183,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Avoova: colors]@1041,140"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Avoova colors]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1341,
+   "y": 144,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Avoova colors]@1341,144"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Avoova: typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 858,
+   "y": 329,
+   "w": 517,
+   "h": 255,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Avoova: typefaces]@858,329"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Avoova typefaces]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1341,
+   "y": 333,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Avoova typefaces]@1341,333"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Avoova: socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 858,
+   "y": 590,
+   "w": 206,
+   "h": 173,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.46,
+   "behind": "#fffefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Avoova: socials]@858,590"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Avoova socials]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1030,
+   "y": 594,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 17.46,
+   "behind": "#fffefe",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Avoova socials]@1030,594"
+  },
+  {
+   "el": "button.inspiration-brand-open[Open Avoova: visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1070,
+   "y": 590,
+   "w": 305,
+   "h": 173,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-brand-open[Open Avoova: visuals]@1070,590"
+  },
+  {
+   "el": "button.inspiration-heart.inspiration-part-like[Like Avoova visuals]",
+   "where": "div.inspiration-brand-bento > div.inspiration-brand-row > div.inspiration-brand-tile",
+   "x": 1341,
+   "y": 594,
+   "w": 30,
+   "h": 30,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 15.43,
+   "behind": "#f1f0ee",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "outline-color"
+   ],
+   "invisible": false,
+   "covered": 4,
+   "outside": 0,
+   "coveredBy": "div.e-workspace.conversation-workspace[Brand conversation] \"Chat Hide chat A non-profit physiotherap\" (fixed)",
+   "key": "button.inspiration-heart.inspiration-part-like[Like Avoova visuals]@1341,594"
+  },
+  {
+   "el": "button.inspiration-more \"Show more brands\"",
+   "where": "div.inspiration-workspace > article.inspiration-browse > div.inspiration-feed",
+   "x": 851,
+   "y": 792,
+   "w": 153,
+   "h": 40,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-more \"Show more brands\"@851,792"
+  },
+  {
+   "el": "button.inspiration-footer-link \"Add your own references\"",
+   "where": "article.inspiration-browse > div.inspiration-feed > footer.inspiration-footer",
+   "x": 1202,
+   "y": 864,
+   "w": 182,
+   "h": 36,
+   "focusVisible": true,
+   "indicator": "outline 2px solid offset 3px",
+   "indicatorRatio": 16.39,
+   "behind": "#f7f7f5",
+   "changed": [
+    "outline-style",
+    "outline-width",
+    "box-shadow"
+   ],
+   "invisible": false,
+   "covered": 0,
+   "outside": 0,
+   "coveredBy": null,
+   "key": "button.inspiration-footer-link \"Add your own references\"@1202,864"
+  }
+ ],
+ "walkTruncated": false,
+ "hover": [
+  {
+   "kind": "a.skip-link",
+   "rest": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#ffffff",
+    "bg": "#191919",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "summary.journey-module__MmLfbq__projectName.journey-module__MmLfbq__projectSummary",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#fefefe",
+    "ratio": 17.48,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "a.e-step",
+   "rest": {
+    "fg": "#696965",
+    "bg": "#fefefe",
+    "ratio": 5.48,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#696965",
+    "bg": "#f1f0ee",
+    "ratio": 4.84,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "button.e-avatar",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f1f0ee",
+    "ratio": 15.43,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#e4e3df",
+    "ratio": 13.69,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "main.",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "div.e-workspace__log",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "section.e-stack.e-stack--sm.conversation-section",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "summary.",
+   "rest": {
+    "fg": "#353532",
+    "bg": "#ffffff",
+    "ratio": 12.3,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "hovered": {
+    "fg": "#3a3a37",
+    "bg": "#ffffff",
+    "ratio": 11.41,
+    "cursor": "pointer",
+    "size": 14,
+    "weight": 500
+   },
+   "changes": true
+  },
+  {
+   "kind": "div.e-workspace__main.conversation-work.e-focus-inset",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "auto",
+    "size": 14,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "button.",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "button.inspiration-brand-title",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "button.inspiration-more",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "changes": false
+  },
+  {
+   "kind": "button.inspiration-footer-link",
+   "rest": {
+    "fg": "#191919",
+    "bg": "#ffffff",
+    "ratio": 17.58,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "hovered": {
+    "fg": "#191919",
+    "bg": "#f7f7f5",
+    "ratio": 16.39,
+    "cursor": "pointer",
+    "size": 13,
+    "weight": 400
+   },
+   "changes": true
+  }
+ ],
+ "reflow": {
+  "320": {
+   "viewport": "320x640",
+   "overflowX": 0,
+   "bodyScrollWidth": 320,
+   "offenders": [
+    "label.inspiration-search left 32 right 599",
+    "div.inspiration-categories[Categories] \"Brands Logos Colors Typefaces Socials Vi\" left 172 right 599"
+   ],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    },
+    {
+     "layer": "div.e-workspace__reply",
+     "top": 458,
+     "height": 166,
+     "width": 288,
+     "shareOfViewport": 26
+    }
+   ],
+   "minFontSize": 12,
+   "screenshot": "reflow/brand-conversation__northernlights-voice-done-free__320.png"
+  },
+  "zoom200": {
+   "viewport": "720x450",
+   "overflowX": 0,
+   "bodyScrollWidth": 720,
+   "offenders": [],
+   "fixedLayers": [
+    {
+     "layer": "a.skip-link \"Skip to content\"",
+     "top": -59,
+     "height": 45,
+     "width": 130,
+     "shareOfViewport": 0
+    }
+   ],
+   "minFontSize": 12,
+   "screenshot": "reflow/brand-conversation__northernlights-voice-done-free__zoom200.png"
+  }
+ }
+}

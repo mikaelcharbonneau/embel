@@ -1,0 +1,32 @@
+/* Kestrel Analytics design tokens, from the chosen direction. */
+:root {
+  --color-primary: #0F2A3D;
+  --color-accent: #F2A541;
+  --color-background: #FBF9F4;
+  --color-text: #141414;
+  --font-heading: "Manrope", system-ui, sans-serif;
+  --font-body: "Geist", system-ui, sans-serif;
+  --font-weight-heading: 600;
+  --font-weight-body: 400;
+  --text-display: 48px;
+  --leading-display: 1.05;
+  --text-heading: 32px;
+  --leading-heading: 1.15;
+  --text-title: 20px;
+  --leading-title: 1.3;
+  --text-body: 16px;
+  --leading-body: 1.5;
+  --text-small: 13px;
+  --leading-small: 1.45;
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-48: 48px;
+  --radius-small: 6px;
+  --radius-medium: 12px;
+  --radius-large: 16px;
+  --radius-pill: 999px;
+}

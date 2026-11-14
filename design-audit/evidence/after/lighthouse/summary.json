@@ -1,0 +1,382 @@
+[
+  {
+    "slug": "brand-assets__kestrel-ready-pro",
+    "finalUrl": "/brands/account/04a066cf-4f04-46aa-b04c-4823d64a308d/logo/deliverables",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps",
+      "label-content-name-mismatch"
+    ]
+  },
+  {
+    "slug": "brand-conversation__kestrel-complete-pro",
+    "finalUrl": "/brands/account/04a066cf-4f04-46aa-b04c-4823d64a308d?view=strategy",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "brand-identity__kestrel-pro",
+    "finalUrl": "/brands/account/04a066cf-4f04-46aa-b04c-4823d64a308d?view=strategy#journey-identity",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "brand-recover__owner-none-pro",
+    "finalUrl": "/brands/00000000-0000-4000-8000-000000000000",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "home__recent-brands-pro",
+    "finalUrl": "/",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "library__kept-assets-pro",
+    "finalUrl": "/assets",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "plans__pro-current-pro",
+    "finalUrl": "/plans",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "project-workspace__missing-project-pro",
+    "finalUrl": "/brands/account/00000000-0000-4000-8000-000000000000",
+    "accessibility": 100,
+    "bestPractices": 96,
+    "fails": [
+      "errors-in-console",
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "projects__three-brands-pro",
+    "finalUrl": "/brands",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "settings__account-pro",
+    "finalUrl": "/settings",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "brand-assets__orchardlane-ready-free",
+    "finalUrl": "/brands/account/441a29a9-19b4-4c1e-bb00-1f145c134957/logo/deliverables",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps",
+      "label-content-name-mismatch"
+    ]
+  },
+  {
+    "slug": "brand-conversation__berenice-inspiration-chosen-free",
+    "finalUrl": "/brands/account/671e504e-d8f5-48a1-8644-8f6ced41a8eb?view=strategy",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "brand-conversation__brightsmile-strategy-done-free",
+    "finalUrl": "/brands/account/14e7b0e5-5afb-4f5b-96a2-af8b1bfda342?view=strategy",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "brand-conversation__mosswood-directions-generated-free",
+    "finalUrl": "/brands/account/e5acf1d1-b45d-4fda-8f35-17174baef7b5?view=strategy",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "brand-conversation__northernlights-voice-done-free",
+    "finalUrl": "/brands/account/1eeb008d-5fca-4f35-a53f-fc1f6d0ea0cb?view=strategy",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "brand-conversation__orchardlane-complete-free",
+    "finalUrl": "/brands/account/441a29a9-19b4-4c1e-bb00-1f145c134957?view=strategy",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "brand-conversation__quill-logos-generated-free",
+    "finalUrl": "/brands/account/d5284bf2-46b4-4d4e-8c4c-77fa7d54fd83?view=strategy",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "brand-conversation__spokesmith-research-done-free",
+    "finalUrl": "/brands/account/61275b92-e589-4f3c-b1f9-b661be6783bb?view=strategy",
+    "accessibility": 100,
+    "bestPractices": 96,
+    "fails": [
+      "errors-in-console",
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "brand-conversation__tidewater-logos-partly-failed-free",
+    "finalUrl": "/brands/account/e06d6b69-2d6c-436b-a5a2-9317c7bd528c?view=strategy",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "home__recent-brands-free",
+    "finalUrl": "/",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "library__kept-assets-free",
+    "finalUrl": "/assets",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "plans__free-0-credits-free",
+    "finalUrl": "/plans",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "projects__eight-brands-free",
+    "finalUrl": "/brands",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "settings__account-free",
+    "finalUrl": "/settings",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "forgot-password__default",
+    "finalUrl": "/forgot-password",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "home__signed-out",
+    "finalUrl": "/",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "library__signed-out",
+    "finalUrl": "/assets",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "not-found__default",
+    "finalUrl": "/this-page-does-not-exist",
+    "accessibility": 0,
+    "bestPractices": 0,
+    "fails": []
+  },
+  {
+    "slug": "plans__signed-out",
+    "finalUrl": "/plans",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "project-workspace__signed-out",
+    "finalUrl": "/brands/account/00000000-0000-4000-8000-000000000000",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "projects__signed-out",
+    "finalUrl": "/brands",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "recover-project__signed-out",
+    "finalUrl": "/brands/00000000-0000-4000-8000-000000000000",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "reset-password__no-recovery-session",
+    "finalUrl": "/reset-password",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "settings__signed-out",
+    "finalUrl": "/settings",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "sign-in__default",
+    "finalUrl": "/sign-in",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "sign-up__default",
+    "finalUrl": "/sign-up",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "home__empty-fresh",
+    "finalUrl": "/",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "library__empty-fresh",
+    "finalUrl": "/assets",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "plans__free-fresh",
+    "finalUrl": "/plans",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "projects-deleted__empty-fresh",
+    "finalUrl": "/brands?state=deleted",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "projects__empty-fresh",
+    "finalUrl": "/brands",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  },
+  {
+    "slug": "settings__account-fresh",
+    "finalUrl": "/settings",
+    "accessibility": 100,
+    "bestPractices": 100,
+    "fails": [
+      "valid-source-maps"
+    ]
+  }
+]
