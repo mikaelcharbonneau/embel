@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { watchVisibility } from "@/components/ui/watch-visibility";
 import { createAccountIdentityClient } from "@/components/identity/account-identity-client";
 import { createAccountLogoClient } from "@/components/identity/account-logo-client";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
@@ -53,7 +54,9 @@ export function useProjectCardPreview(
   artwork = true,
 ) {
   const { session, isCurrent, expire, viewCache } = useAccountSession();
-  const target = useRef<HTMLElement>(null);
+  // The element the card actually rendered. A callback ref held in state, so watching always follows the
+  // committed element (skeleton, full card or none), whichever render put it there.
+  const [element, target] = useState<HTMLElement | null>(null);
   const [visible, setVisible] = useState(false);
   const { userId, generation } = account;
   const identity = `${userId}:${generation}:${projectId}:${revision}`;
@@ -70,25 +73,10 @@ export function useProjectCardPreview(
   if (state && (!current || !enabled || state.identity !== identity)) setState(null);
 
   useEffect(() => {
-    const element = target.current;
-    if (!enabled || !element) return;
-    if (typeof IntersectionObserver === "undefined") {
-      // Keep the honest placeholder when visibility observation is unavailable;
-      // do not eagerly fetch fifty private projects as a fallback.
-      return;
-    }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "160px" },
-    );
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [current, enabled]);
+    // Without visibility observation the honest placeholder stays; do not eagerly fetch fifty private projects.
+    if (!enabled || !current || !element || visible) return;
+    return watchVisibility(element, () => setVisible(true), 160);
+  }, [current, element, enabled, visible]);
 
   useEffect(() => {
     if (!enabled || !visible || !current) return;
