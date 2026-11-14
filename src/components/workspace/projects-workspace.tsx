@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { compareProjectCursors } from "@/domain/project-pages";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/feedback";
@@ -14,6 +14,7 @@ import { ProjectCardActions } from "./project-card-actions";
 import type { LifecycleProject, ProjectDeletionAction } from "./project-deletion-client";
 import { ProjectDeletionStatus } from "./project-deletion-status";
 import { ProjectCard, ProjectCardSkeletons } from "./project-card";
+import { readViewFromAddress, writeViewToAddress } from "./address-view";
 import { SignedOutEmptyState } from "./signed-out-empty-state";
 import "@/styles/projects.css";
 
@@ -99,8 +100,14 @@ export function ProjectsWorkspace({ state = "active" }: { state?: "active" | "de
 
 function ProjectsLibrary({ account, state }: { account: VerifiedAccount; state: "active" | "deleted" }) {
   const { listing, error, pending, load, reload, remove, update, rename } = useAccountProjectListing(account, state);
-  const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<Sort>("created");
+  // Search and sort are kept in the address (D-097); "state=deleted" stays as it is.
+  const [query, setQuery] = useState(() => (readViewFromAddress().get("q") ?? "").slice(0, 120));
+  const [sort, setSort] = useState<Sort>(() =>
+    readViewFromAddress().get("sort") === "alphabetical" ? "alphabetical" : "created",
+  );
+  useEffect(() => {
+    writeViewToAddress({ q: query.trim() || null, sort: sort === "created" ? null : sort });
+  }, [query, sort]);
   const [notice, setNotice] = useState<{ project: LifecycleProject; action: ProjectDeletionAction } | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const deleted = state === "deleted";

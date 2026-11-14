@@ -9,17 +9,21 @@ import { isPublicAddress } from "./public-address";
 
 /** A competitor's own site icon, fetched by the server so the browser never
  * contacts competitor sites. Every hop is HTTPS to a public address that is
- * resolved, checked and pinned before connecting; only small raster images are
- * accepted, identified by their bytes rather than the server's content type. */
+ * resolved, checked and pinned before connecting; only small images are
+ * accepted, identified by their bytes rather than the server's content type.
+ * An SVG icon is drawn into a PNG here, so the browser never receives SVG.
+ * The search keeps going (the site's own declarations, the conventional paths,
+ * the www and bare host, then a public favicon service) until it finds one. */
 const COMPETITOR_ICON_LIMITS = Object.freeze({
   pageBytes: 524_288,
   manifestBytes: 65_536,
   iconBytes: 262_144,
   redirects: 3,
   candidates: 4,
-  attempts: 8,
+  attempts: 12,
   sharpPixels: 96,
-  deadlineMs: 8_000,
+  svgPixels: 128,
+  deadlineMs: 12_000,
 });
 
 export type CompetitorIcon = { bytes: Buffer; contentType: string };
@@ -243,14 +247,16 @@ export function createCompetitorIconFetcher(dependencies: CompetitorIconDependen
     try {
       const result = await get(
         url,
-        "image/png,image/x-icon,image/webp,image/jpeg,image/gif;q=0.9",
+        "image/png,image/x-icon,image/webp,image/jpeg,image/gif,image/svg+xml;q=0.9",
         COMPETITOR_ICON_LIMITS.iconBytes,
         signal,
       );
-      const contentType = result ? sniffIconType(result.response.bytes) : null;
-      return result && contentType
-        ? { bytes: result.response.bytes, contentType, pixels: iconPixelSize(result.response.bytes, contentType) }
-        : null;
+      if (!result) return null;
+      const bytes = result.response.bytes;
+      const contentType = sniffIconType(bytes);
+      if (contentType) return { bytes, contentType, pixels: iconPixelSize(bytes, contentType) };
+      const drawn = looksLikeSvg(bytes) ? await rasterizeSvgIcon(bytes) : null;
+      return drawn ? { bytes: drawn, contentType: "image/png", pixels: COMPETITOR_ICON_LIMITS.svgPixels } : null;
     } catch {
       return null;
     }
@@ -276,25 +282,37 @@ export function createCompetitorIconFetcher(dependencies: CompetitorIconDependen
     if (!checked) return null;
     const deadline = AbortSignal.any([signal, AbortSignal.timeout(COMPETITOR_ICON_LIMITS.deadlineMs)]);
     const home = new URL(`https://${checked}/`);
-    let page: { url: URL; response: PinnedResponse } | null = null;
-    try {
-      page = await get(home, "text/html", COMPETITOR_ICON_LIMITS.pageBytes, deadline);
-    } catch {
-      page = null;
-    }
-    const declared =
-      page && /^text\/html/iu.test(page.response.contentType)
-        ? pageIcons(page.response.bytes.toString("utf8"), page.url)
-        : { icons: [], manifest: null };
+    // Many sites answer on only one of example.com and www.example.com.
+    const alternate = competitorIconHost(checked.startsWith("www.") ? checked.slice(4) : `www.${checked}`);
+    const alternateHome = alternate ? new URL(`https://${alternate}/`) : null;
+    const homePage = async (url: URL) => {
+      try {
+        const result = await get(url, "text/html", COMPETITOR_ICON_LIMITS.pageBytes, deadline);
+        return result && /^text\/html/iu.test(result.response.contentType) ? result : null;
+      } catch {
+        return null;
+      }
+    };
+    const page = (await homePage(home)) ?? (alternateHome && !deadline.aborted ? await homePage(alternateHome) : null);
+    const declared = page
+      ? pageIcons(page.response.bytes.toString("utf8"), page.url)
+      : { icons: [], vectors: [], manifest: null };
     const fromManifest = declared.manifest && !deadline.aborted ? await manifest(declared.manifest, deadline) : [];
-    // Largest first: manifest icons, declared icons, then the conventional touch icon and favicon.
-    const origins = [...new Set([page?.url.origin, home.origin].filter((origin): origin is string => Boolean(origin)))];
+    // Largest first: manifest icons, declared raster icons, declared SVG icons,
+    // then the conventional paths on the site's own origin and its www/bare twin.
+    const origins = [
+      ...new Set(
+        [page?.url.origin, home.origin, alternateHome?.origin].filter((origin): origin is string => Boolean(origin)),
+      ),
+    ];
     const candidates: URL[] = [];
     for (const candidate of [
       ...fromManifest,
       ...declared.icons,
-      ...origins.map((origin) => new URL("/apple-touch-icon.png", origin)),
-      ...origins.map((origin) => new URL("/favicon.ico", origin)),
+      ...declared.vectors,
+      ...origins.flatMap((origin) =>
+        ["/apple-touch-icon.png", "/favicon.ico", "/favicon.svg"].map((path) => new URL(path, origin)),
+      ),
     ]) {
       if (!candidates.some((item) => item.href === candidate.href)) candidates.push(candidate);
     }
@@ -306,8 +324,47 @@ export function createCompetitorIconFetcher(dependencies: CompetitorIconDependen
       if (icon && (!best || icon.pixels > best.pixels)) best = icon;
       if (best && best.pixels >= COMPETITOR_ICON_LIMITS.sharpPixels) break;
     }
+    // Last resort when the site itself offers nothing usable: a public favicon
+    // service, asked only for the competitor's domain (nothing about the person).
+    if (!best && !deadline.aborted) best = await image(faviconServiceUrl(checked), deadline);
     return best && (await trimIconMargin({ bytes: best.bytes, contentType: best.contentType }));
   };
+}
+
+/** Google's public favicon service; it answers 404 when it knows no icon. */
+export function faviconServiceUrl(host: string): URL {
+  return new URL(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128`);
+}
+
+/** An SVG document, recognised by its opening tag after any XML prologue or comments. */
+export function looksLikeSvg(bytes: Buffer): boolean {
+  const head = bytes
+    .subarray(0, 2048)
+    .toString("utf8")
+    .replace(/^\uFEFF/u, "")
+    .replace(/<\?xml[^>]*>|<!--[\s\S]*?-->|<!doctype[^>]*>/giu, "")
+    .trimStart();
+  return /^<svg[\s>]/iu.test(head);
+}
+
+/** Draws an SVG icon into a square transparent PNG on the server, so scripts or
+ * links inside the SVG never reach a browser. An empty drawing counts as no icon. */
+export async function rasterizeSvgIcon(bytes: Buffer): Promise<Buffer | null> {
+  const size = COMPETITOR_ICON_LIMITS.svgPixels;
+  try {
+    const { width = 0, height = 0 } = await sharp(bytes, { limitInputPixels: 2048 * 2048 }).metadata();
+    const longest = Math.max(width, height, 1);
+    // Render at the density that gives the target size directly, never upscaling a small bitmap.
+    const density = Math.max(1, Math.min(2400, Math.round((72 * size) / longest)));
+    const drawn = await sharp(bytes, { density, limitInputPixels: 2048 * 2048 })
+      .resize(size, size, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .png()
+      .toBuffer();
+    const alpha = (await sharp(drawn).stats()).channels[3];
+    return alpha && alpha.max === 0 ? null : drawn;
+  } catch {
+    return null;
+  }
 }
 
 /** Corner pixels at least this light, or at most this opaque, are a margin the
@@ -365,9 +422,11 @@ export function iconLinks(html: string, base: URL): URL[] {
   return pageIcons(html, base).icons;
 }
 
-/** The page's declared icons, best first, and its web app manifest, if any. */
-export function pageIcons(html: string, base: URL): { icons: URL[]; manifest: URL | null } {
+/** The page's declared raster icons, best first, its declared SVG icons (drawn
+ * into PNG on the server), and its web app manifest, if any. */
+export function pageIcons(html: string, base: URL): { icons: URL[]; vectors: URL[]; manifest: URL | null } {
   const found: { url: URL; score: number }[] = [];
+  const vectors: URL[] = [];
   let manifest: URL | null = null;
   const visit = (node: HtmlNode, depth: number) => {
     if (depth > 64 || found.length > 32) return;
@@ -376,12 +435,11 @@ export function pageIcons(html: string, base: URL): { icons: URL[]; manifest: UR
       const href = attribute(node, "href");
       if (href && !manifest && rel.includes("manifest")) manifest = allowedUrl(href, base);
       const type = (attribute(node, "type") ?? "").toLowerCase();
-      if (
-        href &&
-        rel.some((value) => value === "icon" || value.startsWith("apple-touch-icon")) &&
-        !type.includes("svg") &&
-        !/\.svg(\?|$)/iu.test(href)
-      ) {
+      const isIcon = rel.some((value) => value === "icon" || value.startsWith("apple-touch-icon"));
+      if (href && isIcon && (type.includes("svg") || /\.svg(\?|$)/iu.test(href))) {
+        const url = allowedUrl(href, base);
+        if (url && vectors.length < COMPETITOR_ICON_LIMITS.candidates) vectors.push(url);
+      } else if (href && isIcon) {
         const url = allowedUrl(href, base);
         const size = declaredSize(attribute(node, "sizes"));
         if (url)
@@ -401,7 +459,7 @@ export function pageIcons(html: string, base: URL): { icons: URL[]; manifest: UR
     .map((item) => item.url)
     .filter((url, index, all) => all.findIndex((other) => other.href === url.href) === index)
     .slice(0, COMPETITOR_ICON_LIMITS.candidates);
-  return { icons, manifest };
+  return { icons, vectors, manifest };
 }
 
 /** A web app manifest's raster icons, largest first. Maskable icons carry extra

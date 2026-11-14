@@ -92,8 +92,11 @@ test("signup: direct form validates passwords and waits for email without invent
   await expect(page.getByRole("heading", { name: "Create your Embel account", exact: true })).toBeVisible();
   const form = await fillSignup(page, "different inert password");
   await expect(form.getByRole("alert")).toContainText("passwords don’t match");
-  await expect(form.getByLabel("Password", { exact: true })).toHaveValue("");
-  await expect(form.getByLabel("Confirm password", { exact: true })).toHaveValue("");
+  // Owner decision (D-072): a mismatch keeps both passwords; the confirmation is focused and selected.
+  await expect(form.getByLabel("Password", { exact: true })).toHaveValue(password);
+  await expect(form.getByLabel("Confirm password", { exact: true })).toHaveValue("different inert password");
+  await expect(form.getByLabel("Confirm password", { exact: true })).toBeFocused();
+  await expect(form.getByLabel("Confirm password", { exact: true })).toHaveAttribute("aria-invalid", "true");
   expect(state.signupCount).toBe(0);
   await expect(form.getByLabel("Password", { exact: true })).toHaveAttribute("autocomplete", "new-password");
   await page.screenshot({ path: info.outputPath("signup-form.png"), fullPage: true, scale: "css" });

@@ -512,7 +512,7 @@
   outline: 2px solid var(--color-text);
   outline-offset: 3px;
 }
-@media (max-width: 1100px) {
+@media (max-width: 1023px) {
   .inspiration-toolbar {
     grid-template-columns: auto minmax(150px, 1fr) auto;
     gap: var(--space-3);

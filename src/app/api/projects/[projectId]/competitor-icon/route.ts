@@ -7,6 +7,7 @@ import {
   type CompetitorIcon,
 } from "@/server/competitor-icons";
 import { getProject } from "@/server/data/projects";
+import { engineCompetitorResults } from "@/server/engine/strategy";
 import { getStrategyOverview } from "@/server/data/strategy-jobs";
 import { ApiError, errorResponse } from "@/server/http/errors";
 
@@ -17,9 +18,10 @@ const fetchIcon = createCompetitorIconFetcher();
 // Per owner, so one account's research never reveals another's. Bounded and
 // in memory only; the browser keeps its own private copy for a week.
 const cache = new Map<string, { icon: CompetitorIcon | null; expires: number }>();
+// A miss is retried after an hour, so a site that was briefly down is found later.
 const CACHE_ENTRIES = 500,
   HIT_MS = 7 * 86_400_000,
-  MISS_MS = 86_400_000;
+  MISS_MS = 3_600_000;
 
 /** Competitor websites saved in the project or proposed in its own research results. */
 function competitorHosts(values: unknown[]): Set<string> {
@@ -48,7 +50,10 @@ export async function GET(request: Request, context: RouteContext) {
     const host = competitorIconHost(new URL(request.url).searchParams.get("host"));
     if (!projectId.success || !host) throw new ApiError("not_found");
     const project = await getProject(auth, projectId.data);
+    // Saved competitors first, then the research shown in the chat: engine runs
+    // today, and the old job system for projects that started there.
     let allowed = competitorHosts([project.context.competitors]);
+    if (!allowed.has(host)) allowed = competitorHosts([await engineCompetitorResults(auth, projectId.data)]);
     if (!allowed.has(host)) {
       const overview = await getStrategyOverview(auth, projectId.data);
       allowed = competitorHosts([overview.jobs.map((job) => job.results.map((result) => result.output))]);
@@ -63,7 +68,13 @@ export async function GET(request: Request, context: RouteContext) {
       cache.set(key, entry);
       while (cache.size > CACHE_ENTRIES) cache.delete(cache.keys().next().value!);
     }
-    if (!entry.icon) throw new ApiError("not_found");
+    // No icon is an ordinary answer, not an error: 204 lets the page show the
+    // competitor's initial without the browser logging a failed request (D-091).
+    if (!entry.icon)
+      return new Response(null, {
+        status: 204,
+        headers: { "Cache-Control": "private, max-age=3600", Vary: "Cookie" },
+      });
     return new Response(new Uint8Array(entry.icon.bytes), {
       headers: {
         "Content-Type": entry.icon.contentType,

@@ -102,7 +102,7 @@ describe("password visibility", () => {
     expect(fetcher).toHaveBeenCalledOnce();
   });
 
-  it("reveals both new-password fields together and hides them when the fields clear", async () => {
+  it("reveals both new-password fields together and masks them again on submit", async () => {
     await render("sign-up");
     await act(async () => toggle().click());
     expect(toggle().getAttribute("aria-label")).toBe("Show passwords");
@@ -114,7 +114,8 @@ describe("password visibility", () => {
     await submit();
     expect(field("password").type).toBe("password");
     expect(field("confirmPassword").type).toBe("password");
-    expect(field("password").value).toBe("");
+    // Owner decision (D-072): a mismatch keeps what was typed; nothing is sent.
+    expect(field("password").value).toBe(password);
     expect(fetcher).not.toHaveBeenCalled();
   });
 

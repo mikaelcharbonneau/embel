@@ -551,6 +551,7 @@ Execution fixes on the same screens, listed in section 7: D-033, D-076, D-078.
 - Suggested direction: A credit ledger: date, brand, step in the journey's words ("Six logo concepts"), credits used, running balance, and monthly grants and refunds as their own rows. No tokens in the customer view. Built on the system Table (with a caption; stacks into cards at compact width).
 - Where in the code: `RecordedUsage` in `src/components/workspace/recorded-usage.tsx`.
 - Needs the owner: A credit ledger shows records the page does not load today (image requests, grants, refunds). That is a behaviour and data change. Claude Design can design it; implementation needs the owner's go-ahead.
+- Status: **Owner decision, November 14, 2026 (closed):** no credit ledger for now; leave the Usage tab as it is.
 - Evidence: `screens/settings__usage-pro__1440.png`, `screens/settings__usage-free__390.png`
 - Systemic? Yes: credits are also missing from the navigation and from Plans' explanation.
 
@@ -696,6 +697,7 @@ Execution fixes on the same screens, listed in section 7: D-029, D-063, D-090.
 - Why it matters: A different logo on the board breaks the step's promise at the moment of choice. The project's agreed behaviour is that directions use the exact chosen logo.
 - Suggested direction: Boards carry the exact chosen logo file and the chosen slogan, placed onto the board and not redrawn. If that cannot be guaranteed, the screen says plainly that a board is a mood reference.
 - Needs the owner: This is how the generation engine makes images, not interface design. Claude Design cannot fix it, and a look-only implementation must not change it. The owner decides how to do it (for example, placing the saved logo file onto the generated board); checking it needs a real generation, which needs approval.
+- Status: **Owner decision, November 14, 2026 (closed):** leave as is for now.
 - Evidence: `exports/rendered/kestrel__direction--selected-direction.png.png`, `exports/rendered/kestrel__logo--logo-original.png.png`, `screens/brand-conversation__kestrel-complete-showcase-pro__1440.png`
 - Systemic? Likely (seen on the one showcase brand reviewed at full size).
 
@@ -892,7 +894,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Serve small previews made on the server at the sizes each slot needs (listed in `04_image_needs.md`), and the full file only when it is opened or downloaded. Give gallery images long-lived cache headers and fingerprinted names. Let the browser keep private previews for the session. Combine or defer the CSS the first screen does not need. Load the first row eagerly and the rest lazily. Give each Library card its own alt text ("[Brand board / Logo concept / Direction board] for [brand name]").
 - Where in the code: Library cards in `AssetsWorkspace` (`src/components/assets/assets-workspace.tsx`); private preview loading used by `ConceptGrid`, `VisualDirectionsView` and `ProjectCard`; gallery files under `public/inspiration/brands/`.
 - Needs the owner: Previews made on the server change how images are served, which is a behaviour change outside "change the look, not what the app does". It needs the owner's go-ahead before implementation.
-- Status: **Needs the owner** (unchanged): previews made on the server change how images are served. Library cards already have their own alt text (Library rebuild, PR 263).
+- Status: **Owner decision, November 14, 2026 (closed):** leave image serving as it is for now. Library cards already have their own alt text (Library rebuild, PR 263).
 - Evidence: `assets/assets.md`, `assets/assets.json`, `screens/library__kept-assets-pro__1440.png`, `traces/brand-conversation__kestrel__mobile-slow4g-cpu4x__load.json.gz`
 - Systemic? Yes.
 
@@ -942,7 +944,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: One quiet line under the Create account button ("By creating an account you agree to the Terms and Privacy Policy"), and the same two links plus "Help" in the account menu and at the foot of Plans. Once help exists it must sit in the same place on every page (WCAG 3.2.6 Consistent Help).
 - Where in the code: Sign-up form in `src/app/sign-up/page.tsx`; account menu in `FloatingNav` (`src/components/journey/floating-nav.tsx`); `PlansWorkspace` in `src/components/billing/plans-workspace.tsx`.
 - Needs the owner: The Terms, Privacy and Help documents are not in this repository. The owner supplies them, or their addresses, before the links can be added.
-- Status: **Needs the owner** (unchanged): the Terms, Privacy and Help documents or their addresses.
+- Status: **Owner decision, November 14, 2026 (closed):** added just before launch, when the owner supplies the documents. Not an open question until then.
 - Evidence: `screens/sign-up__default__1440.png`, `screens/home__signed-out-sign-up-overlay__390.png`, `screens/plans__signed-out__1440.png`, `screens/home__account-menu-open-pro__1440.png`
 - Systemic? Yes: sign-up, Plans and the account menu.
 
@@ -1074,7 +1076,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: The one image on every page is the slowest to arrive, and bookmarks, Android home screens and older browsers get no sharp icon.
 - Suggested direction: Serve one clean copy of 2 KB or less, loaded eagerly, and delete the duplicates; keep the original file with its record in source control, since removing the record removes its proof of origin. Add the missing icon sizes (32, 192 and 512 px, and a 512 px version with the mark inside the central 80% for round masks, 15 KB each at most) and a manifest.
 - Where in the code: `AppMark` in `src/components/ui/app-mark.tsx`; `src/app/icon.svg`; `src/app/apple-icon.tsx`; `public/embel-mark.svg`; `public/fluid-mark.svg`.
-- Status: **Done in part** (commit 6cac4c65 on branch `ui/execution-fixes`): one clean 1 KB copy of the mark (`/embel-mark.svg`, the favicon and the `/fluid-mark.svg` alias), loaded eagerly; the original with its provenance record is kept at `design-assets/brand/embel-mark-original.svg`. **Open:** the 32, 192 and 512 px PNGs, the maskable icon and the manifest (generated routes to check in the running app). `docs/embel-branding.md` keeps `/fluid-mark.svg` "for existing links"; the owner can confirm it may go.
+- Status: **Done in part** (commit 6cac4c65 on branch `ui/execution-fixes`): one clean 1 KB copy of the mark (`/embel-mark.svg`, the favicon and the `/fluid-mark.svg` alias), loaded eagerly; the original with its provenance record is kept at `design-assets/brand/embel-mark-original.svg`. **Open:** the 32, 192 and 512 px PNGs, the maskable icon and the manifest (generated routes to check in the running app). Later (PR 279 and November 14, 2026): the 32, 192 and 512 px icons and the manifest are in, and `/fluid-mark.svg` is deleted with the owner's go-ahead.
 - Evidence: `assets/assets.md`
 - Systemic? Yes: every page.
 
@@ -1111,7 +1113,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Three named ranges, two containers (792 and 1,056 px) and the grid in `05_design_system.md` section 3d. Keep the gallery's container queries, which are the cleanest responsive code in the app. Plans and the project bar need layout work beyond the replacement (D-033, D-054).
 - Where in the code: `src/styles/tokens.css:43-46`; `.page` in `src/styles/globals.css:32-38` (other lines removed in PR #258); gallery container queries in `src/components/inspiration/inspiration.css:174-189`.
 - Screen findings this fixes: D-033 (E-025, A-014); D-054 (E-053, A-015)
-- Status: **To do, not done in this pass:** about 30 breakpoints remain in the older stylesheets. Moving the desktop ones (1190 and 1050 px) onto the three ranges changes layouts between 1024 and 1279 px and needs capture checks; the narrower ones are phone-only work.
+- Status: **Done for desktop** (owner go-ahead, November 14, 2026): no rule switches above 1024 px any more except the system's own 1024–1279 px step names; the 1100, 1150 and 1190 px rules now switch at 1023 px and the 1500 px padding steps are gone, checked by capture at 1024, 1180 and 1440. **Phone-only, waits:** the narrower breakpoints (480 to 950 px) and the page containers.
 - Evidence: `design-system/drift.md`, `screens/plans__pro-current-pro__390.png`
 - Systemic? Yes.
 
@@ -1149,7 +1151,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: One noun for the object, used in navigation, headings, buttons and dialogs. One word per thing, taken from the journey's own vocabulary. One heading style without full stops. Rewrite the empty state for the single journey: "No brands yet. Describe an idea and Embel builds the name, logo and look with you."
 - Where in the code: `ProjectsWorkspace` in `src/components/workspace/projects-workspace.tsx`; `AssetsWorkspace`; `ProjectCapsule`; `GenerationActivity`.
 - Needs the owner: Pass 1 suggests "Brands" as the noun; the navigation says "Projects" today. Renaming a navigation item is the owner's call. Until the owner decides, keep "Projects" for the list and call the thing being made a "brand", consistently.
-- Status: **Needs the owner** (unchanged) for the noun. Headings without full stops and the rewritten empty state came with the Projects and Library rebuild (PR 263).
+- Status: **Owner decision, November 14, 2026 (closed):** the noun stays **Projects** for the list and navigation; "brand" stays for the thing being made. Headings without full stops and the rewritten empty state came with the Projects and Library rebuild (PR 263).
 - Evidence: `screens/projects__eight-brands-free__1440.png`, `screens/projects__empty-fresh__1440.png`, `screens/projects__signed-out__1440.png`, `screens/library__kept-assets-pro__1440.png`
 - Systemic? Yes: all list pages, dialogs and the project pill.
 
@@ -1264,7 +1266,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Add each board's credit line to the data and show it in the large view. Note in `docs/` where the permission records are kept. The boards themselves do not need to change for this.
 - Where in the code: `src/domain/inspiration-brands.json`; `BrandOverlay` in `src/components/inspiration/inspiration-brands.tsx`; `docs/inspiration-brand-boards.md`.
 - Needs the owner: The credit wording comes from the permission records, which only the owner holds.
-- Status: **Needs the owner** (unchanged): the credit wording comes from the permission records.
+- Status: **Owner decision, November 14, 2026 (closed):** credit lines are added just before launch, from the owner's permission records.
 - Evidence: `annotated/E-054.png`
 - Systemic? 56 gallery brands.
 
@@ -1278,7 +1280,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Inline messages under each field in the app's own error style, shown when the field loses focus and on submit ("Use at least 12 characters", "The two passwords don't match"). Mark the field as invalid and link the message to it. Keep what was typed where security allows (at least the first password on a mismatch). Move focus to the field to fix.
 - Where in the code: `SignInForm` in `src/components/auth/sign-in-form.tsx:95-107, 371-375`.
 - Fixed by: D-047 (form controls; DS-021); D-008 (Inline message and Toast; DS-012)
-- Status: **Done** by the account screens rebuild: the app's own messages under each field, fields marked invalid and linked, focus on the field to fix, no browser bubble. **Not changed:** passwords are still emptied after a mismatch; tests in `account-creation` and `sign-in-transient-password` hold that as deliberate credential handling, so keeping the first password is the owner's call.
+- Status: **Done** by the account screens rebuild: the app's own messages under each field, fields marked invalid and linked, focus on the field to fix, no browser bubble. **Owner decision, November 14, 2026 (closed):** after a mismatch both passwords stay as typed, the mismatch message shows under the confirmation, and the confirmation is focused with its text selected; passwords are cleared only when the first password itself must change. The tests hold the new behaviour.
 - Evidence: `screens/sign-up__validation-password-mismatch__1440.png`, `screens/sign-in__error-wrong-password__1440.png`, `screens/forgot-password__error-rate-limited__1440.png`, `annotated/A-kbd-sign-up-mismatch.png`, `annotated/A-kbd-sign-in-error.png`
 - Systemic? Three forms.
 
@@ -1305,7 +1307,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Where in the code: `PlansWorkspace` in `src/components/billing/plans-workspace.tsx`; `.plans-notice` in `src/styles/plans.css:145-156`.
 - Fixed by: D-008 (Inline message and Toast; DS-012); D-006 (Button; DS-010)
 - Needs the owner: Pass 1 also proposes rewriting the footer ("Payments are processed by Stripe through Link…") in two short sentences and adding "Downgrade to Free" on the Free card. The footer is billing and legal text, which the implementation rules leave to the owner, and a downgrade button is a new action. Neither is done without the owner's say.
-- Status: **Done** by the Plans rebuild (one Manage plan button, Cancel plan as a quiet action, one notice component). **Needs the owner** (unchanged): the payment footer wording and a Downgrade to Free action.
+- Status: **Done** by the Plans rebuild (one Manage plan button, Cancel plan as a quiet action, one notice component). **Owner decision, November 14, 2026 (closed):** the payment footer wording and a Downgrade to Free action wait until just before launch.
 - Evidence: `screens/plans__pro-current-pro__1440.png`, `screens/plans__upgrade-unavailable-free__1440.png`, `screens/plans__return-checkout-success-fresh__1440.png`
 - Systemic? Yes: notice styles differ across pages.
 
@@ -1332,7 +1334,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Why it matters: The page where a customer enters a card should look like Embel.
 - Suggested direction: Set the existing mark as a square icon (512 × 512 PNG, 50 KB at most) in Stripe's branding settings, after checking Stripe's size rules.
 - Needs the owner: This is a setting in the owner's Stripe Dashboard, not code. Only the owner can do it and check it.
-- Status: **Needs the owner** (unchanged): a Stripe Dashboard setting.
+- Status: **Owner decision, November 14, 2026 (closed):** the owner sets Stripe's branding just before launch (`public/icons/icon-512.png` is ready for it).
 - Evidence: `design-audit/04_image_needs.md`
 - Systemic? No.
 
@@ -1425,7 +1427,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Add the mark beside the name as a hosted PNG (28 and 56 px, 3 KB at most, alt text "Embel"; many mail programs do not show SVG), an "or paste this link" line, the expiry time and a help address. The emails were not checked for accessibility; that is worth 30 minutes before launch.
 - Where in the code: `supabase/templates/confirmation.html`; `supabase/templates/recovery.html`.
 - Fixed by: D-085 (shared values for emails and exports; DS-024)
-- Status: **Done in part** (commit 44807e8c on branch `ui/execution-fixes`): both emails print the link under the button, and the reset email says the link works once and expires after a short time. **Open:** the mark as a hosted PNG and a help address (D-028). The hosted project's templates are set in its dashboard by the release lead.
+- Status: **Done in part** (commit 44807e8c on branch `ui/execution-fixes`): both emails print the link under the button, and the reset email says the link works once and expires after a short time. Later (November 14, 2026): both emails show the mark as a hosted PNG (`/email/embel-mark-96.png`), state the one-hour expiry and use typographic apostrophes. The help address waits for launch with D-028. The hosted project's templates are pasted into its dashboard by the owner.
 - Evidence: `emails/confirmation__600.png`, `emails/confirmation__390.png`, `emails/recovery__600.png`, `emails/recovery__390.png`
 - Systemic? No.
 
@@ -1478,7 +1480,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Answer "no icon" without an error status, or decide on the server and send no request. Always fall back to the competitor's initial.
 - Where in the code: `CompetitorLogo` in `src/components/workspace/competitor-logo.tsx`; route `GET /api/projects/<id>/competitor-icon`.
 - Needs the owner: Changing what the route answers is a small API change, which the implementation rules leave to the owner.
-- Status: **Needs the owner** (unchanged): the competitor-icon route's answer is an API change.
+- Status: **Done** (owner go-ahead, November 14, 2026): the route answers 204 with no body when no icon exists, so nothing is logged, and the search keeps going until it finds a logo: the site's declared and manifest icons, SVG icons drawn into PNG on the server, the conventional paths on the site and its www/bare twin, then a public favicon service asked only for the domain. A miss is retried after an hour.
 - Evidence: `lighthouse/brand-conversation__spokesmith-research-done-free__desktop/report.html`
 - Systemic? Every brand page.
 
@@ -1555,7 +1557,7 @@ These 59 findings have a clear answer and need no design decision, in ranked ord
 - Suggested direction: Mirror them in the address.
 - Where in the code: `SettingsWorkspace` in `src/components/workspace/settings-workspace.tsx:20`; `AssetsWorkspace` in `src/components/assets/assets-workspace.tsx:65, 116`; `ProjectsWorkspace` in `src/components/workspace/projects-workspace.tsx:78-79`.
 - Needs the owner: This adds address parameters, a small behaviour change. A comment in Settings suggests that always opening on Account is deliberate; confirm with the owner before changing that one.
-- Status: **Needs the owner** (unchanged): address parameters, and whether Settings should open on the last tab.
+- Status: **Done** (owner decision, November 14, 2026): Library keeps its tab, project, format and search in the address, Projects its search and sort; Settings always opens on Account, as decided.
 - Evidence: `screens/settings__usage-pro__1440.png`
 - Systemic? No.
 
@@ -1876,22 +1878,22 @@ Where they are: 15 design-system items needing a decision in Part A (section 5),
 
 - **D-015** (Remaining credits are not visible anywhere outside Settings and Plans): Pass 1 also suggested printing each step's credit price on its button ("Explore six concepts · 6 credits"). The owner's standing rule is that the app shows remaining credits and no cost estimates. A fixed credit price is not a money estimate, but adding it is the owner's product call, so it is left out unless the owner asks for it.
 - **D-017** (Signed-out Home, the only landing page, shows no proof of what Embel makes): Two showcase brands exist (Kestrel Analytics and Orchard Lane Cider). A third, or a fresh set of three made for public display, is a real AI generation: 9 images per brand, very roughly $0.35 per brand by the audit's own spend record (an estimate, not a confirmed charge). It needs the owner's approval. The Kestrel board shows a face and an invented name and phone number, so it should not be used publicly as it is.
-- **D-020** (Images are downloaded at full size, one by one, and cannot be cached): Previews made on the server change how images are served, which is a behaviour change outside "change the look, not what the app does". It needs the owner's go-ahead before implementation.
+- **D-020** (Images are downloaded at full size, one by one, and cannot be cached): Previews made on the server change how images are served, which is a behaviour change outside "change the look, not what the app does". It needs the owner's go-ahead before implementation. **Closed November 14, 2026:** leave as is for now.
 - **D-023** (The brand guidelines are too thin on screen, and an unstyled web page as a file): Exporting the guidelines as a PDF (pass 1's suggestion) is a new export format: a behaviour change and possibly a new dependency. It needs the owner's go-ahead. A designed HTML file is within the redesign.
-- **D-024** (The chosen direction board shows a different logo from the one the person chose): This is how the generation engine makes images, not interface design. Claude Design cannot fix it, and a look-only implementation must not change it. The owner decides how to do it (for example, placing the saved logo file onto the generated board); checking it needs a real generation, which needs approval.
-- **D-028** (There is no Terms, Privacy, Help or contact link anywhere): The Terms, Privacy and Help documents are not in this repository. The owner supplies them, or their addresses, before the links can be added.
-- **D-036** (Usage counts "tokens", leaves out images, and never mentions credits): A credit ledger shows records the page does not load today (image requests, grants, refunds). That is a behaviour and data change. Claude Design can design it; implementation needs the owner's go-ahead.
+- **D-024** (The chosen direction board shows a different logo from the one the person chose): This is how the generation engine makes images, not interface design. Claude Design cannot fix it, and a look-only implementation must not change it. The owner decides how to do it (for example, placing the saved logo file onto the generated board); checking it needs a real generation, which needs approval. **Closed November 14, 2026:** leave as is for now.
+- **D-028** (There is no Terms, Privacy, Help or contact link anywhere): The Terms, Privacy and Help documents are not in this repository. The owner supplies them, or their addresses, before the links can be added. **Closed November 14, 2026:** added just before launch.
+- **D-036** (Usage counts "tokens", leaves out images, and never mentions credits): A credit ledger shows records the page does not load today (image requests, grants, refunds). That is a behaviour and data change. Claude Design can design it; implementation needs the owner's go-ahead. **Closed November 14, 2026:** no credit ledger for now.
 - **D-054** (Inside a project the pill loses the app's navigation, and at narrow widths it takes too much of the screen): Listing recent brands in the brand menu (pass 1) is a small new feature. Include it only if the owner wants it.
-- **D-056** (The same thing has up to four names, and headings change between states): Pass 1 suggests "Brands" as the noun; the navigation says "Projects" today. Renaming a navigation item is the owner's call. Until the owner decides, keep "Projects" for the list and call the thing being made a "brand", consistently.
+- **D-056** (The same thing has up to four names, and headings change between states): Pass 1 suggests "Brands" as the noun; the navigation says "Projects" today. Renaming a navigation item is the owner's call. Until the owner decides, keep "Projects" for the list and call the thing being made a "brand", consistently. **Closed November 14, 2026:** the noun stays Projects.
 - **D-063** (Logo files have the mark off-centre, the token file repeats its colours, and the kit's README reads defensively): A larger logo export (pass 1 suggests 4,096 px; pass 1b calls it a product decision) cannot be made honestly from a 1024 px image. It would need the logo to be generated at a larger size, which is the owner's product decision and outside this redesign.
-- **D-067** (The inspiration gallery's 56 brand boards carry no credit line in the app's data): The credit wording comes from the permission records, which only the owner holds.
+- **D-067** (The inspiration gallery's 56 brand boards carry no credit line in the app's data): The credit wording comes from the permission records, which only the owner holds. **Closed November 14, 2026:** added just before launch.
 - **D-070** (The Name step shows 100 names in one wall): Pass 1 also suggests ranking the "strongest" names with a reason for each and grouping the rest by kind. That may need information the naming step does not produce today; if so it is a behaviour change for the owner to approve. The layout change above is within the redesign.
 - **D-074** (The "…" menu on a card holds one item, Delete, and sits on the picture): Pass 1's other option is to add Rename and Duplicate to the menu. Those are new features; they are not designed or built unless the owner asks.
-- **D-076** (Plan actions and messages are uneven): Pass 1 also proposes rewriting the footer ("Payments are processed by Stripe through Link…") in two short sentences and adding "Downgrade to Free" on the Free card. The footer is billing and legal text, which the implementation rules leave to the owner, and a downgrade button is a new action. Neither is done without the owner's say.
+- **D-076** (Plan actions and messages are uneven): Pass 1 also proposes rewriting the footer ("Payments are processed by Stripe through Link…") in two short sentences and adding "Downgrade to Free" on the Free card. The footer is billing and legal text, which the implementation rules leave to the owner, and a downgrade button is a new action. Neither is done without the owner's say. **Closed November 14, 2026:** footer and Downgrade wait until just before launch.
 - **D-077** (Two older screens are still reachable and do not match the app): Retiring a route is a route change, which the implementation rules leave to the owner. It fits the code cleanup planned before implementation.
-- **D-078** (Stripe's checkout and customer portal may not carry Embel's mark): This is a setting in the owner's Stripe Dashboard, not code. Only the owner can do it and check it.
-- **D-091** (Every brand page logs two errors for missing competitor icons, and some icon circles stay empty): Changing what the route answers is a small API change, which the implementation rules leave to the owner.
-- **D-097** (Tabs, filters and sort are lost on reload): This adds address parameters, a small behaviour change. A comment in Settings suggests that always opening on Account is deliberate; confirm with the owner before changing that one.
+- **D-078** (Stripe's checkout and customer portal may not carry Embel's mark): This is a setting in the owner's Stripe Dashboard, not code. Only the owner can do it and check it. **Closed November 14, 2026:** set just before launch.
+- **D-091** (Every brand page logs two errors for missing competitor icons, and some icon circles stay empty): Changing what the route answers is a small API change, which the implementation rules leave to the owner. **Closed November 14, 2026:** done: no error status, and the logo search keeps going.
+- **D-097** (Tabs, filters and sort are lost on reload): This adds address parameters, a small behaviour change. A comment in Settings suggests that always opening on Account is deliberate; confirm with the owner before changing that one. **Closed November 14, 2026:** done for Library and Projects; Settings opens on Account.
 
 4. **One proposed target to confirm.** LCP of 4 s or less on signed-in pages under phone conditions (section 8). Pass 3 asked for a target and did not set one; today's value is 9.3 s.
 5. **Not reviewed by any pass.** The three crash screens (read in source only); Stripe's checkout and customer portal; the Library detail view; names, slogans and directions while in progress; "step unavailable"; "today's limit"; a failed reference upload; the name preview dialog and "Compare concept"; sign-up's "check your email" state; the sign-out confirmation; the account data export; the sign-up check (Cloudflare Turnstile); the accessibility of the two emails and of the exported guidelines file.

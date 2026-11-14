@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { z } from "zod";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, EmptyState, Skeleton } from "@/components/ui/feedback";
 import { SelectField, TextField } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
 import { InlineMessage } from "@/components/ui/message";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
+import { readViewFromAddress, writeViewToAddress } from "@/components/workspace/address-view";
 import { SignedOutEmptyState } from "@/components/workspace/signed-out-empty-state";
 import { assetFileTypeSchema, type AssetLibraryItem, type AssetLibraryQuery } from "@/domain/asset-library";
 import { assetTitle, groupLibrary, type LibraryEntry } from "./asset-labels";
@@ -20,6 +22,19 @@ const tabs: { id: Tab; label: string }[] = [
   { id: "my_selection", label: "In your brands" },
   { id: "all_generations", label: "Everything made" },
 ];
+
+/** The Library view kept in the address (D-097): tab, project, format and search.
+ * Unknown values are ignored, so an old or edited link still opens the Library. */
+function libraryViewFromAddress() {
+  const params = readViewFromAddress();
+  const tab = tabs.find((item) => item.id === params.get("tab"))?.id ?? "my_selection";
+  const projectId = z.uuid().safeParse(params.get("project")).data;
+  const format = assetFileTypeSchema.safeParse(params.get("format")).data;
+  return {
+    query: { tab, ...(projectId ? { projectId } : {}), ...(format ? { format } : {}) },
+    search: (params.get("q") ?? "").slice(0, 120),
+  };
+}
 
 /** "Nov 12", with the year when it is not this year. */
 export function shortDate(iso: string, now = new Date()) {
@@ -97,8 +112,9 @@ function LibrarySkeleton({ slots }: { slots: number }) {
 }
 
 function OwnedAssetLibrary({ account }: { account: VerifiedAccount }) {
-  const library = useAssetLibrary(account);
-  const [search, setSearch] = useState("");
+  const [initialView] = useState(libraryViewFromAddress);
+  const library = useAssetLibrary(account, initialView.query);
+  const [search, setSearch] = useState(initialView.search);
   const [opened, setOpened] = useState<{ item: AssetLibraryItem; name: string } | null>(null);
   const resultsBody = useRef<HTMLDivElement | null>(null);
   const [geometry, setGeometry] = useState<{ client: typeof library.client; slots: number; height: number } | null>(
@@ -106,6 +122,14 @@ function OwnedAssetLibrary({ account }: { account: VerifiedAccount }) {
   );
   const tab = library.query.tab;
   const filtered = Boolean(library.query.projectId || library.query.format);
+  useEffect(() => {
+    writeViewToAddress({
+      tab: tab === "my_selection" ? null : tab,
+      project: library.query.projectId ?? null,
+      format: library.query.format ?? null,
+      q: search.trim() || null,
+    });
+  }, [tab, library.query.projectId, library.query.format, search]);
   const needle = search.trim().toLocaleLowerCase();
   const items = library.page?.items ?? [];
   // Numbers ("Logo concept 3") are only given when every file of each brand is loaded and none is filtered out.
