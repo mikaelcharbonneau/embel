@@ -266,8 +266,8 @@ describe("Toast", () => {
   function Copy() {
     const toast = useToast();
     return (
-      <button type="button" onClick={() => toast("Colours copied")}>
-        Copy colours
+      <button type="button" onClick={() => toast("Colors copied")}>
+        Copy colors
       </button>
     );
   }
@@ -282,9 +282,9 @@ describe("Toast", () => {
     await press(host.querySelector("button"));
     const region = host.querySelector(".e-toast-region")!;
     expect(region.getAttribute("role")).toBe("status");
-    expect(region.textContent).toContain("Colours copied");
+    expect(region.textContent).toContain("Colors copied");
     await act(async () => vi.advanceTimersByTime(4999));
-    expect(region.textContent).toContain("Colours copied");
+    expect(region.textContent).toContain("Colors copied");
     await act(async () => vi.advanceTimersByTime(1));
     expect(region.textContent).toBe("");
   });
