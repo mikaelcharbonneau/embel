@@ -106,6 +106,16 @@ describe("TextField", () => {
     expect(host.querySelector("input")!.type).toBe("text");
     expect(host.querySelector("button")!.getAttribute("aria-label")).toBe("Hide password");
   });
+
+  it("shows a search field's clear button only while it has text", async () => {
+    const clear = vi.fn();
+    await render(<TextField label="Search" type="search" value="" onChange={() => {}} onClear={clear} />);
+    expect(host.querySelector('button[aria-label="Clear search"]')).toBeNull();
+    await render(<TextField label="Search" type="search" value="kestrel" onChange={() => {}} onClear={clear} />);
+    await press(host.querySelector('button[aria-label="Clear search"]'));
+    expect(clear).toHaveBeenCalledOnce();
+    expect(host.querySelector("input")!.hasAttribute("onclear")).toBe(false);
+  });
 });
 
 describe("InlineMessage", () => {
@@ -348,6 +358,13 @@ describe("Media frame and empty state", () => {
       "This preview is private.",
       "This concept couldn't be drawn.",
     ]);
+  });
+
+  it("tells its owner when a picture fails to load", async () => {
+    const failed = vi.fn();
+    await render(<MediaFrame src="blob:expired" alt="Logo concept 2" contain onImageError={failed} />);
+    await act(async () => host.querySelector("img")!.dispatchEvent(new Event("error")));
+    expect(failed).toHaveBeenCalledOnce();
   });
 
   it("gives an empty page one icon, a title, a sentence and one action", async () => {

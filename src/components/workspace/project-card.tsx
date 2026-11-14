@@ -145,12 +145,15 @@ export function ProjectCard({
   headingLevel = 2,
   actions,
   deletionStatus,
+  hidden = false,
 }: {
   project: LifecycleProject;
   account: VerifiedAccount;
   headingLevel?: 2 | 3;
   actions: ReactNode | ((title: string) => ReactNode);
   deletionStatus?: ReactNode;
+  /** Kept mounted but not shown (a search that does not match it), so showing it again needs no new read. */
+  hidden?: boolean;
 }) {
   const deleted = project.deletion_state !== "active";
   const owned = project.owner_id === account.userId;
@@ -184,6 +187,7 @@ export function ProjectCard({
         data-storage="account"
         data-project-id={project.id}
         aria-busy="true"
+        hidden={hidden}
       >
         <SkeletonContent />
       </article>
@@ -232,6 +236,7 @@ export function ProjectCard({
         className={`e-card ${hook} project-card--deleted`}
         data-storage="account"
         data-project-id={project.id}
+        hidden={hidden}
       >
         {picture}
         <div className="e-card__body">
@@ -253,6 +258,7 @@ export function ProjectCard({
       data-storage="account"
       data-project-id={project.id}
       aria-busy={artworkPending || stepPending || undefined}
+      hidden={hidden}
     >
       {picture}
       <div className="e-card__body">

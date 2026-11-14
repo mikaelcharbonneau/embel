@@ -325,8 +325,8 @@ for (const [name, status, body] of [
     await loaded(page);
   });
 for (const [route, slug, text] of [
-  ["/brands", "projects", "Sign in to see your projects."],
-  ["/assets", "library", "Sign in to see your library."],
+  ["/brands", "projects", "Sign in to see your projects"],
+  ["/assets", "library", "Sign in to see your library"],
   ["/plans", "plans", "Sign in to choose a plan."],
   ["/settings", "settings", "Sign in to edit your profile and preferences."],
   [`/brands/account/${MISSING_PROJECT}`, "project-workspace", "Sign in to see and save your work."],
@@ -410,7 +410,7 @@ state("projects", "search-no-match-free", "audit-free", async (page) => {
     .getByRole("searchbox", { name: /Search projects/u })
     .or(page.getByRole("textbox", { name: /Search projects/u }))
     .fill("zzzz-nothing");
-  await page.getByRole("heading", { name: "No matching projects" }).waitFor({ timeout: 10_000 });
+  await page.getByRole("heading", { name: /^No projects match/u }).waitFor({ timeout: 10_000 });
   await loaded(page);
 });
 state("projects", "options-menu-open-free", "audit-free", async (page) => {
@@ -456,7 +456,7 @@ state("library", "kept-assets-free", "audit-free", async (page) => {
 });
 state("library", "all-generations-free", "audit-free", async (page) => {
   await open(page, "audit-free", "/assets");
-  await page.getByRole("tab", { name: "All generations" }).click();
+  await page.getByRole("tab", { name: "Everything made" }).click();
   await loaded(page);
 });
 state("plans", "free-0-credits-upgrade-free", "audit-free", async (page) => {

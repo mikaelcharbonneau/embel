@@ -53,13 +53,33 @@ async function fixture(page: Page, projects = rows) {
 }
 const account = (page: Page) => page.locator(".projects-page");
 const browser = (page: Page) => page.locator(".projects-page");
-const cards = (section: ReturnType<typeof account>) => section.locator(".project-card[data-storage=account]");
+// A search hides cards that do not match and keeps them mounted (D-073), so count only the shown ones.
+const cards = (section: ReturnType<typeof account>) =>
+  section.locator(".project-card[data-storage=account]:not([hidden])");
 const browserCards = (page: Page) => page.locator(".project-card[data-storage=browser]");
+const sortLabels = { created: "Recently created", alphabetical: "Alphabetical" } as const;
+/** Sort is a menu select: a button that opens a menu of choices with a tick on the current one. */
 async function sortControl(page: Page) {
-  const panel = page.locator(".projects-control").filter({ has: page.getByText("Sort", { exact: true }) });
-  if (!(await panel.evaluate((node) => (node as HTMLDetailsElement).open)))
-    await page.getByText("Sort", { exact: true }).click();
-  return page.getByRole("combobox", { name: "Sort projects", exact: true });
+  const option = (value: keyof typeof sortLabels) =>
+    page.getByRole("menuitemradio", { name: sortLabels[value], exact: true });
+  const open = async () => {
+    if (
+      (await page.getByRole("button", { name: "Sort projects", exact: true }).getAttribute("aria-expanded")) !== "true"
+    )
+      await page.getByRole("button", { name: "Sort projects", exact: true }).click();
+  };
+  return {
+    async selectOption(value: keyof typeof sortLabels) {
+      await open();
+      await option(value).click();
+    },
+    async value() {
+      await open();
+      const value = (await option("alphabetical").getAttribute("aria-checked")) === "true" ? "alphabetical" : "created";
+      await page.keyboard.press("Escape");
+      return value;
+    },
+  };
 }
 test("brand controls fixture: alphabetical sorting never changes continuation anchors or stored membership", async ({
   page,
@@ -70,7 +90,7 @@ test("brand controls fixture: alphabetical sorting never changes continuation an
   const sort = await sortControl(page);
   await sort.selectOption("alphabetical");
   await expect(cards(account(page)).first()).toContainText("Brand 76");
-  await account(page).getByRole("button", { name: "Load more projects", exact: true }).click();
+  await account(page).getByRole("button", { name: "Show more projects", exact: true }).click();
   await expect(cards(account(page))).toHaveCount(100);
   await expect(cards(account(page)).first()).toContainText("Brand 26");
   await (await sortControl(page)).selectOption("created");
@@ -84,11 +104,11 @@ test("brand controls fixture: later-page failure keeps sort plus all already-loa
   await expect(cards(account(page))).toHaveCount(50);
   await (await sortControl(page)).selectOption("alphabetical");
   state.status = 503;
-  await account(page).getByRole("button", { name: "Load more projects", exact: true }).click();
+  await account(page).getByRole("button", { name: "Show more projects", exact: true }).click();
   await expect(account(page).getByRole("alert")).toBeVisible();
   await expect(cards(account(page))).toHaveCount(50);
   state.status = 200;
-  await account(page).getByRole("button", { name: "Try loading projects again", exact: true }).click();
+  await account(page).getByRole("button", { name: "Try again", exact: true }).click();
   await expect(cards(account(page))).toHaveCount(75);
   await expect(cards(account(page)).first()).toContainText("Brand 51");
 });
@@ -142,14 +162,14 @@ test("brand controls fixture: project sorts never modify durable device drafts, 
   for (const title of ["Zulu draft", "Alpha draft", "Middle draft"])
     await expect(recovery.getByText(title, { exact: true })).toBeVisible();
   const sort = await sortControl(page);
-  await expect(sort).toHaveValue("created");
+  expect(await sort.value()).toBe("created");
   await expect(cards(account(page)).first()).toContainText("Brand 125");
   await sort.selectOption("alphabetical");
   await expect(cards(account(page)).first()).toContainText("Brand 76");
   await expect(recovery.getByRole("radio")).toHaveCount(3);
   await page.getByRole("searchbox").fill("unmatched");
   await expect(cards(account(page))).toHaveCount(0);
-  await expect(browser(page)).toContainText("No matching projects");
+  await expect(browser(page)).toContainText("No projects match “unmatched”");
   await page.getByRole("searchbox").clear();
   await expect(cards(account(page))).toHaveCount(50);
   await expect(recovery.getByRole("radio")).toHaveCount(3);
@@ -186,11 +206,13 @@ test("brand controls fixture: a keyboard-operated sort control does not request 
   await page.goto("/brands");
   await expect(cards(account(page))).toHaveCount(50);
   await expect(page.getByText("Filter", { exact: true })).toHaveCount(0);
-  const sort = await sortControl(page);
-  await sort.focus();
-  await sort.press("a");
-  await sort.press("Enter");
-  await expect(sort).toHaveValue("alphabetical");
+  const trigger = page.getByRole("button", { name: "Sort projects", exact: true });
+  await trigger.focus();
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await expect(trigger).toBeFocused();
+  expect(await (await sortControl(page)).value()).toBe("alphabetical");
   await expect(cards(account(page)).first()).toContainText("Brand 76");
   expect(state.reads).toBe(1);
   expect(state.writes).toEqual([]);

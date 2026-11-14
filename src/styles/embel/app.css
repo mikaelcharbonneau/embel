@@ -10,3 +10,9 @@
   gap: var(--space-1);
   min-width: 0;
 }
+
+/* Search fields bring their own clear button; hide the browser's so there is only one. */
+.e-input > input[type="search"]::-webkit-search-cancel-button {
+  display: none;
+  -webkit-appearance: none;
+}

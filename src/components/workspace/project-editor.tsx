@@ -727,14 +727,18 @@ type EditorStorage = {
   onStrategyApproved?: (draft: LocalDraft) => Promise<boolean>;
 };
 
+/** `/brands/<id>`: an unsaved project kept on this device. What is found (nothing, a project already saved, or
+ * the project to recover) is the page's one Empty state or picker; "Back to projects" appears once, in it. */
 export function ProjectEditor({ projectId }: { projectId: string }) {
   return (
-    <div className="page">
-      <h1>Recover an unsaved project</h1>
+    <div className="e-container e-page e-stack e-stack--xl recover-page">
+      <header className="e-page-header">
+        <div className="e-stack e-stack--xs">
+          <h1 className="text-title-lg">Recover an unsaved project</h1>
+          <p className="e-muted">Work kept on this device can be saved to your account.</p>
+        </div>
+      </header>
       <UnsavedProjectRecovery draftId={projectId} />
-      <Link className="text-link" href="/brands">
-        Back to projects
-      </Link>
     </div>
   );
 }

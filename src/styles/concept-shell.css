@@ -10,8 +10,11 @@
   flex-direction: column;
   overflow: hidden;
   background-color: var(--color-bg-canvas);
+}
+/* The dot grid belongs to Home and the project conversation only; every other page is plain canvas. */
+.concept-home .workspace-main {
   background-image: var(--pattern-dot-grid);
-  background-size: 22px 22px;
+  background-size: var(--pattern-dot-size) var(--pattern-dot-size);
 }
 .concept-shell #main-content {
   flex: 1;
