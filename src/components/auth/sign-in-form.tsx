@@ -153,9 +153,14 @@ export function SignInForm({
     setPasswordsShown(false);
     const found = validate();
     if (Object.keys(found).length > 0) {
-      clearPasswords();
+      // Nothing was sent. Keep what was typed unless the password itself must be
+      // retyped (owner decision, D-072): a mismatch keeps both fields and selects
+      // the confirmation so the next keystrokes replace it.
+      if (found.password) clearPasswords();
       setErrors(found);
-      focusField((found.email ? emailInput : found.password ? passwordInput : confirmPasswordInput).current);
+      const field = (found.email ? emailInput : found.password ? passwordInput : confirmPasswordInput).current;
+      focusField(field);
+      if (!found.email && !found.password) field?.select();
       return;
     }
     const email = emailInput.current?.value.trim() ?? "";
