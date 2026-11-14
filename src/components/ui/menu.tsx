@@ -20,6 +20,7 @@ export function Menu({
   trigger,
   items,
   summary,
+  label,
   align = "end",
   className,
 }: {
@@ -34,6 +35,8 @@ export function Menu({
   items: MenuItem[];
   /** A block at the top that is not a row, such as the plan and balance in the account menu. */
   summary?: ReactNode;
+  /** The menu's accessible name when the trigger's own name is not enough ("Actions for Kestrel Analytics"). */
+  label?: string;
   align?: "start" | "end";
   className?: string;
 }) {
@@ -99,6 +102,7 @@ export function Menu({
         ref={menuRef}
         id={id}
         role="menu"
+        aria-label={label}
         className="e-menu"
         hidden={!open}
         onKeyDown={onKeyDown}
