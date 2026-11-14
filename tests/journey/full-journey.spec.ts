@@ -161,25 +161,36 @@ test("a new brand goes from the first prompt to downloadable assets", async ({ p
   });
 
   await test.step("Identity: logo concepts generated and one chosen", async () => {
-    const explore = page.getByRole("button", { name: "Explore six concepts", exact: true });
-    await expect(explore).toBeVisible({ timeout: GENERATION });
+    // The chosen logo types sit in the reply box as chips (each removable); Send starts the six concepts.
+    const draw = replyBox(page).getByRole("button", { name: "Draw six concepts", exact: true });
+    await expect(draw).toBeEnabled({ timeout: GENERATION });
+    await expect(
+      replyBox(page)
+        .getByRole("button", { name: /^Remove / })
+        .first(),
+    ).toBeVisible();
     await expectNoCostEstimate(page);
     // One deliberate click starts the round: no quote or confirmation screen.
-    await explore.click();
+    await draw.click();
     const concepts = page.getByRole("region", { name: "Logo concepts", exact: true });
     await expect(concepts.getByText(/6 of 6 concepts ready/u)).toBeVisible({ timeout: GENERATION });
     // Artwork only (decision 4): each ready concept is one picture button, named after the concept.
     await expect(concepts.getByRole("button", { name: /^Concept [1-6]$/u })).toHaveCount(6);
     await concepts.getByRole("button", { name: "Concept 1", exact: true }).click();
     await expect(concepts.getByRole("heading", { name: "Your logo", exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await expect(replyBox(page).getByText("Logo: Concept 1", { exact: true })).toBeVisible();
+    await send(page, "Continue to Creative direction");
   });
 
   await test.step("Identity: creative directions generated and one chosen", async () => {
     const step = page.getByRole("region", { name: "Creative direction", exact: true });
-    await expect(step.getByRole("img", { name: "Chosen logo concept", exact: true })).toBeVisible({
-      timeout: GENERATION,
-    });
+    // The directions build on the chosen logo, folded into the chat with its picture.
+    await expect(
+      page
+        .locator('[data-journey-section="identity"] details')
+        .filter({ has: page.locator(".e-answer__question", { hasText: /^Logo$/u }) })
+        .getByRole("img", { name: "Chosen logo concept", exact: true }),
+    ).toBeVisible({ timeout: GENERATION });
     await expect(
       step.getByRole("region", { name: "Creative directions", exact: true }).getByText("3 of 3 ready", { exact: true }),
     ).toBeVisible({ timeout: GENERATION });
@@ -190,7 +201,8 @@ test("a new brand goes from the first prompt to downloadable assets", async ({ p
     await expect(first).toBeEnabled({ timeout: GENERATION });
     await first.click();
     await expect(first).toHaveAttribute("aria-pressed", "true");
-    await step.getByRole("link", { name: "Continue", exact: true }).click();
+    await expect(replyBox(page).getByText(/^Direction: /u)).toBeVisible();
+    await send(page, "Continue to Assets");
   });
 
   await test.step("Assets: brand board visible and downloads", async () => {
