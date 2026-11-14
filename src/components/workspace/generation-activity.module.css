@@ -1,0 +1,67 @@
+/* The Activity dialog: one row per action, running and failed first. Design-system tokens only. */
+.section {
+  display: grid;
+  gap: var(--space-1);
+}
+.heading {
+  font: var(--text-label);
+  color: var(--color-text-muted);
+}
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-block: var(--space-4);
+}
+.row + .row {
+  border-top: 1px solid var(--color-border);
+}
+.main {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.title {
+  justify-self: start;
+  border-radius: var(--radius-inset);
+  color: var(--color-text);
+  font: var(--text-label);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.title > :global(.e-icon) {
+  margin-left: var(--space-1);
+  vertical-align: middle;
+}
+@media (hover: hover) and (pointer: fine) {
+  .title:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+.detail {
+  color: var(--color-text-muted);
+  font: var(--text-small);
+}
+.status {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  font: var(--text-small);
+  white-space: nowrap;
+}
+.note {
+  color: var(--color-text-muted);
+  font: var(--text-small);
+}
+.skeletonStatus {
+  flex: none;
+  width: var(--space-12);
+}
+.skeletonMain {
+  display: grid;
+  flex: 1;
+  gap: var(--space-3);
+}

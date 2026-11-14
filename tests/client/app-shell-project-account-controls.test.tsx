@@ -80,7 +80,12 @@ const menu = () => host.querySelector<HTMLDetailsElement>("details.workspace-acc
 const summary = () => menu().querySelector<HTMLElement>("summary")!;
 const checkAccount = () => menu().querySelector<HTMLButtonElement>(".account-check");
 const settingsLink = () => menu().querySelector<HTMLAnchorElement>('a[href="/settings"]');
-const activityButton = () => menu().querySelector<HTMLButtonElement>(".generation-activity-trigger");
+const activityButton = () =>
+  [...menu().querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent === "Activity") ?? null;
+const activityDialog = () =>
+  [...menu().querySelectorAll<HTMLDialogElement>("dialog")].find(
+    (dialog) => dialog.querySelector("h2")?.textContent === "Activity",
+  ) ?? null;
 const label = () => menu().querySelector<HTMLSpanElement>(".workspace-account-label")!;
 const sessionCalls = () => fetcher.mock.calls.filter(([path]) => path === "/api/session");
 
@@ -161,7 +166,7 @@ describe("project account and activity controls", () => {
     expect(host.querySelector(".workspace-avatar")).toBeNull();
     expect(menu().querySelector('[aria-label="Account actions"]')).not.toBeNull();
     expect(menu().textContent).toContain("Account settings");
-    expect(menu().textContent).toContain("Generation activity");
+    expect(activityButton()?.getAttribute("aria-haspopup")).toBe("dialog");
     expect(summary().getAttribute("aria-label")).toBe("Account menu");
     expect(summary().getAttribute("aria-busy")).toBe("false");
     // A verified owner has no manual connection check; routine checks run on their own.
@@ -270,7 +275,7 @@ describe("project account and activity controls", () => {
     await render();
     await act(async () => summary().click());
     await act(async () => activityButton()!.click());
-    const dialog = menu().querySelector<HTMLDialogElement>(".generation-activity-dialog")!;
+    const dialog = activityDialog()!;
     const close = dialog.querySelector<HTMLButtonElement>("header button")!;
     expect(dialog.open).toBe(true);
     expect(dialog.textContent).toContain(`Private activity for ${owner}`);
@@ -296,7 +301,7 @@ describe("project account and activity controls", () => {
     await act(async () => account.refresh());
     expect(host.textContent).not.toContain("Private");
     expect(activityButton()).toBeNull();
-    expect(menu().querySelector(".generation-activity-dialog")).toBeNull();
+    expect(activityDialog()).toBeNull();
     expect(label().textContent).toBe("Checking account…");
 
     currentOwner = other;
