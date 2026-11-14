@@ -143,33 +143,12 @@
   font-weight: 500;
 }
 .project-dock-heading p,
-.project-dock-note,
 .project-dock-chat p {
   color: var(--secondary);
   font-size: 12px;
   line-height: 20px;
   margin-top: 8px;
   overflow-wrap: anywhere;
-}
-.project-dock-note {
-  margin-bottom: 20px;
-}
-.project-workbench-tabs {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin: 20px 0;
-}
-.project-workbench-tabs button {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  min-height: 34px;
-  padding: 6px 12px;
-  font-size: 13px;
-}
-.project-workbench-tabs [aria-pressed="true"] {
-  background: #f1f0ee;
 }
 .project-strategy-workspace {
   height: 100%;
@@ -490,40 +469,6 @@
   cursor: pointer;
   padding-block: 8px;
 }
-.identity-references-page.project-workbench .identity-references-heading h1 {
-  font-size: 24px;
-}
-.identity-references-page.project-workbench .identity-reference-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-}
-.identity-references-page.project-workbench .identity-reference-card {
-  border-radius: 10px;
-}
-.identity-references-page.project-workbench .project-identity {
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-.identity-references-page.project-workbench .identity-transition {
-  margin: 0 0 20px;
-}
-.identity-references-page.project-workbench .identity-system-detail {
-  padding: 20px;
-  border-radius: 10px;
-}
-.project-references-saved > .project-dock {
-  display: none;
-}
-.project-references-saved > .project-workbench-canvas {
-  padding: 0;
-}
-.project-references-saved > .project-workbench-canvas > :is(header, .project-workbench-tabs) {
-  margin-inline: 24px;
-}
-.project-references-saved > .project-workbench-canvas > header {
-  padding-top: 24px;
-}
 .project-systems-workspace > .project-workbench-canvas {
   padding-top: 0;
 }
@@ -601,9 +546,6 @@
   .project-workbench-canvas {
     padding: 20px;
   }
-  .identity-references-page.project-workbench .identity-reference-grid {
-    grid-template-columns: 1fr;
-  }
 }
 @media (max-width: 760px) {
   .project-systems-workspace > .project-dock {
@@ -657,9 +599,6 @@
   .project-strategy-workspace .conversation-widget-heading > .text-link {
     margin-left: auto;
   }
-  .identity-references-page.project-workbench .identity-reference-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
   .project-workbench :is(button, .button, summary) {
     min-height: 44px;
   }
@@ -668,7 +607,6 @@
   .project-personality-traits > div {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .identity-references-page.project-workbench .identity-reference-grid,
   .project-logo-creation [class*="concepts"] {
     grid-template-columns: 1fr;
   }
