@@ -1,0 +1,4 @@
+/* What the design system leaves to the app: the Embel mark used by `.e-mark`. */
+:root {
+  --embel-mark: url("/embel-mark.svg");
+}
