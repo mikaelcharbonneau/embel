@@ -256,7 +256,16 @@ export function Workspace({
               onClick={() => setHidden(true)}
             />
           </div>
-          <div className="e-workspace__log" role="log" aria-label="Conversation" aria-live="polite" tabIndex={0}>
+          {/* The log announces new messages only. A status inside it (thinking, progress) is its own live region, so
+              its changes are announced once, by that region, and never a second time by the log. */}
+          <div
+            className="e-workspace__log"
+            role="log"
+            aria-label="Conversation"
+            aria-live="polite"
+            aria-relevant="additions"
+            tabIndex={0}
+          >
             <div className="e-workspace__thread">{log}</div>
           </div>
           <div className="e-workspace__reply">{reply}</div>

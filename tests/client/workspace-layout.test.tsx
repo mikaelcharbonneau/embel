@@ -106,6 +106,17 @@ describe("Workspace", () => {
     vi.restoreAllMocks();
   });
 
+  it("keeps the live log to the chat and announces only new messages, never the work area", async () => {
+    await render();
+    const logs = host.querySelectorAll('[role="log"]');
+    expect(logs).toHaveLength(1);
+    const log = logs[0]!;
+    expect(log.getAttribute("aria-relevant")).toBe("additions");
+    expect(log.closest('section[aria-label="Chat"]')).not.toBeNull();
+    expect(log.contains(host.querySelector("[data-width]"))).toBe(false);
+    expect(host.querySelectorAll("[aria-live]")).toHaveLength(1);
+  });
+
   it("is one column below 1024 px: nothing to hide or resize", async () => {
     wide = false;
     await render();
