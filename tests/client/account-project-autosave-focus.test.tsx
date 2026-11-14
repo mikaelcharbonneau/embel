@@ -53,7 +53,7 @@ async function mount() {
   await act(async () => vi.advanceTimersByTimeAsync(0));
   expect(account.session.status).toBe("ready");
   await act(async () =>
-    host.querySelector<HTMLButtonElement>('.guided-brief-editor > button[aria-haspopup="dialog"]')!.click(),
+    host.querySelector<HTMLButtonElement>('.guided-brief-editor button[aria-haspopup="dialog"]')!.click(),
   );
 }
 function field(label: string) {

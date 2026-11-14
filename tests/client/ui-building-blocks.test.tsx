@@ -106,6 +106,16 @@ describe("TextField", () => {
     expect(host.querySelector("input")!.type).toBe("text");
     expect(host.querySelector("button")!.getAttribute("aria-label")).toBe("Hide password");
   });
+
+  it("shows a search field's clear button only while it has text", async () => {
+    const clear = vi.fn();
+    await render(<TextField label="Search" type="search" value="" onChange={() => {}} onClear={clear} />);
+    expect(host.querySelector('button[aria-label="Clear search"]')).toBeNull();
+    await render(<TextField label="Search" type="search" value="kestrel" onChange={() => {}} onClear={clear} />);
+    await press(host.querySelector('button[aria-label="Clear search"]'));
+    expect(clear).toHaveBeenCalledOnce();
+    expect(host.querySelector("input")!.hasAttribute("onclear")).toBe(false);
+  });
 });
 
 describe("InlineMessage", () => {
@@ -161,6 +171,27 @@ describe("Dialog", () => {
     await press(host.querySelector('dialog button[aria-label="Close"]'));
     expect(host.querySelector("dialog")).not.toBeNull();
   });
+
+  it("keeps a badge beside the title out of its name and puts header actions before Close", async () => {
+    const favorite = vi.fn();
+    await render(
+      <Dialog
+        title="Kestrel Analytics"
+        size="xl"
+        aside={<span className="e-badge">Your name</span>}
+        actions={<IconButton icon="heart" label="Favorite Kestrel Analytics" tooltip={false} onClick={favorite} />}
+        onClose={() => {}}
+      />,
+    );
+    const dialog = host.querySelector("dialog")!;
+    expect(dialog.className).toContain("e-dialog--xl");
+    expect(document.getElementById(dialog.getAttribute("aria-labelledby")!)?.textContent).toBe("Kestrel Analytics");
+    expect(dialog.querySelector("header")!.textContent).toContain("Your name");
+    const headerButtons = [...dialog.querySelectorAll("header button")].map((b) => b.getAttribute("aria-label"));
+    expect(headerButtons).toEqual(["Favorite Kestrel Analytics", "Close"]);
+    await press(dialog.querySelector('button[aria-label="Favorite Kestrel Analytics"]'));
+    expect(favorite).toHaveBeenCalledOnce();
+  });
 });
 
 describe("Menu", () => {
@@ -196,6 +227,38 @@ describe("Menu", () => {
     await press(host.querySelector('[role="menuitem"]'));
     expect(rename).toHaveBeenCalledOnce();
     expect(remove).not.toHaveBeenCalled();
+  });
+});
+
+describe("Menu dismissal", () => {
+  it("closes on a press outside and keeps that press, click included, from reaching what is underneath", async () => {
+    const underneath = vi.fn();
+    await render(
+      <>
+        <Menu
+          trigger={(props) => (
+            <button type="button" {...props}>
+              Options
+            </button>
+          )}
+          items={[{ kind: "action", label: "Rename", onSelect: () => {} }]}
+        />
+        <button type="button" onClick={underneath}>
+          Underneath
+        </button>
+      </>,
+    );
+    const [trigger, outside] = [...host.querySelectorAll("button")];
+    await press(trigger!);
+    expect(trigger!.getAttribute("aria-expanded")).toBe("true");
+    await act(async () => {
+      outside!.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
+      outside!.click();
+    });
+    expect(trigger!.getAttribute("aria-expanded")).toBe("false");
+    expect(underneath).not.toHaveBeenCalled();
+    await press(outside!);
+    expect(underneath).toHaveBeenCalledOnce();
   });
 });
 
@@ -267,6 +330,13 @@ describe("Media frame and empty state", () => {
       "This preview is private.",
       "This concept couldn't be drawn.",
     ]);
+  });
+
+  it("tells its owner when a picture fails to load", async () => {
+    const failed = vi.fn();
+    await render(<MediaFrame src="blob:expired" alt="Logo concept 2" contain onImageError={failed} />);
+    await act(async () => host.querySelector("img")!.dispatchEvent(new Event("error")));
+    expect(failed).toHaveBeenCalledOnce();
   });
 
   it("gives an empty page one icon, a title, a sentence and one action", async () => {

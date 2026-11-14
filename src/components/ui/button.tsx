@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ComponentProps, ReactNode } from "react";
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ComponentProps, ReactNode, Ref } from "react";
 import { Icon, type IconName } from "./icon";
 
 /** primary: the one main action of a view; secondary: every other action; quiet: low emphasis beside a primary;
@@ -34,6 +34,7 @@ export function Spinner({ size = "sm", label }: { size?: "sm" | "md"; label?: st
 export type ButtonProps = Look &
   Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> & {
     children: ReactNode;
+    ref?: Ref<HTMLButtonElement>;
     /** Busy keeps the label and focus: the button stays enabled for focus but ignores presses. */
     loading?: boolean;
   };
@@ -134,6 +135,8 @@ export function IconButton({
 }: Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "aria-label" | "aria-pressed"> & {
   icon: IconName;
   label: string;
+  /** For a trigger that something else focuses, such as a Menu's. */
+  ref?: Ref<HTMLButtonElement>;
   variant?: IconButtonVariant;
   size?: "md" | "sm";
   /** Set for toggles (a heart, show password): pressed is an ink fill with a white icon. */

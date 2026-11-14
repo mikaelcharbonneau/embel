@@ -3,9 +3,12 @@ import { act, createElement, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  GuidedChoiceWidget,
-  ResearchLoadingScreen,
-  type GuidedChoiceWidgetProps,
+  FoldedAnswer,
+  GuidedChoices,
+  GuidedChoicesEmpty,
+  GuidedChoicesLoading,
+  selectedOptions,
+  type GuidedChoicesProps,
 } from "@/components/workspace/guided-interview-widgets";
 import type { GuidedOption, GuidedReply } from "@/domain/guided-interview";
 
@@ -86,33 +89,31 @@ function choices(option: GuidedOption, additional: GuidedOption[] = []): ChoiceR
 let host: HTMLDivElement;
 let root: Root;
 const onSelectionChange = vi.fn<(ids: string[]) => void>();
-const onContinue = vi.fn();
 function Harness({ reply, initialSelectedIds = [] }: { reply: ChoiceReply; initialSelectedIds?: string[] }) {
   const [selectedIds, setSelectedIds] = useState(initialSelectedIds);
   return (
-    <GuidedChoiceWidget
+    <GuidedChoices
       reply={reply}
       selectedIds={selectedIds}
       onSelectionChange={(ids) => {
         onSelectionChange(ids);
         setSelectedIds(ids);
       }}
-      onContinue={onContinue}
     />
   );
 }
-async function render(reply = choices(competitor), props: Partial<GuidedChoiceWidgetProps> = {}) {
+async function render(reply = choices(competitor), props: Partial<GuidedChoicesProps> = {}) {
   await act(async () =>
-    root.render(createElement(GuidedChoiceWidget, { reply, selectedIds: [], onSelectionChange, onContinue, ...props })),
+    root.render(createElement(GuidedChoices, { reply, selectedIds: [], onSelectionChange, ...props })),
   );
 }
+/** Decision 2: no step offers its own Continue; Send in the reply box moves on. */
 function continueButton() {
-  return [...host.querySelectorAll("button")].find((button) => button.textContent === "Continue")!;
+  return [...host.querySelectorAll("button")].find((button) => /^Continue/u.test(button.textContent ?? ""));
 }
 beforeEach(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   onSelectionChange.mockReset();
-  onContinue.mockReset();
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
@@ -134,16 +135,14 @@ describe("guided interview choice controls", () => {
     };
     await render(choices(competitor, [other]));
     expect(
-      [...host.querySelectorAll(".guided-choice-recommended")].map(
-        (badge) => badge.closest(".guided-choice-card")?.textContent,
-      ),
+      [...host.querySelectorAll(".guided-option__recommended")].map((badge) => badge.closest(".e-choice")?.textContent),
     ).toEqual([expect.stringContaining("Fixture Studio")]);
     // Competitor cards stay compact: the recommendation reason is not repeated in a box.
     expect(host.textContent).not.toContain(competitor.recommendationReason);
     expect(host.querySelector<HTMLInputElement>("input")?.checked).toBe(false);
-    expect(continueButton().disabled).toBe(true);
+    expect(continueButton()).toBeUndefined();
+    expect(host.textContent).toContain("0 selected. Choose at least one competitor to continue.");
     expect(onSelectionChange).not.toHaveBeenCalled();
-    expect(onContinue).not.toHaveBeenCalled();
     expect(host.querySelector("textarea")).toBeNull();
   });
 
@@ -153,13 +152,13 @@ describe("guided interview choice controls", () => {
       payload: { ...competitor.payload, relevance: "Synthetic competitor description for this local test." },
     };
     await render(choices(repeated));
-    expect(host.querySelector(".guided-choice-recommended")).toBeNull();
+    expect(host.querySelector(".guided-option__recommended")).toBeNull();
     expect(host.textContent).not.toContain("Why it matters");
     await render(choices(competitor));
     expect(host.textContent).toContain("Why it matters");
   });
 
-  it("keeps multi-select choices editable until Continue explicitly confirms them", async () => {
+  it("keeps multi-select choices editable; choosing never confirms them", async () => {
     const second: GuidedOption = {
       ...audience,
       id: "33333333-3333-4333-8333-333333333333",
@@ -173,12 +172,11 @@ describe("guided interview choice controls", () => {
     await act(async () => inputs[0]!.click());
     await act(async () => inputs[1]!.click());
     expect(onSelectionChange).toHaveBeenLastCalledWith([audience.id, second.id]);
-    expect(onContinue).not.toHaveBeenCalled();
+    expect(host.textContent).toContain("2 selected");
     await act(async () => inputs[0]!.click());
     expect(onSelectionChange).toHaveBeenLastCalledWith([second.id]);
-    expect(continueButton().disabled).toBe(false);
-    await act(async () => continueButton().click());
-    expect(onContinue).toHaveBeenCalledTimes(1);
+    expect(continueButton()).toBeUndefined();
+    expect(host.textContent).toContain("Choose one or more, then press Send.");
   });
 
   it("uses one native radio group for personality and replaces the earlier selection", async () => {
@@ -198,7 +196,8 @@ describe("guided interview choice controls", () => {
     expect(onSelectionChange).toHaveBeenLastCalledWith([second.id]);
     expect(inputs[0]!.checked).toBe(false);
     expect(inputs[1]!.checked).toBe(true);
-    expect(onContinue).not.toHaveBeenCalled();
+    // The ring alone shows the choice (decision 3): no tick or radio mark is drawn.
+    expect(host.querySelector(".e-choice__mark")?.textContent).toBe("");
   });
 
   it("shows audience needs and fit, then personality expression and tone examples", async () => {
@@ -230,7 +229,6 @@ describe("guided interview choice controls", () => {
     }
     expect(host.querySelector<HTMLInputElement>("input")?.checked).toBe(false);
     expect(onSelectionChange).not.toHaveBeenCalled();
-    expect(onContinue).not.toHaveBeenCalled();
   });
 
   it("does not render unsafe provider URLs as links", async () => {
@@ -253,54 +251,65 @@ describe("guided interview choice controls", () => {
     const input = host.querySelector<HTMLInputElement>("input")!;
     expect(input.labels?.length).toBe(1);
     expect(document.getElementById(input.getAttribute("aria-labelledby")!)?.textContent).toBe(audience.label);
-    expect(document.getElementById(input.getAttribute("aria-describedby")!)?.textContent).toContain(
-      audience.description,
-    );
+    expect(
+      input
+        .getAttribute("aria-describedby")!
+        .split(" ")
+        .map((id) => document.getElementById(id)?.textContent)
+        .join(" "),
+    ).toContain(audience.description);
     expect(host.querySelector("legend")?.textContent).toBe("Who are you here for?");
     expect(input.disabled).toBe(true);
-    expect(continueButton().disabled).toBe(true);
     await act(async () => input.click());
     expect(onSelectionChange).not.toHaveBeenCalled();
   });
 
-  it("keeps prior answers revisitable without submitting or selecting anything", async () => {
-    const onRevisit = vi.fn();
-    await render(choices(audience), { answered: true, selectedIds: [audience.id], onRevisit });
-    expect(host.textContent).toContain(audience.label);
+  it("keeps prior answers revisitable from their folded entry without submitting or selecting anything", async () => {
+    const onEdit = vi.fn();
+    await act(async () =>
+      root.render(
+        <FoldedAnswer
+          label="Audience"
+          answers={[{ text: audience.label }]}
+          editName="Edit your answer: Who are you here for?"
+          onEdit={onEdit}
+        />,
+      ),
+    );
+    const folded = host.querySelector("details")!;
+    expect(folded.open).toBe(false);
+    expect(folded.querySelector("summary")!.textContent).toContain(audience.label);
     expect(host.querySelector("input")).toBeNull();
     expect(continueButton()).toBeUndefined();
     await act(async () => host.querySelector<HTMLButtonElement>("button")!.click());
-    expect(onRevisit).toHaveBeenCalledTimes(1);
-    expect(onContinue).not.toHaveBeenCalled();
+    expect(onEdit).toHaveBeenCalledTimes(1);
     expect(onSelectionChange).not.toHaveBeenCalled();
   });
 
   it("does not count stale selection IDs or fabricate empty researched options", async () => {
+    expect(selectedOptions(choices(competitor), [], ["an-option-from-another-turn"])).toEqual([]);
     await render(choices(competitor), { selectedIds: ["an-option-from-another-turn"] });
-    expect(continueButton().disabled).toBe(true);
+    expect(host.textContent).toContain("0 selected.");
     await render({ ...choices(competitor), options: [] });
     expect(host.querySelectorAll("input").length).toBe(0);
     expect(host.textContent).toContain("No options are available");
     expect(host.textContent).not.toContain("Fixture Studio");
-    expect(continueButton().disabled).toBe(true);
   });
 });
 
-describe("research loading screen", () => {
-  it("uses the approved logo and a live research message with an explicit cancellation action", async () => {
-    const onCancel = vi.fn();
-    await act(async () =>
-      root.render(<ResearchLoadingScreen message="Checking relevant brand sources." onCancel={onCancel} />),
-    );
-    expect(host.querySelector<HTMLImageElement>("img")?.getAttribute("src")).toBe("/embel-mark.svg");
-    expect(host.querySelector('[role="status"]')?.textContent).toContain("Checking relevant brand sources.");
-    expect(host.querySelector("svg")).toBeNull();
-    expect(onCancel).not.toHaveBeenCalled();
-    await act(async () => host.querySelector<HTMLButtonElement>("button")!.click());
-    expect(onCancel).toHaveBeenCalledTimes(1);
-    await act(async () => root.render(<ResearchLoadingScreen onCancel={onCancel} cancelPending />));
-    expect(host.querySelector<HTMLButtonElement>("button")?.disabled).toBe(true);
-    expect(host.textContent).toContain("Cancelling research…");
+describe("waiting and failed steps", () => {
+  it("shows skeletons in the final shape while options are written, with no percentage or Stop in the work", async () => {
+    await act(async () => root.render(<GuidedChoicesLoading stage="audience" />));
+    expect(host.querySelector('[role="status"][aria-busy="true"]')).not.toBeNull();
+    expect(host.querySelectorAll(".e-choice")).toHaveLength(3);
+    expect(host.querySelector("button")).toBeNull();
     expect(host.textContent).not.toMatch(/\d+\s?%|complete/i);
+  });
+
+  it("shows a quiet empty state with no button after a response did not finish", async () => {
+    await act(async () => root.render(<GuidedChoicesEmpty stage="competitors" title="Competitors" research />));
+    expect(host.textContent).toContain("No competitors yet");
+    expect(host.textContent).toContain("They appear here when the research finishes.");
+    expect(host.querySelector("button")).toBeNull();
   });
 });

@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { ButtonLink } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/feedback";
 import { useEffect, useState } from "react";
 import { AccountStatus, useAccountSession } from "./account-session";
 import { AccountCopyControl } from "./account-projects";
@@ -34,21 +35,32 @@ function OwnedRecovery({ ownerId, draftId }: { ownerId: string; draftId?: string
   if (!loaded) return <p role="status">Checking recovery availability…</p>;
   if (recovered)
     return (
-      <p>
-        This project is saved in your account.{" "}
-        <Link className="text-link" href={`/brands/account/${recovered.accountProjectId}`}>
-          Open project
-        </Link>
-      </p>
+      <EmptyState
+        icon="circle-check"
+        title="This project is saved in your account"
+        text="It was recovered from this device earlier. Open it to carry on."
+        action={
+          <ButtonLink variant="primary" href={`/brands/account/${recovered.accountProjectId}`} arrow>
+            Open project
+          </ButtonLink>
+        }
+      />
     );
   if (!pending.length)
     return draftId ? (
-      <p>
-        No unsaved project is available for this account.{" "}
-        <Link className="text-link" href="/brands">
-          Back to projects
-        </Link>
-      </p>
+      <EmptyState
+        title="No unsaved project to recover"
+        text={
+          storage === "invalid" || storage === "unavailable"
+            ? "Recovery data on this device could not be read. Your account projects remain available."
+            : "Nothing for this account is waiting on this device. Your saved projects are in Projects."
+        }
+        action={
+          <ButtonLink variant="primary" href="/brands" icon="arrow-left">
+            Back to projects
+          </ButtonLink>
+        }
+      />
     ) : storage === "invalid" || storage === "unavailable" ? (
       <p className="field-hint">
         Recovery data on this device could not be read. Your account projects remain available.

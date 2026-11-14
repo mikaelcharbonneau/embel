@@ -2,42 +2,51 @@
 
 import Link from "next/link";
 import { useRef, useState, type FormEvent } from "react";
-import { EmbelMark, Icon } from "@/components/ui/icon";
+import { Button } from "@/components/ui/button";
+import { InlineMessage } from "@/components/ui/message";
 import { requestPasswordResetEmail, resetEmailErrorMessage } from "./password-reset-request";
 import { readCaptcha, TurnstileWidget, type TurnstileHandle } from "./turnstile-widget";
-import "@/styles/auth.css";
+import { AuthCard } from "./auth-card";
+import { AuthField, fieldDescription } from "./auth-field";
 
 export function ForgotPasswordForm({ configured, overlay = false }: { configured: boolean; overlay?: boolean }) {
   const idPrefix = overlay ? "auth-overlay" : "auth-page";
+  const emailId = `${idPrefix}-reset-email`;
   const emailInput = useRef<HTMLInputElement>(null);
   const pending = useRef(false);
   const captcha = useRef<TurnstileHandle>(null);
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
-  const [error, setError] = useState("");
+  const [fieldError, setFieldError] = useState("");
+  const [formError, setFormError] = useState("");
   const disabled = !configured || submitting;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (disabled || pending.current) return;
     const email = emailInput.current?.value.trim() ?? "";
-    if (!email || email.length > 320) {
-      setError("Enter the email address you use for Embel.");
+    if (!email || email.length > 320 || emailInput.current?.validity.typeMismatch) {
+      setFormError("");
+      setFieldError(
+        email ? "Enter a valid email address, like name@example.com." : "Enter the email address you use for Embel.",
+      );
+      emailInput.current?.focus();
       return;
     }
     const check = readCaptcha(captcha.current);
     if (!check.ok) {
-      setError(check.message);
+      setFormError(check.message);
       return;
     }
-    setError("");
+    setFieldError("");
+    setFormError("");
     pending.current = true;
     setSubmitting(true);
     try {
       await requestPasswordResetEmail(email, check.token);
       setSent(true);
     } catch (failure) {
-      setError(resetEmailErrorMessage(failure));
+      setFormError(resetEmailErrorMessage(failure));
     } finally {
       pending.current = false;
       captcha.current?.reset();
@@ -46,92 +55,77 @@ export function ForgotPasswordForm({ configured, overlay = false }: { configured
   }
 
   return (
-    <div className={`auth-guided ${overlay ? "auth-guided-modal" : "page auth-guided-page"}`}>
-      <section className="auth-card" aria-labelledby={`${idPrefix}-title`}>
-        <header className="auth-guided-heading">
-          <EmbelMark />
-          <h1 id={`${idPrefix}-title`} tabIndex={-1}>
-            {sent ? "Check your email" : "Reset your password"}
-          </h1>
-          <p className="auth-intro">
-            {sent
-              ? "Use the link we sent to choose a new password."
-              : "Enter your email and we'll send you a link to choose a new password."}
-          </p>
-        </header>
-        {!configured && (
-          <div className="auth-unavailable" role="status">
-            <Icon name="offline" size={18} />
-            <p>Password reset is unavailable right now. Please try again shortly.</p>
-          </div>
-        )}
-        {sent ? (
-          <div className="auth-confirmation-note" role="status">
-            <p>
-              If an account uses this address, a reset link will arrive shortly. Open it in this browser. The link works
-              once and expires after a short time. Check your spam folder too.
-            </p>
-            <button type="button" className="text-link auth-resend-toggle" onClick={() => setSent(false)}>
-              Send another link
-            </button>
-          </div>
-        ) : (
-          <form
-            method="post"
-            action="/api/auth/password-reset"
-            onSubmit={submit}
-            aria-label="Request a password reset link"
-            aria-busy={submitting}
-          >
-            <fieldset disabled={disabled}>
-              <label className="auth-field" htmlFor={`${idPrefix}-reset-email`}>
-                Email
-                <input
-                  ref={emailInput}
-                  id={`${idPrefix}-reset-email`}
-                  name="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  autoComplete="username"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  maxLength={320}
-                  required
-                  onChange={() => setError("")}
-                  aria-describedby={error ? `${idPrefix}-error` : undefined}
-                />
-              </label>
-              <TurnstileWidget handleRef={captcha} />
-              <button type="submit" className="button primary auth-submit">
-                {submitting ? "Sending link…" : "Send reset link"}
-                {submitting ? (
-                  <span className="auth-progress" aria-hidden="true" />
-                ) : (
-                  <Icon name="arrow-right" size="sm" />
-                )}
-              </button>
-            </fieldset>
-            {error && (
-              <p className="form-error" id={`${idPrefix}-error`} role="alert">
-                {error}
-              </p>
+    <AuthCard
+      overlay={overlay}
+      titleId={`${idPrefix}-title`}
+      title={sent ? "Check your email" : "Reset your password"}
+      intro={
+        sent
+          ? "Use the link we sent to choose a new password."
+          : "Enter your email and we'll send you a link to choose a new password."
+      }
+    >
+      {!configured && <InlineMessage>Password reset is unavailable right now. Please try again shortly.</InlineMessage>}
+      {sent ? (
+        <>
+          <InlineMessage tone="positive">
+            If an account uses this address, a reset link will arrive shortly. Open it in this browser. The link works
+            once and expires after a short time. Check your spam folder too.
+          </InlineMessage>
+          <button type="button" className="e-link auth-card__action" onClick={() => setSent(false)}>
+            Send another link
+          </button>
+        </>
+      ) : (
+        <form
+          className="auth-form"
+          method="post"
+          action="/api/auth/password-reset"
+          onSubmit={submit}
+          noValidate
+          aria-label="Request a password reset link"
+          aria-busy={submitting}
+        >
+          <fieldset className="auth-form__fields" disabled={!configured}>
+            <AuthField id={emailId} label="Email" error={fieldError}>
+              <input
+                ref={emailInput}
+                id={emailId}
+                name="email"
+                type="email"
+                placeholder="you@example.com"
+                autoComplete="username"
+                autoCapitalize="none"
+                spellCheck={false}
+                maxLength={320}
+                required
+                readOnly={submitting}
+                {...fieldDescription(emailId, { error: fieldError })}
+                onChange={() => {
+                  setFieldError("");
+                  setFormError("");
+                }}
+              />
+            </AuthField>
+            <TurnstileWidget handleRef={captcha} />
+            {formError && (
+              <InlineMessage id={`${idPrefix}-error`} tone="danger">
+                {formError}
+              </InlineMessage>
             )}
-          </form>
-        )}
-        <p className="auth-mode-switch">
-          Remembered it?{" "}
-          <Link className="text-link" href="/sign-in" replace={overlay}>
-            Sign in
-          </Link>
-        </p>
-      </section>
-      <div className="auth-guided-browser">
-        <Link className="auth-browser-link text-link" href="/">
-          Return to Home
-          <Icon name="arrow-right" size="sm" />
+            <Button type="submit" variant="primary" block loading={submitting}>
+              Send reset link
+            </Button>
+          </fieldset>
+        </form>
+      )}
+      <p className="auth-card__switch">
+        Remembered it?{" "}
+        <Link className="e-link" href="/sign-in" replace={overlay}>
+          Sign in
         </Link>
-      </div>
-    </div>
+      </p>
+    </AuthCard>
   );
 }
 

@@ -333,7 +333,7 @@ const openPrimary = (page: Page) =>
   page.getByRole("button", { name: "Open Primary mark from Morrow Works", exact: true });
 async function ready(page: Page) {
   await page.goto("/assets");
-  await expect(page.getByRole("tab", { name: "Kept assets", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "In your brands", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(openPrimary(page)).toBeVisible();
 }
 
@@ -344,7 +344,7 @@ test("assets fixture: default union deduplicates liked, saved, used and legacy u
   await expect(page.getByText("Used in brand", { exact: true })).toHaveCount(2);
   await expect(page.getByText("Legacy use", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Open Exploration from Morrow Works" })).toHaveCount(0);
-  await page.getByRole("tab", { name: "All generations", exact: true }).click();
+  await page.getByRole("tab", { name: "Everything made", exact: true }).click();
   await expect(page.getByRole("article")).toHaveCount(6);
   await expect(page.getByRole("button", { name: "Open Exploration from Morrow Works" })).toBeVisible();
   await expect(page.locator(".assets-generation-note")).toHaveCount(0);
@@ -612,9 +612,9 @@ test("assets fixture: drawer keyboard focus, close return and responsive overflo
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(openPrimary(page)).toBeFocused();
-  await page.getByRole("tab", { name: "Kept assets", exact: true }).focus();
+  await page.getByRole("tab", { name: "In your brands", exact: true }).focus();
   await page.keyboard.press("ArrowRight");
-  await expect(page.getByRole("tab", { name: "All generations", exact: true })).toHaveAttribute(
+  await expect(page.getByRole("tab", { name: "Everything made", exact: true })).toHaveAttribute(
     "aria-selected",
     "true",
   );
@@ -640,7 +640,7 @@ test("assets fixture: long names stay within the library and detail viewport", a
 test("assets fixture: capture stable library and drawer evidence", async ({ page }, info) => {
   await setup(page);
   await ready(page);
-  await page.getByRole("heading", { name: "Your visual library.", exact: true }).focus();
+  await page.getByRole("heading", { name: "Library", exact: true }).focus();
   await page.evaluate(() => scrollTo(0, 0));
   await mkdir(".tmp/identity-assets/ui-evidence", { recursive: true });
   await page.screenshot({
@@ -732,7 +732,7 @@ test("assets fixture: removing the last retention flag preserves all generations
   await actions(page, "Primary mark", "Morrow Works");
   await page.getByRole("button", { name: "Unlike Primary mark from Morrow Works", exact: true }).click();
   await expect(openPrimary(page)).toHaveCount(0);
-  await page.getByRole("tab", { name: "All generations", exact: true }).click();
+  await page.getByRole("tab", { name: "Everything made", exact: true }).click();
   await expect(openPrimary(page)).toBeVisible();
 });
 test("assets fixture: two tabs restore concurrently and the losing choice can be reviewed", async ({
@@ -795,9 +795,9 @@ test("assets design: keyboard tabs preserve project and format filters", async (
   await ready(page);
   await page.getByRole("combobox", { name: "Project", exact: true }).selectOption(id(3));
   await page.getByRole("combobox", { name: "File type" }).selectOption("svg");
-  await page.getByRole("tab", { name: "Kept assets" }).focus();
+  await page.getByRole("tab", { name: "In your brands" }).focus();
   await page.keyboard.press("End");
-  await expect(page.getByRole("tab", { name: "All generations" })).toBeFocused();
+  await expect(page.getByRole("tab", { name: "Everything made" })).toBeFocused();
   await expect(page.getByRole("combobox", { name: "Project", exact: true })).toHaveValue(id(3));
   await expect(page.getByRole("combobox", { name: "File type" })).toHaveValue("svg");
   await expect(page.getByRole("article")).toHaveCount(3);
@@ -806,7 +806,7 @@ test("assets design: keyboard tabs preserve project and format filters", async (
 test("assets design: native artwork and compact responsive card geometry", async ({ page }, info) => {
   await setup(page);
   await ready(page);
-  await page.getByRole("tab", { name: "All generations" }).click();
+  await page.getByRole("tab", { name: "Everything made" }).click();
   await expect(page.getByRole("article")).toHaveCount(6);
   const desktop = info.project.name === "desktop";
   const expected = { filter: 17, open: 14 };
@@ -907,7 +907,7 @@ for (const field of ["liked", "saved"] as const)
     const fixture = await setup(page);
     fixture.pageSize = 2;
     await page.goto("/assets");
-    await page.getByRole("tab", { name: "All generations", exact: true }).click();
+    await page.getByRole("tab", { name: "Everything made", exact: true }).click();
     await expect(page.getByRole("article")).toHaveCount(2);
     await page.getByRole("button", { name: "Load more assets", exact: true }).click();
     await expect(page.getByRole("article")).toHaveCount(4);

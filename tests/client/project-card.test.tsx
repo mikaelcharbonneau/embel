@@ -50,6 +50,12 @@ const project = (): LifecycleProject => ({
   deletion_requested_at: null,
   deletion_state: "active",
 });
+/** The card's one link: named by the project's name and described by its step sentence. */
+function link() {
+  const element = host.querySelector("a")!;
+  const description = document.getElementById(element.getAttribute("aria-describedby") ?? "")?.textContent;
+  return { name: element.getAttribute("aria-label") ?? element.textContent, description };
+}
 const receipt = syntheticLogoBatch().slots[0]!.acceptedPreview!;
 type Preview = { url: string; release: ReturnType<typeof vi.fn> };
 function client() {
@@ -74,7 +80,6 @@ async function render(value = project(), props: Partial<Parameters<typeof Projec
       <ProjectCard
         project={value}
         account={account}
-        date="Created Oct 20, 2026"
         actions={<button type="button">Project options</button>}
         {...props}
       />,
@@ -157,26 +162,23 @@ describe("shared Home and Projects card", () => {
     expect(host.textContent).not.toMatch(/Untitled brand|Open project|Saved project/);
   });
 
-  it("shows the first words of the idea and a quiet label when no logo is chosen", async () => {
+  it("sets the name in type in the picture area when no logo is chosen", async () => {
     mock.project.mockResolvedValue({
-      project: {
-        ...project(),
-        context: { selectedName: null, description: "  A tea subscription\nfor   night-shift nurses  " },
-      },
+      project: { ...project(), title: "Bike repair, Montreal", context: { selectedName: null } },
     });
     mock.read.mockResolvedValue({ name: null, receipt: null });
-    await render();
+    await render({ ...project(), title: "Bike repair, Montreal" });
     const preview = host.querySelector('[data-project-preview="placeholder"]')!;
-    expect(preview.querySelector("p")?.textContent).toBe("A tea subscription for night-shift nurses");
-    expect(preview.textContent).toContain("No logo yet");
+    expect(preview.textContent).toBe("Bike repair, Montreal");
+    expect(preview.querySelector('[aria-hidden="true"]')).not.toBeNull();
+    expect(host.querySelector("img")).toBeNull();
+    expect(host.textContent).not.toContain("No logo yet");
     expect(host.querySelector("article")?.hasAttribute("aria-busy")).toBe(false);
   });
 
   it("gives its actions the name it shows", async () => {
     const actions = vi.fn((name: string) => <button type="button">{`Project options for ${name}`}</button>);
-    await act(async () =>
-      root.render(<ProjectCard project={project()} account={account} date="Today" actions={actions} />),
-    );
+    await act(async () => root.render(<ProjectCard project={project()} account={account} actions={actions} />));
     await settle();
     expect(host.querySelector("button")?.textContent).toBe("Project options for Persimmon");
   });
@@ -194,13 +196,45 @@ describe("shared Home and Projects card", () => {
     await settle();
     expect(host.querySelector("h2")?.textContent).toBe("Persimmon");
     expect(host.textContent).not.toContain("Logo brief:");
-    expect(host.querySelector("a")?.getAttribute("aria-label")).toBe("View brand kit · Persimmon");
+    expect(link()).toEqual({ name: "Persimmon", description: "Brand kit ready" });
     expect(host.querySelector("img")?.getAttribute("alt")).toBe("Saved selected logo for Persimmon");
     expect(host.querySelector("a")?.getAttribute("href")).toBe(`/brands/account/${id(2)}/logo/deliverables`);
     expect(host.querySelector("a button")).toBeNull();
     expect(host.querySelector("button")?.textContent).toBe("Project options");
+    expect(host.querySelector("h2 > a")).toBe(host.querySelector("a"));
     await render(project(), { headingLevel: 3 });
     expect(host.querySelector("h3")?.textContent).toBe("Persimmon");
+  });
+
+  it("marks a ready brand kit as all four steps complete", async () => {
+    await render();
+    await settle();
+    const mark = host.querySelector(".e-journey")!;
+    expect(mark.getAttribute("role")).toBe("img");
+    expect(mark.getAttribute("aria-label")).toBe("All 4 steps complete");
+    expect([...mark.children].map((step) => step.getAttribute("data-state"))).toEqual([
+      "complete",
+      "complete",
+      "complete",
+      "complete",
+    ]);
+    expect(host.textContent).toContain("Brand kit ready");
+  });
+
+  it("marks the verified next step as current and writes it beside the mark", async () => {
+    mock.action.mockResolvedValue({ label: "Choose a logo", href: `/brands/account/${id(2)}/logo` });
+    await render();
+    await settle();
+    const mark = host.querySelector(".e-journey")!;
+    expect(mark.getAttribute("aria-label")).toBe("Step 3 of 4: Identity");
+    expect([...mark.children].map((step) => step.getAttribute("data-state"))).toEqual([
+      "complete",
+      "complete",
+      "current",
+      "upcoming",
+    ]);
+    expect(mark.nextElementSibling?.textContent).toBe("Choose a logo");
+    expect(link()).toEqual({ name: "Persimmon", description: "Choose a logo" });
   });
 
   it("keeps an equivalent snapshot's mounted image and avoids repeat private reads", async () => {
@@ -221,8 +255,12 @@ describe("shared Home and Projects card", () => {
     await settle();
     expect(host.querySelector("h2")?.getAttribute("title")).toBe(title);
     expect(host.querySelector("h2")?.textContent).toBe(title);
-    expect(host.querySelector("a")?.getAttribute("aria-label")).toBe(`View brand kit · ${title}`);
-    expect(host.querySelector("h2")?.parentElement?.querySelector("span")?.textContent).toBe("Created Oct 20, 2026");
+    expect(link()).toEqual({ name: title, description: "Brand kit ready" });
+    const created = host.querySelector("time")!;
+    expect(created.getAttribute("datetime")).toBe("2026-10-20T00:00:00Z");
+    expect(created.textContent).toMatch(/^Created /);
+    expect(created.getAttribute("title")).toMatch(/2026/);
+    expect(created.getAttribute("title")).not.toBe("2026-10-20T00:00:00Z");
   });
 
   it("uses honest empty and unavailable states without inventing a logo", async () => {
@@ -230,7 +268,7 @@ describe("shared Home and Projects card", () => {
     mock.read.mockResolvedValue({ name: null, receipt: null });
     await render();
     expect(host.querySelector("img")).toBeNull();
-    expect(host.textContent).toContain("No logo yet");
+    expect(host.querySelector('[data-project-preview="placeholder"]')?.textContent).toBe("Untitled brand");
     expect(source.previewAsset).not.toHaveBeenCalled();
     mock.project.mockResolvedValue({ project: { ...project(), current_revision: 2, context: { selectedName: null } } });
     mock.read.mockRejectedValue(new Error("Preview not readable"));
@@ -246,7 +284,9 @@ describe("shared Home and Projects card", () => {
     await settle();
     expect(host.querySelector("img")).not.toBeNull();
     expect(host.querySelector("a")?.getAttribute("href")).toBe(`/brands/account/${id(2)}`);
-    expect(host.querySelector("a")?.getAttribute("aria-label")).toBe("Open project · Persimmon");
+    expect(link()).toEqual({ name: "Persimmon", description: "Open project" });
+    expect(host.querySelector(".e-journey")).toBeNull();
+    expect(host.textContent).toContain("Open project");
   });
 
   it("links back to unsaved Strategy edits until the draft is clean", async () => {
@@ -273,6 +313,8 @@ describe("shared Home and Projects card", () => {
     expect(mock.createClient).not.toHaveBeenCalled();
     expect(host.querySelector("a")).toBeNull();
     expect(host.textContent).toContain("Deleted project retained");
+    expect(host.querySelector(".project-footer > time")?.textContent).toMatch(/^Deleted /);
+    expect(host.querySelector(".project-footer > time")?.getAttribute("datetime")).toBe("2026-10-20T01:00:00Z");
     expect(host.querySelector("button")).not.toBeNull();
   });
 
@@ -329,13 +371,7 @@ describe("shared Home and Projects card", () => {
       root.render(
         <>
           {[2, 3, 4, 5].map((value) => (
-            <ProjectCard
-              key={value}
-              project={{ ...project(), id: id(value) }}
-              account={account}
-              date="Created today"
-              actions={null}
-            />
+            <ProjectCard key={value} project={{ ...project(), id: id(value) }} account={account} actions={null} />
           ))}
         </>,
       ),

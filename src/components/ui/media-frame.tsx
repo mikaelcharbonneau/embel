@@ -21,6 +21,7 @@ export function MediaFrame({
   status,
   failedText = "This image couldn't be shown.",
   className,
+  onImageError,
   children,
 }: {
   ratio?: MediaRatio;
@@ -37,6 +38,8 @@ export function MediaFrame({
   status?: string;
   failedText?: string;
   className?: string;
+  /** The picture failed to load (an expired private link): the owner shows the failed state instead. */
+  onImageError?: () => void;
   /** Controls drawn on the image, such as an on-artwork Enlarge button. */
   children?: ReactNode;
 }) {
@@ -76,7 +79,7 @@ export function MediaFrame({
     );
   return (
     <div className={classes}>
-      <img src={src} alt={alt ?? ""} />
+      <img src={src} alt={alt ?? ""} onError={onImageError} />
       {children}
     </div>
   );
