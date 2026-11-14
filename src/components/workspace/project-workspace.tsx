@@ -13,6 +13,7 @@ import {
 } from "react";
 import { z } from "zod";
 import { accountProjectResponseSchema } from "@/domain/project-api";
+import { contextDisplayName } from "@/domain/projects";
 import {
   getProjectHandoff,
   projectEvidenceStatus,
@@ -186,7 +187,7 @@ function OwnedProjectShell({
     project
       ? {
           projectId,
-          projectName: project.context.selectedName?.trim() || project.title,
+          projectName: contextDisplayName(project.context) || project.title,
           steps: conversationJourney(
             projectJourney({ projectId, pathname, nextHref, shown: conversation?.reached ?? null }),
             conversation,

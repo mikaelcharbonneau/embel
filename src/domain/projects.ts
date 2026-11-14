@@ -178,6 +178,8 @@ export const contextSnapshotSchema = z
     personality: personalitySchema.nullable().default(null),
     positioning: z.string().trim().max(5000).default(""),
     selectedName: z.string().trim().max(200).nullable().default(null),
+    // The name the person gave the project with Rename; cards and the project bar show it before the brand name.
+    displayName: z.string().trim().min(1).max(160).optional(),
     // Original standalone source, retained when a later explicit name edit changes selectedName.
     namingSource: namingSourceSchema.optional(),
     creativeLocale: z.string().trim().min(2).max(30).default("en"),
@@ -242,6 +244,16 @@ export const contextSnapshotSchema = z
     }
   });
 export type ContextSnapshot = z.infer<typeof contextSnapshotSchema>;
+
+/** The name people see for a project on cards, lists and the project bar: the name they gave it with Rename, else
+ * the chosen brand name, else nothing (callers fall back to the saved title). Exports and the brand kit keep using
+ * the chosen brand name. */
+export function contextDisplayName(context: {
+  displayName?: string | null;
+  selectedName?: string | null;
+}): string | null {
+  return context.displayName?.trim() || context.selectedName?.trim() || null;
+}
 
 const originSchema = z.strictObject({
   kind: standaloneKindSchema,

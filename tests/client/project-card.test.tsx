@@ -183,6 +183,51 @@ describe("shared Home and Projects card", () => {
     expect(host.querySelector("button")?.textContent).toBe("Project options for Persimmon");
   });
 
+  it("shows the name given with Rename before the chosen brand name", async () => {
+    mock.project.mockResolvedValue({
+      project: { ...project(), context: { selectedName: "Persimmon", displayName: "Spring launch" } },
+    });
+    await render();
+    await settle();
+    expect(host.querySelector("h2")?.textContent).toBe("Spring launch");
+    // The picture keeps naming the brand: the logo belongs to the chosen brand name.
+    expect(host.querySelector("img")?.getAttribute("alt")).toBe("Saved selected logo for Persimmon");
+  });
+
+  it("shows a rename at once under the new revision without replacing its menu", async () => {
+    let rename: ((name: string, revision: number) => void) | null = null;
+    const actions = (name: string, card: { renamed: (name: string, revision: number) => void }) => {
+      rename = card.renamed;
+      return <button type="button">{`Project options for ${name}`}</button>;
+    };
+    await render(project(), { actions });
+    await settle();
+    const menu = host.querySelector("button")!;
+    expect(host.querySelector("h2")?.textContent).toBe("Persimmon");
+    mock.project.mockImplementation((path: string) =>
+      Promise.resolve({
+        project: {
+          ...currentProject,
+          id: path.split("/").pop(),
+          context: { selectedName: "Persimmon", displayName: "Spring launch" },
+        },
+      }),
+    );
+    await act(async () => {
+      rename!("Spring launch", 2);
+      currentProject = { ...project(), current_revision: 2 };
+      root.render(<ProjectCard project={currentProject} account={account} actions={actions} />);
+    });
+    expect(host.querySelector("article")?.textContent).toContain("Spring launch");
+    expect(host.querySelector("h2")?.textContent).toBe("Spring launch");
+    expect(host.querySelector("button")).toBe(menu);
+    expect(menu.textContent).toBe("Project options for Spring launch");
+    // The quiet read of the new revision confirms the name and brings the picture back.
+    await settle(1, "blob:saved-logo-2");
+    expect(host.querySelector("h2")?.textContent).toBe("Spring launch");
+    expect(host.querySelector("img")?.getAttribute("src")).toBe("blob:saved-logo-2");
+  });
+
   it("shows the saved listing at once when visibility cannot be observed", async () => {
     vi.stubGlobal("IntersectionObserver", undefined);
     await render();

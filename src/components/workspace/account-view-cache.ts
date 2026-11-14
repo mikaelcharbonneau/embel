@@ -62,6 +62,22 @@ export function createAccountViewCache() {
     delete(account: { userId: string; generation: number }, key: string) {
       if (inScope(account)) drop(keyFor(account, key));
     },
+    /** Moves the value kept under `from` to `to`, changed by `change`, together with what it holds (its release
+     * moves too, so nothing is freed early). Returns the moved value, or undefined when nothing was kept. */
+    move<T>(account: { userId: string; generation: number }, from: string, to: string, change: (value: T) => T) {
+      if (!inScope(account)) return undefined;
+      const source = keyFor(account, from);
+      const entry = entries.get(source);
+      if (!entry) return undefined;
+      entries.delete(source);
+      const target = keyFor(account, to);
+      const previous = entries.get(target);
+      const value = change(entry.value as T);
+      entries.delete(target);
+      entries.set(target, { value, release: entry.release });
+      if (previous?.release && previous.release !== entry.release) previous.release();
+      return value;
+    },
     /** Every kept value whose key starts with `prefix`, for updating lists that share a project. */
     update<T>(account: { userId: string; generation: number }, prefix: string, change: (value: T) => T) {
       if (!inScope(account)) return;

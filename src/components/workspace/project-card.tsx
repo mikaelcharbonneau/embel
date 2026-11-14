@@ -138,7 +138,7 @@ function JourneyProgress({
 /** Home and Projects share one card: the chosen logo (or the name set in type) on top, then the name, the options
  * menu, the journey mark with the next step, and when the project was created. The whole card is one link, named by
  * the project's name and described by its step sentence, that opens the project at its next step. `actions` may use
- * the shown name. */
+ * the shown name, and calls `renamed` once Rename has saved a new revision so the card shows it at once. */
 export function ProjectCard({
   project,
   account,
@@ -150,7 +150,7 @@ export function ProjectCard({
   project: LifecycleProject;
   account: VerifiedAccount;
   headingLevel?: 2 | 3;
-  actions: ReactNode | ((title: string) => ReactNode);
+  actions: ReactNode | ((title: string, card: { renamed: (name: string, revision: number) => void }) => ReactNode);
   deletionStatus?: ReactNode;
   /** Kept mounted but not shown (a search that does not match it), so showing it again needs no new read. */
   hidden?: boolean;
@@ -169,7 +169,7 @@ export function ProjectCard({
     },
     () => false,
   );
-  const { target, current, reading, preview, rejectImage } = useProjectCardPreview(
+  const { target, current, reading, preview, rejectImage, renamed } = useProjectCardPreview(
     account,
     project.id,
     project.current_revision,
@@ -193,7 +193,7 @@ export function ProjectCard({
       </article>
     );
 
-  const title = preview?.selectedName || project.title;
+  const title = preview?.displayName || project.title;
   const artworkPending = reading && preview?.status === "loading";
   const stepPending = reading && !recovering && !preview?.action && !preview?.settled;
   const action = recovering
@@ -203,7 +203,7 @@ export function ProjectCard({
   const progressHref = preview?.action?.href ?? null;
   const ready = !recovering && progressHref !== null && projectJourneyMark(project.id, progressHref)?.current === null;
   const Heading = headingLevel === 3 ? "h3" : "h2";
-  const menu = typeof actions === "function" ? actions(title) : actions;
+  const menu = typeof actions === "function" ? actions(title, { renamed }) : actions;
   const picture = artworkPending ? (
     <div className="e-card__media" aria-hidden="true">
       <Skeleton shape="block" className={styles.fill} />

@@ -433,6 +433,18 @@ state("projects", "delete-dialog-free", "audit-free", async (page) => {
   await page.getByRole("dialog").waitFor();
   await loaded(page);
 });
+// Opens Rename only; nothing is saved.
+state("projects", "rename-dialog-free", "audit-free", async (page) => {
+  await open(page, "audit-free", "/brands");
+  await page.getByRole("region", { name: "Projects" }).getByRole("article").first().waitFor({ timeout: 30_000 });
+  await page
+    .getByRole("button", { name: /^Project options for/u })
+    .first()
+    .click();
+  await page.getByRole("menuitem", { name: "Rename" }).click();
+  await page.getByRole("dialog", { name: "Rename project" }).waitFor();
+  await loaded(page);
+});
 state("projects", "loading-skeleton-free", "audit-free", async (page) => {
   await hold(page, "**/api/projects/page**");
   await hold(page, "**/api/projects?**");

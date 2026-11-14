@@ -8,7 +8,7 @@ import {
 } from "@/domain/job-activity";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
-import { projectDisplayName, readSelectedProjectNames } from "./project-display-names";
+import { projectDisplayName, readProjectDisplayNames } from "./project-display-names";
 
 const columns = "id,owner_id,project_id,operation,state,progress,created_at,finished_at";
 const storedJobSchema = z.object({
@@ -70,8 +70,8 @@ export async function listJobActivity(auth: AuthenticatedContext) {
     new Set(projects.map((row) => row.id)).size !== projects.length
   )
     throw new ApiError("integration_unavailable");
-  // Show the chosen brand name, as the project bar and cards do.
-  const names = await readSelectedProjectNames(auth, projects);
+  // Show the project's visible name, as the project bar and cards do.
+  const names = await readProjectDisplayNames(auth, projects);
   const titles = new Map(
     projects.map((row) => [row.id, projectDisplayName(row.title, names.get(row.id.toLowerCase()), 160)]),
   );
