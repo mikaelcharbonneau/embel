@@ -1,12 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { Icon, type IconName } from "./icon";
 
 export type MenuItem =
   | { kind: "action"; label: string; icon?: IconName; onSelect: () => void; danger?: boolean; disabled?: boolean }
-  | { kind: "link"; label: string; icon?: IconName; href: string }
+  | {
+      kind: "link";
+      label: string;
+      icon?: IconName;
+      href: string;
+      onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
+    }
   | { kind: "choice"; label: string; checked: boolean; onSelect: () => void }
   | { kind: "separator" }
   | { kind: "label"; label: string };
@@ -22,6 +37,7 @@ export function Menu({
   summary,
   align = "end",
   className,
+  closeOn,
 }: {
   /** Renders the trigger; spread the props onto a button. */
   trigger: (props: {
@@ -36,8 +52,15 @@ export function Menu({
   summary?: ReactNode;
   align?: "start" | "end";
   className?: string;
+  /** The menu closes whenever this value changes (pass the current page, so moving pages closes it). */
+  closeOn?: unknown;
 }) {
   const [open, setOpen] = useState(false);
+  const [closedFor, setClosedFor] = useState(closeOn);
+  if (closedFor !== closeOn) {
+    setClosedFor(closeOn);
+    setOpen(false);
+  }
   const id = useId();
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -130,7 +153,10 @@ export function Menu({
                   role="menuitem"
                   tabIndex={-1}
                   className="e-menu__item"
-                  onClick={() => setOpen(false)}
+                  onClick={(event) => {
+                    item.onClick?.(event);
+                    setOpen(false);
+                  }}
                 >
                   {item.icon ? <Icon name={item.icon} size="sm" /> : null}
                   {item.label}

@@ -21,23 +21,16 @@ import { useAccountSession, type VerifiedAccount } from "./account-session";
 import styles from "./generation-activity.module.css";
 
 /**
- * The clock button that opens Activity. `labeled` draws it as a menu row with its name. The account menu may
- * render ActivityDialog itself instead, so the dialog never lives inside a hidden menu.
+ * A clock button that opens Activity. The account menu renders ActivityDialog itself, outside the menu, so the
+ * dialog never lives inside a hidden menu.
  */
-export function GenerationActivity({ labeled = false }: { labeled?: boolean }) {
+export function GenerationActivity() {
   const { session } = useAccountSession();
   const [open, setOpen] = useState(false);
   if (session.status !== "ready") return null;
   return (
     <>
-      {labeled ? (
-        <button type="button" className="e-menu__item" aria-haspopup="dialog" onClick={() => setOpen(true)}>
-          <Icon name="clock" size="sm" />
-          Activity
-        </button>
-      ) : (
-        <IconButton icon="clock" label="Activity" aria-haspopup="dialog" onClick={() => setOpen(true)} />
-      )}
+      <IconButton icon="clock" label="Activity" aria-haspopup="dialog" onClick={() => setOpen(true)} />
       {open && <ActivityDialog onClose={() => setOpen(false)} />}
     </>
   );
