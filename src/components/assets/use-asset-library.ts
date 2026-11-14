@@ -15,10 +15,13 @@ import { appendAssetLibraryPage, AssetLibraryWindowChangedError, readAssetLibrar
 const libraryKey = (query: Pick<AssetLibraryQuery, "tab" | "projectId" | "format">) =>
   `library:${query.tab}:${query.projectId ?? ""}:${query.format ?? ""}`;
 
-export function useAssetLibrary(account: VerifiedAccount) {
+export function useAssetLibrary(
+  account: VerifiedAccount,
+  initial: Omit<AssetLibraryQuery, "cursor" | "limit"> = { tab: "my_selection" },
+) {
   const { isCurrent, expire, viewCache } = useAccountSession();
   const [client] = useState(() => createAccountAssetsClient(account, isCurrent, expire));
-  const [query, setQuery] = useState<AssetLibraryQuery>({ tab: "my_selection", limit: 40 });
+  const [query, setQuery] = useState<AssetLibraryQuery>(() => ({ ...initial, limit: 40 }));
   const requestedQuery = useRef(query);
   // The view this tab last showed comes back at once and is re-read in place (D-073).
   const [kept] = useState(() => viewCache?.get<AssetLibraryPage>(account, libraryKey(query)) ?? null);

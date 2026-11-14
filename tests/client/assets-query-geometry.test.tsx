@@ -108,6 +108,8 @@ function expectReservation(slots = 13, height = 1234) {
 }
 beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  // The Library keeps its view in the address (D-097); start every case from a plain one.
+  window.history.replaceState(null, "", "/assets");
   measuredHeight = 1234;
   fixture.account = { status: "ready", userId: "owner-a", generation: 1 };
   host = document.createElement("div");
@@ -371,4 +373,16 @@ it("uses the approved responsive grid, static card shells and no new scrolling c
   expect(css).toContain("repeat(3, minmax(0, 1fr))");
   expect(css).toContain("repeat(2, minmax(0, 1fr))");
   expect(css).toContain("grid-template-columns: minmax(0, 1fr)");
+});
+
+it("keeps the search in the address and reads it back when the Library opens again (D-097)", async () => {
+  await render();
+  await search("old logo 1");
+  expect(new URLSearchParams(window.location.search).get("q")).toBe("old logo 1");
+  await act(async () => root.unmount());
+  root = createRoot(host);
+  await render();
+  expect(field<HTMLInputElement>("Search your library").value).toBe("old logo 1");
+  await search("");
+  expect(window.location.search).toBe("");
 });
