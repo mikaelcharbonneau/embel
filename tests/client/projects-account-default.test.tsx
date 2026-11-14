@@ -116,7 +116,7 @@ afterEach(async () => {
 });
 
 describe("account projects and explicit legacy recovery", () => {
-  it("shows placeholder cards while loading and keeps Deleted projects a quiet link", async () => {
+  it("shows placeholder cards while loading and keeps Deleted projects a quiet action", async () => {
     let finish!: () => void;
     const original = fetcher.getMockImplementation() as (path: string, init: RequestInit) => Promise<Response>;
     fetcher.mockImplementation((path: string, init: RequestInit) =>
@@ -129,15 +129,15 @@ describe("account projects and explicit legacy recovery", () => {
     await render();
     const grid = host.querySelector(".projects-grid")!;
     expect(grid.getAttribute("aria-busy")).toBe("true");
-    expect(grid.querySelectorAll(".project-card-skeleton")).toHaveLength(8);
+    expect(grid.querySelectorAll(".project-card-skeleton")).toHaveLength(6);
     expect(grid.querySelector('[role="status"]')?.textContent).toBe("Loading your projects…");
     expect(host.querySelector(".project-card")).toBeNull();
+    // Deleted projects is a quiet action beside the one primary action, New project.
     const deleted = host.querySelector('a[href="/brands?state=deleted"]')!;
-    expect(deleted.className).toContain("text-link");
-    expect(deleted.className).not.toMatch(/button|projects-secondary/);
+    expect(deleted.className).toContain("e-button--quiet");
     const newProject = [...host.querySelectorAll("a")].find((link) => link.textContent?.startsWith("New project"));
     expect(newProject?.getAttribute("href")).toBe("/");
-    expect(newProject?.className).toBe("button primary");
+    expect(newProject?.className).toContain("e-button--primary");
     await act(async () => {
       finish();
     });

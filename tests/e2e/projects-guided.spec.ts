@@ -133,7 +133,7 @@ test("Projects reference: empty state uses original artwork and opens existing c
   if (info.project.name === "desktop") await page.setViewportSize({ width: 1440, height: 900 });
   await fixture(page);
   await page.goto("/brands");
-  await expect(page.getByRole("heading", { name: "Your projects.", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Projects", level: 1, exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Your first project starts with an idea" })).toBeVisible();
   await expect(page.locator(".projects-toolbar")).toHaveCount(0);
   await expect(page.locator(".project-card")).toHaveCount(0);
@@ -184,10 +184,10 @@ test("Projects: a failed first account page cannot claim an empty account and re
   const state = await fixture(page);
   state.pageStatus = 503;
   await page.goto("/brands");
-  await expect(page.locator("main").getByRole("alert")).toContainText("Your projects could not be loaded");
+  await expect(page.locator("main").getByRole("alert")).toContainText("Your projects couldn’t be loaded");
   await expect(page.getByRole("heading", { name: "Your first project starts with an idea" })).toHaveCount(0);
   state.pageStatus = 200;
-  await page.getByRole("button", { name: "Try loading projects again" }).click();
+  await page.getByRole("button", { name: "Try again" }).click();
   await expect(page.getByRole("heading", { name: "Your first project starts with an idea" })).toBeVisible();
   expect(state.writes).toEqual([]);
 });
@@ -288,7 +288,7 @@ test("Projects: a delayed account page cannot republish rows after an owner chan
   await requested;
   state.owner = id(90);
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
-  await expect(page.getByRole("heading", { name: "Your projects.", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Projects", level: 1, exact: true })).toBeVisible();
   release();
   await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 50)));
   await expect(page.locator(".project-card[data-storage=account]")).toHaveCount(0);

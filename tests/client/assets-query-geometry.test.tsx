@@ -74,9 +74,13 @@ async function click(node: HTMLElement) {
     root.render(<AssetsWorkspace />);
   });
 }
+function field<T extends HTMLElement>(label: string): T {
+  const element = [...host.querySelectorAll("label")].find((node) => node.textContent === label)!;
+  return document.getElementById(element.htmlFor) as T;
+}
 async function select(label: string, value: string) {
   await act(async () => {
-    const node = find<HTMLSelectElement>(`select[aria-label="${label}"]`);
+    const node = field<HTMLSelectElement>(label);
     node.value = value;
     node.dispatchEvent(new Event("change", { bubbles: true }));
     root.render(<AssetsWorkspace />);
@@ -164,11 +168,11 @@ afterEach(async () => {
 it("holds only anonymous geometry across a real SVG filter, keeping controls, count and focus truthful", async () => {
   await render();
   // The loaded count is announced to screen readers, not shown.
-  expect(find(".assets-pagination > span").className).toBe("sr-only");
+  expect(find(".assets-pagination > span").className).toBe("e-sr");
   const toolbar = find(".assets-toolbar"),
     body = find(".assets-results-body"),
     footer = find(".assets-pagination"),
-    filter = find<HTMLSelectElement>('select[aria-label="File type"]');
+    filter = field<HTMLSelectElement>("File type");
   filter.focus();
   await select("File type", "svg");
   expectReservation();
@@ -205,11 +209,11 @@ it.each(["tab click", "tab keyboard", "project", "file type"] as const)(
   },
 );
 
-it("captures an empty view for Browse all generations without inventing previous cards", async () => {
+it("captures an empty view for See everything made without inventing previous cards", async () => {
   fixture.library.page = page(0, "Old", null);
   measuredHeight = 420;
   await render();
-  await click(button("Browse all generations"));
+  await click(button("See everything made"));
   expectReservation(0, 420);
   expect(host.textContent).toContain("Matching asset count pending.");
 });
@@ -231,7 +235,7 @@ it("keeps local search immediate and client-only, then captures only its visible
   expect(fixture.library.changeQuery).toHaveBeenCalledOnce();
 });
 
-it("does not manufacture a pending transition for a same-query no-op or replace cards on Refresh", async () => {
+it("does not manufacture a pending transition for a same-query no-op or replace cards on a quiet refresh", async () => {
   await render();
   const grid = find(".assets-grid"),
     image = grid.querySelector("img");
@@ -240,7 +244,9 @@ it("does not manufacture a pending transition for a same-query no-op or replace 
   expect(fixture.library.page?.items).toHaveLength(13);
   expect(find(".assets-grid")).toBe(grid);
   expect(host.querySelector(".assets-query-placeholder")).toBeNull();
-  await click(button("Refresh"));
+  // There is no Refresh button (D-035); the list re-reads itself, for example on returning to the tab.
+  expect(button("Refresh")).toBeUndefined();
+  await update({ status: "loading" });
   expect(find(".assets-grid")).toBe(grid);
   expect(grid.querySelector("img")).toBe(image);
   expect(host.textContent).toContain("Refreshing…");
@@ -252,7 +258,10 @@ it("holds anonymous geometry through a same-client query failure and explicit cu
   await render();
   await select("File type", "svg");
   await update({ status: "error", error: "The assets could not be checked." });
-  expectReservation();
+  // The approved error state replaces the loading shapes; it names no previous file.
+  expect(host.querySelector(".assets-query-placeholder")).toBeNull();
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("Your library couldn’t be loaded");
+  expect(host.querySelector("#assets-results")!.textContent).not.toContain("Old private");
   expect(host.textContent).toContain("Matching asset count unavailable.");
   await click(button("Try again"));
   expectReservation();
@@ -262,7 +271,7 @@ it("holds anonymous geometry through a same-client query failure and explicit cu
   expect(fixture.library.loadMore).not.toHaveBeenCalled();
   expect(host.textContent).toContain("Matching asset count pending.");
   await update({ page: page(0, "New", null), status: "ready" });
-  expect(host.textContent).toContain("No assets match these filters");
+  expect(host.textContent).toContain("No files match these filters");
   expect(host.textContent).toContain("0 assets loaded");
   expect(find<HTMLElement>(".assets-results-body").style.minHeight).toBe("");
   expect(host.querySelector(".assets-query-placeholder")).toBeNull();
@@ -321,7 +330,8 @@ it("uses only generic geometry without a previous page, including an initial fai
   expect(find<HTMLElement>(".assets-results-body").style.minHeight).toBe("");
   expect(host.textContent).toContain("count pending");
   await update({ status: "error", error: "Unavailable" });
-  expect(host.querySelectorAll(".assets-query-placeholder")).toHaveLength(3);
+  expect(host.querySelectorAll(".assets-query-placeholder")).toHaveLength(0);
+  expect(host.querySelector('[role="alert"]')).not.toBeNull();
   expect(host.textContent).toContain("count unavailable");
   expect(host.textContent).not.toContain("0 assets loaded");
 });
@@ -352,12 +362,13 @@ it("keeps explicit detail intent outside the inert results while changing filter
 
 it("uses the approved responsive grid, static card shells and no new scrolling container", () => {
   const css = readFileSync("src/styles/assets-guided.css", "utf8");
-  expect(css).toMatch(/\.assets-query-placeholder\s*\{[^}]*aspect-ratio:/);
+  expect(css).toMatch(/\.assets-query-placeholder__media\.e-skeleton\s*\{[^}]*aspect-ratio:/);
   expect(css).toMatch(/\.assets-query-placeholders\s*\{[^}]*pointer-events:\s*none/);
   expect(css).not.toMatch(
     /\.assets-(?:results-body|query-placeholders|query-placeholder)\s*\{[^}]*(?:animation|overflow(?:-y)?):/,
   );
-  expect(readFileSync("src/styles/assets.css", "utf8")).toContain("repeat(3, minmax(0, 1fr))");
+  expect(readFileSync("src/styles/assets.css", "utf8")).not.toMatch(/\.assets-results-body\s*\{[^}]*overflow/);
+  expect(css).toContain("repeat(3, minmax(0, 1fr))");
   expect(css).toContain("repeat(2, minmax(0, 1fr))");
   expect(css).toContain("grid-template-columns: minmax(0, 1fr)");
 });

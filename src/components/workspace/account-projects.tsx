@@ -169,11 +169,22 @@ export function useAccountProjectListing(
   state: "active" | "deleted" = "active",
   limit = 50,
 ) {
-  const { isCurrent, expire } = useAccountSession();
-  const [listing, setListing] = useState<ProjectListing | null>(null);
+  const { isCurrent, expire, viewCache } = useAccountSession();
+  const cacheKey = `projects:${state}:${limit}`;
+  // A list this tab already showed for this owner and session comes back at once; the mount refreshes it quietly.
+  const [cached] = useState(() => (account ? (viewCache?.get<ProjectListing>(account, cacheKey) ?? null) : null));
+  const [listing, setListing] = useState<ProjectListing | null>(cached);
   const [error, setError] = useState(false);
   const [pending, setPending] = useState(false);
-  const currentListing = useRef<ProjectListing | null>(null);
+  const currentListing = useRef<ProjectListing | null>(cached);
+  const publish = useCallback(
+    (next: ProjectListing) => {
+      currentListing.current = next;
+      setListing(next);
+      if (account) viewCache?.set(account, cacheKey, next);
+    },
+    [account, cacheKey, viewCache],
+  );
   const request = useRef<AbortController | null>(null);
   const active = useRef(false);
   const retryReset = useRef(false);
@@ -241,8 +252,7 @@ export function useAccountProjectListing(
           },
           cursor,
         );
-        currentListing.current = next;
-        setListing(next);
+        publish(next);
         retryReset.current = false;
         return true;
       } catch (cause) {
@@ -262,7 +272,7 @@ export function useAccountProjectListing(
         }
       }
     },
-    [account, expire, isCurrent, limit, state],
+    [account, expire, isCurrent, limit, publish, state],
   );
   const load = useCallback(() => readPage(retryReset.current), [readPage]);
   const reload = useCallback(() => readPage(true), [readPage]);
@@ -275,11 +285,14 @@ export function useAccountProjectListing(
       setPending(false);
       const previous = currentListing.current;
       if (!previous) return;
-      const next = { ...previous, items: previous.items.filter((project) => project.id !== projectId) };
-      currentListing.current = next;
-      setListing(next);
+      publish({ ...previous, items: previous.items.filter((project) => project.id !== projectId) });
+      // Other lists kept for this account (Home's recent projects) must not show it on return either.
+      viewCache?.update<ProjectListing>(account, `projects:${state}:`, (kept) => ({
+        ...kept,
+        items: kept.items.filter((project) => project.id !== projectId),
+      }));
     },
-    [account, isCurrent],
+    [account, isCurrent, publish, state, viewCache],
   );
   const update = useCallback(
     (project: ProjectDeletionSummary) => {
@@ -299,25 +312,25 @@ export function useAccountProjectListing(
       }
       // Status refreshes preserve loaded pages, their original cursor anchors and
       // the listed name (a lifecycle read carries only the saved title).
-      const next = {
+      publish({
         ...previous,
         items: previous.items.map((row) =>
           row.id === project.id ? { ...project, created_at: row.created_at, title: row.title } : row,
         ),
-      };
-      currentListing.current = next;
-      setListing(next);
+      });
     },
-    [account, isCurrent, remove, state],
+    [account, isCurrent, publish, remove, state],
   );
   useEffect(() => {
     active.current = Boolean(account);
-    void load();
+    // A kept list is shown as it was and replaced by a fresh first page; otherwise this is the first read.
+    if (cached) void reload();
+    else void load();
     return () => {
       active.current = false;
       request.current?.abort();
       request.current = null;
     };
-  }, [account, load]);
+  }, [account, cached, load, reload]);
   return { listing, error, pending, load, reload, remove, update };
 }
