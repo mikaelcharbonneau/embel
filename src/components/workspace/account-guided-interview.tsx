@@ -1323,8 +1323,8 @@ export function AccountGuidedInterview({
     directions: stepMessages.directions ?? "Each creative direction uses your chosen logo.",
     finished:
       summaries.logo && summaries.directions
-        ? `You chose ${summaries.logo.answer} as your logo and ${summaries.directions.answer} as your direction. Your brand kit is in Assets.`
-        : "Your logo and creative direction are chosen. Your brand kit is in Assets.",
+        ? `You chose ${summaries.logo.answer} as your logo and ${summaries.directions.answer} as your direction.`
+        : "Your logo and creative direction are chosen.",
   };
   const identityKey =
     view === "directions"
@@ -1487,13 +1487,7 @@ export function AccountGuidedInterview({
     ) : view === "slogan" ? (
       sloganWork
     ) : view === "inspiration" ? (
-      <InspirationWorkspace
-        projectId={saved.id}
-        variant="workspace"
-        continueHidden
-        onLikes={setLikes}
-        brandName={brandName}
-      />
+      <InspirationWorkspace projectId={saved.id} variant="workspace" continueHidden onLikes={setLikes} />
     ) : view === "logo" ? (
       <div id="journey-logo" className="conversation-slot" tabIndex={-1}>
         <LogoCreationWorkspace
