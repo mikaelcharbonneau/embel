@@ -35,7 +35,7 @@
   gap: var(--space-16);
 }
 
-/* A brand: its name and count, Open project at the end, then its files. */
+/* A brand: its name, Open project at the end, then its files. */
 .library-brand {
   display: grid;
   gap: var(--space-5);
@@ -48,9 +48,6 @@
   gap: var(--space-4);
 }
 .library-brand__title {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
   min-width: 0;
   font: var(--text-title-md);
   letter-spacing: var(--tracking-title-md);
@@ -64,7 +61,7 @@
   color: var(--color-text);
 }
 
-/* A file card: the picture whole in a square, "Chosen" on it, then the name and the file line. */
+/* A file card: the picture whole in a square, "Chosen" on it, then the name. */
 .assets-card__media {
   position: relative;
 }

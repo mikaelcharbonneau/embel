@@ -180,11 +180,6 @@ function OwnedBrandAssets({ account, projectId }: { account: VerifiedAccount; pr
         headingLevel={1}
         icon="palette"
         title={system ? "Choose a current creative direction" : "Choose your creative direction first"}
-        text={
-          system
-            ? "Your saved direction uses earlier inputs. Return to Creative direction to choose a board built around your current logo."
-            : "Compare the three boards, then choose one to create your brand assets."
-        }
         action={
           <ButtonLink variant="primary" href={`/brands/account/${projectId}/logo/directions`}>
             Choose a creative direction
@@ -199,7 +194,7 @@ function OwnedBrandAssets({ account, projectId }: { account: VerifiedAccount; pr
       <div className="e-stack e-stack--lg">
         <h1 className="e-sr">Assets</h1>
         <InlineMessage tone="warning" live>
-          Save or resolve your changes before opening the kit. Your chosen direction is kept.
+          Save or resolve your changes before opening the kit.
         </InlineMessage>
       </div>
     );

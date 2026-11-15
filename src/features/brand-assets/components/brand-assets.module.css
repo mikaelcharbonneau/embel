@@ -13,10 +13,6 @@
   text-wrap: balance;
   overflow-wrap: anywhere;
 }
-.lead {
-  margin: 0;
-  color: var(--color-text-muted);
-}
 .panel {
   display: grid;
   gap: var(--space-section);

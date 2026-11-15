@@ -384,10 +384,8 @@ export function AssetDetailDialog({
               )}
               <p className="e-muted">
                 {detail.selectedVersion
-                  ? `Version ${detail.selectedVersion.versionNumber} is the selected version of this file.`
-                  : "No version of this file is selected yet."}{" "}
-                {detail.versions.items.length} of {detail.versions.totalCount}{" "}
-                {detail.versions.totalCount === 1 ? "version" : "versions"} shown.
+                  ? `Version ${detail.selectedVersion.versionNumber} is selected.`
+                  : "No version is selected yet."}
               </p>
               {version && !isSelected && (
                 <>
