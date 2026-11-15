@@ -77,7 +77,6 @@ describe("logo concepts as artwork only", () => {
     await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Enlarge Concept 2"]')!.click());
     const dialog = () => host.querySelector("dialog");
     expect(dialog()?.querySelector("h2")?.textContent).toBe("Concept 2");
-    expect(dialog()?.textContent).toContain("2 of 3 concepts");
     expect(dialog()?.querySelector(".e-media--16x9 img")).not.toBeNull();
     await act(async () => button("Next").click());
     expect(dialog()?.querySelector("h2")?.textContent).toBe("Concept 5");

@@ -23,32 +23,25 @@ export function toggleLogoType(value: readonly LogoType[], type: LogoType): Logo
 }
 
 /** Identity · Logo: the kinds of logo the six concepts are spread across, as choice cards (choose any that apply).
- * The choice edits the saved brief, which saves on its own as on the brief form. `note` explains what a change
- * affects once concepts exist; `action` is the start button when the step has its own (no Send-driven reply box). */
+ * The choice edits the saved brief, which saves on its own as on the brief form. `note` is the no-credits note;
+ * `action` is the start button when the step has its own (no Send-driven reply box). */
 export function LogoTypesQuestion({
   value,
   onChange,
   disabled = false,
   action,
   note,
-  inReply = false,
 }: {
   value: readonly LogoType[];
   onChange?: (types: LogoType[]) => void;
   disabled?: boolean;
   action?: ReactNode;
   note?: ReactNode;
-  /** The chosen types also sit in the reply box as chips. */
-  inReply?: boolean;
 }) {
   const id = useId();
   return (
-    <fieldset className={styles.typesQuestion} aria-describedby={`${id}-hint`}>
+    <fieldset className={styles.typesQuestion}>
       <legend className={styles.stepTitle}>Which logo types should I explore?</legend>
-      <p id={`${id}-hint`} className="e-muted">
-        Choose as many as you like. The six concepts are spread across them
-        {inReply ? ", and each one you choose is added to your reply." : "."}
-      </p>
       <div className={styles.typesGrid}>
         {logoTypeSchema.options.map((type) => (
           <ChoiceCard
@@ -64,58 +57,33 @@ export function LogoTypesQuestion({
           />
         ))}
       </div>
-      {value.length === 7 && (
-        <p role="status" className="e-muted">
-          With all seven chosen, one type waits for your next set of concepts.
-        </p>
-      )}
-      {note && <p className="e-muted">{note}</p>}
-      <div className={styles.typesFooter}>
-        <p role="status" className="e-muted">
-          {value.length === 0
-            ? "Choose at least one type"
-            : value.length === 1
-              ? "1 type chosen"
-              : `${value.length} types chosen`}
-        </p>
-        {action}
-      </div>
+      {note}
+      {action && <div className={styles.typesFooter}>{action}</div>}
     </fieldset>
   );
 }
 
-/** Once concepts exist: the chosen logo types in one line, with a way back to the question so the next concepts can
- * use different types. */
-export function LogoTypesSummary({
-  value,
+/** Once concepts exist: the way back to the question, which shows the chosen types, so the next concepts can use
+ * different ones. */
+export function LogoTypesChange({
   onChange,
   disabled = false,
   inline = false,
 }: {
-  value: readonly LogoType[];
   onChange?: () => void;
   disabled?: boolean;
-  /** One small line with Change logo types as a link, under Embel's message in the Workspace chat. */
+  /** A link under Embel's message in the Workspace chat. */
   inline?: boolean;
 }) {
-  const types = value.length ? value.map((type) => LOGO_TYPE_LABELS[type]).join(", ") : "None chosen";
-  if (inline)
-    return (
-      <p className={styles.typesLine} role="group" aria-label="Logo types">
-        Logo types: {types} ·{" "}
-        <button type="button" className="e-link" disabled={disabled || !onChange} onClick={onChange}>
-          Change logo types
-        </button>
-      </p>
-    );
-  return (
-    <div className={styles.typesSummary} role="group" aria-label="Logo types">
-      <p className="e-muted">
-        Logo types: {value.length ? value.map((type) => LOGO_TYPE_LABELS[type]).join(", ") : "None chosen"}
-      </p>
-      <Button size="sm" variant="quiet" disabled={disabled || !onChange} onClick={onChange}>
+  return inline ? (
+    <p className={styles.typesLine}>
+      <button type="button" className="e-link" disabled={disabled || !onChange} onClick={onChange}>
         Change logo types
-      </Button>
-    </div>
+      </button>
+    </p>
+  ) : (
+    <Button size="sm" variant="quiet" disabled={disabled || !onChange} onClick={onChange}>
+      Change logo types
+    </Button>
   );
 }

@@ -248,8 +248,6 @@ describe("saved Logo gallery filtering and initial read presentation", () => {
       expectInitialPresentation("loading");
       await act(async () => detail.release());
       await until(() => expect(images()).toHaveLength(6));
-      // Concept 1 is the chosen logo: the heading names it and the number of concepts.
-      expect(grid().textContent).toContain("Concept 1 · 6 concepts");
       expect(grid().getAttribute("aria-busy")).not.toBe("true");
       expect(composer()).toBe(form);
       expect(instruction()).toBe(input);
@@ -448,7 +446,6 @@ describe("logo types once concepts exist", () => {
     });
     return { f, saves };
   }
-  const summary = () => host.querySelector<HTMLElement>('[role="group"][aria-label="Logo types"]');
   // Without an onContinue handler, a ready Continue is a link to Creative direction.
   const continueLink = () => [...host.querySelectorAll("a")].find((node) => node.textContent === "Continue");
   async function dropMascot() {
@@ -466,10 +463,8 @@ describe("logo types once concepts exist", () => {
   it("lets the types change for the next concepts while the chosen logo stays usable", async () => {
     const { f, saves } = await chosenConcepts([]);
     expect(typesQuestion()).toBeNull();
-    expect(summary()!.textContent).toContain("Wordmark, Lettermark or monogram, Pictorial mark");
     await until(() => expect(continueLink()).toBeDefined());
     await dropMascot();
-    expect(typesQuestion().textContent).toContain("The concepts you already have stay available to choose.");
     await until(() => expect(saves).toHaveLength(1));
     expect(saves[0]!.brief.logoTypes).toEqual([
       "wordmark",
@@ -488,7 +483,7 @@ describe("logo types once concepts exist", () => {
     expect(continueLink()).toBeDefined();
     await click("Done");
     expect(typesQuestion()).toBeNull();
-    expect(summary()!.textContent).not.toContain("Mascot");
+    expect(button("Change logo types")).toBeDefined();
     expect(f.admissions).toEqual([]);
   });
 

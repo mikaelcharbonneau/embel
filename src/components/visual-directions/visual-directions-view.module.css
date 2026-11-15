@@ -1,5 +1,5 @@
 /* Creative direction (November 13 redesign): the heading row, then three direction boards in one row with their
-   number, name, palette and typography and a real Choose button. The chosen card keeps its size and place and is
+   name, palette swatches, type sample and a real Choose button. The chosen card keeps its size and place and is
    marked by the selection ring only (e-choice[data-selected]). */
 .page {
   width: min(100%, var(--container-page));
@@ -161,15 +161,6 @@
   font: var(--text-small);
   color: var(--color-text-muted);
 }
-/* Palette above Typography, each the card's full width, so the type sample has room for the brand name. */
-.details {
-  display: grid;
-  gap: var(--space-3);
-  min-width: 0;
-}
-.details > * {
-  min-width: 0;
-}
 .swatches {
   display: flex;
   flex-wrap: wrap;
@@ -251,9 +242,6 @@
 }
 .brandLogo :global(.e-media) {
   border: 1px solid var(--color-border);
-}
-.brandLogo figcaption {
-  font: var(--text-small);
 }
 @media (max-width: 1023px) {
   .brand {

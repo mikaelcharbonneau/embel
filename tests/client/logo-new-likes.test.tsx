@@ -127,9 +127,7 @@ it("says nothing when the saved likes match the brief the concepts used", async 
 it("offers newer likes for the next concepts, explains the chosen logo, and saves only on request", async () => {
   const f = await setup(true);
   await until(() => expect(notice()).not.toBeNull());
-  expect(notice()!.textContent).toContain(
-    "Your chosen logo will then need to be chosen again from the new concepts before Creative direction.",
-  );
+  expect(notice()!.textContent).toContain("You’ll then choose your logo again from the new concepts.");
   expect(f.saves).toEqual([]);
   const use = [...notice()!.querySelectorAll("button")].find((button) => button.textContent === "Use my new likes")!;
   await until(() => expect(use.disabled).toBe(false));

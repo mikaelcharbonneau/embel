@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useProjectLogoEvidence } from "@/components/workspace/project-workspace";
 import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState } from "react";
-import type { LogoRasterSource } from "@/domain/logo-workspace";
+import { logoBriefDraftSchema, type LogoRasterSource } from "@/domain/logo-workspace";
 import { logoUuidSchema } from "@/domain/logo-vector";
 import type { LogoConceptBatch, LogoRunRequest } from "@/domain/logo-jobs";
 import { brandTextReadiness } from "@/domain/brand-board-fonts";
@@ -41,7 +41,7 @@ import { useLogoCandidate } from "./use-logo-candidate";
 import { LogoDownloadControls } from "./logo-download-controls";
 import { prepareSavedLogoConcepts, logoDraftHasProtectedWork, savedInputsStart } from "./saved-inputs-controller";
 import { LogoSavedInputsStatus, type LogoSavedInputState } from "./saved-inputs-status";
-import { LogoTypesQuestion, LogoTypesSummary, toggleLogoType } from "./logo-types-question";
+import { LogoTypesChange, LogoTypesQuestion, toggleLogoType } from "./logo-types-question";
 import { EmbelIdentity } from "@/components/workspace/embel-identity";
 import { runWithCreditsInPlace } from "@/components/billing/out-of-credits";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -431,7 +431,15 @@ function OwnedLogoCreation({
   // A saved brief change makes the chosen logo's concepts outdated on the server:
   // Creative direction then needs a concept from a set made with the current brief.
   const chosenLogoOutdated = Boolean(selectedLogo && saved?.staleStages.some(({ stage }) => stage === "concepts"));
-  const canDiscard = Boolean(editing && (workspace.dirty || draft?.conflict) && !workspace.pending && !checkingRequest);
+  // Discard is for edits that cannot save on their own: a conflict, or a valid edit autosave is not about to send.
+  // An edit waiting for autosave, or one the screen already marks as incomplete (no logo type), is not offered it.
+  const canDiscard = Boolean(
+    editing &&
+    !workspace.pending &&
+    !checkingRequest &&
+    (draft?.conflict ||
+      (workspace.dirty && !workspace.autoSaveReady && logoBriefDraftSchema.safeParse(draft?.brief).success)),
+  );
   const snapshot = workspace.referenceSnapshot;
   const referenceCount = draft?.references.length ?? snapshot?.references.length ?? 0;
   const conceptReferenceLimitExceeded = referenceCount > IMAGE_INPUT_LIMITS.images;
@@ -725,20 +733,20 @@ function OwnedLogoCreation({
       }
       const message =
         status === "succeeded"
-          ? "A result is recorded for the original save. Your local edits and original request stay here until its saved details can be loaded."
+          ? "The save went through. Its details couldn’t be loaded yet."
           : status === "not_found"
-            ? "No result is recorded for the original save. No new save was started."
+            ? "No record of that save was found. Nothing was sent again."
             : status === "failed" || status === "cancelled"
-              ? "The original save did not complete. Your local edits and original request are kept."
+              ? "That save didn’t go through. Your edits are kept."
               : status === "admitted" || status === "running" || status === "partial"
-                ? "The original save is still being processed. Your local edits are kept."
-                : "The save outcome is still uncertain. Your local edits and original request are kept.";
+                ? "That save is still in progress."
+                : "That save is still unconfirmed. Your edits are kept.";
       setSaveReadout({ key, message });
     } catch {
       if (current())
         setSaveReadout({
           key,
-          message: "The original save could not be checked. Your local edits and original request are kept.",
+          message: "The save couldn’t be checked. Your edits are kept.",
         });
     } finally {
       if (requestRead.current === controller) {
@@ -886,7 +894,7 @@ function OwnedLogoCreation({
     <>
       {pendingSelection && (
         <div className={styles.recovery}>
-          <p className="e-muted">We couldn’t confirm that your logo choice was saved. Your logos are safe.</p>
+          <p className="e-muted">We couldn’t confirm your logo choice was saved.</p>
           <Button size="sm" disabled={selectionState.busy} onClick={() => void selectCandidate()}>
             Check my choice
           </Button>
@@ -906,19 +914,10 @@ function OwnedLogoCreation({
       )}
       {(pendingSave?.method === "saveLogoBrief" || pendingSave?.method === "saveLogoReferences") && (
         <div className={styles.recovery}>
-          <p className="e-muted">
-            A previous save is awaiting confirmation. This action checks it first and retries the original save only if
-            no result is recorded.
-          </p>
+          <p className="e-muted">We couldn’t confirm your last save.</p>
           <Button size="sm" disabled={!editing || checkingRequest} onClick={() => void checkOriginalSave()}>
             Check original save
           </Button>
-          {draft?.conflict && (
-            <p className="e-muted">
-              Check reads the original save without sending a new one. Conflicting edits and unresolved requests cannot
-              be discarded here.
-            </p>
-          )}
           <Button
             size="sm"
             disabled={!editing || draft?.conflict || checkingRequest}
@@ -943,9 +942,7 @@ function OwnedLogoCreation({
           </Button>
           {confirmReload && (
             <div role="group" aria-label="Confirm discarding local edits">
-              <p className="e-muted">
-                Replace the brief and reference changes in this tab with the latest saved version?
-              </p>
+              <p className="e-muted">Discard your unsaved changes?</p>
               <Button size="sm" onClick={() => dispatch({ type: "discard_answered" })}>
                 Keep editing
               </Button>
@@ -1305,9 +1302,8 @@ function OwnedLogoCreation({
             {stepNotice}
             {!ranOut && noCredits && <NoCreditsNote periodEnd={credits.periodEnd} />}
             {activeBatch && !changingTypes && (
-              <LogoTypesSummary
+              <LogoTypesChange
                 inline
-                value={logoTypes}
                 disabled={!canChangeTypes}
                 onChange={() => dispatch({ type: "types_change_opened" })}
               />
@@ -1320,7 +1316,6 @@ function OwnedLogoCreation({
   const typesQuestion = !activeBatch ? (
     <LogoTypesQuestion
       value={logoTypes}
-      inReply={external}
       disabled={!draft || !editing || !autoSave}
       onChange={
         draft && editing && autoSave
@@ -1351,7 +1346,6 @@ function OwnedLogoCreation({
       onChange={
         draft && canChangeTypes ? (types) => workspace.setBriefDraft({ ...draft.brief, logoTypes: types }) : undefined
       }
-      note="Your next concepts use these types. The concepts you already have stay available to choose."
       action={
         <Button disabled={!logoTypes.length} onClick={() => dispatch({ type: "types_change_done" })}>
           Done
@@ -1359,11 +1353,7 @@ function OwnedLogoCreation({
       }
     />
   ) : inChat ? null : (
-    <LogoTypesSummary
-      value={logoTypes}
-      disabled={!canChangeTypes}
-      onChange={() => dispatch({ type: "types_change_opened" })}
-    />
+    <LogoTypesChange disabled={!canChangeTypes} onChange={() => dispatch({ type: "types_change_opened" })} />
   );
   // In the project conversation the brand's name is the page's heading and the step is a second-level heading.
   const StepHeading = onContinue ? "h2" : "h1";
@@ -1429,9 +1419,7 @@ function OwnedLogoCreation({
             }
           >
             You changed your likes after these concepts were made. Use them for your next concepts?
-            {selectedLogo
-              ? " Your chosen logo will then need to be chosen again from the new concepts before Creative direction."
-              : ""}
+            {selectedLogo ? " You’ll then choose your logo again from the new concepts." : ""}
           </InlineMessage>
         )}
         {activeBatch && selectionState.error && (
