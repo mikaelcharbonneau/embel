@@ -41,7 +41,6 @@ export function OpeningGuidedConversation({
             </div>
             <article className="e-turn e-turn--settled" aria-label="Embel status">
               <div className="e-turn__main">
-                <p className="e-turn__meta">Embel</p>
                 <GuidedThinking
                   label={status}
                   action={

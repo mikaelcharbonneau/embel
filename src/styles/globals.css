@@ -189,8 +189,6 @@ h3 { font-size: 15px; line-height: 1.4; font-weight: 500; letter-spacing: -.2px;
 .home-input-popover-panel input[type=file] { display: block; width: 100%; margin: var(--space-3) 0; font-size: var(--font-size-2); }
 .home-input-popover-panel input[type=file][hidden] { display: none; }
 .home-input-popover-panel h3 { font-size: var(--font-size-3); line-height: 22px; font-weight: 500; }
-.home-attachment-details { margin-top: var(--space-4); }
-.home-attachment-details > summary { cursor: pointer; font-size: var(--font-size-2); }
 .home-input-controls summary:focus-visible { outline: 2px solid var(--color-text); outline-offset: 3px; }
 .home-input-popover-panel input[type=file]::file-selector-button { border: 1px solid var(--color-border); background: var(--color-bg-sunken); border-radius: var(--radius-small); padding: var(--space-2) var(--space-3); margin-right: var(--space-2); font: inherit; }
 .home-voice-popover .home-input-popover-panel { left: auto; right: 0; }

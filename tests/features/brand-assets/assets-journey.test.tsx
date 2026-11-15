@@ -84,9 +84,7 @@ async function render(options: { status?: string; pack?: PreparedBrandAssets | n
           previews: new Map([["brand-board.png", "blob:board"]]),
           downloadFile,
           disabled: false,
-          projectId: f.projectId,
           context: context(),
-          directionTitle: "Room to Begin",
           status: options.status ?? "Ready to download.",
           preparing: options.preparing ?? !shown,
           onRetry,
@@ -104,14 +102,12 @@ describe("Assets delivery page", () => {
   it("is one page: the brand's name, the kit button always in view and three tabs", async () => {
     const { container, named } = await render();
     expect(container.querySelector("h1")?.textContent).toBe("Northline");
-    expect(container.textContent).toContain("Your brand kit, made from your logo and your direction, Room to Begin.");
     const tabs = [...container.querySelectorAll("[role=tab]")];
     expect(tabs.map((tab) => tab.textContent)).toEqual(["Brand images", "Brand guidelines", "Design system"]);
     expect(tabs[0]!.getAttribute("aria-selected")).toBe("true");
     const kit = named("Download brand kit")!;
     expect(kit.className).toContain("e-button--primary");
     expect(kit.disabled).toBe(false);
-    expect(container.textContent).toContain("Logo files, images, guidelines and tokens · ZIP · 6 files");
     expect([...container.querySelectorAll("[role=status]")].map((node) => node.textContent)).toContain(
       "Ready to download.",
     );
@@ -158,17 +154,13 @@ describe("Assets delivery page", () => {
     expect(frame.getAttribute("title")).toBe("Northline brand guidelines");
     expect(frame.getAttribute("sandbox")).not.toContain("allow-scripts");
     expect(frame.getAttribute("srcdoc")).toContain("<h1>Brand guidelines</h1>");
-    expect([...container.querySelectorAll("a")].map((link) => link.textContent)).toEqual(
-      expect.arrayContaining(["Logo", "Creative direction", "Voice"]),
-    );
   });
 
-  it("while images are prepared, keeps the kit button working and says what is ready", async () => {
+  it("while images are prepared, keeps the kit button working and says so", async () => {
     const { container, buttons, downloadFile } = await render({ pack: null, status: "Preparing your files…" });
     const kit = buttons().find((button) => button.textContent === "Preparing brand kit")!;
     expect(kit.getAttribute("aria-busy")).toBe("true");
-    expect(container.textContent).toContain("The brand kit can be downloaded when your brand images are ready.");
-    expect(container.textContent).toContain("Your design system is ready now.");
+    expect(container.textContent).toContain("Preparing your brand images and guidelines…");
     await act(async () => kit.click());
     expect(downloadFile).toHaveBeenCalledWith();
   });
@@ -190,7 +182,6 @@ describe("Assets delivery page", () => {
     expect(container.querySelector("[role=alert]")?.textContent).toContain(
       "Two brand images couldn’t be prepared: the wide banner and the cover banner. Everything else is ready.",
     );
-    expect(container.textContent).toContain("Logo files, 4 of 6 images, guidelines and tokens");
     expect(container.textContent).toContain("This image couldn’t be prepared.");
     await act(async () => named("Retry 2 images")!.click());
     expect(onRetry).toHaveBeenCalledOnce();

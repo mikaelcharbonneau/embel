@@ -102,12 +102,11 @@ export function CompetitorReview({
 
   return (
     <form className="competitor-review" ref={formRef} onSubmit={finishReview} noValidate>
-      <p className="editor-intro">Add the competitors you know, then retain the ones that matter for this project.</p>
       {!inline && (
         <div className="competitor-research-note">
           <Icon name="offline" size={17} />
           <p>
-            <strong>Research is not connected.</strong> You can add your own notes or continue without competitors.
+            <strong>Research is not connected.</strong>
           </p>
         </div>
       )}
@@ -118,7 +117,6 @@ export function CompetitorReview({
             <Icon name="brands" size={24} />
           </span>
           <h2>Who offers something similar?</h2>
-          <p>Include alternatives your audience might choose and why they are relevant.</p>
           <button ref={addRef} className="button secondary" type="button" onClick={addCompetitor}>
             <Icon name="plus" size={16} />
             Add competitor
@@ -233,12 +231,9 @@ export function CompetitorReview({
                   maxLength={2048}
                   placeholder="https://example.com"
                   aria-invalid={websiteInvalid || undefined}
-                  aria-describedby={`${fieldId}-website-hint${websiteInvalid ? ` ${fieldId}-website-error` : ""}`}
+                  aria-describedby={websiteInvalid ? `${fieldId}-website-error` : undefined}
                   onChange={(event) => updateCompetitor(competitor.id, { url: event.target.value })}
                 />
-                <p className="field-hint" id={`${fieldId}-website-hint`}>
-                  Include http:// or https://. Websites are not checked.
-                </p>
                 {websiteInvalid && (
                   <p id={`${fieldId}-website-error`} className="competitor-field-error">
                     Enter a valid HTTP or HTTPS website without login details.
@@ -303,7 +298,7 @@ export function CompetitorReview({
               type="checkbox"
               checked={noneConfirmed}
               aria-invalid={(attemptedReview && !noneConfirmed) || undefined}
-              aria-describedby={`${id}-none-hint${attemptedReview && !noneConfirmed ? ` ${id}-error` : ""}`}
+              aria-describedby={attemptedReview && !noneConfirmed ? `${id}-error` : undefined}
               onChange={(event) => {
                 if (complete) onChange(competitors);
                 setNoneConfirmed(event.target.checked);
@@ -313,7 +308,6 @@ export function CompetitorReview({
             />
             <span>I have no relevant competitors to retain</span>
           </label>
-          <p id={`${id}-none-hint`}>You can add competitors to this conversation later.</p>
         </div>
       )}
 

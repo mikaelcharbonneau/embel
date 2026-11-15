@@ -31,14 +31,10 @@ const timeZoneLabels: Record<AccountProfileValues["timeZone"], string> = {
   "Pacific/Auckland": "Auckland — New Zealand Time",
   UTC: "UTC — Coordinated Universal Time",
 };
-const dateFormatLabels: Record<AccountProfileValues["dateFormat"], string> = {
-  friendly: "Month, day, year",
-  iso: "YYYY-MM-DD",
-};
-const NAME_HINT = "Your name appears in the account menu.";
-const EMAIL_HINT = "You sign in with this email. It can’t be changed here.";
-const TIME_ZONE_HINT = "Used for the dates and times Embel shows you.";
-const PREVIEW_DATE = "2026-10-13T00:30:00Z";
+const DATE_FORMATS: AccountProfileValues["dateFormat"][] = ["friendly", "iso"];
+/** A date format is named by an example date, in the chosen time zone. */
+const dateFormatLabel = (dateFormat: AccountProfileValues["dateFormat"], timeZone: AccountProfileValues["timeZone"]) =>
+  formatAccountDate("2026-10-13T00:30:00Z", { dateFormat, timeZone });
 
 type Field = keyof AccountProfileValues;
 type SaveState = "idle" | "saving" | "saved" | "failed";
@@ -106,11 +102,10 @@ export function AccountProfileEditor() {
         : "idle";
   // After an interrupted save the message is always about saving, whichever step failed.
   const failure = workspace.mustReload ? PROFILE_SAVE_FAILED : profile.error;
-  const status = (owner: Field, hint?: ReactNode) => (
+  const status = (owner: Field) => (
     <SaveStatus
       id={`profile-${owner}-status`}
       state={field === owner ? state : "idle"}
-      hint={hint}
       error={failure}
       onRetry={workspace.mustReload ? profile.reload : undefined}
     />
@@ -151,7 +146,7 @@ export function AccountProfileEditor() {
               </div>
               <div>
                 <dt>Saved date format</dt>
-                <dd>{dateFormatLabels[workspace.latest.values.dateFormat]}</dd>
+                <dd>{dateFormatLabel(workspace.latest.values.dateFormat, workspace.latest.values.timeZone)}</dd>
               </div>
             </dl>
           </InlineMessage>
@@ -172,7 +167,7 @@ export function AccountProfileEditor() {
                 onChange={(event) => update("fullName", { fullName: event.target.value })}
               />
             </div>
-            {status("fullName", NAME_HINT)}
+            {status("fullName")}
           </div>
           <div className="e-field">
             <label className="e-field__label" htmlFor="profile-email">
@@ -185,24 +180,16 @@ export function AccountProfileEditor() {
                 autoComplete="email"
                 readOnly
                 value={workspace.saved.email ?? "No account email"}
-                aria-describedby="profile-email-note"
               />
             </div>
-            <p id="profile-email-note" className="e-field__hint">
-              {EMAIL_HINT}
-            </p>
           </div>
         </div>
       </ProfileSection>
       <PreferencesSection>
-        <PreferenceRow
-          title="Time zone"
-          hint={<p id="profile-time-zone-hint">{TIME_ZONE_HINT}</p>}
-          status={status("timeZone")}
-        >
+        <PreferenceRow title="Time zone" status={status("timeZone")}>
           <select
             aria-label="Time zone"
-            aria-describedby="profile-time-zone-hint profile-timeZone-status"
+            aria-describedby="profile-timeZone-status"
             disabled={locked}
             value={values.timeZone}
             onChange={(event) =>
@@ -216,27 +203,19 @@ export function AccountProfileEditor() {
             ))}
           </select>
         </PreferenceRow>
-        <PreferenceRow
-          title="Date format"
-          hint={
-            <p id="profile-date-format-hint">
-              Preview: <output aria-label="Date format preview">{formatAccountDate(PREVIEW_DATE, values)}</output>
-            </p>
-          }
-          status={status("dateFormat")}
-        >
+        <PreferenceRow title="Date format" status={status("dateFormat")}>
           <select
             aria-label="Date format"
-            aria-describedby="profile-date-format-hint profile-dateFormat-status"
+            aria-describedby="profile-dateFormat-status"
             disabled={locked}
             value={values.dateFormat}
             onChange={(event) =>
               update("dateFormat", { dateFormat: event.target.value as AccountProfileValues["dateFormat"] })
             }
           >
-            {Object.entries(dateFormatLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
+            {DATE_FORMATS.map((format) => (
+              <option key={format} value={format}>
+                {dateFormatLabel(format, values.timeZone)}
               </option>
             ))}
           </select>
@@ -265,18 +244,16 @@ function ProfileAutosave({ delay }: { delay: number }) {
   return null;
 }
 
-/** The line under a field: its hint, then "Saving", "Saved" (only after the server confirms) or the failure with
- * one "Try again". The polite region stays mounted so each change is announced. */
+/** The line under a field: "Saving", "Saved" (only after the server confirms) or the failure with one "Try again".
+ * The polite region stays mounted so each change is announced. */
 function SaveStatus({
   id,
   state,
-  hint,
   error,
   onRetry,
 }: {
   id: string;
   state: SaveState;
-  hint?: ReactNode;
   error: string | null;
   onRetry?: () => void;
 }) {
@@ -303,8 +280,6 @@ function SaveStatus({
             </Button>
           )}
         </>
-      ) : hint ? (
-        <p className="e-field__hint">{hint}</p>
       ) : null}
     </div>
   );
@@ -313,12 +288,9 @@ function SaveStatus({
 function ProfileSection({ children }: { children: ReactNode }) {
   return (
     <section className="e-section" aria-labelledby="profile-title">
-      <div className="e-section__head">
-        <h2 className="e-section__title" id="profile-title">
-          Profile
-        </h2>
-        <p className="e-section__hint">Changes on this page save automatically.</p>
-      </div>
+      <h2 className="e-section__title" id="profile-title">
+        Profile
+      </h2>
       {children}
     </section>
   );
@@ -327,33 +299,19 @@ function ProfileSection({ children }: { children: ReactNode }) {
 function PreferencesSection({ children }: { children: ReactNode }) {
   return (
     <section className="e-section" aria-labelledby="preferences-title">
-      <div className="e-section__head">
-        <h2 className="e-section__title" id="preferences-title">
-          Preferences
-        </h2>
-        <p className="e-section__hint">Choose how dates appear in Embel.</p>
-      </div>
+      <h2 className="e-section__title" id="preferences-title">
+        Preferences
+      </h2>
       <div>{children}</div>
     </section>
   );
 }
 
-function PreferenceRow({
-  title,
-  hint,
-  status,
-  children,
-}: {
-  title: string;
-  hint: ReactNode;
-  status?: ReactNode;
-  children: ReactNode;
-}) {
+function PreferenceRow({ title, status, children }: { title: string; status: ReactNode; children: ReactNode }) {
   return (
     <div className="e-setting-row">
       <div className="e-setting-row__text">
         <p className="e-setting-row__title">{title}</p>
-        <div className="e-section__hint">{hint}</div>
         {status}
       </div>
       <div className="e-setting-row__control">
@@ -377,7 +335,6 @@ function LoadingProfile() {
               <div className="e-field" key={label}>
                 <span className="e-field__label">{label}</span>
                 <Skeleton shape="block" />
-                <Skeleton width={60} className="sg-skeleton-hint" />
               </div>
             ))}
           </div>
@@ -387,11 +344,6 @@ function LoadingProfile() {
             <div className="e-setting-row" key={title}>
               <div className="e-setting-row__text">
                 <p className="e-setting-row__title">{title}</p>
-                {title === "Time zone" ? (
-                  <p className="e-section__hint">{TIME_ZONE_HINT}</p>
-                ) : (
-                  <Skeleton width={25} className="sg-skeleton-hint" />
-                )}
               </div>
               <div className="e-setting-row__control">
                 <Skeleton shape="block" />

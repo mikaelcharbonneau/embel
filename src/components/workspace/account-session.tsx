@@ -530,12 +530,7 @@ export function AccountStatus({
   }
   if (view.invite)
     return (
-      <EmptyState
-        icon="lock"
-        title={signedOut.replace(/\.$/u, "")}
-        text="Your brands, logos and files are saved in your account."
-        action={<SignedOutActions placement="page" />}
-      />
+      <EmptyState icon="lock" title={signedOut.replace(/\.$/u, "")} action={<SignedOutActions placement="page" />} />
     );
   return (
     <InlineMessage

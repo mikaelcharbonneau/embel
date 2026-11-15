@@ -127,7 +127,7 @@ it("shows 40 names a page as one-row cards, the whole name the choice, with Deta
     async (host) => {
       const radios = () => [...host.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
       expect(radios()).toHaveLength(40);
-      expect(host.textContent).toContain("40 of 100 names");
+      expect(host.textContent).toContain("All 100");
       expect(radios()[1]!.checked).toBe(true);
       expect(host.querySelector("#project-name-" + entries[1]!.candidate.id)?.hasAttribute("data-selected")).toBe(true);
       // Compact cards show only the name: no domain status and no brainstorm label (both live in Details).
@@ -157,7 +157,7 @@ it("says how to keep names when none are saved, and offers all names again", asy
   await mount(results({ entries }), async (host) => {
     const button = (text: string) => [...host.querySelectorAll("button")].find((b) => b.textContent === text)!;
     await act(async () => button("Saved 0").click());
-    expect(host.textContent).toContain("You haven’t saved any names yet. Press the heart on a name to keep it here.");
+    expect(host.textContent).toContain("No saved names yet.");
     expect(host.querySelector('[role="radiogroup"]')).toBeNull();
     await act(async () => button("Show all 3 names").click());
     expect(host.querySelectorAll('input[type="radio"]')).toHaveLength(3);

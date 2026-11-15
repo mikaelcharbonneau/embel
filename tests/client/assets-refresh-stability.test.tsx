@@ -117,7 +117,7 @@ it("groups files by brand in the journey's words, marks chosen ones and has no R
   } as unknown as typeof fixture.library;
   await render();
   const brands = [...host.querySelectorAll<HTMLElement>(".library-brand")];
-  expect(brands.map((brand) => brand.querySelector("h2")?.textContent)).toEqual(["Launchpad3", "Orchard1"]);
+  expect(brands.map((brand) => brand.querySelector("h2")?.textContent)).toEqual(["Launchpad", "Orchard"]);
   expect([...brands[0]!.querySelectorAll("h3.library-section__title")].map((node) => node.textContent)).toEqual([
     "Logo concepts",
     "Direction boards",
@@ -154,6 +154,6 @@ it("names a file without a number when other files of its brand may not be loade
   const card = host.querySelector("article")!;
   expect(card.getAttribute("aria-label")).toBe("Direction board · Launchpad");
   expect(card.querySelector("h3")?.textContent).toBe("Direction board");
-  expect(host.querySelector(".library-brand h2")?.textContent).toBe("Launchpad1");
+  expect(host.querySelector(".library-brand h2")?.textContent).toBe("Launchpad");
   expect(host.querySelectorAll(".assets-filter select")).toHaveLength(2);
 });

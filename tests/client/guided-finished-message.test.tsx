@@ -218,7 +218,7 @@ describe("a message typed on a finished interview", () => {
     const response = host.querySelector('article[aria-label="Embel response"][id^="guided-turn-"]')!;
     expect(response.textContent).toContain("Warm and dependable matches a neighborhood kitchen.");
     // The answer is not filed under an earlier step.
-    expect(response.querySelector(".e-turn__meta")?.textContent).toBe("Embel");
+    expect(response.textContent).not.toMatch(/Embel ·|\d of \d/);
     expect(identity()).not.toBeNull();
     expect(saveContext).toHaveBeenCalledOnce();
     expect(strategy.enqueue).toHaveBeenCalledOnce();

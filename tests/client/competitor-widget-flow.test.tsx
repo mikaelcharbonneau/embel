@@ -253,9 +253,6 @@ it("researches an added competitor like the suggestions, in the same save, keepi
   };
   await render();
   await act(async () => host.querySelector<HTMLInputElement>(".guided-choices .e-choice input")!.click());
-  expect(host.querySelector(".competitor-add-form")!.textContent).toContain(
-    "Embel looks it up like the other competitors",
-  );
   await click("Add a competitor");
   await fill(".competitor-add-form input", "Turo");
   await fill('.competitor-add-form input[type="url"]', "https://turo.com");

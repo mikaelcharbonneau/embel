@@ -28,7 +28,7 @@ function byRecent(a: LifecycleProject, b: LifecycleProject) {
   return -compareProjectCursors({ createdAt: a.created_at, id: a.id }, { createdAt: b.created_at, id: b.id });
 }
 
-/** The title row: the page name, one sentence, and the page's actions. */
+/** The title row: the page name and the page's actions. */
 function ProjectsHeading({
   deleted,
   showNew,
@@ -40,16 +40,9 @@ function ProjectsHeading({
 }) {
   return (
     <header className="e-page-header projects-heading">
-      <div className="e-stack e-stack--xs">
-        <h1 className="text-title-lg" ref={heading} tabIndex={-1}>
-          {deleted ? "Deleted projects" : "Projects"}
-        </h1>
-        <p className="e-muted">
-          {deleted
-            ? "Restore a project at any time. Restoring won’t restart cancelled AI work."
-            : "Every idea, in its own world."}
-        </p>
-      </div>
+      <h1 className="text-title-lg" ref={heading} tabIndex={-1}>
+        {deleted ? "Deleted projects" : "Projects"}
+      </h1>
       <div className="e-cluster">
         {deleted ? (
           <ButtonLink variant="secondary" href="/brands" icon="arrow-left">
@@ -89,7 +82,6 @@ export function ProjectsWorkspace({ state = "active" }: { state?: "active" | "de
         ) : (
           <SignedOutEmptyState
             title="Sign in to see your projects"
-            text="Every project you start is kept in your account."
             fallback={<AccountStatus signedOut="Sign in to see your projects." />}
           />
         )}
@@ -209,15 +201,10 @@ function ProjectsLibrary({ account, state }: { account: VerifiedAccount; state: 
       )}
       {empty ? (
         deleted ? (
-          <EmptyState
-            icon="trash"
-            title="No deleted projects"
-            text="Projects you delete appear here, with their files and history, ready to restore."
-          />
+          <EmptyState icon="trash" title="No deleted projects" />
         ) : (
           <EmptyState
-            title="Your first project starts with an idea"
-            text="Describe your idea on Home and Embel takes it from there. Every project you start is kept here."
+            title="No projects yet"
             action={
               <ButtonLink variant="primary" href="/" icon="plus">
                 New project
@@ -294,7 +281,6 @@ function ProjectsLibrary({ account, state }: { account: VerifiedAccount; state: 
                 variant="results"
                 icon="search"
                 title={`No ${deleted ? "deleted " : ""}projects match “${query.trim()}”`}
-                text="Check the spelling, or search for another project name."
                 action={<Button onClick={() => setQuery("")}>Clear search</Button>}
               />
             </div>

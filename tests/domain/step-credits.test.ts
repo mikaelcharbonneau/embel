@@ -2,12 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { PLAN_MONTHLY_CREDITS } from "@/domain/billing";
-import {
-  COMPLETE_BRAND_CREDITS,
-  COMPLETE_BRAND_CREDITS_REQUIRED,
-  completeBrandsPerMonth,
-  STEP_CREDITS,
-} from "@/domain/step-credits";
+import { COMPLETE_BRAND_CREDITS, COMPLETE_BRAND_CREDITS_REQUIRED, STEP_CREDITS } from "@/domain/step-credits";
 
 /** The credits each generation kind charges once every migration has run, read from the SQL itself. */
 function migratedKindCredits() {
@@ -53,11 +48,8 @@ describe("credits per step on the Plans page", () => {
     for (const [plan, credits] of Object.entries(PLAN_MONTHLY_CREDITS)) expect(granted.get(plan)).toBe(credits);
   });
 
-  it("turns an allowance into complete brands", () => {
+  it("totals a complete brand", () => {
     expect(COMPLETE_BRAND_CREDITS).toBe(19);
     expect(COMPLETE_BRAND_CREDITS_REQUIRED).toBe(18);
-    expect(completeBrandsPerMonth(30)).toBe(1);
-    expect(completeBrandsPerMonth(150)).toBe(7);
-    expect(completeBrandsPerMonth(500)).toBe(26);
   });
 });

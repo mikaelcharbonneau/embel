@@ -1,31 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { IconButton } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-import type { BrandAssetFile } from "../client/build-pack";
 import styles from "./brand-assets.module.css";
-
-export function fileFormat(file: BrandAssetFile) {
-  switch (file.mimeType) {
-    case "image/png":
-      return "PNG";
-    case "image/jpeg":
-      return "JPG";
-    case "image/webp":
-      return "WEBP";
-    case "image/svg+xml":
-      return "SVG";
-    case "text/html":
-      return "HTML";
-    case "application/json":
-      return "JSON";
-    case "text/css":
-      return "CSS";
-    case "text/plain":
-      return "TXT";
-    default:
-      return file.label;
-  }
-}
 
 type Failed = { key: string; label: string; text: string };
 
@@ -55,7 +31,7 @@ export function useCopy() {
     },
     [toast],
   );
-  return { copy, failed, dismiss: () => setFailed(null) };
+  return { copy, failed };
 }
 
 /** The text the clipboard refused, selectable for copying by hand. */

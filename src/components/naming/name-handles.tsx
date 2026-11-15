@@ -249,10 +249,10 @@ export function HandlesPanel({
       {error && <InlineMessage tone="danger">{error}</InlineMessage>}
       <p className={`e-muted ${styles.small}`}>
         {youtube
-          ? `Embel checks YouTube for you${checkedAt ? ` (checked ${checkedTime(checkedAt)})` : " when you press Check"}. For the other platforms, Open shows whether the profile exists. Checking doesn’t reserve a handle.`
+          ? `${checkedAt ? `YouTube checked ${checkedTime(checkedAt)}. ` : ""}Checking doesn’t reserve a handle.`
           : handles === null
             ? "Checking which lookups are connected…"
-            : "Embel can’t check handles right now. Open shows each platform’s profile page, so you can see whether it exists. Opening doesn’t reserve a handle."}
+            : "Embel can’t check handles right now."}
       </p>
     </div>
   );

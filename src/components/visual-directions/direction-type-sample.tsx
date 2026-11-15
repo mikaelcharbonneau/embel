@@ -86,10 +86,8 @@ export function DirectionTypeSample({ style, brandName }: { style: TypeStyle; br
   const supported = font && brandName.trim() && supportedBrandBoardTypography(style, brandName);
   return (
     <div className={styles.specimen}>
-      <span className={styles.caption}>
-        {style.family} · {style.weight}
-        {style.style !== "normal" && ` · ${style.style}`}
-      </span>
+      {/* The sample shows the typeface; its name is for screen readers only. */}
+      <span className="sr-only">{style.family}</span>
       {supported ? (
         <LoadedSample key={font.id} font={font} weight={style.weight} brandName={brandName} />
       ) : (

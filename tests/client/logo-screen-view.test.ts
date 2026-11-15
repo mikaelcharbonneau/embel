@@ -119,42 +119,33 @@ describe("the concepts heading", () => {
     expect(view(chosen, { chosenLabel: "" }).gridTitle).toBe("Choose the concept you like most");
   });
 
-  it("says under it: unavailable, loading, saving, the chosen logo, then the count", () => {
+  it("says under it: unavailable, loading, saving, then the count until all six are ready", () => {
     const all = { savedBatchUnavailable: true, savedBatchLoading: true, choiceSaving: true };
     expect(view(chosen, all).gridSubtitle).toBe("Saved concept details unavailable");
     expect(view(chosen, { ...all, savedBatchUnavailable: false }).gridSubtitle).toBe("Loading saved concepts…");
     expect(view(chosen, { choiceSaving: true }).gridSubtitle).toBe("Saving your choice…");
-    expect(view(chosen).gridSubtitle).toBe("Concept 2, version 3 · 6 concepts");
+    expect(view(chosen).gridSubtitle).toBe("");
+    expect(view(concepts).gridSubtitle).toBe("");
     expect(view(chosen, { drawingNow: true, readyCount: 4 }).gridSubtitle).toBe("4 of 6 concepts ready");
     expect(view(concepts, { readyCount: 5 }).gridSubtitle).toBe("5 of 6 concepts ready");
-    expect(view(chosen, { chosenLabel: "Your chosen logo", readyCount: 3 }).gridSubtitle).toBe(
-      "Your chosen logo · 3 concepts",
-    );
+    expect(view(chosen, { readyCount: 3 }).gridSubtitle).toBe("3 of 6 concepts ready");
   });
 });
 
 describe("Embel's message in the chat", () => {
   it("says a change first, then drawing, then the state of the concepts", () => {
     expect(view(chosen, { refineRunActive: true, conceptRunActive: true, drawingNow: true }).stateMessage).toBe(
-      "I’m changing your logo. The new version appears on the right when it’s ready.",
+      "I’m changing your logo.",
     );
     for (const drawing of [{ drawingNow: true }, { conceptRunActive: true }])
       for (const situation of [first, chosen])
-        expect(view(situation, drawing).stateMessage).toBe(
-          "I’m drawing six concepts for Northwind. They appear on the right as each one is ready.",
-        );
+        expect(view(situation, drawing).stateMessage).toBe("I’m drawing six concepts for Northwind.");
     expect(view(first).stateMessage).toBe(
-      "Time for a logo. I’ll draw six concepts for Northwind, guided by the designs you liked. First, choose the kinds of logo to explore on the right, then press Send.",
+      "Time for a logo. I’ll draw six concepts for Northwind, guided by the designs you liked.",
     );
-    expect(view(chosen).stateMessage).toBe(
-      "Concept 2 is your logo. To change it, describe the change below. When you’re happy with it, press Send to continue to Creative direction.",
-    );
-    expect(view(chosen, { canDescribeChange: false }).stateMessage).toBe(
-      "Concept 2 is your logo. When you’re happy with it, press Send to continue to Creative direction.",
-    );
-    expect(view(concepts).stateMessage).toBe(
-      "Here are six concepts for Northwind. Choose the one you like most on the right. You can change it afterwards.",
-    );
+    expect(view(chosen).stateMessage).toBe("Concept 2 is your logo.");
+    expect(view(chosen, { canDescribeChange: false }).stateMessage).toBe("Concept 2 is your logo.");
+    expect(view(concepts).stateMessage).toBe("Here are six concepts for Northwind.");
   });
 
   it("leaves failed concepts to their own message, unless a logo is already chosen", () => {
@@ -170,7 +161,7 @@ describe("Embel's message in the chat", () => {
 
   it("says what the last run ended as before what to do now", () => {
     expect(view(concepts, { runEndSentence: "I stopped drawing." }).stepMessage).toBe(
-      "I stopped drawing. Here are six concepts for Northwind. Choose the one you like most on the right. You can change it afterwards.",
+      "I stopped drawing. Here are six concepts for Northwind.",
     );
     expect(view(concepts, { runEndSentence: "I stopped drawing.", failedCount: 1 }).stepMessage).toBe(
       "I stopped drawing.",

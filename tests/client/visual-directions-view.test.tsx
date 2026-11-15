@@ -124,7 +124,7 @@ describe("visual direction comparison", () => {
     expect(host.textContent).toContain("1 of 3 ready");
     expect(host.textContent).toContain("This set is incomplete");
     expect(host.querySelectorAll("[data-selected='true']")).toHaveLength(0);
-    expect(host.textContent?.match(/No board saved for this direction/g)).toHaveLength(2);
+    expect(host.textContent?.match(/No board for this direction/g)).toHaveLength(2);
     expect(saved.onChoose).not.toHaveBeenCalled();
     await click(choice(0));
     expect(saved.onChoose).toHaveBeenCalledTimes(1);
@@ -137,19 +137,17 @@ describe("visual direction comparison", () => {
     await render(
       props({
         cards: [stale, current, null],
-        selectionStatus: "Direction saved.",
         finalAction: createElement("a", { href: "/kit" }, "View brand assets"),
       }),
     );
     const articles = host.querySelectorAll("article");
     expect(articles[0]!.hasAttribute("data-selected")).toBe(false);
-    expect(articles[0]!.textContent).toContain("This board uses earlier inputs.");
+    expect(articles[0]!.textContent).toContain("Made for an earlier logo.");
     expect(choice(0).disabled).toBe(true);
     expect(choice(0).getAttribute("aria-pressed")).toBe("false");
     expect(articles[1]!.dataset.selected).toBe("true");
     expect(choice(1).getAttribute("aria-pressed")).toBe("true");
     expect(choice(1).textContent).toBe("Chosen");
-    expect(host.textContent).toContain("Direction saved.");
     expect(host.querySelector('a[href="/kit"]')?.textContent).toBe("View brand assets");
   });
 
@@ -158,7 +156,8 @@ describe("visual direction comparison", () => {
     const generation = { status: "complete" as const, completed: 3, onCheck: vi.fn(), onGenerate: vi.fn() };
     await render(props({ cards, generation }));
     expect(button("Check progress")).toBeUndefined();
-    expect(host.textContent).toContain("3 of 3 ready");
+    // Once all three are ready the count is not said.
+    expect(host.textContent).not.toContain("of 3 ready");
     expect(host.textContent).not.toContain("View brand assets");
 
     // The current choice can belong to an earlier set than the three being compared.
@@ -180,7 +179,6 @@ describe("visual direction comparison", () => {
     const dialog = host.querySelector("dialog")!;
     expect(dialog.open).toBe(true);
     expect(dialog.textContent).toContain("Verified board A");
-    expect(dialog.textContent).toContain("Direction 1 of 3");
     expect(saved.onChoose).not.toHaveBeenCalled();
     await click(dialog.querySelector<HTMLButtonElement>("[aria-label='Close']")!);
     expect(host.querySelector("dialog")).toBeNull();
@@ -255,7 +253,6 @@ describe("visual direction comparison", () => {
     await click(host.querySelector<HTMLButtonElement>("[aria-label='Enlarge Direction 1, Direction A']")!);
     const dialog = () => host.querySelector("dialog")!;
     await click(button("Next"));
-    expect(dialog().textContent).toContain("Direction 3 of 3");
     expect(dialog().textContent).toContain("Verified board C");
     await click(button("Choose this direction"));
     expect(c.onChoose).toHaveBeenCalledTimes(1);
@@ -301,7 +298,7 @@ describe("with the Workspace reply box", () => {
         generation: { status: "running", completed: 1, onGenerate: vi.fn(), onCheck: vi.fn(), onStop: vi.fn() },
       }),
     );
-    expect(host.textContent).not.toContain("Creating your directions.");
+    expect(host.textContent).not.toContain("Creating your directions");
     expect(button("Check progress")).toBeUndefined();
     expect(button("Stop generation")).toBeUndefined();
     expect(button("More directions")?.disabled).toBe(true);
@@ -312,14 +309,14 @@ describe("with the Workspace reply box", () => {
 });
 
 describe("a finished brand", () => {
-  it("shows the chosen board large, marked as chosen, beside the chosen logo and its name", async () => {
+  it("shows the chosen board large, marked as chosen, beside the chosen logo", async () => {
     await act(async () =>
       root!.render(
         createElement(ChosenBrandView, {
           title: "Editorial Soft Shapes",
           board: createElement("p", null, "Verified board A"),
           enlarged: createElement("p", null, "Whole board A"),
-          logo: { url: "blob:logo", failed: false, label: "Concept 1, version 2" },
+          logo: { url: "blob:logo", failed: false },
         }),
       ),
     );
@@ -327,11 +324,10 @@ describe("a finished brand", () => {
     const chosen = host.querySelector("article")!;
     expect(chosen.getAttribute("aria-label")).toBe("Chosen direction: Editorial Soft Shapes");
     expect(chosen.hasAttribute("data-selected")).toBe(true);
-    expect(chosen.textContent).toContain("Chosen direction");
     // No Choose buttons: the brand is chosen; Change direction in the chat brings the boards back.
     expect(button("Choose")).toBeUndefined();
-    expect(host.querySelector("figure img")?.getAttribute("alt")).toBe("Your logo");
-    expect(host.querySelector("figcaption")?.textContent).toBe("Your logo · Concept 1, version 2");
+    expect(host.querySelector('img[alt="Your logo"]')).not.toBeNull();
+    expect(host.querySelector("figcaption")).toBeNull();
     await click(host.querySelector<HTMLButtonElement>("[aria-label='Enlarge Editorial Soft Shapes']")!);
     expect(host.querySelector("dialog")?.textContent).toContain("Whole board A");
   });

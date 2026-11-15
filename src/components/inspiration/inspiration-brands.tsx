@@ -253,13 +253,11 @@ export function BrandOverlay({
   brand,
   initialPart,
   likes,
-  footer,
   onClose,
 }: {
   brand: InspirationBrand;
   initialPart?: InspirationPart;
   likes: BrandLikes;
-  footer: ReactNode;
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null),
@@ -301,7 +299,7 @@ export function BrandOverlay({
         <figure className="inspiration-detail-art inspiration-overlay-art">
           <BrandImage key={image.part} image={image} size="large" eager />
           <figcaption aria-live="polite" aria-atomic="true">
-            {inspirationPartLabels[image.part]} · {index + 1} of {brand.parts.length}
+            {inspirationPartLabels[image.part]}
           </figcaption>
           <button
             type="button"
@@ -324,7 +322,6 @@ export function BrandOverlay({
         </figure>
         <div className="inspiration-detail-body">
           <div className="inspiration-detail-top">
-            <span>BRAND</span>
             <button
               autoFocus
               type="button"
@@ -377,7 +374,6 @@ export function BrandOverlay({
             })}
           </ul>
           {likes.status}
-          {footer}
         </div>
       </div>
     </dialog>

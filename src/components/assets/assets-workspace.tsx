@@ -36,40 +36,14 @@ function libraryViewFromAddress() {
   };
 }
 
-/** "Nov 12", with the year when it is not this year. */
-export function shortDate(iso: string, now = new Date()) {
-  const date = new Date(iso);
-  if (!Number.isFinite(date.getTime())) return null;
-  return date.toLocaleDateString("en", {
-    month: "short",
-    day: "numeric",
-    ...(date.getFullYear() === now.getFullYear() ? {} : { year: "numeric" }),
-  });
-}
-
-/** "Version 2 · PNG · Nov 12": the version only when there is more than one. */
-function fileLine(item: AssetLibraryItem) {
-  const version = item.displayedVersion;
-  return [
-    version && item.asset.versionCount > 1 ? `Version ${version.versionNumber}` : null,
-    version ? version.format.toUpperCase() : "No file",
-    shortDate(version?.createdAt ?? item.asset.createdAt),
-  ]
-    .filter(Boolean)
-    .join(" · ");
-}
-
 export function AssetsWorkspace() {
   const { session } = useAccountSession();
   return (
     <div className="e-container e-page assets-guided library-page">
-      <header className="e-page-header library-heading">
-        <div className="e-stack e-stack--xs">
-          <h1 className="text-title-lg" tabIndex={-1} id="assets-heading">
-            Library
-          </h1>
-          <p className="e-muted">Everything Embel has made for you, by brand.</p>
-        </div>
+      <header className="e-page-header">
+        <h1 className="text-title-lg" tabIndex={-1} id="assets-heading">
+          Library
+        </h1>
       </header>
       {session.status === "ready" ? (
         <OwnedAssetLibrary key={`${session.userId}:${session.generation}`} account={session} />
@@ -83,7 +57,6 @@ export function AssetsWorkspace() {
       ) : (
         <SignedOutEmptyState
           title="Sign in to see your library"
-          text="Your logos, direction boards and brand images are kept in your account."
           fallback={<AccountStatus signedOut="Sign in to see your library." />}
         />
       )}
@@ -102,7 +75,6 @@ function LibrarySkeleton({ slots }: { slots: number }) {
             <span className="e-skeleton e-skeleton--block assets-query-placeholder__media" />
             <div className="e-card__body">
               <Skeleton shape="title" width={60} />
-              <Skeleton shape="line" width={25} />
             </div>
           </div>
         ))}
@@ -292,7 +264,7 @@ function OwnedAssetLibrary({ account }: { account: VerifiedAccount }) {
         >
           {needle && library.page?.nextCursor && (
             <p id="assets-search-note" className="e-muted">
-              Search covers the files shown. Show more to search the rest.
+              Search covers the files shown. Load more to search the rest.
             </p>
           )}
           {library.error &&
@@ -334,7 +306,6 @@ function OwnedAssetLibrary({ account }: { account: VerifiedAccount }) {
                   <div className="library-brand__head">
                     <h2 className="library-brand__title" id={`library-brand-${brand.project.id}`}>
                       {brand.project.title}
-                      <Badge>{brand.entries.length}</Badge>
                     </h2>
                     <Link className="e-link e-link--standalone" href={`/brands/account/${brand.project.id}`}>
                       Open project
@@ -382,7 +353,6 @@ function OwnedAssetLibrary({ account }: { account: VerifiedAccount }) {
                   variant="results"
                   icon="search"
                   title={`No files match “${search.trim()}”`}
-                  text="Check the spelling, or search for a brand or a kind of file."
                   action={<Button onClick={() => setSearch("")}>Clear search</Button>}
                 />
               </div>
@@ -391,21 +361,19 @@ function OwnedAssetLibrary({ account }: { account: VerifiedAccount }) {
                 variant="results"
                 icon="sliders-horizontal"
                 title="No files match these filters"
-                text="Choose another project or format to see more of your library."
                 action={<Button onClick={() => changeQuery({ tab })}>Clear filters</Button>}
               />
             ) : tab === "my_selection" && library.projects.length > 0 ? (
               <EmptyState
                 icon="images"
                 title="Nothing in your brands yet"
-                text="The logo and direction you choose, and files you like or save, appear here, grouped by brand."
+                text="Files you choose, like or save appear here."
                 action={<Button onClick={() => chooseTab("all_generations")}>See everything made</Button>}
               />
             ) : (
               <EmptyState
                 icon="images"
                 title="Your library is empty"
-                text="Logo concepts, direction boards and brand images are kept here as you make them, grouped by brand."
                 action={
                   <ButtonLink variant="primary" href="/" icon="plus">
                     New project
@@ -449,7 +417,7 @@ function OwnedAssetLibrary({ account }: { account: VerifiedAccount }) {
   );
 }
 
-/** One file: its picture whole in a square (IMG-012), "Chosen" when it is in the brand, its name and file line.
+/** One file: its picture whole in a square (IMG-012), "Chosen" when it is in the brand, and its name.
  * The whole card opens the detail view. */
 function LibraryCard({
   entry,
@@ -486,7 +454,6 @@ function LibraryCard({
             {name}
           </button>
         </Heading>
-        <p className="e-card__meta">{fileLine(item)}</p>
       </div>
     </article>
   );

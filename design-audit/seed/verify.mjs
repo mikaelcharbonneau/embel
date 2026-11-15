@@ -49,7 +49,7 @@ const STATE = {
   },
   concepts: async (page, b) => {
     const grid = page.getByRole("region", { name: "Logo concepts", exact: true });
-    await expect(grid.getByText(new RegExp(`${6 - (b.failedLogoSlots ?? 0)} of 6 concepts ready`, "u"))).toBeVisible({
+    await expect(grid.getByRole("button", { name: /^Concept [1-6]$/u })).toHaveCount(6 - (b.failedLogoSlots ?? 0), {
       timeout: 60_000,
     });
     if (b.failedLogoSlots)
@@ -58,7 +58,7 @@ const STATE = {
   },
   directions: async (page) => {
     const step = page.getByRole("region", { name: "Creative direction", exact: true });
-    await expect(step.getByText("3 of 3 ready", { exact: true })).toBeVisible({ timeout: 60_000 });
+    await expect(step.getByRole("img", { name: /^Saved Identity board for /u })).toHaveCount(3, { timeout: 60_000 });
     await expect(step.getByRole("button", { name: "Chosen", pressed: true })).toHaveCount(0);
   },
   complete: async (page, b, projectId) => {

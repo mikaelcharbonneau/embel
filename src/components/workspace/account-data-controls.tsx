@@ -81,20 +81,13 @@ function AccountData({ account }: { account: VerifiedAccount }) {
 
   return (
     <section className="e-section" aria-labelledby="account-data-title">
-      <div className="e-section__head">
-        <h2 className="e-section__title" id="account-data-title">
-          Your data
-        </h2>
-        <p className="e-section__hint">Take a copy of your work, or remove your account.</p>
-      </div>
+      <h2 className="e-section__title" id="account-data-title">
+        Your data
+      </h2>
       <div>
         <div className="e-setting-row">
           <div className="e-setting-row__text">
             <p className="e-setting-row__title">Download my data</p>
-            <p className="e-section__hint">
-              A ZIP with your profile, projects, Strategy, Voice and Identity work, and the files you generated or
-              uploaded.
-            </p>
             {exportError && (
               <InlineMessage tone="danger" form="field">
                 {exportError}
@@ -108,9 +101,6 @@ function AccountData({ account }: { account: VerifiedAccount }) {
         <div className="e-setting-row">
           <div className="e-setting-row__text">
             <p className="e-setting-row__title">Delete account</p>
-            <p className="e-section__hint">
-              Permanently delete your account, projects and files. This can’t be undone.
-            </p>
           </div>
           <Button variant="danger" onClick={() => setConfirming(true)}>
             Delete account
@@ -131,7 +121,7 @@ function DeleteAccountDialog({ account, onClose }: { account: VerifiedAccount; o
     status: "idle",
     error: null,
   });
-  const ids = { form: useId(), cancel: useId(), field: useId(), note: useId(), error: useId() };
+  const ids = { form: useId(), cancel: useId(), field: useId(), error: useId() };
   const deleting = state.status === "deleting";
   // The account's own email, when this owner's profile is loaded; otherwise the server alone compares.
   const saved = profile?.workspace?.saved;
@@ -225,21 +215,17 @@ function DeleteAccountDialog({ account, onClose }: { account: VerifiedAccount; o
               type="email"
               autoComplete="off"
               spellCheck={false}
+              placeholder={accountEmail ?? undefined}
               value={email}
               disabled={deleting}
               aria-invalid={state.error ? true : undefined}
-              aria-describedby={[ids.note, state.error && ids.error].filter(Boolean).join(" ")}
+              aria-describedby={state.error ? ids.error : undefined}
               onChange={(event) => {
                 setEmail(event.target.value);
                 if (state.error) setState({ status: "idle", error: null });
               }}
             />
           </div>
-          <p className="e-field__hint" id={ids.note}>
-            {accountEmail
-              ? `Your email is ${accountEmail}. The Delete account button turns on when it matches.`
-              : "Type the email you sign in with."}
-          </p>
         </div>
         {state.error && (
           <InlineMessage id={ids.error} tone="danger">

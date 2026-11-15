@@ -373,9 +373,7 @@ function OwnedBrandAssets({
           previews={shown?.previews}
           downloadFile={downloadFile}
           disabled={downloading}
-          projectId={projectId}
           context={context}
-          directionTitle={directionTitle}
           status={status}
         />
       )}

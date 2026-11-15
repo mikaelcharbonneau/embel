@@ -334,23 +334,6 @@ describe("Failed gallery images", () => {
 });
 
 describe("Brand overlay", () => {
-  it("says the choices stay with the brand by its real name, not the project's working title", async () => {
-    await act(async () =>
-      root.render(
-        <InspirationView
-          controller={controller}
-          projectId={projectId}
-          variant="workspace"
-          brandName="Kestrel Analytics"
-        />,
-      ),
-    );
-    await act(async () => button(`Open ${first!.brand}: typefaces`).click());
-    const footer = host.querySelector(".inspiration-detail-footer")!;
-    expect(footer.textContent).toBe("Your choices stay with Kestrel Analytics. Change them anytime.");
-    expect(footer.textContent).not.toContain("Local fixture");
-  });
-
   it("opens from a brand container at the clicked image, steps through all five and saves likes from inside", async () => {
     await render();
     const trigger = button(`Open ${first!.brand}: typefaces`);
@@ -361,8 +344,8 @@ describe("Brand overlay", () => {
     expect(dialog.querySelector("h2")?.textContent).toBe(first!.brand);
     const large = () => dialog.querySelector<HTMLImageElement>(".inspiration-overlay-art img")!;
     expect(large().getAttribute("src")).toBe(first!.parts[2]!.image);
-    expect(dialog.querySelector("figcaption")?.textContent).toBe("Typefaces · 3 of 5");
-    // The counter is announced when the image changes, once, as a whole.
+    expect(dialog.querySelector("figcaption")?.textContent).toBe("Typefaces");
+    // The image's name is announced when the image changes, once, as a whole.
     expect(dialog.querySelector("figcaption")?.getAttribute("aria-live")).toBe("polite");
     expect(dialog.querySelector("figcaption")?.getAttribute("aria-atomic")).toBe("true");
     await act(async () => button("Next image").click());

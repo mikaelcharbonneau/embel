@@ -306,7 +306,7 @@ describe("S2: a Logo run that ends without its result", () => {
     };
     const state = await inWorkspace(projectId, fetcher);
     const before = state.messages.at(-1)!;
-    expect(before).toMatch(/^Concept 1 is your logo\. /u);
+    expect(before).toMatch(/^Concept 1 is your logo\.$/u);
     await act(async () => state.reply!.send("Make the lettering bolder"));
     await until(() => expect(state.messages.at(-1)).toMatch(/^I’m changing your logo\./u));
     runs[0] = { ...runs[0]!, status: "failed", errorCode: "run_timed_out", finishedAt: "2026-11-14T10:16:00.000Z" };
@@ -363,7 +363,7 @@ describe("S2: a Logo run that ends without its result", () => {
       return f.fetcher(input, init);
     };
     const state = await inWorkspace(projectId, fetcher);
-    expect(state.messages.at(-1)).toMatch(/^Concept 1 is your logo\. /u);
+    expect(state.messages.at(-1)).toMatch(/^Concept 1 is your logo\.$/u);
     expect(chat.textContent).not.toContain("didn’t finish");
   }, 30_000);
 });

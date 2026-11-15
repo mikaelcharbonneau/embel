@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   useCallback,
   useEffect,
@@ -42,9 +41,7 @@ type Props = {
   downloadFile(file?: BrandAssetFile): void;
   /** A download is being checked and started. */
   disabled: boolean;
-  projectId: string;
   context: ContextSnapshot | null;
-  directionTitle?: string;
   /** Progress of preparing or downloading the kit, announced politely. */
   status: string;
   /** The brand images are still being drawn. */
@@ -131,9 +128,7 @@ export function AssetsJourney({
   previews,
   downloadFile,
   disabled,
-  projectId,
   context,
-  directionTitle,
   status,
   preparing = !pack,
   onRetry,
@@ -151,7 +146,6 @@ export function AssetsJourney({
   const slogan = context ? guidedSlogan(context) : null;
   const positioning = context?.positioning || null;
   const p = snapshot.palette;
-  const base = `/brands/account/${projectId}`;
   const board = files.find((file) => file.category === "board");
   const boardPreview = board ? previews?.get(board.name) : undefined;
   const guide = files.find((file) => file.category === "guide" && file.mimeType === "text/html");
@@ -168,10 +162,6 @@ export function AssetsJourney({
   const exportText = format === "css" ? designTokensCss(tokens) : designTokensJson(tokens);
   // The accent carries text only where it is readable; otherwise it is a fill.
   const accentReadable = contrast(p.accent, p.background) >= 4.5;
-  const imageCount = BRAND_APPLICATIONS.length + 1;
-  const hint = preparing
-    ? "The brand kit can be downloaded when your brand images are ready."
-    : `Logo files, ${failed.length ? `${imageCount - failed.length} of ${imageCount} images` : "images"}, guidelines and tokens · ZIP · ${files.length} files`;
 
   const onTabKey = (event: KeyboardEvent<HTMLDivElement>) => {
     const at = TABS.findIndex(([key]) => key === tab);
@@ -251,8 +241,6 @@ export function AssetsJourney({
   };
   const socialCards = BRAND_APPLICATIONS.filter((spec) => spec.width / spec.height < 2);
   const banners = BRAND_APPLICATIONS.filter((spec) => spec.width / spec.height >= 2);
-  const meta = (spec: (typeof BRAND_APPLICATIONS)[number]) =>
-    `${spec.width} × ${spec.height} · ${spec.editable ? "PNG and SVG" : "PNG"}`;
   const failedNames = failed.map((item) => `the ${item.label.toLowerCase()}`);
   const failedList =
     failedNames.length > 1 ? `${failedNames.slice(0, -1).join(", ")} and ${failedNames.at(-1)}` : failedNames[0];
@@ -260,16 +248,11 @@ export function AssetsJourney({
   return (
     <div className={styles.page}>
       <FontFaces snapshot={snapshot} />
-      <header className="e-stack e-stack--xs">
-        <h1 className={styles.title} translate="no">
-          {snapshot.name}
-        </h1>
-        <p className={styles.lead}>
-          Your brand kit, made from your logo and your direction{directionTitle ? `, ${directionTitle}` : ""}.
-        </p>
-      </header>
+      <h1 className={styles.title} translate="no">
+        {snapshot.name}
+      </h1>
 
-      <div className="e-stack e-stack--sm">
+      <div>
         <div className="e-section-bar">
           <div className="e-tabs" role="tablist" aria-label="Your brand kit" onKeyDown={onTabKey}>
             {TABS.map(([key, label]) => (
@@ -294,7 +277,6 @@ export function AssetsJourney({
           <button
             type="button"
             className={buttonClass({ variant: "primary" })}
-            aria-describedby={`${id}-kit`}
             aria-busy={preparing || disabled || undefined}
             disabled={disabled}
             onClick={() => downloadFile()}
@@ -303,9 +285,6 @@ export function AssetsJourney({
             {preparing ? "Preparing brand kit" : "Download brand kit"}
           </button>
         </div>
-        <p className="e-section__hint e-tabular" id={`${id}-kit`}>
-          {hint}
-        </p>
         <p className="e-sr" role="status">
           {status}
         </p>
@@ -316,10 +295,7 @@ export function AssetsJourney({
         <div className="e-card e-card--pad">
           <div className="e-progress" data-state="running">
             <div className="e-progress__row">
-              <p className="e-progress__status">
-                Preparing your brand images and guidelines. This usually takes under a minute. Your design system is
-                ready now.
-              </p>
+              <p className="e-progress__status">Preparing your brand images and guidelines…</p>
             </div>
             <div className="e-progress__track" />
           </div>
@@ -356,26 +332,17 @@ export function AssetsJourney({
             )}
           </div>
           <div className="e-compare__side">
-            <div className="e-stack e-stack--sm">
-              <h2 className="e-section__title" id={`${id}-board`}>
-                Brand board
-              </h2>
-              <p>Your logo, colors and type on one page, with details from your direction.</p>
-              <p className="e-section__hint e-tabular">1600 × 2200 · PNG</p>
-            </div>
+            <h2 className="e-section__title" id={`${id}-board`}>
+              Brand board
+            </h2>
             <div>{download(board, "brand board", "PNG")}</div>
           </div>
         </section>
 
         <section className="e-section" aria-labelledby={`${id}-social`}>
-          <div className="e-section__head">
-            <h2 className="e-section__title" id={`${id}-social`}>
-              Social images
-            </h2>
-            <p className="e-section__hint">
-              Ready to upload as PNG. Posts and banners also come as SVG files you can edit.
-            </p>
-          </div>
+          <h2 className="e-section__title" id={`${id}-social`}>
+            Social images
+          </h2>
           <ul className={`e-grid-cards ${styles.list}`} aria-label="Profile image and post templates">
             {socialCards.map((spec) => {
               const png = fileNamed(`social/${spec.id}.png`),
@@ -387,10 +354,7 @@ export function AssetsJourney({
                     {picture(`social/${spec.id}`, SOCIAL_RATIO[spec.id]!, `${snapshot.name} ${label}`)}
                   </div>
                   <div className={`e-card__body ${styles.cardBody}`}>
-                    <div className="e-stack e-stack--xs">
-                      <h3 className="e-card__title">{spec.label}</h3>
-                      <span className="e-card__meta e-tabular">{meta(spec)}</span>
-                    </div>
+                    <h3 className="e-card__title">{spec.label}</h3>
                     <div>{spec.editable ? downloadMenu(png, svg, label) : download(png, label, "PNG")}</div>
                   </div>
                 </li>
@@ -407,10 +371,7 @@ export function AssetsJourney({
                   {picture(`social/${spec.id}`, SOCIAL_RATIO[spec.id]!, `${snapshot.name} ${label}`, true)}
                   <div className="e-card__body">
                     <div className="e-cluster e-cluster--between">
-                      <div className="e-stack e-stack--xs">
-                        <h3 className="e-card__title">{spec.label}</h3>
-                        <span className="e-card__meta e-tabular">{meta(spec)}</span>
-                      </div>
+                      <h3 className="e-card__title">{spec.label}</h3>
                       {downloadMenu(png, svg, label)}
                     </div>
                   </div>
@@ -423,16 +384,10 @@ export function AssetsJourney({
 
       <div {...panel("guidelines")}>
         <section className="e-section" aria-labelledby={`${id}-guide`}>
-          <div className="e-cluster e-cluster--between e-cluster--top">
-            <div className="e-section__head">
-              <h2 className="e-section__title" id={`${id}-guide`}>
-                Brand guidelines
-              </h2>
-              <p className="e-section__hint">
-                Everything someone needs to use <span translate="no">{snapshot.name}</span> consistently. The file you
-                download is this document.
-              </p>
-            </div>
+          <div className="e-cluster e-cluster--between">
+            <h2 className="e-section__title" id={`${id}-guide`}>
+              Brand guidelines
+            </h2>
             <Button
               icon="download"
               className="e-button--block-compact"
@@ -442,21 +397,6 @@ export function AssetsJourney({
               Download guidelines
             </Button>
           </div>
-          <p className="e-section__hint">
-            To change something, go back to the step it comes from:{" "}
-            <Link className="e-link" href={`${base}/logo`}>
-              Logo
-            </Link>
-            ,{" "}
-            <Link className="e-link" href={`${base}/logo/directions`}>
-              Creative direction
-            </Link>{" "}
-            or{" "}
-            <Link className="e-link" href={`${base}?view=strategy#journey-voice`}>
-              Voice
-            </Link>
-            .
-          </p>
           <div className={`e-card ${styles.cardClip}`}>
             {guide ? (
               <GuideDocument file={guide} title={`${snapshot.name} brand guidelines`} active={tab === "guidelines"} />
@@ -469,15 +409,9 @@ export function AssetsJourney({
 
       <div {...panel("system")}>
         <section className="e-section" aria-labelledby={`${id}-system`}>
-          <div className="e-section__head">
-            <h2 className="e-section__title" id={`${id}-system`}>
-              Design system
-            </h2>
-            <p className="e-section__hint">
-              So your website, shop or app looks like <span translate="no">{snapshot.name}</span> from day one. Copy the
-              values you need, or download them for your tools.
-            </p>
-          </div>
+          <h2 className="e-section__title" id={`${id}-system`}>
+            Design system
+          </h2>
           <div className={`e-card ${styles.cardClip}`}>
             <div
               className={styles.preview}

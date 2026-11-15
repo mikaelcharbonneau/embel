@@ -94,7 +94,6 @@ it("is titled Activity and links each action to its project step", async () => {
   ]);
   expect(dialog.textContent).toContain("Not confirmed");
   expect(dialog.textContent).toContain("We couldn’t confirm this result. Open the project to continue.");
-  expect(dialog.textContent).toContain("This is your latest activity. Open a project to see everything made for it.");
 });
 
 it("shows one row per click, running and failed first, with a true summary", async () => {
@@ -145,9 +144,6 @@ it("shows skeleton rows while loading and an empty state when nothing has run", 
   await act(async () => resolve({ ownerId: owner, active: [], recent: [] }));
   expect(text(dialog.querySelector("h3"))).toBe("Nothing has run yet");
   expect(dialog.querySelector("[data-icon='clock']")).not.toBeNull();
-  expect(dialog.textContent).toContain(
-    "When Embel is making names, logos or images for you, you can follow them here.",
-  );
   expect(dialog.querySelector('[role="status"]')).toBeNull();
 });
 

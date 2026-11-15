@@ -4,7 +4,6 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HomeRecentBrands } from "@/components/workspace/home-recent-brands";
-import { relativeTime } from "@/components/workspace/project-card";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 
 const mock = vi.hoisted(() => ({
@@ -122,7 +121,7 @@ describe("home account cards", () => {
     expect(grid.hasAttribute("aria-busy")).toBe(false);
     expect(grid.querySelector(`a[href="/brands/account/${projectId(0)}"]`)?.textContent).toContain("Saved brand");
     expect(host.textContent).not.toMatch(/browser|account cop|account project/i);
-    expect(host.textContent).not.toContain("What you will get");
+    expect(host.textContent).not.toContain("Made with Embel");
   });
   it("shows at most the three newest projects", async () => {
     const owner = (mock.session as VerifiedAccount).userId;
@@ -133,23 +132,23 @@ describe("home account cards", () => {
     expect(cards.map((card) => card.querySelector("h3")?.textContent)).toEqual(["Newest", "Second", "Third"]);
     expect(host.textContent).not.toMatch(/Fourth|Fifth/);
   });
-  it("shows a new account its credits and what it will get instead of an empty project list", async () => {
+  it("shows a new account its credits and brands made with Embel instead of an empty project list", async () => {
     const owner = (mock.session as VerifiedAccount).userId;
     const fetch = stubReads(() => page(owner), 30);
     await act(async () => root.render(createElement(HomeRecentBrands)));
     expect(host.querySelector(".home-credits")?.textContent).toBe("You have 30 credits to start.");
-    expect(headings()).toEqual(["What you will get"]);
+    expect(headings()).toEqual(["Made with Embel"]);
     expect(host.querySelectorAll(".home-example-grid img")).toHaveLength(3);
     expect(host.querySelector(".home-project-grid")).toBeNull();
     expect(host.textContent).not.toContain("Recent projects");
     expect(calls(fetch, "/api/billing")).toHaveLength(1);
   });
-  it("shows a signed-out visitor the free start and brands made with Embel, without reading anything private", async () => {
+  it("shows a signed-out visitor the way to Plans and brands made with Embel, without reading anything private", async () => {
     mock.session = { status: "signed_out", generation: 2 };
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
     await act(async () => root.render(createElement(HomeRecentBrands)));
-    expect(host.querySelector(".home-credits")?.textContent).toBe("Free to start with 30 credits.See plans");
+    expect(host.querySelector(".home-credits")?.textContent).toBe("See plans");
     expect(host.querySelector('.home-credits a[href="/plans"]')).not.toBeNull();
     expect(headings()).toEqual(["Made with Embel"]);
     expect([...host.querySelectorAll(".home-example-grid figcaption")].map((caption) => caption.textContent)).toEqual([
@@ -186,20 +185,5 @@ describe("home account cards", () => {
     await act(async () => root.render(createElement(HomeRecentBrands)));
     expect(host.textContent).not.toContain("Current account brand");
     expect(host.textContent).toBe("Loading your projects…");
-  });
-});
-
-describe("recent card dates", () => {
-  it("says how long ago in minutes, hours and days, then a short date with the year only when it differs", () => {
-    const now = new Date(2026, 10, 6, 9, 30);
-    expect(relativeTime(new Date(2026, 10, 6, 9, 29, 40).toISOString(), now)).toBe("just now");
-    expect(relativeTime(new Date(2026, 10, 6, 9, 29).toISOString(), now)).toBe("1 minute ago");
-    expect(relativeTime(new Date(2026, 10, 6, 8, 50).toISOString(), now)).toBe("40 minutes ago");
-    expect(relativeTime(new Date(2026, 10, 6, 0, 5).toISOString(), now)).toBe("9 hours ago");
-    expect(relativeTime(new Date(2026, 10, 5, 8, 55).toISOString(), now)).toBe("yesterday");
-    expect(relativeTime(new Date(2026, 10, 2, 12).toISOString(), now)).toBe("4 days ago");
-    expect(relativeTime(new Date(2026, 9, 20, 12).toISOString(), now)).toBe("Oct 20");
-    expect(relativeTime(new Date(2025, 11, 24, 12).toISOString(), now)).toBe("Dec 24, 2025");
-    expect(relativeTime("not a date", now)).toBeNull();
   });
 });

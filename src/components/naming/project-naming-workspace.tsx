@@ -2,8 +2,6 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { EmbelIdentity } from "@/components/workspace/embel-identity";
-import { journeyPartLabel } from "@/domain/journey";
 import { z } from "zod";
 import { GuidedThinking } from "@/components/workspace/guided-thinking";
 import styles from "./naming-chat.module.css";
@@ -254,9 +252,7 @@ function AccountProjectNaming({
       }
     />
   ) : (
-    <p className={styles.chatUnavailable}>
-      Review Strategy to continue the Naming conversation. Your saved names remain available.
-    </p>
+    <p className={styles.chatUnavailable}>Review Strategy to continue naming.</p>
   );
 
   const earlierConfirmation = earlierChoice && (
@@ -264,10 +260,6 @@ function AccountProjectNaming({
       <h2 id="project-naming-earlier-heading" tabIndex={-1}>
         Use {earlierChoice.candidate.value} from an earlier strategy?
       </h2>
-      <p>
-        The current saved strategy differs from the context used for this name. Choosing it creates a new selection and
-        keeps the original history.
-      </p>
       <label>
         <input
           type="checkbox"
@@ -353,15 +345,14 @@ function AccountProjectNaming({
         inlineNamingMessage(
           inline,
           <article className="guided-assistant-message guided-names-message flow-enter" aria-label="Names">
-            <EmbelIdentity label={journeyPartLabel("voice", "Name")} />
             <p className="guided-assistant-copy">
               {writing
                 ? names.length
-                  ? "I’m writing more names. They appear as they’re ready."
-                  : "I’m writing names for your brand. They appear as they’re ready."
+                  ? "I’m writing more names."
+                  : "I’m writing names for your brand."
                 : names.length
-                  ? "Here are your first names. Save the ones you like and pick one. Tell me what you like about them and I’ll steer the next ones. When you’ve picked, press Send to continue to Slogan."
-                  : "Names appear as they’re ready."}
+                  ? "Here are your first names. Tell me what you like and I’ll steer the next ones."
+                  : "No names yet."}
             </p>
             <div className={styles.namesStatus} aria-live="polite" aria-atomic="true">
               <NamingFeedStatus feed={feed} blocked={blocked || Boolean(readError)} stopInReplyBox={stopInReplyBox} />

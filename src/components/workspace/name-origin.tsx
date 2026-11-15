@@ -27,15 +27,9 @@ export function NameOrigin({ source }: { source: NamingSource }) {
   return (
     <section className="name-origin-panel" aria-label="Original name and history">
       <div className="name-origin-heading">
-        <div>
-          <span className="secondary-text">Started from Names</span>
-          <h2>{source.value}</h2>
-        </div>
+        <h2>{source.value}</h2>
       </div>
-      <p>
-        The name and its original context were copied into this brand. Domain, handle and trademark checks have not been
-        run.
-      </p>
+      <p>Domain, handle and trademark checks have not been run.</p>
       <ContextDetails
         title={
           <>
@@ -59,7 +53,6 @@ export function NameOrigin({ source }: { source: NamingSource }) {
             ))}
           </ol>
         )}
-        <p className="secondary-text">This records the original name. Later edits keep this history.</p>
       </ContextDetails>
     </section>
   );

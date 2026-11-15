@@ -57,7 +57,7 @@ export function AssetDetailDialog({
   const [choice, setChoice] = useState<string | null>(item.displayedVersion?.versionId ?? null);
   const [accepted, setAccepted] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [fileMessage, setFileMessage] = useState<{ tone: "positive" | "danger"; text: string } | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
   const [running, setRunning] = useState<"more" | "select" | "download" | null>(null);
   const busy = running !== null;
   const [loading, setLoading] = useState(true);
@@ -197,7 +197,7 @@ export function AssetDetailDialog({
     if (!version || inFlight.current) return;
     inFlight.current = true;
     setRunning("download");
-    setFileMessage(null);
+    setFileError(null);
     try {
       const reply = await client.download(version);
       if (!reply || !active.current || !client.current()) return;
@@ -209,13 +209,8 @@ export function AssetDetailDialog({
       document.body.append(anchor);
       anchor.click();
       anchor.remove();
-      setFileMessage({
-        tone: "positive",
-        text: "File checked. Your download uses a private link that expires in 60 seconds.",
-      });
     } catch (cause) {
-      if (active.current && client.current())
-        setFileMessage({ tone: "danger", text: assetErrorMessage(cause, "file") });
+      if (active.current && client.current()) setFileError(assetErrorMessage(cause, "file"));
     } finally {
       inFlight.current = false;
       if (active.current && client.current()) setRunning(null);
@@ -355,7 +350,7 @@ export function AssetDetailDialog({
                       onSelect: () => {
                         setChoice(row.versionId);
                         setAccepted(null);
-                        setFileMessage(null);
+                        setFileError(null);
                       },
                     })),
                     ...(detail.versions.nextCursor
@@ -384,10 +379,8 @@ export function AssetDetailDialog({
               )}
               <p className="e-muted">
                 {detail.selectedVersion
-                  ? `Version ${detail.selectedVersion.versionNumber} is the selected version of this file.`
-                  : "No version of this file is selected yet."}{" "}
-                {detail.versions.items.length} of {detail.versions.totalCount}{" "}
-                {detail.versions.totalCount === 1 ? "version" : "versions"} shown.
+                  ? `Version ${detail.selectedVersion.versionNumber} is selected.`
+                  : "No version is selected yet."}
               </p>
               {version && !isSelected && (
                 <>
@@ -453,7 +446,7 @@ export function AssetDetailDialog({
               {error}
             </InlineMessage>
           )}
-          {fileMessage && <InlineMessage tone={fileMessage.tone}>{fileMessage.text}</InlineMessage>}
+          {fileError && <InlineMessage tone="danger">{fileError}</InlineMessage>}
         </div>
       </div>
     </Dialog>

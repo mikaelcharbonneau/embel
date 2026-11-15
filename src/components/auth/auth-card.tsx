@@ -1,10 +1,8 @@
-import Link from "next/link";
 import type { ReactNode, Ref } from "react";
-import { Icon } from "@/components/ui/icon";
 
 /**
  * The card every auth screen uses. In the overlay the dialog is the card's surface; on a direct visit the same
- * card sits on the page with a way back to Home under it.
+ * card sits on the page, under the navigation.
  */
 export function AuthCard({
   overlay,
@@ -12,17 +10,14 @@ export function AuthCard({
   titleRef,
   title,
   intro,
-  onLeave,
   children,
 }: {
   overlay: boolean;
   titleId: string;
   titleRef?: Ref<HTMLHeadingElement>;
   title: string;
-  /** One sentence under the title. */
-  intro: ReactNode;
-  /** Runs before the Return to Home link navigates, so forms can clear their passwords. */
-  onLeave?: () => void;
+  /** One sentence under the title, only when the screen needs it (an idea kept for after sign-in). */
+  intro?: ReactNode;
   children: ReactNode;
 }) {
   const card = (
@@ -31,19 +26,10 @@ export function AuthCard({
         <h1 ref={titleRef} tabIndex={-1} id={titleId} className="auth-card__title">
           {title}
         </h1>
-        <p className="auth-card__intro">{intro}</p>
+        {intro ? <p className="auth-card__intro">{intro}</p> : null}
       </header>
       {children}
     </section>
   );
-  if (overlay) return card;
-  return (
-    <div className="auth-page">
-      {card}
-      <Link className="e-link e-link--standalone auth-page__home" href="/" onClick={onLeave}>
-        Return to Home
-        <Icon name="arrow-right" size="sm" />
-      </Link>
-    </div>
-  );
+  return overlay ? card : <div className="auth-page">{card}</div>;
 }

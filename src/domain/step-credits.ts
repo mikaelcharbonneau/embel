@@ -96,8 +96,3 @@ const sum = (rows: readonly StepCredits[]) => rows.reduce((total, row) => total 
 /** Credits for a complete brand with every step done once, and without the optional steps. */
 export const COMPLETE_BRAND_CREDITS = sum(STEP_CREDITS.filter((row) => row.inCompleteBrand));
 export const COMPLETE_BRAND_CREDITS_REQUIRED = sum(STEP_CREDITS.filter((row) => row.inCompleteBrand && !row.optional));
-
-/** How many complete brands a monthly allowance covers, rounded down. */
-export function completeBrandsPerMonth(monthlyCredits: number) {
-  return Math.max(0, Math.floor(monthlyCredits / COMPLETE_BRAND_CREDITS));
-}

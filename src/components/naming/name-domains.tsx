@@ -310,8 +310,8 @@ export function DomainsPanel({ search, adapter }: { search: DomainSearch; adapte
         {ready ? (
           <>
             <p className="e-muted">
-              {adapter.description ?? "Domains are checked with the connected provider."} Embel checks a domain only
-              when you press Check, and a result is current for one minute. Checking doesn’t reserve a domain.
+              {adapter.description ?? "Domains are checked with the connected provider."} Checking doesn’t reserve a
+              domain.
             </p>
             {search.checking ? (
               <Button size="sm" variant="quiet" onClick={search.stop}>
@@ -326,11 +326,7 @@ export function DomainsPanel({ search, adapter }: { search: DomainSearch; adapte
             )}
           </>
         ) : (
-          <p className="e-muted">
-            {adapter === null
-              ? "Checking which lookups are connected…"
-              : `${adapter.reason} Look up opens the public registration record.`}
-          </p>
+          <p className="e-muted">{adapter === null ? "Checking which lookups are connected…" : adapter.reason}</p>
         )}
       </div>
     </div>
@@ -561,9 +557,11 @@ function ExtensionsDialog({
         value={find}
         onChange={(event) => setFind(event.target.value)}
       />
-      <p className="e-muted" role="status">
-        {draft.length} selected{full ? ` · up to ${MAX_EXTENSIONS} at once` : ""}
-      </p>
+      {full && (
+        <p className="e-muted" role="status">
+          Up to {MAX_EXTENSIONS} at once
+        </p>
+      )}
       {extensionGroups.map((group) => {
         const matches = group.extensions.filter((extension) => extension.includes(term));
         if (!matches.length) return null;
@@ -661,7 +659,6 @@ function TweaksDialog({
   return (
     <Dialog
       title="Tweaks"
-      description="Tweaks try variations of your name, so you find a good domain when the exact one is taken."
       modal={modal}
       onClose={onClose}
       footer={
@@ -744,7 +741,7 @@ function FiltersDialog({
 }) {
   const [draft, setDraft] = useState(filters);
   const count = countFor(draft);
-  const show = (key: keyof DomainFilters["show"], label: string, hint: string) => (
+  const show = (key: keyof DomainFilters["show"], label: string) => (
     <label className="e-check">
       <input
         type="checkbox"
@@ -753,13 +750,10 @@ function FiltersDialog({
         checked={draft.show[key]}
         onChange={(event) => setDraft((old) => ({ ...old, show: { ...old.show, [key]: event.target.checked } }))}
       />
-      <span className="e-check__text">
-        <span>{label}</span>
-        <span className={`e-muted ${styles.small}`}>{hint}</span>
-      </span>
+      <span className="e-check__text">{label}</span>
     </label>
   );
-  const flag = (key: "exactOnly" | "noHyphens", label: string, hint: string) => (
+  const flag = (key: "exactOnly" | "noHyphens", label: string) => (
     <label className="e-check">
       <input
         type="checkbox"
@@ -768,10 +762,7 @@ function FiltersDialog({
         checked={draft[key]}
         onChange={(event) => setDraft((old) => ({ ...old, [key]: event.target.checked }))}
       />
-      <span className="e-check__text">
-        <span>{label}</span>
-        <span className={`e-muted ${styles.small}`}>{hint}</span>
-      </span>
+      <span className="e-check__text">{label}</span>
     </label>
   );
   const amount = (key: "minPrice" | "maxPrice" | "maxRenewal" | "maxLength") => ({
@@ -798,10 +789,10 @@ function FiltersDialog({
     >
       <fieldset className={styles.fieldset}>
         <legend className={styles.groupTitle}>Show</legend>
-        {show("available", "Available", "Ready to register at the regular price")}
-        {show("premium", "Premium", "Available, at a higher price set by the registry or owner")}
-        {show("taken", "Taken", "Already registered by someone")}
-        {show("unchecked", "Not checked yet", "Not checked, not confirmed or the check has expired")}
+        {show("available", "Available")}
+        {show("premium", "Premium")}
+        {show("taken", "Taken")}
+        {show("unchecked", "Not checked yet")}
       </fieldset>
       {prices && (
         <>
@@ -810,12 +801,11 @@ function FiltersDialog({
             <TextField label="Highest first-year price, USD" placeholder="No limit" {...amount("maxPrice")} />
           </div>
           <TextField label="Highest renewal price, USD" optional placeholder="No limit" {...amount("maxRenewal")} />
-          <p className={`e-muted ${styles.small}`}>Price filters show only domains whose price has been checked.</p>
         </>
       )}
       <TextField label="Longest domain, in characters" optional placeholder="No limit" {...amount("maxLength")} />
-      {flag("exactOnly", "Exact name only", "Hide results made by tweaks")}
-      {flag("noHyphens", "No hyphens", "Hide domains with a hyphen")}
+      {flag("exactOnly", "Exact name only")}
+      {flag("noHyphens", "No hyphens")}
     </Dialog>
   );
 }

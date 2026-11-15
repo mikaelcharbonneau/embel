@@ -33,9 +33,8 @@ export function SettingsWorkspace() {
   }
   return (
     <div className="settings-guided e-container e-page" data-category={category}>
-      <header className="sg-heading e-stack e-stack--xs">
+      <header className="sg-heading">
         <h1 className="sg-heading__title">Settings</h1>
-        <p className="e-muted">Manage your account and see your usage.</p>
       </header>
       <div className="e-tabs sg-tabs" role="tablist" aria-label="Settings">
         {categories.map(([id, label], index) => (
@@ -122,13 +121,8 @@ function SessionSection() {
   const signOutAvailable = session.status === "ready" || signingOut || signOutUnconfirmed;
   return (
     <section className="e-section sg-session" aria-label={signedIn ? "Sign out" : "Sign in"}>
-      <h2 className="e-section__title">{signedIn ? "Sign out" : "Sign in"}</h2>
       <div className="e-setting-row">
-        <p className="e-setting-row__text">
-          {signedIn
-            ? "Sign out of Embel on this device. Your work stays saved in your account."
-            : "Sign in to save your work and settings to your account."}
-        </p>
+        <h2 className="e-section__title e-setting-row__text">{signedIn ? "Sign out" : "Sign in"}</h2>
         {signingIn ? (
           <Button variant="secondary" disabled>
             {signingInLabel(activity)}

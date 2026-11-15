@@ -10,7 +10,7 @@ import { isSignOutUnconfirmed, isSigningIn, isSigningOut } from "./session-view"
 /** A page that needs an account, for a signed-out visitor: the page Empty state with Sign in and Create account.
  * While signing in or out, or when the session could not be checked, `fallback` (the shared account status) says
  * what is happening instead. */
-export function SignedOutEmptyState({ title, text, fallback }: { title: string; text: string; fallback: ReactNode }) {
+export function SignedOutEmptyState({ title, text, fallback }: { title: string; text?: string; fallback: ReactNode }) {
   const { session, activity } = useAccountSession();
   if (
     session.status !== "signed_out" ||

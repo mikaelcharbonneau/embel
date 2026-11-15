@@ -38,7 +38,6 @@ import {
 } from "@/components/journey/project-header";
 import { journeyProgress, projectJourney, type JourneyStepView } from "@/domain/journey";
 import { WorkspaceNoticeContext } from "./workspace-layout";
-import { Icon } from "@/components/ui/icon";
 
 type Stage = "strategy" | "naming" | "identity" | "files";
 type EvidenceReporter = (value: ProjectStageEvidence) => void;
@@ -87,23 +86,12 @@ export function AccountProjectWorkspaceShell({ projectId, children }: { projectI
   if (session.status !== "ready") {
     const { stage } = projectRoute(projectId, pathname);
     // While the account is checked, a neutral frame: never the signed-out notice a returning person would read as
-    // "sign in again" (D-055). Once the check answers, the account notice and the way back.
+    // "sign in again" (D-055). Once the check answers, the account notice.
     return (
       <section className={`project-workspace project-stage-${stage}`}>
         <div className="project-workspace-content">
           <div className="project-access-state">
-            {session.status === "checking" ? (
-              <ProjectOpening />
-            ) : (
-              <>
-                <ProjectAccountState />
-                <p className="app-center">
-                  <Link className="e-link e-link--standalone" href="/brands">
-                    Back to Projects
-                  </Link>
-                </p>
-              </>
-            )}
+            {session.status === "checking" ? <ProjectOpening /> : <ProjectAccountState />}
           </div>
         </div>
       </section>
@@ -309,47 +297,5 @@ function sameEvidence(previous: ProjectStageEvidence | null, value: ProjectStage
     previous?.projectRevision === value.projectRevision &&
     previous.approved === value.approved &&
     Boolean(previous.needsReview) === Boolean(value.needsReview)
-  );
-}
-
-/** Collapsing retains mounted editors and their pending/recovery state. */
-export function ProjectDock({ title, context, children }: { title: string; context?: ReactNode; children: ReactNode }) {
-  const [open, setOpen] = useState(true);
-  const [tab, setTab] = useState<"chat" | "controls">("controls");
-  return (
-    <aside className={`project-dock ${open ? "is-open" : "is-collapsed"}`} aria-label={`${title} panel`}>
-      <div className="project-dock-tabs">
-        {open && (
-          <>
-            <button type="button" aria-pressed={tab === "chat"} onClick={() => setTab("chat")}>
-              Chat
-            </button>
-            <button type="button" aria-pressed={tab === "controls"} onClick={() => setTab("controls")}>
-              Controls
-            </button>
-          </>
-        )}
-        <button
-          type="button"
-          className="project-dock-toggle"
-          aria-label={open ? `Collapse ${title} panel` : `Open ${title} panel`}
-          aria-expanded={open}
-          onClick={() => setOpen((value) => !value)}
-        >
-          <Icon name={open ? "chevron-up" : "chevron-down"} size="sm" />
-        </button>
-      </div>
-      <div hidden={!open} className="project-dock-content">
-        <div className="project-dock-heading">
-          <strong>{title}</strong>
-          {context}
-        </div>
-        <div hidden={tab !== "controls"}>{children}</div>
-        <div hidden={tab !== "chat"} className="project-dock-chat">
-          <p>Project context and saved results stay with this workspace.</p>
-          <p>Use the Strategy conversation to send a message. This panel does not start an AI request.</p>
-        </div>
-      </div>
-    </aside>
   );
 }

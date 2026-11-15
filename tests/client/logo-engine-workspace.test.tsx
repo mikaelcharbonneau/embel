@@ -241,15 +241,15 @@ describe("the Logo screen on the generation engine", () => {
       { chat, overlay: null, setRows: vi.fn(), setSummary: vi.fn(), setMessage },
     );
     await until(() =>
-      expect(setMessage).toHaveBeenLastCalledWith("logo", expect.stringMatching(/^Concept 1 is your logo\. /u)),
+      expect(setMessage).toHaveBeenLastCalledWith("logo", expect.stringMatching(/^Concept 1 is your logo\./u)),
     );
     // The chat holds the status; the work area holds only the work.
     await until(() => expect(chat.textContent).toContain("You have no credits left this month."));
     expect(host.textContent).not.toContain("You have no credits left this month.");
-    expect(chat.querySelector('[aria-label="Logo types"]')?.textContent).toMatch(
-      /^Logo types: .+ · Change logo types$/u,
-    );
-    expect(host.querySelector('[aria-label="Logo types"]')).toBeNull();
+    const changeTypes = (root: HTMLElement) =>
+      [...root.querySelectorAll("button")].filter((node) => node.textContent === "Change logo types");
+    expect(changeTypes(chat)).toHaveLength(1);
+    expect(changeTypes(host)).toHaveLength(0);
     // A failed concept is told in the chat with its retry; its tile alone says so in the work area.
     expect(chat.textContent).toContain("Concept 6 couldn’t be drawn. The others are ready on the right.");
     expect(chat.querySelector('button[aria-label="Retry 1 failed concept"]')).not.toBeNull();

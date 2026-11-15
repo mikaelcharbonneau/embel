@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { useId, useState, type ReactNode } from "react";
 import { DirectionTypeSample } from "./direction-type-sample";
-import { EmbelIdentity } from "@/components/workspace/embel-identity";
-import { journeyPartLabel } from "@/domain/journey";
 import { Button, IconButton, Spinner } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { WorkAreaLayer } from "@/components/workspace/work-area-layer";
@@ -34,7 +32,6 @@ export type VisualDirectionCard = {
 export type VisualDirectionGeneration = {
   status: "idle" | "queued" | "running" | "stopping" | "partial" | "complete" | "failed" | "uncertain" | "cancelled";
   completed: number;
-  usageLabel?: string | null;
   error?: string | null;
   /** A quiet line about the round that is still working (updates are delayed): never an alert. */
   note?: string | null;
@@ -55,7 +52,6 @@ export type VisualDirectionsViewProps = {
   cards: readonly [VisualDirectionCard | null, VisualDirectionCard | null, VisualDirectionCard | null];
   generation: VisualDirectionGeneration;
   selectionCheck?: { busy: boolean; onCheck(): void };
-  selectionStatus?: string | null;
   selectionError?: string | null;
   finalAction?: ReactNode;
   history?: ReactNode;
@@ -70,19 +66,19 @@ export type VisualDirectionsViewProps = {
 const progressMessages: Record<VisualDirectionGeneration["status"], string | null> = {
   idle: null,
   queued: "Your directions are queued.",
-  running: "Creating your directions. Completed boards stay available.",
-  stopping: "Stopping after work already in progress.",
-  partial: "This set is incomplete. Its saved boards are still available.",
-  complete: "Your saved directions are ready to compare.",
-  failed: "This set could not finish. Your saved work is kept.",
-  uncertain: "Check the existing request before starting another. Saved boards stay available.",
-  cancelled: "Generation stopped. Any completed boards are kept.",
+  running: "Creating your directions…",
+  stopping: "Stopping…",
+  partial: "This set is incomplete.",
+  complete: "Your directions are ready.",
+  failed: "This set couldn’t finish.",
+  uncertain: "Check the request before starting another.",
+  cancelled: "Generation stopped.",
 };
 
 /**
- * Creative direction: three direction boards in one row, each with its number, name, palette and typography and a
- * real Choose button (decision 10: the cards keep their design; the design system's look marks the chosen one with
- * the ring only). Enlarge opens a larger view with previous, next and Choose this direction.
+ * Creative direction: three direction boards in one row, each with its name, palette swatches, the brand name in its
+ * typeface and a real Choose button (decision 10: the design system's look marks the chosen one with the ring only).
+ * Enlarge opens a larger view with previous, next and Choose this direction.
  * Presentation only. Callers supply verified previews, saved choices and request state.
  */
 export function VisualDirectionsView({
@@ -92,7 +88,6 @@ export function VisualDirectionsView({
   cards,
   generation,
   selectionCheck,
-  selectionStatus,
   selectionError,
   finalAction,
   history,
@@ -107,8 +102,8 @@ export function VisualDirectionsView({
   const overlay = useWorkspaceOverlayHost();
   // In the Workspace the work column narrows so the row of three boards stays in view (decision 1).
   useWorkspaceResultRows(1);
-  const ready = cards.flatMap((card, index) => (card ? [{ card, index }] : []));
-  const expanded = ready.find(({ card }) => card.id === expandedId) ?? null;
+  const ready = cards.filter((card) => card !== null);
+  const expanded = ready.find((card) => card.id === expandedId) ?? null;
   if (expandedId && !expanded) setExpandedId(null);
   const unresolved = ["queued", "running", "stopping", "uncertain"].includes(generation.status);
   const canGenerate = Boolean(generation.onGenerate && !generation.busy && !generation.disabledReason && !unresolved);
@@ -116,7 +111,7 @@ export function VisualDirectionsView({
   const comparing = ready.length > 0;
   const finished = generation.status === "complete" && completed === 3;
   const progress = progressMessages[generation.status];
-  const chosen = ready.find(({ card }) => card.selected && !card.stale)?.card;
+  const chosen = ready.find((card) => card.selected && !card.stale);
   const external = reply === "external";
 
   function choose(card: VisualDirectionCard) {
@@ -130,7 +125,8 @@ export function VisualDirectionsView({
         : comparing
           ? "Choose the direction that feels right"
           : "Creative directions";
-  const subtitle = chosen && !unresolved ? `${chosen.title} · ${ready.length} directions` : `${completed} of 3 ready`;
+  // The count is said while directions are still coming or some are missing, not once all three are ready.
+  const subtitle = unresolved || (comparing && completed < 3) ? `${completed} of 3 ready` : "";
 
   // In the project conversation the brand's name is the page's heading and the step is a second-level heading.
   const StepHeading = variant === "conversation" ? "h2" : "h1";
@@ -144,10 +140,8 @@ export function VisualDirectionsView({
       </StepHeading>
       {!external && (
         <div className="guided-assistant-message identity-conversation-message">
-          <EmbelIdentity label={journeyPartLabel("identity", "Creative direction")} />
           <p className="guided-assistant-copy">
-            Here are three ways to bring {brandName} to life, each built on your chosen logo. Choose the one that feels
-            right.
+            Here are three ways to bring {brandName} to life, each built on your chosen logo.
           </p>
           <section className={`identity-chosen-logo-row ${styles.chosenLogo}`} aria-label="Chosen logo">
             <div className="identity-chosen-logo">{logoPreview}</div>
@@ -166,7 +160,7 @@ export function VisualDirectionsView({
           <div className="e-stack e-stack--xs">
             <h2 className={styles.title}>{heading}</h2>
             <p className="e-muted">
-              {/* Its own element: "3 of 3 ready" is read as one status. */}
+              {/* Its own element: "1 of 3 ready" is read as one status. */}
               <span>{subtitle}</span>
             </p>
           </div>
@@ -210,9 +204,7 @@ export function VisualDirectionsView({
         {/* With the reply box the chat says what is happening and the heading what is chosen. */}
         {!external && (
           <div className={styles.messages} role="status" aria-live="polite">
-            {selectionStatus && <span className="e-muted">{selectionStatus}</span>}
             {progress && !finished && <span className="e-muted">{progress}</span>}
-            {generation.usageLabel && <span className="e-muted">{generation.usageLabel}</span>}
           </div>
         )}
         {generation.disabledReason && (
@@ -294,12 +286,8 @@ export function VisualDirectionsView({
                           </span>
                         ) : null}
                       </div>
-                      {!unresolved && (
-                        <p className="e-muted">
-                          {generation.status === "idle"
-                            ? "Generate your directions to start comparing."
-                            : "No board saved for this direction. Your other completed boards stay available."}
-                        </p>
+                      {!unresolved && generation.status !== "idle" && (
+                        <p className="e-muted">No board for this direction.</p>
                       )}
                     </div>
                   </article>
@@ -310,12 +298,7 @@ export function VisualDirectionsView({
         )}
       </section>
 
-      {!external && (
-        <div className={styles.footer}>
-          {!finalAction && <p className="e-muted">Choose a direction to continue to your brand assets.</p>}
-          {finalAction}
-        </div>
-      )}
+      {!external && finalAction && <div className={styles.footer}>{finalAction}</div>}
       {history}
 
       {expanded ? (
@@ -324,8 +307,7 @@ export function VisualDirectionsView({
             size="lg"
             media
             modal={!overlay}
-            title={expanded.card.title}
-            description={`Direction ${expanded.index + 1} of 3`}
+            title={expanded.title}
             onClose={() => setExpandedId(null)}
             footer={
               <>
@@ -334,7 +316,7 @@ export function VisualDirectionsView({
                   disabled={ready.length < 2}
                   onClick={() => {
                     const at = ready.indexOf(expanded);
-                    setExpandedId(ready[(at - 1 + ready.length) % ready.length]!.card.id);
+                    setExpandedId(ready[(at - 1 + ready.length) % ready.length]!.id);
                   }}
                 >
                   Previous
@@ -343,33 +325,30 @@ export function VisualDirectionsView({
                   disabled={ready.length < 2}
                   onClick={() => {
                     const at = ready.indexOf(expanded);
-                    setExpandedId(ready[(at + 1) % ready.length]!.card.id);
+                    setExpandedId(ready[(at + 1) % ready.length]!.id);
                   }}
                 >
                   Next
                   <Icon name="chevron-right" size="sm" />
                 </Button>
                 <Button
-                  variant={expanded.card.selected ? "secondary" : "primary"}
-                  aria-pressed={Boolean(expanded.card.selected && !expanded.card.stale)}
+                  variant={expanded.selected ? "secondary" : "primary"}
+                  aria-pressed={Boolean(expanded.selected && !expanded.stale)}
                   disabled={
-                    !expanded.card.onChoose ||
-                    expanded.card.stale ||
-                    expanded.card.pending ||
-                    Boolean(expanded.card.disabledReason)
+                    !expanded.onChoose || expanded.stale || expanded.pending || Boolean(expanded.disabledReason)
                   }
                   onClick={() => {
-                    choose(expanded.card);
+                    choose(expanded);
                     setExpandedId(null);
                   }}
                 >
-                  {expanded.card.selected && !expanded.card.stale ? "Chosen" : "Choose this direction"}
+                  {expanded.selected && !expanded.stale ? "Chosen" : "Choose this direction"}
                 </Button>
               </>
             }
           >
-            <div className={styles.enlarged}>{expanded.card.preview}</div>
-            {expanded.card.summary && <p className="e-muted">{expanded.card.summary}</p>}
+            <div className={styles.enlarged}>{expanded.preview}</div>
+            {expanded.summary && <p className="e-muted">{expanded.summary}</p>}
           </Dialog>
         </WorkAreaLayer>
       ) : null}
@@ -412,39 +391,22 @@ function DirectionCard({
         />
       </span>
       <div className={styles.cardBody}>
-        <div className="e-stack e-stack--xs">
-          <span className="e-muted">Direction {index + 1}</span>
-          <h3 className={styles.cardTitle} id={titleId}>
-            {card.title}
-          </h3>
-        </div>
-        {card.swatches?.length || card.sampleStyle ? (
-          <div className={styles.details}>
-            {!!card.swatches?.length && (
-              <div className="e-stack e-stack--xs">
-                <p className="e-muted">Palette</p>
-                <ul className={styles.swatches} aria-label="Color palette">
-                  {card.swatches.map(({ name, hex }, swatch) => (
-                    <li key={swatch} title={`${name} ${hex}`} style={{ backgroundColor: hex }}>
-                      <span className="sr-only">
-                        {name} {hex}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {card.sampleStyle && (
-              <div className="e-stack e-stack--xs">
-                <p className="e-muted">Typography</p>
-                <DirectionTypeSample style={card.sampleStyle} brandName={brandName} />
-              </div>
-            )}
-          </div>
-        ) : null}
-        {card.stale && (
-          <p className="e-muted">This board uses earlier inputs. Generate directions for the current logo.</p>
+        <h3 className={styles.cardTitle} id={titleId}>
+          {card.title}
+        </h3>
+        {!!card.swatches?.length && (
+          <ul className={styles.swatches} aria-label="Color palette">
+            {card.swatches.map(({ name, hex }, swatch) => (
+              <li key={swatch} title={`${name} ${hex}`} style={{ backgroundColor: hex }}>
+                <span className="sr-only">
+                  {name} {hex}
+                </span>
+              </li>
+            ))}
+          </ul>
         )}
+        {card.sampleStyle && <DirectionTypeSample style={card.sampleStyle} brandName={brandName} />}
+        {card.stale && <p className="e-muted">Made for an earlier logo.</p>}
         {card.disabledReason && !card.stale && <p className="e-muted">{card.disabledReason}</p>}
         <div className={styles.cardActions}>
           <Button
@@ -471,8 +433,8 @@ function DirectionCard({
 }
 
 /**
- * A finished brand (IMG-021): "Your brand" with the chosen direction's board large, marked as chosen, and the chosen
- * logo beside it with its name. Change direction on the folded entry in the chat brings the three boards back.
+ * A finished brand (IMG-021): "Your brand" with the chosen direction's board large, marked as chosen by its ring,
+ * and the chosen logo beside it. Change direction on the folded entry in the chat brings the three boards back.
  * Presentation only: callers supply verified previews.
  */
 export function ChosenBrandView({
@@ -486,7 +448,7 @@ export function ChosenBrandView({
   board: ReactNode;
   /** The whole board for the larger view. */
   enlarged: ReactNode;
-  logo: { url: string | null; failed: boolean; label: string | null };
+  logo: { url: string | null; failed: boolean };
 }) {
   const titleId = useId();
   const [open, setOpen] = useState(false);
@@ -510,13 +472,9 @@ export function ChosenBrandView({
           </span>
           <div className={styles.brandFooter}>
             <span className={styles.cardTitle}>{title}</span>
-            <span className="e-badge">
-              <Icon name="check" size="sm" />
-              Chosen direction
-            </span>
           </div>
         </article>
-        <figure className={styles.brandLogo}>
+        <div className={styles.brandLogo}>
           <MediaFrame
             ratio="16x9"
             contain
@@ -526,8 +484,7 @@ export function ChosenBrandView({
             state={logo.url ? "loaded" : logo.failed ? "failed" : "loading"}
             failedText="Your logo couldn’t be shown. It is still saved."
           />
-          <figcaption className="e-muted">Your logo{logo.label ? ` · ${logo.label}` : ""}</figcaption>
-        </figure>
+        </div>
       </div>
       {open ? (
         <WorkAreaLayer host={overlay} onEscape={() => setOpen(false)}>

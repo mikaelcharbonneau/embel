@@ -37,7 +37,6 @@ import {
 } from "@/domain/guided-interview";
 import { competitorSchema, contextSnapshotSchema, type ContextSnapshot } from "@/domain/projects";
 import { CompetitorWidgetControls } from "./competitor-widget-controls";
-import { guidedStageLabel } from "./embel-identity";
 import {
   JOURNEY_SECTION_EVENT,
   journeySectionId,
@@ -45,7 +44,7 @@ import {
   useConversationSteps,
 } from "@/components/journey/project-header";
 import { UPDATES_DELAYED } from "@/domain/generation-words";
-import { journeyPartLabel, type JourneyStepId } from "@/domain/journey";
+import type { JourneyStepId } from "@/domain/journey";
 import { accountDraftChanged, type AccountWorkspace, type GuidedInterviewInput } from "./account-draft-memory";
 import { strategyAvailabilityMessage, strategyJobActive } from "./account-strategy-client";
 import type { VerifiedAccount } from "./account-session";
@@ -1132,14 +1131,6 @@ export function AccountGuidedInterview({
     </>
   );
 
-  const turnMessage = (stage: GuidedStage | null, children: ReactNode, label = "Embel response") => (
-    <article className="e-turn e-turn--settled" aria-label={label}>
-      <div className="e-turn__main">
-        <p className="e-turn__meta">{stage ? `Embel · ${guidedStageLabel(stage)}` : "Embel"}</p>
-        {children}
-      </div>
-    </article>
-  );
   const userMessage = (text: string, key: string, extra?: ReactNode) => (
     <div key={key} className="e-turn e-turn--user e-turn--settled">
       <div className="e-turn__bubble">
@@ -1170,10 +1161,7 @@ export function AccountGuidedInterview({
           </Button>
         }
       >
-        <p>
-          You edited your brief after confirming your Strategy. Your answers and progress are kept. To base them on the
-          new brief, redo Strategy from Competitors. Redoing Strategy uses credits.
-        </p>
+        <p>Your Strategy answers are kept. Redoing Strategy uses credits.</p>
       </InlineMessage>
     );
   const briefEditor = (
@@ -1197,7 +1185,6 @@ export function AccountGuidedInterview({
         aria-label="Earlier Embel response"
       >
         <div className="e-turn__main">
-          <p className="e-turn__meta">Embel</p>
           <p className="e-turn__text">{result.output.proposal.message}</p>
         </div>
       </article>
@@ -1216,8 +1203,6 @@ export function AccountGuidedInterview({
         aria-label="Embel response"
       >
         <div className="e-turn__main">
-          {/* On a finished interview a reply answers a question or comment; it belongs to no open step. */}
-          <p className="e-turn__meta">{finishedInterview ? "Embel" : `Embel · ${guidedStageLabel(item.turn.stage)}`}</p>
           <p className="e-turn__text">
             {item.turn.stage === "personality" ? withoutScoreScaleNote(output.message) : output.message}
           </p>
@@ -1230,11 +1215,11 @@ export function AccountGuidedInterview({
   // What Embel is doing for the step that is open, said in the chat; its result appears in the work area.
   const pendingStage = currentTurn && !reply ? currentTurn.stage : null;
   const pendingCopy: Partial<Record<GuidedStage, string>> = {
-    competitors: "I’m looking for brands that compete with your idea. They appear on the right when they’re ready.",
-    audience: `I’m thinking about who ${brandName} should speak to first. The options appear on the right when they’re ready.`,
-    positioning: `I’m working out how ${brandName} could stand apart. The options appear on the right when they’re ready.`,
-    personality: `I’m writing three personalities for ${brandName}. They appear on the right when they’re ready.`,
-    slogan: `I’m writing a few slogans for ${brandName}. They appear on the right when they’re ready.`,
+    competitors: "I’m looking for brands that compete with your idea.",
+    audience: `I’m thinking about who ${brandName} should speak to first.`,
+    positioning: `I’m working out how ${brandName} could stand apart.`,
+    personality: `I’m writing three personalities for ${brandName}.`,
+    slogan: `I’m writing a few slogans for ${brandName}.`,
   };
   const status =
     embelWorking &&
@@ -1244,11 +1229,10 @@ export function AccountGuidedInterview({
         role="status"
         aria-label="Researching your competitors"
       >
-        <p>{stopping ? "Cancelling research…" : "Researching your competitors and the pages they were found on."}</p>
+        <p>{stopping ? "Cancelling research…" : "Researching your competitors…"}</p>
         <div className="e-progress" data-state={stopping ? "stopping" : "running"} aria-hidden="true">
           <div className="e-progress__track" />
         </div>
-        <p className="e-section__hint">Your brief is saved.</p>
         {updatesDelayed && <p className="e-section__hint">{UPDATES_DELAYED}</p>}
       </div>
     ) : (
@@ -1333,30 +1317,14 @@ export function AccountGuidedInterview({
       ? guidedTurnResult(jobs, choiceTurn, account.userId, saved.id)?.reply
       : null;
 
-  const identityCopy: Record<"inspiration" | "logo" | "directions" | "finished", { label: string; text: string }> = {
-    inspiration: {
-      label: journeyPartLabel("identity", "Inspiration"),
-      text: `${reopened === "inspiration" ? "" : `Your voice is set. Now let’s shape how ${brandName} looks. `}Like the brands you’re drawn to: a whole brand, or just its logo, colors, typefaces, socials or visuals. Your likes guide the logo concepts. When you’re done, press Send to continue.`,
-    },
-    logo: {
-      label: journeyPartLabel("identity", "Logo"),
-      text:
-        stepMessages.logo ??
-        `Let’s draw the logo for ${brandName}. The concepts appear on the right; choose the one you like most, then press Send to continue to Creative direction.`,
-    },
-    directions: {
-      label: journeyPartLabel("identity", "Creative direction"),
-      text:
-        stepMessages.directions ??
-        "Each creative direction uses your chosen logo. Choose one on the right, then press Send to continue.",
-    },
-    finished: {
-      label: "",
-      text:
-        summaries.logo && summaries.directions
-          ? `You chose ${summaries.logo.answer} as your logo and ${summaries.directions.answer} as your direction. Your brand kit is in Assets. Press Send to go there, or describe a change.`
-          : "Your logo and creative direction are chosen. Your brand kit is in Assets. Press Send to go there, or describe a change.",
-    },
+  const identityCopy: Record<"inspiration" | "logo" | "directions" | "finished", string> = {
+    inspiration: `${reopened === "inspiration" ? "" : `Now let’s shape how ${brandName} looks. `}Like the brands you’re drawn to; your likes guide the logo.`,
+    logo: stepMessages.logo ?? `Let’s draw the logo for ${brandName}.`,
+    directions: stepMessages.directions ?? "Each creative direction uses your chosen logo.",
+    finished:
+      summaries.logo && summaries.directions
+        ? `You chose ${summaries.logo.answer} as your logo and ${summaries.directions.answer} as your direction.`
+        : "Your logo and creative direction are chosen.",
   };
   const identityKey =
     view === "directions"
@@ -1366,31 +1334,20 @@ export function AccountGuidedInterview({
       : view === "logo" || view === "inspiration"
         ? view
         : null;
-  const identityMessage =
-    identityShown &&
-    identityKey &&
-    (() => {
-      const copy = identityCopy[identityKey];
-      return (
-        <article className="e-turn e-turn--settled" aria-label="Embel response">
-          <div className="e-turn__main">
-            <p className="e-turn__meta">{copy.label ? `Embel · ${copy.label}` : "Embel"}</p>
-            {copy.text && <p className="e-turn__text">{copy.text}</p>}
-          </div>
-        </article>
-      );
-    })();
-  const startMessage =
-    !state &&
-    saved.scope === "complete_brand" &&
-    turnMessage(
-      "competitors",
-      <p className="e-turn__text">
-        Your brief is saved. Next, I’ll find the brands you compete with, so you can choose the ones to compare against.
-        Press Send to start research.
-      </p>,
-      "Start research",
-    );
+  const identityMessage = identityShown && identityKey && (
+    <article className="e-turn e-turn--settled" aria-label="Embel response">
+      <div className="e-turn__main">
+        <p className="e-turn__text">{identityCopy[identityKey]}</p>
+      </div>
+    </article>
+  );
+  const startMessage = !state && saved.scope === "complete_brand" && (
+    <article className="e-turn e-turn--settled" aria-label="Start research">
+      <div className="e-turn__main">
+        <p className="e-turn__text">Next, I’ll find the brands you compete with.</p>
+      </div>
+    </article>
+  );
   const pendingMessage =
     pendingStage &&
     embelWorking &&
@@ -1398,13 +1355,9 @@ export function AccountGuidedInterview({
     !liveItems.some((item) => item.kind === "turn" && item.turn.id === currentTurn?.id)
       ? pendingCopy[pendingStage]
       : null;
-  const metaStage: GuidedStage | null = finishedInterview
-    ? null
-    : (currentTurn?.stage ?? (!state ? "competitors" : null));
   const statusMessage = (status || problemMessage || pendingMessage) && (
     <article className="e-turn e-turn--settled" aria-label="Embel status">
       <div className="e-turn__main">
-        <p className="e-turn__meta">{metaStage ? `Embel · ${guidedStageLabel(metaStage)}` : "Embel"}</p>
         {pendingMessage && <p className="e-turn__text">{pendingMessage}</p>}
         {status}
         {problemMessage}
@@ -1534,13 +1487,7 @@ export function AccountGuidedInterview({
     ) : view === "slogan" ? (
       sloganWork
     ) : view === "inspiration" ? (
-      <InspirationWorkspace
-        projectId={saved.id}
-        variant="workspace"
-        continueHidden
-        onLikes={setLikes}
-        brandName={brandName}
-      />
+      <InspirationWorkspace projectId={saved.id} variant="workspace" continueHidden onLikes={setLikes} />
     ) : view === "logo" ? (
       <div id="journey-logo" className="conversation-slot" tabIndex={-1}>
         <LogoCreationWorkspace

@@ -44,74 +44,6 @@
 .project-strategy-workspace [hidden] {
   display: none !important;
 }
-.project-dock {
-  width: 340px;
-  flex: 0 0 340px;
-  background: var(--color-bg-paper);
-  border-left: 1px solid var(--color-border);
-  min-width: 0;
-}
-.project-dock.is-collapsed {
-  width: 48px;
-  flex-basis: 48px;
-}
-.project-dock-tabs {
-  height: 48px;
-  display: flex;
-  gap: var(--space-8);
-  align-items: stretch;
-  padding: 0 var(--space-4);
-  border-bottom: 1px solid var(--color-border);
-}
-.project-dock-tabs button {
-  font-size: var(--font-size-2);
-  background: none;
-  border: 0;
-  padding: 0 var(--space-1);
-  color: var(--color-text-muted);
-  position: relative;
-}
-.project-dock-tabs [aria-pressed="true"] {
-  color: var(--color-text);
-}
-.project-dock-tabs [aria-pressed="true"]::after {
-  content: "";
-  position: absolute;
-  bottom: -1px;
-  height: 2px;
-  left: 0;
-  right: 0;
-  background: var(--color-text);
-}
-.project-dock-tabs .project-dock-toggle {
-  margin-left: auto;
-  min-width: 20px;
-}
-.project-dock.is-collapsed .project-dock-tabs {
-  padding: 0;
-  justify-content: center;
-}
-.project-dock.is-collapsed .project-dock-toggle {
-  margin: 0;
-}
-.project-dock-content {
-  padding: var(--space-4);
-}
-.project-dock-heading {
-  margin-bottom: var(--space-5);
-}
-.project-dock-heading strong {
-  font-size: var(--font-size-2);
-  font-weight: 500;
-}
-.project-dock-heading p,
-.project-dock-chat p {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-1);
-  line-height: 20px;
-  margin-top: var(--space-2);
-  overflow-wrap: anywhere;
-}
 .project-strategy-workspace {
   height: 100%;
   min-height: 0;
@@ -325,12 +257,6 @@
   font-weight: 500;
   margin-bottom: var(--space-3);
 }
-.project-personality-traits > p {
-  font-size: var(--font-size-1);
-  line-height: 20px;
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-3);
-}
 .project-personality-traits > div {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -353,13 +279,6 @@
   font-size: var(--font-size-2);
   font-weight: 500;
 }
-.project-personality-traits small {
-  display: block;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-1);
-  line-height: 18px;
-  margin-top: var(--space-1-5);
-}
 .project-personality-advanced > summary {
   color: var(--color-text-muted);
   font-size: var(--font-size-1);
@@ -367,29 +286,6 @@
   padding-block: var(--space-2);
 }
 
-.project-logo-creation .project-dock :is(section, fieldset) {
-  padding: 0;
-  margin: 0 0 var(--space-5);
-  border: 0;
-  background: var(--color-bg-paper);
-}
-.project-logo-creation .project-dock [class*="fields"] {
-  grid-template-columns: 1fr;
-  gap: var(--space-3);
-  margin: var(--space-5) 0;
-}
-.project-logo-creation .project-dock :is(input, textarea) {
-  background: var(--color-bg-paper);
-  border-radius: var(--radius-small);
-  font-size: var(--font-size-2);
-}
-.project-logo-creation .project-dock textarea {
-  min-height: 70px;
-}
-.project-logo-creation .project-dock h2 {
-  font-size: var(--font-size-4);
-  font-weight: 500;
-}
 .project-logo-creation [class*="concepts"] {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4);
@@ -416,10 +312,6 @@
   }
 }
 @media (max-width: 900px) {
-  .project-dock {
-    flex-basis: 300px;
-    width: 300px;
-  }
   .project-live-brief {
     flex-basis: 300px;
     width: 300px;
@@ -433,20 +325,11 @@
     flex-direction: column;
   }
 
-  .project-dock,
   .project-live-brief {
     width: 100%;
     flex-basis: auto;
     border-left: 0;
     border-top: 1px solid var(--color-border);
-  }
-  .project-dock.is-collapsed {
-    width: 100%;
-    flex-basis: auto;
-  }
-  .project-dock.is-collapsed .project-dock-tabs {
-    justify-content: flex-end;
-    padding: 0 var(--space-4);
   }
   .project-strategy-workspace .conversation-page {
     min-height: 0;

@@ -457,13 +457,13 @@ function OwnedVisualDirections({
     !visible || brandShown
       ? null
       : unresolved
-        ? `I’m drawing three directions for ${brandName}. They appear on the right as each one is ready.`
+        ? `I’m drawing three directions for ${brandName}.`
         : drawFailed || (shownError && !comparing)
           ? ""
           : showAssets && chosenTitle
-            ? `${chosenTitle} is your direction. Your brand assets are made from it. To change it, choose another board. When you’re happy with it, press Send to continue to Assets.`
+            ? `${chosenTitle} is your direction.`
             : comparing
-              ? `Here are three directions for ${brandName}. Each board shows colors, type and example uses. Choose the one that feels right.`
+              ? `Here are three directions for ${brandName}.`
               : `I’ll draw three directions for ${brandName}, each built on your chosen logo.`;
   useWorkspaceStepMessage("directions", inChat ? stepMessage : null);
   // The folded Logo and Creative direction entries: the chosen logo and direction, each with a small copy.
@@ -562,7 +562,7 @@ function OwnedVisualDirections({
           enlarged={
             <IdentitySystemBoard board={selectedSystem.board} name={selectedSystem.input.basis.name} client={client} />
           }
-          logo={{ url: logoPicture.url, failed: logoPicture.failed, label: logoLabel && chosenLogoAnswer(logoLabel) }}
+          logo={{ url: logoPicture.url, failed: logoPicture.failed }}
         />
       </>
     );
@@ -600,8 +600,6 @@ function OwnedVisualDirections({
         generation={{
           status: visibleStatus,
           completed: requestBatch?.systems.length ?? 0,
-          // Amounts stay on the Usage page; the journey shows no money (2026-11-06).
-          usageLabel: null,
           // A refusal for lack of credits is told once, in place, by the Out-of-credits message.
           error: inChat ? null : shownError,
           note: inChat ? null : generationSaid.note,
@@ -618,9 +616,6 @@ function OwnedVisualDirections({
             ? { busy: identity.loading || identity.detailLoading, onCheck: () => void identity.refresh() }
             : undefined
         }
-        selectionStatus={
-          showAssets ? (chosenTitle ? `${chosenTitle} chosen` : "Your chosen direction is in an earlier set") : null
-        }
         selectionError={
           identity.selectionUncertain
             ? "Your choice could not be confirmed. Use Check saved choice before choosing again."
@@ -636,7 +631,7 @@ function OwnedVisualDirections({
         history={
           <>
             {shownHistory?.batch && shownHistory.batch.batchId !== requestBatch?.batchId && (
-              <p>You are viewing an earlier saved set. The progress above is for your latest request.</p>
+              <p>You’re viewing an earlier set.</p>
             )}
             {generation.retained && generation.lookup === "not_found" && (
               <Button

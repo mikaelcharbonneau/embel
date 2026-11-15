@@ -42,8 +42,6 @@ const settle = (index: number, body = snapshot(), status = 200) =>
 const refresh = () => host.querySelector<HTMLButtonElement>(".recorded-usage-refresh")!;
 const rows = () => [...host.querySelectorAll(".recorded-usage-entry")];
 const live = () => host.querySelector<HTMLElement>('[role="status"]')!;
-const summary = () => host.querySelector(".recorded-usage-summary")?.textContent;
-const coverage = "Logo and image requests are not included.";
 function expectSameRows(original: Element[]) {
   const current = rows();
   expect(current).toHaveLength(original.length);
@@ -88,9 +86,9 @@ afterEach(async () => {
 });
 
 describe("Recorded usage presentation", () => {
-  it("shows a plain step, date and tokens-used table with a summary and no visible loading text", async () => {
+  it("shows a plain step, date and tokens-used table under a heading that names what it lists", async () => {
     await loaded();
-    expect(host.querySelector("h2")?.textContent).toBe("Recent requests");
+    expect(host.querySelector("h2")?.textContent).toBe("Strategy and Voice requests");
     expect([...host.querySelectorAll("thead th")].map((cell) => cell.textContent)).toEqual([
       "Step",
       "Date",
@@ -102,11 +100,9 @@ describe("Recorded usage presentation", () => {
       "2026-10-19T12:00:00Z",
       "5",
     ]);
-    // 20 requests of (index + 2) tokens each.
-    expect(summary()).toBe("Last 20 requests · 230 tokens used");
     expect(live().className).toBe("sr-only");
     expect(live().textContent).toBe("Usage loaded.");
-    expect(host.querySelector(".recorded-usage-note")?.textContent).toBe(coverage);
+    expect(host.querySelector(".recorded-usage-note")).toBeNull();
     expect(host.textContent).not.toMatch(
       /Input tokens|Output tokens|Total tokens|Unknown|Billing|\$|USD|OpenAI|ChatGPT/,
     );
@@ -129,29 +125,14 @@ describe("Recorded usage presentation", () => {
     }
     expect([...host.querySelectorAll(".recorded-usage-note")].map((note) => note.textContent)).toEqual([
       "— Not recorded for this request.",
-      coverage,
     ]);
-    expect(summary()).toBe("3 requests · at least 1,545 tokens used");
   });
 
-  it.each([
-    [1, true, "1 request · 2 tokens used"],
-    [2, false, "2 requests · tokens not recorded"],
-    [0, true, "No requests yet."],
-  ] as const)("summarizes %i recorded requests plainly (recorded=%s)", async (count, recorded, expected) => {
+  it.each([1, 0])("shows the table for %i requests, or the empty state in its place", async (count) => {
     await render();
-    const data = snapshot(count);
-    if (!recorded)
-      data.entries.forEach((entry) => {
-        entry.tokens = null;
-      });
-    await settle(0, data);
-    expect(summary()).toBe(expected);
+    await settle(0, snapshot(count));
     expect(host.querySelector("table")).toBe(count ? host.querySelector(".recorded-usage-table") : null);
-    // An empty account shows the empty state in place of the table.
-    expect(host.querySelector(".e-empty")?.textContent ?? null).toBe(
-      count ? null : "No requests yetYour usage appears here after Embel completes a step for you.",
-    );
+    expect(host.querySelector(".e-empty")?.textContent ?? null).toBe(count ? null : "No requests yet");
   });
 
   it("shows complete long labels, dates and token values without padding a sparse result to the public capacity", async () => {
@@ -169,7 +150,6 @@ describe("Recorded usage presentation", () => {
     expect(rows()[0]!.querySelector("th")?.textContent).toBe("Strategy · Competitors");
     expect(rows()[0]!.querySelector("time")?.textContent).toBe(data.entries[0]!.completedAt);
     expect(rows()[0]!.lastElementChild?.textContent).toBe("9,007,199,254,740,991");
-    expect(summary()).toBe("1 request · 9,007,199,254,740,991 tokens used");
     expect(host.querySelector(".recorded-usage-pending-frame, .recorded-usage-pending-slot")).toBeNull();
   });
 
@@ -219,12 +199,11 @@ describe("Recorded usage refresh continuity", () => {
       expect(
         host.querySelector(".recorded-usage")!.querySelector("table, time, button, a, input, [tabindex], [style]"),
       ).toBeNull();
-      expect(host.querySelector(".recorded-usage-note")?.textContent).toBe(coverage);
+      expect(host.querySelector(".recorded-usage-note")).toBeNull();
       expect(rows()).toHaveLength(0);
       expect(refresh()).toBeNull();
       expect(live().textContent).toBe("Checking your account…");
       expect(live().className).toBe("sr-only");
-      expect(summary()).toBe("Requests Embel completed for you, newest first.");
       expect(host.textContent).not.toContain("2026-10-19");
       await settle(1);
       expect(rows()).toHaveLength(0);
@@ -235,7 +214,7 @@ describe("Recorded usage refresh continuity", () => {
       expect(refresh().getAttribute("aria-disabled")).toBe("true");
       await settle(2, snapshot(0));
       expect(host.querySelector(".recorded-usage-pending-frame")).toBeNull();
-      expect(summary()).toContain("No requests yet");
+      expect(host.querySelector(".e-empty")?.textContent).toBe("No requests yet");
     },
   );
 
@@ -345,7 +324,7 @@ describe("Recorded usage refresh continuity", () => {
     await act(async () => refresh().click());
     await settle(1, snapshot(0));
     expect(rows()).toHaveLength(0);
-    expect(summary()).toContain("No requests yet");
+    expect(host.querySelector(".e-empty")?.textContent).toBe("No requests yet");
     expect(host.textContent).not.toContain("couldn’t be loaded");
   });
 

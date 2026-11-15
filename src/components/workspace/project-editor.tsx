@@ -530,7 +530,6 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
     <div className="home-intake conversation-intake">
       <div className="home-introduction">
         <h1 className="text-display">Your next brand starts here.</h1>
-        <p>Describe the idea. Embel asks a few questions, then builds the name, logo and look with you.</p>
       </div>
       {resumedPrompt && !hiddenPrompt && (
         <div className="prompt-recovery-notice">
@@ -628,7 +627,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
                     status: "unavailable",
                     reason:
                       currentCapability?.reason ??
-                      (account ? "Checking verified file storage…" : "Sign in to save verified input files."),
+                      (account ? "Checking verified file storage…" : "Sign in to add files."),
                   }
             }
             disabled={inputControlsHeld}
@@ -722,10 +721,7 @@ export function ProjectEditor({ projectId }: { projectId: string }) {
   return (
     <div className="e-container e-page e-stack e-stack--xl recover-page">
       <header className="e-page-header">
-        <div className="e-stack e-stack--xs">
-          <h1 className="text-title-lg">Recover an unsaved project</h1>
-          <p className="e-muted">Work kept on this device can be saved to your account.</p>
-        </div>
+        <h1 className="text-title-lg">Recover an unsaved project</h1>
       </header>
       <UnsavedProjectRecovery draftId={projectId} />
     </div>
@@ -1310,11 +1306,9 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
               disabled={storage.promptPending}
               hint={
                 storage.promptHint ??
-                (account
-                  ? "Project context"
-                  : storage.saveLabel === "This tab only"
-                    ? "This tab only · browser storage unavailable"
-                    : "Saved in this browser · Shift + Enter for a new line")
+                (!account && storage.saveLabel === "This tab only"
+                  ? "This tab only · browser storage unavailable"
+                  : null)
               }
             />
           </div>

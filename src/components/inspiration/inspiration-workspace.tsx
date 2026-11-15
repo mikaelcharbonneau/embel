@@ -1,8 +1,5 @@
 "use client";
 
-import { EmbelIdentity } from "@/components/workspace/embel-identity";
-import { journeyPartLabel } from "@/domain/journey";
-
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -169,8 +166,6 @@ type InspirationProps = {
   continueHidden?: boolean;
   /** The number of likes (brands, parts and your own images) once saved choices are read. */
   onLikes?: (count: number) => void;
-  /** The brand's name as the conversation shows it (the chosen name), which the project's title may not be yet. */
-  brandName?: string;
 };
 export function InspirationWorkspace({
   projectId,
@@ -179,7 +174,6 @@ export function InspirationWorkspace({
   onContinue,
   continueHidden,
   onLikes,
-  brandName,
 }: InspirationProps) {
   const { session } = useAccountSession();
   if (session.status !== "ready")
@@ -199,7 +193,6 @@ export function InspirationWorkspace({
       onContinue={onContinue}
       continueHidden={continueHidden}
       onLikes={onLikes}
-      brandName={brandName}
     />
   );
 }
@@ -211,7 +204,6 @@ function OwnedInspiration({
   onContinue,
   continueHidden,
   onLikes,
-  brandName,
 }: InspirationProps & { account: Extract<ReturnType<typeof useAccountSession>["session"], { status: "ready" }> }) {
   const controller = useInspiration(account, projectId),
     references = useYourReferences(account, projectId);
@@ -241,7 +233,6 @@ function OwnedInspiration({
       continueHidden={continueHidden}
       references={references}
       onLikes={onLikes}
-      brandName={brandName}
     />
   );
 }
@@ -259,7 +250,6 @@ export function InspirationView({
   continueHidden = false,
   references,
   onLikes,
-  brandName,
 }: {
   controller: InspirationController;
   projectId: string;
@@ -269,7 +259,6 @@ export function InspirationView({
   continueHidden?: boolean;
   references?: YourReferences;
   onLikes?: (count: number) => void;
-  brandName?: string;
 }) {
   const conversation = variant === "conversation";
   const workspace = variant === "workspace";
@@ -361,7 +350,6 @@ export function InspirationView({
     <h2 className="e-section__title inspiration-question">What do you like?</h2>
   ) : (
     <>
-      <EmbelIdentity label={journeyPartLabel("identity", "Inspiration")} />
       {!conversation && <h1 className="sr-only">Inspiration</h1>}
       <p className="guided-assistant-copy">{lead}</p>
       <h2 className="inspiration-question">What do you like?</h2>
@@ -444,17 +432,11 @@ export function InspirationView({
           {liked && !controller.overview ? (
             <div className="inspiration-empty">
               <h2>Saved choices are not available yet</h2>
-              <p>Reconnect to load this project’s liked brands.</p>
             </div>
           ) : !total && !yours ? (
             <div className="inspiration-empty">
               <Icon name="assets" size={30} />
               <h2>{liked && !query ? "Start with a few likes" : `No ${noun} match this search`}</h2>
-              <p>
-                {liked && !query
-                  ? "Like a whole brand with the heart next to its name, or just one of its images."
-                  : "Try a brand name, a color or a style."}
-              </p>
               <button type="button" onClick={() => reset({ query: "", liked: false })}>
                 Browse all {noun}
               </button>
@@ -492,9 +474,6 @@ export function InspirationView({
           )}
           {yours && <div className="inspiration-yours-slot">{yours}</div>}
           <footer className="inspiration-footer">
-            <span>
-              {Math.min(limit, total)} of {total} {noun}
-            </span>
             {references ? (
               references.action
             ) : (
@@ -511,7 +490,7 @@ export function InspirationView({
               conversation ? "inspiration-continue-inline" : "inspiration-continue-row inspiration-continue-bar"
             }
           >
-            <span>{count === 1 ? "1 liked" : `${count} liked`} · Next: Logo</span>
+            <span>{count === 1 ? "1 liked" : `${count} liked`}</span>
             {onContinue ? (
               <button type="button" className="inspiration-continue" onClick={onContinue}>
                 Continue
@@ -533,13 +512,6 @@ export function InspirationView({
           initialPart={open.part}
           likes={likesFor(open.brand, false)}
           onClose={() => setOpen(null)}
-          footer={
-            <p className="inspiration-detail-footer">
-              Your choices stay with{" "}
-              <span translate="no">{brandName?.trim() || controller.overview?.projectTitle || "this brand"}</span>.
-              Change them anytime.
-            </p>
-          }
         />
       )}
     </div>

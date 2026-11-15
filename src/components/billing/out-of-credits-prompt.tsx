@@ -15,10 +15,7 @@ export function OutOfCreditsPrompt({ pathname }: { pathname: string }) {
   if (!open || pathname === "/plans") return null;
   return (
     <aside className="out-of-credits-prompt" role="status" aria-live="polite" aria-label="Out of credits">
-      <div className="out-of-credits-copy">
-        <strong>You’re out of credits for this month</strong>
-        <p>Your work is saved. A paid plan adds more credits every month.</p>
-      </div>
+      <strong className="out-of-credits-title">You’re out of credits for this month</strong>
       <div className="out-of-credits-actions">
         <button type="button" className="button secondary small" onClick={() => setOpen(false)}>
           Not now

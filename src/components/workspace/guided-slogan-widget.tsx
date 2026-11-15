@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ChoiceCard, ChoiceGroup } from "@/components/ui/choice";
 import { TextField } from "@/components/ui/field";
 import type { GuidedReply } from "@/domain/guided-interview";
-import { StepHeading, stageHint } from "./guided-interview-widgets";
+import { StepHeading } from "./guided-interview-widgets";
 
 type SloganReply = Extract<GuidedReply, { kind: "choices" }>;
 export type SloganDecision = { optionId: string } | { own: string };
@@ -60,18 +60,17 @@ export function GuidedSlogan({
   const preview = sloganText(reply, choice);
   return (
     <section className="e-stack e-stack--lg conversation-step" aria-labelledby={`${id}-title`}>
-      <StepHeading title={reply.question} hint={stageHint("slogan", true)} hintId={`${id}-hint`} />
+      <StepHeading title={reply.question} aside={<span className="e-badge">Optional</span>} />
       <span id={`${id}-title`} hidden>
         {reply.question}
       </span>
       <section className="e-card guided-slogan__preview" aria-label="Preview">
-        <span className="e-section__hint">Preview</span>
         <span className="guided-slogan__name">{brandName}</span>
         <span className="guided-slogan__line" role="status" data-empty={preview ? undefined : ""}>
-          {preview || (choice.chosen === "own" ? "Your slogan will appear here" : "No slogan yet")}
+          {preview || "No slogan yet"}
         </span>
       </section>
-      <ChoiceGroup legend={reply.question} hideLegend describedBy={`${id}-hint`} className="guided-choices">
+      <ChoiceGroup legend={reply.question} hideLegend className="guided-choices">
         {slogans.map((item) => (
           <ChoiceCard
             key={item.id}

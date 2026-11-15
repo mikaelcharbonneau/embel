@@ -80,15 +80,10 @@ export function NamingFeedResults({
             </button>
           </div>
         )}
-        <p className={styles.namesHint}>
-          {entries.length || writing
-            ? "Pick the one you like best. Details shows each name’s story and more checks."
-            : "Names will follow the choices in your conversation."}
-        </p>
       </div>
       {onlySaved && !savedCount ? (
         <div className={styles.namesEmpty}>
-          <p>You haven’t saved any names yet. Press the heart on a name to keep it here.</p>
+          <p>No saved names yet.</p>
           <div>
             <Button size="sm" onClick={() => setOnlySaved(false)}>
               Show all {entries.length} names
@@ -138,11 +133,6 @@ export function NamingFeedResults({
           <Button icon="chevron-down" onClick={() => setLimit((value) => value + NAMES_PAGE)}>
             Show {Math.min(NAMES_PAGE, hidden)} more names
           </Button>
-        )}
-        {list.length > 0 && (
-          <span className={styles.namesCount}>
-            {shown.length} of {list.length} names
-          </span>
         )}
       </div>
       {manual && manualOpen && <div>{manual}</div>}

@@ -106,7 +106,7 @@ function strategyReply(request, b) {
   switch (turn.stage) {
     case "competitors":
       return choices(
-        "Here are competitors research found. Each one links to the page it was found on.",
+        "Here are competitors research found.",
         "Which competitors should we keep in mind?",
         data("competitors").map(([name, description], index) =>
           option(index, name, description, {
