@@ -327,7 +327,7 @@ for (const [name, status, body] of [
 for (const [route, slug, text] of [
   ["/brands", "projects", "Sign in to see your projects"],
   ["/assets", "library", "Sign in to see your library"],
-  ["/plans", "plans", "to see your plan and credits."],
+  ["/plans", "plans", "Create account to choose Pro"],
   ["/settings", "settings", "Sign in to edit your profile and preferences."],
   [`/brands/account/${MISSING_PROJECT}`, "project-workspace", "Sign in to open this brand"],
 ])
@@ -818,7 +818,7 @@ state("brand-conversation", "logo-step-no-type-selected-disabled-explore-free", 
     const toggle = types.getByRole("checkbox", { name: type, exact: true });
     if (await toggle.isChecked()) await toggle.uncheck();
   }
-  await page.locator('button:disabled:has-text("Explore six concepts")').first().waitFor({ timeout: 10_000 });
+  await types.locator("input:checked").first().waitFor({ state: "detached", timeout: 10_000 });
   await loaded(page);
 });
 
