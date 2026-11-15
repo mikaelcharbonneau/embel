@@ -54,6 +54,11 @@ export async function startCheckout(
   const state = await deps.store.ownerState(owner.id);
   // One subscription per account: plan changes and cancellation go through Manage.
   if (state.subscription?.live) throw new ApiError("billing_active");
+  // A subscription whose first payment Stripe is still confirming is not live yet, but it becomes
+  // live by itself (or expires within a day): a second checkout now would pay for a second one.
+  // The guard lives here and not in the database on purpose: the webhook must always be able to
+  // save what Stripe reports, so nothing in billing_apply_subscription may refuse a row.
+  if (state.subscription?.status === "incomplete") throw new ApiError("billing_pending");
   const [customer, price] = await Promise.all([
     customerForOwner(deps, owner, state.customerId),
     priceForPlan(deps.stripe, plan),

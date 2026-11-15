@@ -6,17 +6,21 @@ import { accountProjectSchema } from "@/domain/project-api";
 import { AccountGuidedInterview } from "@/components/workspace/account-guided-interview";
 import { accountProjectDraft } from "@/components/workspace/project-draft-adapter";
 
-vi.mock("@/components/workspace/use-strategy-jobs", () => ({
-  useStrategyJobs: () => ({
-    overview: { jobs: [], availability: { status: "unavailable", operations: [], reason: "worker_unavailable" } },
-    pending: false,
-    readError: null,
-    actionError: null,
-    refresh: vi.fn(),
-    enqueue: vi.fn(),
-    cancel: vi.fn(),
-  }),
-}));
+vi.mock("@/components/workspace/use-strategy-jobs", async () => {
+  const { withStrategyView } = await import("./guided-strategy-hook");
+  return {
+    useStrategyJobs: () =>
+      withStrategyView({
+        overview: { jobs: [], availability: { status: "unavailable", operations: [], reason: "worker_unavailable" } },
+        pending: false,
+        readError: null,
+        actionError: null,
+        refresh: vi.fn(),
+        enqueue: vi.fn(),
+        cancel: vi.fn(),
+      }),
+  };
+});
 
 it("shows the parent's validation failure even when no pending context was accepted", async () => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });

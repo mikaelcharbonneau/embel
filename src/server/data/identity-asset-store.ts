@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import type { ClaimedJob } from "@/domain/jobs";
+import { isJobLeasedOrPartial, type ClaimedJob } from "@/domain/jobs";
 import { identityGenerationJobInputSchema } from "@/domain/identity-jobs";
 import type { AssetVersionReference } from "@/domain/asset-library";
 import { ASSET_MAX_FILE_BYTES } from "@/domain/asset-library";
@@ -152,7 +152,7 @@ function leased(job: ClaimedJob): IdentityAssetAccess {
   logoId(job.leaseToken);
   if (
     !(job.operation.startsWith("identity.logo_") || job.operation === "identity.image") ||
-    !["running", "partial", "cancel_requested"].includes(job.status)
+    !isJobLeasedOrPartial(job.status)
   )
     throw new ApiError("not_found");
   if (job.operation === "identity.image") {

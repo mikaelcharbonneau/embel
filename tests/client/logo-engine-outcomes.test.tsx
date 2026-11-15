@@ -173,23 +173,31 @@ describe("S2: a refused Logo request inside the Workspace", () => {
       return f.fetcher(input, init);
     };
     const state = await inWorkspace(projectId, fetcher);
+    const tryAgain = () => [...chat.querySelectorAll("button")].find((button) => button.textContent === "Try again");
     for (const [status, sentence] of [
       [409, refused.busy],
       [429, refused.limit],
-      // A 503 may have admitted a run (startRefusal): it is unconfirmed, never "nothing has started".
+      // A 503 with no code may have admitted a run (startRefusal): it is unconfirmed, never "nothing has started".
       [503, refused.unknown],
       ["offline", refused.unknown],
     ] as const) {
       answer = status;
-      await act(async () => state.reply!.send("Make the lettering bolder"));
+      // Once a start is unconfirmed only Try again is offered, and it repeats the same request.
+      if (status === "offline") {
+        expect(state.reply?.acceptsText).toBe(false);
+        await act(async () => tryAgain()!.click());
+      } else {
+        await until(() => expect(state.reply?.acceptsText).toBe(true));
+        await act(async () => state.reply!.send("Make the lettering bolder"));
+      }
       await until(() => expect(chat.textContent).toContain(sentence));
       // Once, and never a price.
       expect(chat.textContent!.split(sentence).length).toBe(2);
       expect(chat.textContent).not.toMatch(/\$\d/u);
     }
     answer = "started";
-    await until(() => expect(state.reply?.acceptsText).toBe(true));
-    await act(async () => state.reply!.send("Make the lettering bolder"));
+    await until(() => expect(tryAgain()).toBeDefined());
+    await act(async () => tryAgain()!.click());
     await until(() => expect(chat.textContent).toContain("Changing your logo."));
     for (const sentence of Object.values(refused)) expect(chat.textContent).not.toContain(sentence);
   }, 60_000);
@@ -241,6 +249,36 @@ describe("S2: a refused Logo request inside the Workspace", () => {
     await until(() => expect(host.textContent).toContain(refused.busy));
     expect(host.textContent!.split(refused.busy).length).toBe(2);
     expect(host.querySelector('[aria-label="Refine"][role="group"]')?.textContent).toContain(refused.busy);
+  }, 30_000);
+});
+
+describe("S2: a refused Logo request outside the Workspace", () => {
+  it("says why “Retry 1 failed concept” was refused, beside the button", async () => {
+    const f = await syntheticRefinementWorkspaceHttp(),
+      projectId = f.workspace.projectId,
+      base = `/api/projects/${projectId}/logo`;
+    const posts: { kind: string }[] = [];
+    const fetcher: typeof fetch = async (input, init) => {
+      const path = String(input).split("?")[0]!;
+      if (path === `${base}/engine`) return Response.json({ engine: true, runs: [] });
+      if (path === `/api/projects/${projectId}/generations` && init?.method === "POST") {
+        posts.push(JSON.parse(String(init.body)));
+        return Response.json({ error: { code: "daily_limit" } }, { status: 429 });
+      }
+      return f.fetcher(input, init);
+    };
+    await render(projectId, fetcher);
+    await until(drawn);
+    const retry = () => host.querySelector<HTMLButtonElement>('button[aria-label="Retry 1 failed concept"]');
+    await until(() => expect(retry()?.disabled).toBe(false));
+    await act(async () => retry()!.click());
+    await until(() => expect(posts.map((post) => post.kind)).toEqual(["logo.concepts"]));
+    await until(() => expect(host.textContent).toContain(refused.limit));
+    // Once, with the concepts it is about, and with no Try again that would be refused again.
+    expect(host.textContent!.split(refused.limit).length).toBe(2);
+    expect(grid()?.textContent).toContain(refused.limit);
+    expect([...host.querySelectorAll("button")].map((button) => button.textContent)).not.toContain("Try again");
+    expect(host.textContent).not.toMatch(/\$\d/u);
   }, 30_000);
 });
 

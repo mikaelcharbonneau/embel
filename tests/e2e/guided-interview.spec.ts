@@ -1514,9 +1514,9 @@ test("guided interview: cancellation follows the job and never fabricates comple
   expect(state.project.context.intake.guidedInterview?.answers).toEqual([]);
 });
 
-test("guided interview: active research polling failure keeps status recovery in the viewport", async ({
+test("guided interview: a failed status check during research keeps progress, says updates are delayed and recovers by itself", async ({
   page,
-}, info) => {
+}) => {
   const state = await fixtures(page);
   state.jobs = [queuedJob("strategy.competitors", 1, 1)];
   await openProject(page);
@@ -1524,22 +1524,17 @@ test("guided interview: active research polling failure keeps status recovery in
   await expect(loading).toBeVisible();
   expect(state.overviewReads).toBeGreaterThan(0);
   state.overviewStatus = 503;
-  const error = page
-    .getByRole("alert")
-    .filter({ hasText: "Research status could not be checked. Your prompt is saved." });
-  const checkStatus = page.getByRole("button", { name: "Check status", exact: true });
-  await expect(error).toBeVisible();
+  const delayed = page.getByText("Updates are delayed. Still working, and checking again.");
+  await expect(delayed).toBeVisible();
+  // The run never looks ended, and nothing reads as an error.
   await expect(loading).toBeVisible();
-  await expect(error).toBeInViewport({ ratio: 1 });
-  await expect(checkStatus).toBeInViewport({ ratio: 1 });
-  await expect(checkStatus).toBeEnabled();
-  await page.screenshot({ path: info.outputPath("guided-research-status-recovery-viewport.png"), scale: "css" });
+  await expect(page.getByRole("alert").filter({ hasText: "Research status could not be checked" })).toHaveCount(0);
   expect(state.enqueues).toHaveLength(0);
   const readsBeforeRecovery = state.overviewReads;
   state.overviewStatus = 200;
-  await checkStatus.click();
+  // No click: the page keeps checking on its own.
   await expect.poll(() => state.overviewReads).toBeGreaterThan(readsBeforeRecovery);
-  await expect(error).toHaveCount(0);
+  await expect(delayed).toHaveCount(0);
   await expect(loading).toBeVisible();
   completeLatest(state);
   await expectReplyArrivalInViewport(page, "competitors", "Table Next Door");

@@ -50,7 +50,17 @@ describe("Identity unavailable admission boundary — local fixtures", () => {
     };
     mocks.from.mockReturnValue(query);
     mocks.auth.mockResolvedValue({ userId: owner, client: { from: mocks.from, rpc: mocks.rpc } });
+    // No round was ever saved under the request's key.
+    mocks.rpc.mockResolvedValue({ data: null, error: null });
   });
+  /** With the kind off the only database call is the lookup of a round this key already started. */
+  const onlyLookedUp = () =>
+    expect(mocks.rpc.mock.calls).toEqual([
+      [
+        "get_shared_identity_batch",
+        { p_project_id: projectId, p_batch_id: null, p_request_key: intent.idempotencyKey },
+      ],
+    ]);
   afterEach(() => {
     vi.unstubAllEnvs();
   });
@@ -68,16 +78,16 @@ describe("Identity unavailable admission boundary — local fixtures", () => {
   it("returns503 for a valid intent and never admits or dispatches a job", async () => {
     const response = await POST(request(), params());
     expect(response.status).toBe(503);
+    expect((await response.json()).error.code).toBe("generation_unavailable");
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
-    expect(mocks.from).toHaveBeenCalledTimes(1);
-    expect(mocks.from).toHaveBeenCalledWith("projects");
-    expect(mocks.rpc).not.toHaveBeenCalled();
+    expect(mocks.from.mock.calls.every(([table]) => table === "projects")).toBe(true);
+    onlyLookedUp();
   });
   it("canonicalizes an uppercase project UUID before ownership checks", async () => {
     const response = await POST(request(), params(projectId.toUpperCase()));
     expect(response.status).toBe(503);
     expect(mocks.eq).toHaveBeenCalledWith("id", projectId);
-    expect(mocks.rpc).not.toHaveBeenCalled();
+    onlyLookedUp();
     expect(await getIdentityAvailability(await mocks.auth(), projectId.toUpperCase())).toMatchObject({
       projectId,
       status: "unavailable",

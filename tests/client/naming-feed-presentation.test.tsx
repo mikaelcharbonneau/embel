@@ -235,3 +235,52 @@ it("offers no Try again for a refusal that would be refused again", async () => 
     expect(host.querySelector("button")).toBeNull();
   });
 });
+it("keeps progress and Stop when Stop couldn't be confirmed, with Try again for the Stop", async () => {
+  const feed = feedOf(
+    {
+      kind: "active",
+      message: "Generating names… 40 of 100",
+      savedCount: 40,
+      stopUnconfirmed: "Stop couldn’t be confirmed.",
+    },
+    40,
+  );
+  await mount(createElement(NamingFeedStatus, { feed, blocked: false }), async (host) => {
+    expect(host.textContent).toBe("Generating names… 40 of 100StopStop couldn’t be confirmed.Try again");
+    expect(host.querySelector(".e-progress__track")).not.toBeNull();
+    const [stop, again] = [...host.querySelectorAll("button")];
+    expect(stop!.disabled).toBe(false);
+    await act(async () => again!.click());
+    expect(feed.retry).toHaveBeenCalledOnce();
+  });
+  // With Stop in the reply box the progress and Try again still show here.
+  await mount(createElement(NamingFeedStatus, { feed, blocked: false, stopInReplyBox: true }), async (host) => {
+    expect(host.textContent).toBe("Generating names… 40 of 100Stop couldn’t be confirmed.Try again");
+  });
+});
+it("says there are no credits left where the other steps say it, and offers no Try again that would be refused", async () => {
+  const note = "You have no credits left this month. New credits arrive on December 1. See plans";
+  const at = { noCredits: true, startRefused: true, creditsPeriodEnd: "2026-12-01T00:00:00Z" };
+  await mount(
+    createElement(NamingFeedStatus, { feed: { ...feedOf({ kind: "idle" }), ...at }, blocked: false }),
+    async (host) => {
+      expect(host.textContent).toBe(note);
+      expect(host.querySelector('a[href="/plans"]')).not.toBeNull();
+      expect(host.textContent).not.toMatch(/\$/);
+    },
+  );
+  const failed = { kind: "failed", message: "Name generation couldn’t finish. Try again." } as const;
+  await mount(createElement(NamingFeedStatus, { feed: { ...feedOf(failed), ...at }, blocked: false }), async (host) => {
+    expect(host.textContent).toBe(failed.message + note);
+    expect(host.querySelector("button")).toBeNull();
+  });
+  // The out-of-credits message already says it, and a run still working needs no note yet.
+  const used = "You’ve used this month’s credits. They renew on December 1. Your names are saved.";
+  for (const status of [
+    { kind: "error", message: used, retry: false },
+    { kind: "active", message: "Generating names… 40 of 100", savedCount: 40 },
+  ] as const)
+    await mount(createElement(NamingFeedStatus, { feed: { ...feedOf(status), ...at }, blocked: false }), async (host) =>
+      expect(host.textContent).not.toContain("You have no credits left"),
+    );
+});

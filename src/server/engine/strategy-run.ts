@@ -4,6 +4,7 @@ import { strategyOperationSchema, type StrategyJobInput, type StrategyOperation 
 import type { OpenAIResponsesTransport, ResponsesRequest } from "../ai/openai-transport";
 import { calculateStrategyCost, evaluateStrategyResponse, prepareStrategyResponse } from "../ai/strategy-response";
 import { EngineProviderError, isTerminal, responseUsage, type EngineOpenAI } from "./openai";
+import { runStopDecision, stopCode, type RunCheckState } from "./stop-check";
 import { enginePolicyIdentity, engineStrategyPolicy, strategyRunInputSchema } from "./strategy";
 
 // The Strategy workflow's step logic, with the provider and the engine database passed in
@@ -11,10 +12,11 @@ import { enginePolicyIdentity, engineStrategyPolicy, strategyRunInputSchema } fr
 
 /** The run as engine_claim returns it. */
 export type ClaimedStrategyRun = { id: string; ownerId: string; projectId: string; kind: string; input: unknown };
-export type EngineRunCheck = { status: string; cancelRequested: boolean; paused: boolean };
+export type EngineRunCheck = RunCheckState;
 export type StrategyRunDeps = {
   openai: EngineOpenAI;
-  check(runId: string): Promise<EngineRunCheck>;
+  /** `engine_check`: null once the run is gone (its account was deleted). */
+  check(runId: string): Promise<EngineRunCheck | null>;
   save(
     runId: string,
     outputKey: string,
@@ -148,10 +150,8 @@ export async function pollStrategyAttempt(
   runId: string,
   responseId: string,
 ): Promise<PollResult> {
-  const state = await deps.check(runId);
-  if (state.status !== "running") return { state: "stop", code: "cancelled" };
-  if (state.cancelRequested || state.paused)
-    return { state: "stop", code: state.paused ? "generation_paused" : "cancelled" };
+  const stop = stopCode(runStopDecision(await deps.check(runId)));
+  if (stop) return { state: "stop", code: stop };
   const response = await deps.openai.retrieve(responseId);
   return isTerminal(response.status) ? { state: "terminal" } : { state: "pending" };
 }

@@ -36,6 +36,8 @@ export type VisualDirectionGeneration = {
   completed: number;
   usageLabel?: string | null;
   error?: string | null;
+  /** A quiet line about the round that is still working (updates are delayed): never an alert. */
+  note?: string | null;
   /** What the error message offers: `null` for nothing (pressing would be refused again), an action of its
    * own (Try again for a Stop that couldn't be confirmed), or, when left out, Check availability. */
   errorAction?: { label: string; onClick(): void } | null;
@@ -219,6 +221,11 @@ export function VisualDirectionsView({
           </p>
         )}
         {creditsNotice}
+        {generation.note && (
+          <p className="e-muted" role="status">
+            {generation.note}
+          </p>
+        )}
         {generation.error && (
           <InlineMessage
             tone="danger"

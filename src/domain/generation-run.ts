@@ -75,19 +75,22 @@ export function runPhase(run: RunLifecycle): RunPhase {
 
 /**
  * What the browser may conclude when a request to start a run is refused, from the
- * HTTP status alone.
+ * HTTP status and the error code in the response body (`error.code`), when there is one.
  *
  * "final"     nothing was admitted or charged; show the reason and let the person act.
  * "uncertain" a run may exist; look it up before offering Start again.
  *
- * 503 is uncertain on purpose: it usually means generation is switched off, but the
- * start route also answers 503 when a run was admitted and its workflow failed to
- * start. A possibly admitted run is never treated as "nothing happened".
+ * A 503 is uncertain unless its code says otherwise: the server sends
+ * `generation_unavailable` only when nothing was admitted (the step is switched off),
+ * and `start_unconfirmed` when a run was admitted and its workflow failed to start.
+ * Any other 503, and one with no code, is a possibly admitted run: never "nothing happened".
  */
 export type StartRefusal = "final" | "uncertain";
 const FINAL_START_REFUSALS: readonly number[] = [400, 401, 402, 403, 404, 409, 413, 422, 429];
-export function startRefusal(httpStatus: number): StartRefusal {
-  return FINAL_START_REFUSALS.includes(httpStatus) ? "final" : "uncertain";
+/** The one error code that proves a 503 admitted nothing. */
+export const GENERATION_UNAVAILABLE_CODE = "generation_unavailable";
+export function startRefusal(httpStatus: number, code?: string | null): StartRefusal {
+  return FINAL_START_REFUSALS.includes(httpStatus) || code === GENERATION_UNAVAILABLE_CODE ? "final" : "uncertain";
 }
 
 /**
@@ -96,8 +99,9 @@ export function startRefusal(httpStatus: number): StartRefusal {
  * The three screens call this one function; each looks its own sentences up by `message`.
  */
 export type StepProblem =
-  /** The start request was refused (`httpStatus`) or never answered (`null`). */
-  | { during: "start"; httpStatus: number | null }
+  /** The start request was refused (`httpStatus`, with the body's error `code` when it had one) or never
+   * answered (`null`). */
+  | { during: "start"; httpStatus: number | null; code?: string | null }
   | { during: "stop" }
   /** The first read failed, so the screen has nothing to show yet. */
   | { during: "load" }
@@ -110,6 +114,8 @@ export type StepMessageKind =
   | "load_failed"
   | "out_of_credits"
   | "daily_limit"
+  /** The step is switched off: nothing started, and asking again now would be refused at once. */
+  | "unavailable"
   | "start_refused"
   | "start_unconfirmed";
 export type StepSituation = {
@@ -127,7 +133,8 @@ export type StepView = {
   /** Stop was asked (the server says so, or this tab's Stop is on its way): say so, never offer Stop again. */
   stopping: boolean;
   canStop: boolean;
-  /** A new request may be started. False while one is unconfirmed: only Try again may repeat it. */
+  /** A new request may be started. False while one is unconfirmed (only Try again may repeat it) and after
+   * today's limit (it would be refused again). */
   canStart: boolean;
   /** What Try again repeats, or null when there is nothing to repeat or it would be refused again. */
   retry: "start" | "stop" | "load" | null;
@@ -164,11 +171,15 @@ export function stepView({ phase, loaded, problem, sending = null }: StepSituati
   }
   if (sending === "start") return { ...view, working: true };
   if (problem?.during === "start") {
-    if (problem.httpStatus === null || startRefusal(problem.httpStatus) === "uncertain")
+    if (problem.httpStatus === null || startRefusal(problem.httpStatus, problem.code) === "uncertain")
       return { ...view, retry: "start", keepRequest: true, message: "start_unconfirmed" };
-    // Nothing started. Credits and today's limit would refuse the same request again, so no Try again.
+    // Nothing started. Credits, today's limit and a switched-off step would refuse the same request again,
+    // so no Try again: the person can simply ask later.
     if (problem.httpStatus === 402) return { ...view, canStart: loaded, message: "out_of_credits" };
-    if (problem.httpStatus === 429) return { ...view, canStart: loaded, message: "daily_limit" };
+    // Today's limit has no end the browser knows: no new start until the screen clears the problem (a read
+    // that shows a run, or a reload). No countdown is invented.
+    if (problem.httpStatus === 429) return { ...view, message: "daily_limit" };
+    if (problem.code === GENERATION_UNAVAILABLE_CODE) return { ...view, canStart: loaded, message: "unavailable" };
     return { ...view, canStart: loaded, retry: "start", message: "start_refused" };
   }
   if (problem?.during === "load") return { ...view, canStart: loaded, retry: "load", message: "load_failed" };

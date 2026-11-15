@@ -77,6 +77,9 @@ export function SignInForm({
   const credentialGeneration = useRef(0);
   const mounted = useRef(true);
   const [errors, setErrors] = useState<FormErrors>({});
+  // Which of this form's two requests is on its way, so only the button that was pressed shows activity.
+  // `submitting` is the account's own sign-in activity: it also covers a request sent from another form.
+  const [sending, setSending] = useState<"credentials" | "resend" | null>(null);
   const [resend, setResend] = useState(false);
   const [resent, setResent] = useState(false);
   const [hasPrompt, setHasPrompt] = useState(false);
@@ -175,10 +178,13 @@ export function SignInForm({
     const submittedGeneration = credentialGeneration.current;
     clearErrors();
     requestPending.current = true;
+    setSending("credentials");
     const result = await signIn(() => (signingUp ? requestSignUp(body) : requestSignIn(body)), mode);
     requestPending.current = false;
     captcha.current?.reset();
-    if (!mounted.current || credentialGeneration.current !== submittedGeneration) return;
+    if (!mounted.current) return;
+    setSending(null);
+    if (credentialGeneration.current !== submittedGeneration) return;
     const transientSignIn =
       !signingUp &&
       !result.ok &&
@@ -220,6 +226,7 @@ export function SignInForm({
     clearErrors();
     setResent(false);
     requestPending.current = true;
+    setSending("resend");
     const result = await signIn(
       () =>
         requestSignUp(
@@ -231,6 +238,7 @@ export function SignInForm({
     requestPending.current = false;
     resendCaptcha.current?.reset();
     if (!mounted.current) return;
+    setSending(null);
     if (result.ok) {
       if (resendEmailInput.current) resendEmailInput.current.value = "";
       setResent(true);
@@ -399,7 +407,13 @@ export function SignInForm({
                 )}
                 <TurnstileWidget handleRef={captcha} />
                 {!resend && formMessage}
-                <Button type="submit" variant="primary" block loading={submitting}>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  block
+                  loading={submitting && sending !== "resend"}
+                  disabled={submitting && sending === "resend"}
+                >
                   {signingUp ? "Create account" : "Sign in"}
                 </Button>
               </fieldset>
@@ -457,7 +471,13 @@ export function SignInForm({
                 </AuthField>
                 <TurnstileWidget handleRef={resendCaptcha} />
                 {formMessage}
-                <Button type="submit" variant="secondary" block loading={submitting}>
+                <Button
+                  type="submit"
+                  variant="secondary"
+                  block
+                  loading={submitting && sending === "resend"}
+                  disabled={submitting && sending !== "resend"}
+                >
                   Resend confirmation
                 </Button>
               </fieldset>

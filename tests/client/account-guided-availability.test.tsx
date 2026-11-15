@@ -7,6 +7,8 @@ import type { AccountWorkspace } from "@/components/workspace/account-draft-memo
 import { initialGuidedContext } from "@/components/workspace/guided-interview-client";
 import { accountProjectDraft } from "@/components/workspace/project-draft-adapter";
 import { accountProjectSchema } from "@/domain/project-api";
+import type { StrategyAction } from "@/components/workspace/strategy-jobs-view";
+import { UPDATES_DELAYED } from "@/domain/generation-words";
 import {
   strategyJobSchema,
   strategyOverviewResponseSchema,
@@ -19,12 +21,16 @@ const strategy = vi.hoisted(() => ({
   pending: false,
   readError: null as string | null,
   actionError: null as string | null,
+  action: undefined as StrategyAction | undefined,
   refresh: vi.fn(),
   enqueue: vi.fn(),
   retryDelivery: vi.fn(),
   cancel: vi.fn(),
 }));
-vi.mock("@/components/workspace/use-strategy-jobs", () => ({ useStrategyJobs: () => strategy }));
+vi.mock("@/components/workspace/use-strategy-jobs", async () => {
+  const { withStrategyView } = await import("./guided-strategy-hook");
+  return { useStrategyJobs: () => withStrategyView(strategy) };
+});
 
 const account = { status: "ready" as const, userId: "aaaaaaaa-1111-4111-8111-111111111111", generation: 1 };
 const when = "2026-10-19T10:00:00Z";
@@ -112,6 +118,7 @@ beforeEach(() => {
   strategy.pending = false;
   strategy.readError = null;
   strategy.actionError = null;
+  strategy.action = undefined;
   strategy.refresh.mockReset();
   strategy.enqueue.mockReset();
   strategy.retryDelivery.mockReset();
@@ -318,5 +325,59 @@ describe("guided Strategy availability presentation", () => {
     expect(notice()).toBe("");
     expect(button("Try again")).toBeUndefined();
     expect(strategy.enqueue).not.toHaveBeenCalled();
+  });
+
+  // What may be repeated or stopped is the hook's reading (`view`, docs/state-machines.md J8).
+  it.each([
+    [402, "You’ve used this month’s credits. Your conversation is saved."],
+    [429, "The current request limit was reached. Your draft is kept here. Try again when capacity is available."],
+  ])("does not offer a retry that would be refused again after a %i start", async (httpStatus, sentence) => {
+    addGuidedTurn();
+    strategy.overview = { availability: available, jobs: [] };
+    strategy.action = { sending: null, unconfirmed: null, problem: { during: "start", httpStatus, sentence } };
+    await render();
+    expect(notice()).toContain(sentence);
+    expect(button("Retry request")).toBeUndefined();
+    expect(button("Try again")).toBeUndefined();
+    expect(button("Check status")?.disabled).toBe(false);
+  });
+
+  it.each([[500], [null], [400]])("keeps the retry after a start that may be repeated (%s)", async (httpStatus) => {
+    addGuidedTurn();
+    strategy.overview = { availability: available, jobs: [] };
+    strategy.action = {
+      sending: null,
+      unconfirmed: null,
+      problem: { during: "start", httpStatus, sentence: "The request could not be confirmed." },
+    };
+    await render();
+    expect(notice()).toContain("The request could not be confirmed.");
+    expect(button("Retry request")?.disabled).toBe(false);
+  });
+
+  it("shows a quiet updates-delayed note, with progress and Stop, when a status check fails while research runs", async () => {
+    addGuidedTurn();
+    const job = boundJob("running");
+    strategy.overview = { availability: available, jobs: [job] };
+    strategy.readError = "Strategy status could not be checked. Try checking again.";
+    await render();
+    expect(notice()).toBe("");
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    const progress = host.querySelector('[aria-label="Researching your competitors"]')!;
+    expect(progress.textContent).toContain(UPDATES_DELAYED);
+    expect(progress.querySelector(".e-progress")).not.toBeNull();
+    await act(async () => button("Stop research")!.click());
+    expect(strategy.cancel).toHaveBeenCalledWith(job);
+  });
+
+  it("does not offer Stop again while this tab's Stop is on its way", async () => {
+    addGuidedTurn();
+    strategy.overview = { availability: available, jobs: [boundJob("running")] };
+    strategy.action = { sending: "stop", unconfirmed: null, problem: null };
+    await render();
+    expect(button("Stop research")).toBeUndefined();
+    expect(button("Stopping…")?.getAttribute("aria-disabled")).toBe("true");
+    await act(async () => button("Stopping…")!.click());
+    expect(strategy.cancel).not.toHaveBeenCalled();
   });
 });

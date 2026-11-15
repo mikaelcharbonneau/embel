@@ -8,6 +8,7 @@ import { logoConceptPromptText, logoRefinementPromptText } from "../ai/logo-imag
 import { logServerError } from "../http/errors";
 import { EngineProviderError } from "./openai";
 import { ENGINE_LOGO_IMAGE, EngineImageRejectedError, type EngineImages } from "./openai-images";
+import { runStopDecision, type RunCheckState } from "./stop-check";
 import { EngineStorageError, type EngineStorage, type OwnedAsset } from "./storage";
 import {
   LOGO_CONCEPTS_KIND,
@@ -26,11 +27,12 @@ import {
 // before it is sent, so a step that runs again after a crash can tell it may
 // already have been sent, and fails that image instead of paying twice.
 
-export type EngineRunCheck = { status: string; cancelRequested: boolean; paused: boolean };
+export type EngineRunCheck = RunCheckState;
 /** The run as engine_claim returns it. */
 export type ClaimedLogoRun = { id: string; ownerId: string; projectId: string; kind: string; input: unknown };
 export type LogoEngineDb = {
-  check(runId: string): Promise<EngineRunCheck>;
+  /** `engine_check`: null once the run is gone (its account was deleted). */
+  check(runId: string): Promise<EngineRunCheck | null>;
   /** fluid_private.engine_logo_begin */
   begin(runId: string): Promise<unknown>;
   /** fluid_private.engine_logo_save_image */
@@ -346,9 +348,15 @@ export async function drawLogoImage(
       reply.providerRequestId,
       reply.costMicrousd,
     );
-  // A run stopped while this image was drawn keeps its usage but stores no file.
-  const state = await deps.db.check(run.id).catch(() => null);
-  if (state && (state.status !== "running" || state.cancelRequested)) {
+  // A run stopped while this image was drawn keeps its usage but stores no file. The image is
+  // already paid for and only free work follows, so a pause alone does not discard it. A check
+  // that could not be read is not a stop; a run that is gone has nothing to store or record.
+  const stop = await deps.db.check(run.id).then(
+    (state) => runStopDecision(state, { afterPaidCall: true }),
+    () => null,
+  );
+  if (stop?.action === "quit" && stop.status === "missing") return { state: "stopped" };
+  if (stop && stop.action !== "continue") {
     return save(
       deps,
       run,

@@ -28,6 +28,7 @@ import {
   appendGuidedTurn,
   briefChangedSinceStrategy,
   confirmGuidedSelection,
+  guidedOpenTurn,
   guidedTurnOperation,
   revisitGuidedStage,
   skipGuidedSlogan,
@@ -43,6 +44,7 @@ import {
   journeySectionOfHash,
   useConversationSteps,
 } from "@/components/journey/project-header";
+import { UPDATES_DELAYED } from "@/domain/generation-words";
 import { journeyPartLabel, type JourneyStepId } from "@/domain/journey";
 import { accountDraftChanged, type AccountWorkspace, type GuidedInterviewInput } from "./account-draft-memory";
 import { strategyAvailabilityMessage, strategyJobActive } from "./account-strategy-client";
@@ -77,7 +79,7 @@ import {
   withoutScoreScaleNote,
 } from "./guided-interview-client";
 import type { ProjectEditorForm } from "./project-editor";
-import { guidedActivity, guidedTurnAction } from "./guided-turn-coordinator";
+import { guidedActivity, guidedAttempts, guidedTurnAction, guidedTurnStale } from "./guided-turn-coordinator";
 import { initialWorkAreaState, projectReach, workAreaReducer, workAreaView, type WorkView } from "./guided-work-view";
 import { useStrategyJobs } from "./use-strategy-jobs";
 import { Workspace } from "./workspace-layout";
@@ -99,6 +101,8 @@ function subscribeToHash(onChange: () => void) {
 }
 const readHash = () => window.location.hash;
 const noHash = () => "";
+/** A step the conversation takes on its own could not be prepared or saved, for no reason it can name. */
+const stepNotSaved = "This step could not be saved. Your conversation is kept. Reload the page to try again.";
 
 /**
  * The project conversation. At 1024 px and up it is the Workspace (decision 1): Embel's messages, the folded
@@ -166,12 +170,16 @@ export function AccountGuidedInterview({
     dispatchWorkArea({ type: "saved_name_changed" });
   const lock = useRef(false),
     mounted = useRef(false);
-  const attempts = useRef(new Set<string>());
+  const [attempts] = useState(guidedAttempts);
   const saved = workspace.saved;
   const context = workspace.pendingGuidedContext ?? saved.context;
   const state = context.intake.guidedInterview;
   const turn = state?.turns.at(-1);
   const jobs = strategy.overview?.jobs ?? [];
+  // A status check that fails while a request works is only a delay: the request keeps its progress and Stop,
+  // and the chat says so quietly instead of reporting an error (docs/state-machines.md, J8).
+  const updatesDelayed = strategy.view.message === "updates_delayed";
+  const readError = updatesDelayed ? null : strategy.readError;
   const availability = strategy.readError ? null : strategy.overview?.availability;
   const requestBlocked =
     availability?.status === "unavailable" &&
@@ -180,8 +188,10 @@ export function AccountGuidedInterview({
   const reply = bound?.reply ?? null;
   const active = jobs.some(strategyJobActive);
   const dirty = accountDraftChanged(workspace);
-  const currentTurn =
-    turn && state?.stage === turn.stage && !state.answers.some((answer) => answer.turnId === turn.id) ? turn : null;
+  const currentTurn = guidedOpenTurn(state);
+  // A message typed on a finished interview is a question or a comment (J4). Its reply is read in the chat and
+  // the page never acts on it: no stage reopens, and an answer changes only through its "Change answer".
+  const finishedInterview = state?.stage === "complete";
   const operation = currentTurn ? guidedTurnOperation(currentTurn) : null;
   const allowance = operation ? guidedAllowance(availability, operation) : null;
   const runningJob = bound && strategyJobActive(bound.job) ? bound.job : null;
@@ -223,10 +233,37 @@ export function AccountGuidedInterview({
     return saveContext(next, submittedInput);
   }
 
+  const strategyAnswered = (["competitors", "audience", "positioning", "personality"] as const).every((stage) =>
+    state?.answers.some((answer) => answer.stage === stage),
+  );
+  /** One step the conversation takes on its own: prepare the change and save it. A save that is not confirmed
+   * is reported by the project page ("Not saved" with Retry save, or the newer-version notice); the step is
+   * then free to be tried again once that is settled. A change that cannot be prepared says why here. */
+  async function saveStep(key: string, prepare: () => ContextSnapshot) {
+    lock.current = true;
+    setWorking(true);
+    try {
+      let next: ContextSnapshot;
+      try {
+        next = prepare();
+      } catch (cause) {
+        if (mounted.current) setError(cause instanceof Error ? cause.message : stepNotSaved);
+        return;
+      }
+      if (!(await persist(next))) attempts.saveNotConfirmed(key);
+    } catch {
+      attempts.saveNotConfirmed(key);
+      if (mounted.current) setError(stepNotSaved);
+    } finally {
+      lock.current = false;
+      if (mounted.current) setWorking(false);
+    }
+  }
+
   // Persisted turns retain their request identity across a lost acknowledgement.
   // An uncertain enqueue retries the exact key; it never creates a replacement job.
   const coordinate = useEffectEvent(async () => {
-    // What to do is decided in one place; this runs it. The key is recorded before the save or request.
+    // What to do is decided in one place; this runs it, once per attempt (`guidedAttempts`).
     const action = guidedTurnAction({
       mounted: mounted.current,
       locked: lock.current,
@@ -241,99 +278,56 @@ export function AccountGuidedInterview({
       nameSelected: Boolean(saved.context.selectedName),
       sloganTurnExists: Boolean(state?.turns.some((item) => item.stage === "slogan")),
       sloganAllowed: Boolean(guidedAllowance(availability, "strategy.slogan")),
-      strategyAnswered: ["competitors", "audience", "positioning", "personality"].every((stage) =>
-        state?.answers.some((answer) => answer.stage === stage),
-      ),
+      strategyAnswered,
       savedRevision: saved.current_revision,
       currentTurn,
-      bound: bound ? { jobId: bound.job.id, reply } : null,
+      bound: bound ? { jobId: bound.job.id, reply: finishedInterview ? null : reply } : null,
       requestAllowed: Boolean(allowance),
     });
-    if (action.do === "nothing") return;
-    if (attempts.current.has(action.key)) return;
-    attempts.current.add(action.key);
-    if (action.do === "start_slogan") {
-      lock.current = true;
-      setWorking(true);
-      try {
+    if (!attempts.begin(action)) return;
+    if (action.do === "start_slogan")
+      return saveStep(action.key, () => {
         const latest = [...(saved.context.intake.conversation ?? [])]
           .reverse()
           .find((event) => event.kind === "user_message");
-        await persist(
-          appendGuidedTurn(saved.context, {
-            id: crypto.randomUUID(),
-            userMessageId: latest?.id ?? null,
-            stage: "slogan",
-            purpose: "propose",
-            inputRevision: saved.current_revision + 1,
-          }),
-        );
-      } catch {
-        if (mounted.current) setError("Slogan suggestions could not be started. Your name is saved.");
-      } finally {
-        lock.current = false;
-        if (mounted.current) setWorking(false);
-      }
-      return;
-    }
-    if (action.do === "redirect") {
-      lock.current = true;
-      setWorking(true);
-      try {
-        const next = revisitGuidedStage(saved.context, action.reply.targetStage);
-        await persist(
-          appendGuidedTurn(next, {
-            id: crypto.randomUUID(),
-            userMessageId: action.turn.userMessageId,
-            stage: action.reply.targetStage,
-            purpose: action.reply.targetStage === "competitors" ? "research" : "propose",
-            inputRevision: saved.current_revision + 1,
-          }),
-        );
-      } catch {
-        if (mounted.current) setError("Your change of direction could not be saved. Your message is kept.");
-      } finally {
-        lock.current = false;
-        if (mounted.current) setWorking(false);
-      }
-      return;
-    }
-    if (action.do === "finish_clarification") {
-      lock.current = true;
-      setWorking(true);
-      try {
-        await persist({
-          ...saved.context,
-          intake: {
-            ...saved.context.intake,
-            guidedInterview: { ...saved.context.intake.guidedInterview!, stage: "complete" },
-          },
+        return appendGuidedTurn(saved.context, {
+          id: crypto.randomUUID(),
+          userMessageId: latest?.id ?? null,
+          stage: "slogan",
+          purpose: "propose",
+          inputRevision: saved.current_revision + 1,
         });
-      } finally {
-        lock.current = false;
-        if (mounted.current) setWorking(false);
-      }
-      return;
-    }
-    if (action.do === "accept") {
-      lock.current = true;
-      setWorking(true);
-      try {
-        let next = confirmGuidedSelection(saved.context, {
-          turnId: action.turn.id,
-          reply: action.reply,
-          now: new Date().toISOString(),
-        });
-        next = nextGuidedProposal(next, saved.current_revision + 1, action.turn.userMessageId);
-        await persist(next);
-      } catch (cause) {
-        if (mounted.current) setError(cause instanceof Error ? cause.message : "Your answer could not be saved.");
-      } finally {
-        lock.current = false;
-        if (mounted.current) setWorking(false);
-      }
-      return;
-    }
+      });
+    if (action.do === "redirect")
+      return saveStep(action.key, () =>
+        appendGuidedTurn(revisitGuidedStage(saved.context, action.reply.targetStage), {
+          id: crypto.randomUUID(),
+          userMessageId: action.turn.userMessageId,
+          stage: action.reply.targetStage,
+          purpose: action.reply.targetStage === "competitors" ? "research" : "propose",
+          inputRevision: saved.current_revision + 1,
+        }),
+      );
+    if (action.do === "finish_clarification")
+      return saveStep(action.key, () => ({
+        ...saved.context,
+        intake: {
+          ...saved.context.intake,
+          guidedInterview: { ...saved.context.intake.guidedInterview!, stage: "complete" },
+        },
+      }));
+    if (action.do === "accept")
+      return saveStep(action.key, () =>
+        nextGuidedProposal(
+          confirmGuidedSelection(saved.context, {
+            turnId: action.turn.id,
+            reply: action.reply,
+            now: new Date().toISOString(),
+          }),
+          saved.current_revision + 1,
+          action.turn.userMessageId,
+        ),
+      );
     // The request identity is derived from the project, revision and operation,
     // so a remount or reload resends the same request rather than a new one.
     await strategy.enqueue(guidedTurnOperation(action.turn), saved.current_revision, allowance!);
@@ -692,12 +686,15 @@ export function AccountGuidedInterview({
     }
   }
 
+  // The hook says what its own failed request may repeat: nothing after used-up credits or today's limit,
+  // where the same request would be refused again.
+  const startRepeatable = strategy.view.retry !== null || strategy.view.message === null;
   async function retry() {
-    if (lock.current || blocked || requestBlocked || !currentTurn) return;
+    if (lock.current || blocked || requestBlocked || !currentTurn || !startRepeatable) return;
     setError(null);
     if (!bound) {
       if (allowance && strategy.overview && !strategy.readError) {
-        attempts.current.add(`request:${currentTurn.id}`);
+        attempts.record(`request:${currentTurn.id}`);
         await strategy.enqueue(guidedTurnOperation(currentTurn), saved.current_revision, allowance);
       } else strategy.refresh();
       return;
@@ -721,16 +718,20 @@ export function AccountGuidedInterview({
     }
   }
 
-  const statusReadError =
-    strategy.readError && active && currentTurn?.stage === "competitors"
-      ? "Research status could not be checked. Your prompt is saved."
-      : strategy.readError;
   const failed = bound && !strategyJobActive(bound.job) && !reply && bound.job.state !== "succeeded";
   const unverified = bound?.job.state === "succeeded" && !reply;
   const stale =
-    currentTurn && !reply && !workspace.pendingGuidedContext && currentTurn.inputRevision !== saved.current_revision;
+    !(finishedInterview && reply) &&
+    guidedTurnStale({
+      currentTurn,
+      savedRevision: saved.current_revision,
+      savePending: Boolean(workspace.pendingGuidedContext),
+      reply,
+      strategyAnswered,
+    });
   const unavailable =
     !turnStarting &&
+    !updatesDelayed &&
     !(active && availability?.reason === "request_active") &&
     ((currentTurn && !bound && strategy.overview && !allowance) ||
       (!state &&
@@ -901,8 +902,8 @@ export function AccountGuidedInterview({
   if (workArea.sectionViewed && workArea.sectionViewed === viewStep)
     dispatchWorkArea({ type: "viewed_section_on_screen" });
 
-  const stop = runningJob ? () => void strategy.cancel(runningJob) : undefined;
-  const stopping = bound?.job.state === "cancel_requested";
+  const stop = runningJob && strategy.view.canStop ? () => void strategy.cancel(runningJob) : undefined;
+  const stopping = strategy.view.stopping;
   const thinkingLabel = active
     ? runningJob
       ? runningJob.state === "queued"
@@ -1171,7 +1172,7 @@ export function AccountGuidedInterview({
       >
         <p>
           You edited your brief after confirming your Strategy. Your answers and progress are kept. To base them on the
-          new brief, redo Strategy from Competitors.
+          new brief, redo Strategy from Competitors. Redoing Strategy uses credits.
         </p>
       </InlineMessage>
     );
@@ -1215,7 +1216,8 @@ export function AccountGuidedInterview({
         aria-label="Embel response"
       >
         <div className="e-turn__main">
-          <p className="e-turn__meta">Embel · {guidedStageLabel(item.turn.stage)}</p>
+          {/* On a finished interview a reply answers a question or comment; it belongs to no open step. */}
+          <p className="e-turn__meta">{finishedInterview ? "Embel" : `Embel · ${guidedStageLabel(item.turn.stage)}`}</p>
           <p className="e-turn__text">
             {item.turn.stage === "personality" ? withoutScoreScaleNote(output.message) : output.message}
           </p>
@@ -1247,22 +1249,30 @@ export function AccountGuidedInterview({
           <div className="e-progress__track" />
         </div>
         <p className="e-section__hint">Your brief is saved.</p>
+        {updatesDelayed && <p className="e-section__hint">{UPDATES_DELAYED}</p>}
       </div>
     ) : (
-      <div
-        className="e-thinking"
-        role="status"
-        aria-label={stopping ? "Stopping…" : thinkingLabel === "Thinking…" ? "Embel is thinking" : thinkingLabel}
-      >
-        <Spinner />
-        <span>{stopping ? "Stopping…" : thinkingLabel}</span>
-      </div>
+      <>
+        <div
+          className="e-thinking"
+          role="status"
+          aria-label={stopping ? "Stopping…" : thinkingLabel === "Thinking…" ? "Embel is thinking" : thinkingLabel}
+        >
+          <Spinner />
+          <span>{stopping ? "Stopping…" : thinkingLabel}</span>
+        </div>
+        {updatesDelayed && (
+          <p className="e-section__hint" role="status">
+            {UPDATES_DELAYED}
+          </p>
+        )}
+      </>
     ));
   const problem =
-    error || strategy.actionError || strategy.readError || failed || unverified || unavailable || stale
+    error || strategy.actionError || readError || failed || unverified || unavailable || stale
       ? (error ??
         strategy.actionError ??
-        statusReadError ??
+        readError ??
         (stale
           ? "The project changed after this response was requested. Your conversation is kept. Send a new message to continue from the current version."
           : bound?.job.state === "needs_reconciliation"
@@ -1285,13 +1295,14 @@ export function AccountGuidedInterview({
     Boolean(currentTurn) &&
     !stale &&
     !requestBlocked &&
+    startRepeatable &&
     (!bound || bound.job.state === "failed" || bound.job.state === "cancelled");
   const problemMessage = problem && (
     <InlineMessage
       tone="danger"
       className="guided-conversation-error"
       title={
-        failed && !error && !strategy.actionError && !strategy.readError
+        failed && !error && !strategy.actionError && !readError
           ? researchFailed
             ? "The competitor research didn’t finish"
             : "This response didn’t finish"
@@ -1387,7 +1398,9 @@ export function AccountGuidedInterview({
     !liveItems.some((item) => item.kind === "turn" && item.turn.id === currentTurn?.id)
       ? pendingCopy[pendingStage]
       : null;
-  const metaStage: GuidedStage | null = currentTurn?.stage ?? (!state ? "competitors" : null);
+  const metaStage: GuidedStage | null = finishedInterview
+    ? null
+    : (currentTurn?.stage ?? (!state ? "competitors" : null));
   const statusMessage = (status || problemMessage || pendingMessage) && (
     <article className="e-turn e-turn--settled" aria-label="Embel status">
       <div className="e-turn__main">
@@ -1642,7 +1655,10 @@ export function AccountGuidedInterview({
         label="Message Embel"
         placeholder={
           identityShown
-            ? "Describe a change, or press Send to continue…"
+            ? // Only a step that takes typed text can change something; otherwise the text is a question to Embel.
+              action?.onSendText
+              ? "Describe a change, or press Send to continue…"
+              : "Ask a question, or press Send to continue…"
             : "Reply in your own words, or ask a question…"
         }
         readOnly={namingText || pending}

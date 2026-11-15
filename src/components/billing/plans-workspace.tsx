@@ -24,6 +24,15 @@ import { InlineMessage } from "@/components/ui/message";
 import { creditsRenewDate } from "@/components/workspace/credits-message";
 import { accountRequest, AccountRequestError } from "@/components/workspace/account-api";
 import { useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
+import {
+  initialPlansMode,
+  plansModeReducer,
+  plansOpening,
+  type PlanAttempt,
+  type PlanChoice,
+  type PlansConfirmation,
+  type PlansModeEvent,
+} from "./plans-mode";
 import "@/styles/plans.css";
 
 export type PlansReturnState = "checkout_success" | "checkout_cancelled" | "portal_updated" | null;
@@ -59,6 +68,15 @@ export function billingErrorMessage(error: unknown, action: BillingAction = "che
   }
   return `${opened}. ${nothing}`;
 }
+
+/** Checkout was refused because an earlier payment is still being confirmed (the server's `billing_pending`).
+ * That is not a failure of this press and nothing the person did wrong. */
+export function paymentPending(error: unknown) {
+  const code: string | undefined = error instanceof AccountRequestError ? error.code : undefined;
+  return code === "billing_pending";
+}
+/** The server's sentence for `billing_pending`. */
+const PAYMENT_PENDING = "A plan payment is still being confirmed. Check again in a few minutes.";
 
 /** Only a failure that a second press can fix offers Try again. */
 function retryable(error: unknown) {
@@ -130,18 +148,25 @@ function LoadingPlans() {
   );
 }
 
-type PlanChoice = "checkout" | "portal" | "cancel";
-type Attempt = { plan: PlanId; action: PlanChoice };
-type Failure = { attempt: Attempt; message: string; retry: boolean; signIn: boolean };
+type Attempt = PlanAttempt;
+/** How many times the page looks for the subscription after Checkout, 2 seconds apart. */
+const CONFIRMATION_CHECKS = 15;
 
 function OwnedPlans({ account, returnState }: { account: VerifiedAccount; returnState: PlansReturnState }) {
   const [summary, setSummary] = useState<BillingSummary | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [reload, setReload] = useState(0);
-  const [busy, setBusy] = useState<Attempt | null>(null);
-  const [failure, setFailure] = useState<Failure | null>(null);
-  const [waiting, setWaiting] = useState(returnState === "checkout_success");
-  const inFlight = useRef(false);
+  const [mode, setMode] = useState(() => initialPlansMode(returnState === "checkout_success"));
+  // The same value, readable in the turn it was set: a second press in that turn sees the first request.
+  const latestMode = useRef(mode);
+  const dispatch = useCallback((event: PlansModeEvent) => {
+    const before = latestMode.current;
+    latestMode.current = plansModeReducer(before, event);
+    if (latestMode.current !== before) setMode(latestMode.current);
+    return latestMode.current !== before;
+  }, []);
+  const busy = plansOpening(mode);
+  const failure = mode.request.kind === "failed" ? mode.request : null;
   const currentPlan = summary?.subscription?.planId ?? null;
 
   useEffect(() => {
@@ -157,16 +182,17 @@ function OwnedPlans({ account, returnState }: { account: VerifiedAccount; return
         setSummary(billing);
         setLoadError(false);
         // After Checkout, Stripe confirms the payment to our server within seconds.
-        if (returnState === "checkout_success" && !billing.subscription && attempts < 15) {
+        const checksLeft =
+          returnState === "checkout_success" && !billing.subscription && attempts < CONFIRMATION_CHECKS;
+        dispatch({ type: "billing_read", subscribed: Boolean(billing.subscription), checksLeft });
+        if (checksLeft) {
           attempts += 1;
           timer = setTimeout(check, 2000);
-        } else {
-          setWaiting(false);
         }
       } catch {
         if (!controller.signal.aborted) {
           setLoadError(true);
-          setWaiting(false);
+          dispatch({ type: "billing_read_failed" });
         }
       }
     };
@@ -175,14 +201,23 @@ function OwnedPlans({ account, returnState }: { account: VerifiedAccount; return
       controller.abort();
       clearTimeout(timer);
     };
-  }, [returnState, reload]);
+  }, [returnState, reload, dispatch]);
+
+  useEffect(() => {
+    // Back from Stripe, a browser may show this page exactly as it was left, with the pressed button
+    // still busy. Nothing is opening any more, and the plan may have changed meanwhile.
+    const restored = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      dispatch({ type: "page_restored" });
+      setReload((value) => value + 1);
+    };
+    window.addEventListener("pageshow", restored);
+    return () => window.removeEventListener("pageshow", restored);
+  }, [dispatch]);
 
   const choose = useCallback(
     async (plan: PlanId, action: PlanChoice) => {
-      if (inFlight.current) return;
-      inFlight.current = true;
-      setBusy({ plan, action });
-      setFailure(null);
+      if (!dispatch({ type: "open_started", attempt: { plan, action } })) return;
       try {
         // Manage opens the portal home; another paid plan opens straight on that change.
         // Cancel opens straight on cancelling the current plan at the end of its paid period.
@@ -199,23 +234,26 @@ function OwnedPlans({ account, returnState }: { account: VerifiedAccount; return
         );
         window.location.assign(url);
       } catch (cause) {
-        setFailure({
-          attempt: { plan, action },
-          message: billingErrorMessage(cause, action === "checkout" ? "checkout" : "portal"),
-          retry: retryable(cause),
-          signIn: cause instanceof AccountRequestError && cause.status === 401,
-        });
-        setBusy(null);
-        inFlight.current = false;
+        if (action === "checkout" && paymentPending(cause)) dispatch({ type: "payment_pending" });
+        else
+          dispatch({
+            type: "open_failed",
+            message: billingErrorMessage(cause, action === "checkout" ? "checkout" : "portal"),
+            retry: retryable(cause),
+            signIn: cause instanceof AccountRequestError && cause.status === 401,
+          });
       }
     },
-    [account.userId, currentPlan],
+    [account.userId, currentPlan, dispatch],
   );
 
   const plan = summary ? planOf(summary) : null;
   const monthly = summary && plan ? monthlyCredits(summary, plan) : null;
   const outOfCredits = summary !== null && summary.balance <= 0;
   const nextStep = plan ? upgradeFrom(plan, Boolean(summary?.subscription)) : null;
+  const checkAgain = () => {
+    if (dispatch({ type: "check_again" })) setReload((value) => value + 1);
+  };
 
   return (
     <>
@@ -242,7 +280,28 @@ function OwnedPlans({ account, returnState }: { account: VerifiedAccount; return
           {failure.message}
         </InlineMessage>
       )}
-      <ReturnNotice returnState={returnState} waiting={waiting} summary={summary} />
+      {returnState !== "checkout_success" && mode.confirmation !== "none" ? (
+        // Checkout was refused while an earlier payment is being confirmed: said plainly, not as an error.
+        <InlineMessage
+          actions={
+            // Left out while the plan itself can't be shown: that message has its own Try again.
+            !loadError && (
+              <Button size="sm" icon="rotate-ccw" loading={mode.confirmation === "waiting"} onClick={checkAgain}>
+                Check again
+              </Button>
+            )
+          }
+        >
+          {PAYMENT_PENDING}
+        </InlineMessage>
+      ) : (
+        <ReturnNotice
+          returnState={returnState}
+          confirmation={mode.confirmation}
+          summary={summary}
+          onCheckAgain={loadError ? undefined : checkAgain}
+        />
+      )}
       {loadError && (
         <InlineMessage
           tone="danger"
@@ -320,12 +379,15 @@ function upgradeFrom(plan: PlanId, subscribed: boolean) {
 
 function ReturnNotice({
   returnState,
-  waiting,
+  confirmation,
   summary,
+  onCheckAgain,
 }: {
   returnState: PlansReturnState;
-  waiting: boolean;
+  confirmation: PlansConfirmation;
   summary: BillingSummary | null;
+  /** Left out while the plan itself can't be shown: that message has its own Try again. */
+  onCheckAgain?: () => void;
 }) {
   if (!returnState) return null;
   if (returnState === "checkout_cancelled")
@@ -334,14 +396,27 @@ function ReturnNotice({
     return (
       <InlineMessage>Your plan change is saved. New credits appear here once the payment is confirmed.</InlineMessage>
     );
+  // Only the billing summary says a plan is active. Until it does, nothing here claims the payment went through.
   const active = summary?.subscription ? PLAN_CATALOG[summary.subscription.planId as PlanId] : null;
+  if (active) return <InlineMessage tone="positive">{`Thank you. Your ${active.name} plan is active.`}</InlineMessage>;
+  if (confirmation === "waiting")
+    return (
+      <InlineMessage tone="positive">
+        Thank you. Your payment is being confirmed. Your new plan and credits appear here within a few minutes.
+      </InlineMessage>
+    );
   return (
-    <InlineMessage tone="positive">
-      {active
-        ? `Thank you. Your ${active.name} plan is active.`
-        : waiting
-          ? "Thank you. Your payment is being confirmed. Your new plan and credits appear here within a few minutes."
-          : "Thank you. Your payment is being confirmed. Your new plan and credits appear here within a few minutes; reload the page to check."}
+    <InlineMessage
+      actions={
+        onCheckAgain ? (
+          <Button size="sm" icon="rotate-ccw" onClick={onCheckAgain}>
+            Check again
+          </Button>
+        ) : undefined
+      }
+    >
+      Your payment is still being confirmed, so your plan and credits here haven’t changed yet. This can take a few
+      minutes.
     </InlineMessage>
   );
 }

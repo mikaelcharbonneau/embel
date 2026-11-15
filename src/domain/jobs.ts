@@ -110,6 +110,27 @@ export const JOB_WORKING_OR_PARTIAL_STATES = [
   "cancel_requested",
 ] as const satisfies readonly JobState[];
 /**
+ * Holds a lease, or finished with only part of its results: the states in which the identity
+ * asset store accepts a claimed job as the writer of an asset (`leased` in
+ * identity-asset-store.ts). That check was written for the retired shared worker, which stored
+ * files under its lease; the engine stores its files through src/server/engine/storage.ts and
+ * never comes here with a partial job. Why partial is accepted without a lease: reason not
+ * recorded. The font check in features/identity-directions/server/fonts.ts uses a narrower list
+ * (JOB_RUNNING_OR_PARTIAL_STATES).
+ */
+export const JOB_LEASED_OR_PARTIAL_STATES = [
+  "running",
+  "partial",
+  "cancel_requested",
+] as const satisfies readonly JobState[];
+/**
+ * Being made, or finished with only part of its results: the states in which the font check
+ * (`createLeasedFontResolver` in features/identity-directions/server/fonts.ts) reads a font for a claimed job.
+ * It is JOB_LEASED_OR_PARTIAL_STATES without cancel_requested. Why a job that was asked to stop may
+ * still store assets but not read a font, and why partial is accepted: reason not recorded.
+ */
+export const JOB_RUNNING_OR_PARTIAL_STATES = ["running", "partial"] as const satisfies readonly JobState[];
+/**
  * Unsettled, the database's guard meaning: a project with such a job cannot be deleted directly
  * (guard_project_lifecycle_change), and a settled job cannot return to one of these in a deleted
  * project (guard_project_job_admission). Also the `jobs_project_unsettled` index. No TypeScript
@@ -141,6 +162,8 @@ export const isJobWaitingOrRunning = among(JOB_WAITING_OR_RUNNING_STATES);
 export const isJobWorking = among(JOB_WORKING_STATES);
 export const isJobWorkingOrUnconfirmed = among(JOB_WORKING_OR_UNCONFIRMED_STATES);
 export const isJobWorkingOrPartial = among(JOB_WORKING_OR_PARTIAL_STATES);
+export const isJobLeasedOrPartial = among(JOB_LEASED_OR_PARTIAL_STATES);
+export const isJobRunningOrPartial = among(JOB_RUNNING_OR_PARTIAL_STATES);
 export const isJobUnsettled = among(JOB_UNSETTLED_STATES);
 export const isJobFinished = among(JOB_FINISHED_STATES);
 export const jobDeliveredSomething = among(JOB_DELIVERED_STATES);

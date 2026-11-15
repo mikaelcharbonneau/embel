@@ -487,6 +487,9 @@ describe("settling replies", () => {
     expect(await pollNamingAttempts(run, runId, ["resp_busy"])).toEqual({ state: "stop", code: "generation_paused" });
     run.check.mockResolvedValueOnce({ status: "failed", cancelRequested: false, paused: false });
     expect(await pollNamingAttempts(run, runId, ["resp_busy"])).toEqual({ state: "stop", code: "cancelled" });
+    // An account deletion purged the run: engine_check answers NULL.
+    run.check.mockResolvedValueOnce(null as never);
+    expect(await pollNamingAttempts(run, runId, ["resp_busy"])).toEqual({ state: "stop", code: "cancelled" });
     await expect(
       pollNamingAttempts(
         {

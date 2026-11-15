@@ -1,4 +1,5 @@
 import { getWorkflowMetadata, sleep } from "workflow";
+import { runStopDecision } from "../server/engine/stop-check";
 import { checkRun, claimRun, finishRun, type ClaimedRun } from "./engine-steps";
 import {
   createStrategyResponse,
@@ -24,10 +25,9 @@ export async function strategyGeneration(runId: string) {
     let correction: { code: string; previousText: string | null } | null = null;
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       // No paid call starts after a cancel or while the engine is paused.
-      const state = await checkRun(runId);
-      if (state.status !== "running") return { status: state.status };
-      if (state.cancelRequested || state.paused)
-        return await finishRun(runId, "cancelled", state.paused ? "generation_paused" : "cancelled");
+      const stop = runStopDecision(await checkRun(runId));
+      if (stop.action === "quit") return { status: stop.status };
+      if (stop.action === "cancel") return await finishRun(runId, "cancelled", stop.code);
       const { responseId } = await createStrategyResponse(prepared, attempt, correction);
       const result = await followResponse(run, responseId, attempt);
       if (result.state === "succeeded") return await finishRun(runId, "succeeded", null);

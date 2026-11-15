@@ -12,6 +12,7 @@ import {
   namingFailureMessage,
   namingPollInterval,
   namingStatus,
+  namingStepView,
 } from "@/components/naming/naming-feed-controller";
 import {
   NAMING_GENERATION_CAUTION,
@@ -510,18 +511,17 @@ describe("leaving the step while a request is in flight", () => {
 });
 
 describe("status copy", () => {
-  const view = (patch: Partial<NamingFeedState>) =>
-    namingStatus({
-      feed: null,
-      entries: [],
-      status: "ready",
-      pending: null,
-      stopping: false,
-      error: null,
-      retry: null,
-      lastSteer: null,
-      ...patch,
-    });
+  const blank: NamingFeedState = {
+    feed: null,
+    entries: [],
+    status: "ready",
+    pending: null,
+    stopping: false,
+    error: null,
+    retry: null,
+    lastSteer: null,
+  };
+  const view = (patch: Partial<NamingFeedState>) => namingStatus({ ...blank, ...patch });
   it.each([
     [run("queued"), { kind: "active", message: "Generating names… 0 of 100", savedCount: 0 }],
     [run("running", { savedCount: 40 }), { kind: "active", message: "Generating names… 40 of 100", savedCount: 40 }],
@@ -576,9 +576,24 @@ describe("status copy", () => {
         },
       }),
     ).toEqual({ kind: "starting", message: "Generating names…" });
+    // An error with nothing to retry (an older state) is still said.
     expect(view({ feed: feed({ run: run("running") }), error: "Stop couldn’t be confirmed. Try again." })).toEqual({
       kind: "error",
       message: "Stop couldn’t be confirmed. Try again.",
+    });
+  });
+  it("keeps progress and Stop when Stop couldn't be confirmed while the run still works", () => {
+    const failedStop = { error: "Stop couldn’t be confirmed. Try again.", retry: "stop" as const, failedStatus: 408 };
+    expect(view({ feed: feed({ run: run("running", { savedCount: 40 }) }), ...failedStop })).toEqual({
+      kind: "active",
+      message: "Generating names… 40 of 100",
+      savedCount: 40,
+      stopUnconfirmed: "Stop couldn’t be confirmed.",
+    });
+    expect(namingStepView({ ...blank, feed: feed({ run: run("running") }), ...failedStop })).toMatchObject({
+      working: true,
+      canStop: true,
+      retry: "stop",
     });
   });
 });
@@ -772,6 +787,48 @@ describe("the same answer as Logo and Creative direction (docs/state-machines.md
       "synthetic-key-0001",
       "synthetic-key-0001",
     ]);
+  });
+  it("says name generation is unavailable when it is switched off: nothing kept, no Try again", async () => {
+    const feedController = controller();
+    await feedController.load();
+    reply = (call) => {
+      if (call.method === "POST") throw new AccountRequestError(503, "generation_unavailable");
+      return { feed: page(call.path) };
+    };
+    expect(await feedController.start()).toBe(false);
+    // The code proves nothing was admitted: the request and its key are dropped.
+    expect(state().pending).toBeNull();
+    expect(namingStatus(state())).toEqual({
+      kind: "error",
+      message: "AI name generation is unavailable right now.",
+      retry: false,
+    });
+    // The person can simply ask again later, as a new request.
+    expect(namingStepView(state())).toMatchObject({ canStart: true, retry: null, keepRequest: false });
+    reply = (call) => {
+      if (call.method === "GET") return { feed: page(call.path) };
+      server = { ...server, run: run("queued") };
+      return { feed: page(base), run: server.run, reused: false };
+    };
+    expect(await feedController.start()).toBe(true);
+    expect(writes("/feed/ensure").map((call) => (call.body as { idempotencyKey: string }).idempotencyKey)).toEqual([
+      "synthetic-key-0001",
+      "synthetic-key-0002",
+    ]);
+  });
+  it("keeps an admitted run whose workflow did not start as unconfirmed, by its code", async () => {
+    const feedController = controller();
+    await feedController.load();
+    reply = (call) => {
+      if (call.method === "POST") throw new AccountRequestError(503, "start_unconfirmed");
+      return { feed: page(call.path) };
+    };
+    expect(await feedController.start()).toBe(false);
+    expect(state().pending?.idempotencyKey).toBe("synthetic-key-0001");
+    expect(namingStatus(state())).toEqual({
+      kind: "error",
+      message: "Name generation couldn’t be confirmed. Try again.",
+    });
   });
   it.each([401, 403])("treats a %i as final: nothing started, nothing kept", async (status) => {
     const feedController = controller();

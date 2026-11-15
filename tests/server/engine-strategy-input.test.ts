@@ -162,6 +162,40 @@ describe("freezing a Strategy run's input", () => {
       buildStrategyRunInput(auth(tables()), project, "strategy.audience", { expectedRevision: 3, context: {} }),
     ).rejects.toMatchObject({ code: "invalid_input" });
   });
+  it("accepts a message typed on a finished interview, and nothing else there", async () => {
+    const base = context("audience", 3, true);
+    const finished = (purpose: "message" | "propose") =>
+      contextSnapshotSchema.parse({
+        ...base,
+        intake: {
+          ...base.intake,
+          guidedInterview: {
+            ...base.intake.guidedInterview!,
+            stage: "complete",
+            turns: [
+              ...base.intake.guidedInterview!.turns,
+              { id: "comment-turn", userMessageId: "first-message", stage: "personality", purpose, inputRevision: 4 },
+            ],
+          },
+        },
+      });
+    const input = await buildStrategyRunInput(auth(tables(4, finished("message"))), project, "strategy.reformulate", {
+      expectedRevision: 4,
+    });
+    expect(input.request.context.intake.guidedInterview).toMatchObject({ stage: "complete" });
+    expect(input.request.context.intake.guidedInterview?.turns.at(-1)).toMatchObject({ id: "comment-turn" });
+    // A proposal for a step is never started on a finished interview, and the message asks for a reply only.
+    await expect(
+      buildStrategyRunInput(auth(tables(4, finished("propose"))), project, "strategy.personality", {
+        expectedRevision: 4,
+      }),
+    ).rejects.toMatchObject({ code: "conflict" });
+    await expect(
+      buildStrategyRunInput(auth(tables(4, finished("message"))), project, "strategy.personality", {
+        expectedRevision: 4,
+      }),
+    ).rejects.toMatchObject({ code: "conflict" });
+  });
   it("keeps at most five replies and drops older ones that would not fit", () => {
     const entries = Array.from({ length: 7 }, (_, index) => ({
       jobId: `0000000${index}-0000-4000-8000-000000000000`,

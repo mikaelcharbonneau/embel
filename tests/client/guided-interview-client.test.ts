@@ -180,6 +180,31 @@ describe("guided conversation client boundaries", () => {
     });
     expect(nextGuidedProposal(complete, 2, null)).toEqual(complete);
   });
+
+  it("keeps a finished interview finished when a message is typed on it", () => {
+    const asked = initializeGuidedInterview(initial(), undefined);
+    const turn = asked.intake.guidedInterview!.turns[0]!;
+    const finished = contextSnapshotSchema.parse({
+      ...asked,
+      intake: {
+        ...asked.intake,
+        guidedInterview: {
+          ...asked.intake.guidedInterview!,
+          stage: "complete",
+          answers: [{ stage: "competitors", turnId: turn.id, optionIds: [], customText: null, confirmedAt: now }],
+        },
+      },
+    });
+    const next = guidedMessageContext(finished, "Why does this personality fit?", 2, now);
+    const state = next.intake.guidedInterview!;
+    expect(state.stage).toBe("complete");
+    expect(state.answers).toEqual(finished.intake.guidedInterview!.answers);
+    expect(state.turns.at(-1)).toMatchObject({ purpose: "message", stage: "personality", inputRevision: 2 });
+    expect(next.intake.conversation!.at(-1)).toMatchObject({
+      kind: "user_message",
+      text: "Why does this personality fit?",
+    });
+  });
 });
 
 describe("personality replies", () => {

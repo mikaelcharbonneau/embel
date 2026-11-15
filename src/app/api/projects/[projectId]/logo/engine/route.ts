@@ -1,6 +1,7 @@
 import { getAuthenticatedContext } from "@/server/auth/context";
 import { logoEngineEnabled } from "@/server/engine/logo";
 import { listGenerations } from "@/server/engine/runs";
+import { resumeUnstartedRuns } from "@/server/engine/start";
 import { privateJson } from "@/server/http/errors";
 import { logoErrorResponse } from "@/server/http/logo-errors";
 
@@ -13,7 +14,10 @@ export async function GET(_request: Request, context: { params: Promise<{ projec
     const auth = await getAuthenticatedContext();
     const { projectId } = await context.params;
     const engine = await logoEngineEnabled(auth);
-    return privateJson({ engine, runs: engine ? await listGenerations(auth, projectId, { step: "logo" }) : [] });
+    const runs = engine
+      ? await listGenerations(auth, projectId, { step: "logo" }, (rows) => resumeUnstartedRuns(auth, rows))
+      : [];
+    return privateJson({ engine, runs });
   } catch (error) {
     return logoErrorResponse(error);
   }

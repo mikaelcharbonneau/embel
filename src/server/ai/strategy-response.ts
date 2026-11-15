@@ -9,6 +9,7 @@ import {
   type GuidedTurn,
 } from "../../domain/projects";
 import {
+  guidedOpenTurn,
   guidedPersonalityDirectionSchema,
   guidedPositioningDirectionSchema,
   guidedReplySchema,
@@ -144,6 +145,7 @@ const guidedInstructions = `Guide one focused question, answer or choice widget 
 Return kind choices for a useful focused set of options, with one question, options and selection:null. Give competitors and audiences multiple possible selections. Give positioning three distinct ways to stand apart from the retained competitors for the chosen audience: a short angle (a few words), one plain statement, why it works (one sentence), and two to four short things the brand will lead with; never claim proof, leadership or capabilities the user did not supply. Give personality distinct coherent directions with independent Aaker scores, meaningful traits, a concrete toneExample and how the brand expresses itself. A personality score is not a percentage allocation. Give slogan six to eight short distinct lines for the chosen name (selectedName) in the chosen personality's voice, grounded in the positioning; label and payload.slogan are the same line, the description says in a few words what it emphasizes, and no line repeats the name unless it reads naturally. Do not select an option on the user's behalf.
 For a message turn, distinguish an answer or clear requested choice from a question, uncertainty or request for explanation. When the user asks why, asks for clarification, or is not yet deciding, return kind answer (message only) or question (message and one question), options:[], selection:null and stay on the current stage. Return kind accepted only when the actual latest user message clearly supplies or confirms their decision; put exact prior option IDs in selection.optionIds or their custom choice in selection.customOptions, with question:null and options:[]. Never interpret the project's original description as an approval. The application will advance after acceptance. An answer/question cannot advance the stage.
 For a message turn only, if the latest user message explicitly asks to revisit or change a DIFFERENT strategy stage, return kind redirect with that targetStage, question:null, options:[] and selection:null. This follows the user's expressed change of direction; never redirect autonomously, skip a stage on your own, interpret a normal question as a stage change, or infer a redirect from old context. targetStage must differ from the current stage except for competitor research continuation: a user explicitly requesting new/refined competitor research, or answering the previous owned question about a missing research detail, requires redirect with targetStage competitors even when already on competitors. For example, if the previous research question was "Which city?" and the user answers "Toronto", return redirect to competitors; Toronto is a research parameter, never a competitor name or acceptance. The next research request performs the actual search. Other requests to refine the current stage stay on that stage. When the user is merely considering a change or the intended stage is unclear, ask one clarification question instead.
+When context.intake.guidedInterview.stage is complete, the interview is finished and every decision is confirmed. The latest user message is then a question or a comment, never a decision: return kind answer (or kind question when you need one detail to answer it) with options:[], selection:null and targetStage:null. Never return choices, accepted or redirect there; a message cannot change a confirmed answer. If the user wants to change one, tell them they can reopen that step with its "Change answer" button in the conversation.
 For competitors research, use the required web search, return only real observed competitors, and copy sourceUrls exactly from consulted sources. The website URL must itself be observed or null. When evidence is insufficient, ask one useful question instead of inventing candidates. For a competitors message without search, never introduce new researched competitors or invent sources. Existing choices may be referred to by their exact frozen option IDs. A custom competitor must be explicitly named in the user's latest message, with sourceUrls:[] and only a website actually supplied by that user. Audience options are practical hypotheses, never claimed demographic research. Never invent market size, validation, capabilities or proof points.
 All fields are required: use null for absent question/selection and [] for absent options. targetStage must be null for every kind except redirect. Initial research/propose turns require choices (or one question if competitor research lacks evidence); accepted and redirect are only for a message turn.`;
 
@@ -328,6 +330,14 @@ function normalizeGuidedReply(options: {
     (event) => event.kind === "user_message" && event.id === turn.userMessageId,
   );
   const userText = sourceMessage?.kind === "user_message" ? sourceMessage.text.trim() : "";
+  // A message typed on a finished interview is only answered. Whatever shape the reply took, the person gets
+  // its message; nothing is decided, proposed or reopened by it.
+  if (input.context.intake.guidedInterview?.stage === "complete")
+    return guidedReplySchema.parse(
+      raw.kind === "question" && raw.question
+        ? { ...common, kind: "question", question: plainText(raw.question) }
+        : { ...common, kind: "answer" },
+    );
   if (raw.kind === "redirect") {
     if (
       operation !== "strategy.reformulate" ||
@@ -584,7 +594,7 @@ export async function prepareStrategyResponse(options: {
       !turn ||
       input.version === 1 ||
       turn.inputRevision !== job.inputRevision ||
-      turn.stage !== input.context.intake.guidedInterview?.stage ||
+      guidedOpenTurn(input.context.intake.guidedInterview)?.id !== turn.id ||
       guidedTurnOperation(turn) !== operation ||
       input.assistantHistory.entries.some(
         (entry) =>

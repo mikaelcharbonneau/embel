@@ -253,3 +253,206 @@ describe("Naming acknowledgement recovery", () => {
     expect(writes()).toHaveLength(1);
   });
 });
+
+// docs/state-machines.md, S7: one choice is saved at a time; a second is queued, never dropped.
+describe("a Naming choice made while another is being saved", () => {
+  /** Serves the three choice writes like the server; each waits for `release[n]` when one is set. */
+  let release: (ReturnType<typeof deferred<void>> | undefined)[];
+  const sent = () =>
+    writes().map(([path, init]) => ({
+      path: String(path).slice(base.length),
+      body: JSON.parse(String(init.body)) as Record<string, unknown>,
+    }));
+  beforeEach(() => {
+    release = [];
+    let count = 0;
+    fetcher.mockImplementation(async (path: string, init: RequestInit) => {
+      if (init.method === "GET") return Response.json(overview(path));
+      const gate = release[count++];
+      const body = JSON.parse(String(init.body));
+      const url = String(path);
+      await gate?.promise;
+      if (url.endsWith("/view")) {
+        if (body.expectedViewRevision !== state.session!.viewRevision) return Response.json({}, { status: 409 });
+        state = {
+          ...state,
+          session: { ...state.session!, viewRevision: state.session!.viewRevision + 1, viewState: body.viewState },
+        };
+        return Response.json({ session: state.session });
+      }
+      if (url.endsWith("/retention")) {
+        const row = rows.find((entry) => entry.candidate.id === body.candidateId)!;
+        if (body.expectedRevision !== row.retention.revision) return Response.json({}, { status: 409 });
+        const entry = {
+          ...row,
+          retention: {
+            ...row.retention,
+            revision: row.retention.revision + 1,
+            favorite: body.favorite,
+            saved: body.saved,
+            updatedAt: when,
+          },
+        };
+        rows = rows.map((item) => (item === row ? entry : item));
+        return Response.json({ entry });
+      }
+      if (url.endsWith("/selection")) {
+        if (body.expectedRevision !== state.project.current_revision) return Response.json({}, { status: 409 });
+        const chosen = rows.find((entry) => entry.candidate.id === body.candidateId)!.candidate;
+        const project = {
+          ...state.project,
+          current_revision: state.project.current_revision + 1,
+          context: {
+            ...state.project.context,
+            selectedName: chosen.value,
+            intake: { ...state.project.context.intake, suppliedName: chosen.value },
+          },
+        };
+        const selection = {
+          id: id(999),
+          ownerId: account.userId,
+          projectId,
+          candidateId: chosen.id,
+          projectRevision: project.current_revision,
+          previousSelectionId: null,
+          acceptedEarlierContext: false,
+          createdAt: when,
+        };
+        state = {
+          ...state,
+          project,
+          session: { ...state.session!, currentSelectionId: selection.id },
+          currentSelection: { selection, candidate: chosen },
+        };
+        return Response.json({ project, session: state.session, currentSelection: state.currentSelection });
+      }
+      throw new Error("Unexpected fixture mutation");
+    });
+  });
+  const settle = () =>
+    act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+  it("saves a heart pressed while the view is being saved, after it", async () => {
+    rows = [candidate(1)];
+    await render();
+    release[0] = deferred();
+    let view!: Promise<boolean>, heart!: Promise<boolean>;
+    await act(async () => {
+      view = api.saveView({ scrollCandidateId: id(1) });
+      heart = api.retain(rows[0]!, "favorite");
+    });
+    // One write at a time: the heart waits its turn.
+    expect(sent().map((write) => write.path)).toEqual(["/view"]);
+    expect(api.pending).toBe(true);
+    await act(async () => release[0]!.resolve());
+    expect(await view).toBe(true);
+    expect(await heart).toBe(true);
+    await settle();
+    expect(sent().map((write) => write.path)).toEqual(["/view", "/retention"]);
+    expect(rows[0]!.retention.favorite).toBe(true);
+    expect(api.pending).toBe(false);
+    expect(api.actionError).toBeNull();
+  });
+
+  it("keeps every heart: two names hearted while a third choice is being saved", async () => {
+    rows = [candidate(1), candidate(2), candidate(3)];
+    await render();
+    release[0] = deferred();
+    const results: Promise<boolean>[] = [];
+    await act(async () => {
+      results.push(api.retain(rows[0]!, "saved"), api.retain(rows[1]!, "favorite"), api.retain(rows[2]!, "favorite"));
+    });
+    await act(async () => release[0]!.resolve());
+    expect(await Promise.all(results)).toEqual([true, true, true]);
+    await settle();
+    expect(sent().map((write) => write.body.candidateId)).toEqual([id(1), id(2), id(3)]);
+    expect(rows.map((row) => [row.retention.saved, row.retention.favorite])).toEqual([
+      [true, false],
+      [false, true],
+      [false, true],
+    ]);
+  });
+
+  it("saves a second change to the same name from the newest saved version", async () => {
+    rows = [candidate(1)];
+    await render();
+    release[0] = deferred();
+    const shown = rows[0]!;
+    let heart!: Promise<boolean>, keep!: Promise<boolean>;
+    await act(async () => {
+      heart = api.retain(shown, "favorite");
+      keep = api.retain(shown, "saved");
+    });
+    await act(async () => release[0]!.resolve());
+    expect([await heart, await keep]).toEqual([true, true]);
+    await settle();
+    expect(sent().map((write) => write.body)).toMatchObject([
+      { expectedRevision: 0, favorite: true, saved: false },
+      { expectedRevision: 1, favorite: true, saved: true },
+    ]);
+  });
+
+  it("chooses a name pressed while a heart is being saved", async () => {
+    rows = [candidate(1), candidate(2)];
+    await render();
+    release[0] = deferred();
+    let heart!: Promise<boolean>, chosen!: Promise<boolean>;
+    await act(async () => {
+      heart = api.retain(rows[0]!, "favorite");
+      chosen = api.select(rows[1]!, false);
+    });
+    await act(async () => release[0]!.resolve());
+    expect([await heart, await chosen]).toEqual([true, true]);
+    await settle();
+    expect(sent().map((write) => write.path)).toEqual(["/retention", "/selection"]);
+    expect(api.overview?.currentSelection?.candidate.id).toBe(id(2));
+  });
+
+  it("sends waiting view changes as one save, built on the view that was just saved", async () => {
+    await render();
+    release[0] = deferred();
+    const results: Promise<boolean>[] = [];
+    await act(async () => {
+      results.push(
+        api.saveView({ filter: "saved" }),
+        api.saveView({ query: "kitchen" }),
+        api.saveView({ scrollCandidateId: id(7) }),
+      );
+    });
+    await act(async () => release[0]!.resolve());
+    expect(await Promise.all(results)).toEqual([true, true, true]);
+    await settle();
+    expect(sent()).toMatchObject([
+      { path: "/view", body: { expectedViewRevision: 1, viewState: { filter: "saved", query: "" } } },
+      {
+        path: "/view",
+        body: {
+          expectedViewRevision: 2,
+          viewState: { filter: "saved", query: "kitchen", scrollCandidateId: id(7) },
+        },
+      },
+    ]);
+    expect(api.overview?.session?.viewState).toMatchObject({ filter: "saved", query: "kitchen" });
+  });
+
+  it("says so when a waiting choice then fails, and still saves the ones behind it", async () => {
+    rows = [candidate(1), candidate(2)];
+    await render();
+    release[0] = deferred();
+    const stale = { ...rows[1]!, retention: { ...rows[1]!.retention, revision: 5 } };
+    let first!: Promise<boolean>, refused!: Promise<boolean>, last!: Promise<boolean>;
+    await act(async () => {
+      first = api.retain(rows[0]!, "favorite");
+      refused = api.retain(stale, "favorite");
+      last = api.saveView({ filter: "saved" });
+    });
+    await act(async () => release[0]!.resolve());
+    expect([await first, await refused, await last]).toEqual([true, false, true]);
+    await settle();
+    expect(sent().map((write) => write.path)).toEqual(["/retention", "/retention", "/view"]);
+    // The later save that worked does not wipe the message about the one that did not.
+    expect(api.actionError).toContain("The project or naming workspace changed.");
+  });
+});

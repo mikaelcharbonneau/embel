@@ -95,6 +95,7 @@ function harness(
     put?: (Error | null)[];
     stored?: Record<string, Uint8Array>;
     stopped?: boolean;
+    check?: { status: string; cancelRequested: boolean; paused: boolean } | null;
   } = {},
 ) {
   const replies = [...(options.replies ?? [drawn()])],
@@ -141,7 +142,10 @@ function harness(
       }),
     },
     db: {
-      check: async () => ({ status: "running", cancelRequested: options.stopped ?? false, paused: false }),
+      check: async () =>
+        options.check === undefined
+          ? { status: "running", cancelRequested: options.stopped ?? false, paused: false }
+          : options.check,
       begin: async () => ({
         batchId,
         plan: {},
@@ -304,6 +308,18 @@ describe("drawing one Logo image", () => {
     expect(await drawLogoImage(deps, concepts, slot, 1)).toEqual({ state: "failed", code: "run_stopped" });
     expect(written).toEqual([]);
     expect(saved[0]).toMatchObject({ cost: 210_000, image: { state: "failed", code: "run_stopped" } });
+  });
+  it("delivers an image that was drawn before a pause: it is paid for and no paid call follows", async () => {
+    const { deps, saved, written } = harness({ check: { status: "running", cancelRequested: false, paused: true } });
+    expect(await drawLogoImage(deps, concepts, slot, 1)).toMatchObject({ state: "succeeded" });
+    expect(written).toHaveLength(1);
+    expect(saved[0]).toMatchObject({ image: { state: "succeeded" } });
+  });
+  it("stores no file and saves nothing when the run is gone (its account was deleted)", async () => {
+    const { deps, saved, written } = harness({ check: null });
+    expect(await drawLogoImage(deps, concepts, slot, 1)).toEqual({ state: "stopped" });
+    expect(written).toEqual([]);
+    expect(saved).toEqual([]);
   });
   it("refines from the stored base image and liked uploads, and fails when one is gone", async () => {
     const stored = { [asset("1").versionId]: png, [asset("2").versionId]: png };

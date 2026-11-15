@@ -30,17 +30,21 @@ vi.mock("@/components/naming/project-naming-workspace", () => ({
     );
   },
 }));
-vi.mock("@/components/workspace/use-strategy-jobs", () => ({
-  useStrategyJobs: () => ({
-    overview: { jobs: [], availability: { status: "unavailable", operations: [], reason: "worker_unavailable" } },
-    pending: false,
-    readError: null,
-    actionError: null,
-    refresh: vi.fn(),
-    enqueue: vi.fn(),
-    cancel: vi.fn(),
-  }),
-}));
+vi.mock("@/components/workspace/use-strategy-jobs", async () => {
+  const { withStrategyView } = await import("./guided-strategy-hook");
+  return {
+    useStrategyJobs: () =>
+      withStrategyView({
+        overview: { jobs: [], availability: { status: "unavailable", operations: [], reason: "worker_unavailable" } },
+        pending: false,
+        readError: null,
+        actionError: null,
+        refresh: vi.fn(),
+        enqueue: vi.fn(),
+        cancel: vi.fn(),
+      }),
+  };
+});
 
 it("keeps the Naming canvas mounted while editing the brief and awaiting its save", async () => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);

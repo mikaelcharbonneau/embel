@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import nodeModule from "node:module";
 import path from "node:path";
-import type { ClaimedJob } from "@/domain/jobs";
+import { isJobRunningOrPartial, type ClaimedJob } from "@/domain/jobs";
 import {
   fontPurposeSchema,
   fontRecordSchema,
@@ -207,7 +207,7 @@ export function createLeasedFontResolver(dependencies: LeasedFontResolverDepende
       !parsed.success ||
       parsed.data.asset.ownerId !== job.ownerId ||
       parsed.data.asset.projectId !== job.projectId ||
-      !["running", "partial"].includes(job.status)
+      !isJobRunningOrPartial(job.status)
     )
       throw new ApiError("not_found");
     const record = parsed.data,

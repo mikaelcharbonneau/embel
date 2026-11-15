@@ -40,7 +40,7 @@ sweep and not yet reproduced. Reproduce a reported defect before fixing it.
 |---|---|---|---|
 | R1 | Generation run lifecycle | **Declared** | `src/domain/generation-run.ts`; SQL `start_generation`, `engine_claim`, `finish_generation_run`, `cancel_generation`, `expire_overdue_generation_runs` |
 | R2 | Start refusals and what a step may offer | **Declared** | `startRefusal` and `stepView` in `src/domain/generation-run.ts`, read by Naming, Logo and Creative direction; shared sentences in `src/domain/generation-words.ts` |
-| R3 | Workflow stop check (not running, stop asked, paused) | Implicit | about 15 inline copies in `src/workflows/*.ts` and `src/server/engine/*-run.ts` |
+| R3 | Workflow stop check (not running, stop asked, paused) | **Declared** | `runStopDecision` in `src/server/engine/stop-check.ts`, called by every workflow and run module |
 | R4 | Project deletion | Implicit, derived | SQL `project_deletion_state`, `request_project_deletion`, `restore_project_deletion`; `src/domain/project-deletion.ts` |
 | R5 | Old job state (`jobs.state`, still written for Logo and Creative direction records) | **Declared** | `src/domain/jobs.ts` (named sets, allowed moves); SQL guards |
 | R6 | Creative direction round (run status + job state + fulfillment) | Rule declared, three records remain | `identityRoundJobState` in `src/domain/identity-jobs.ts` mirrors SQL `engine_identity_close_job` |
@@ -53,25 +53,25 @@ sweep and not yet reproduced. Reproduce a reported defect before fixing it.
 it is `cancel_requested_at` on a run that is still active, which `runPhase` reads as `stopping`. The
 allowed moves are in `GENERATION_RUN_TRANSITIONS`. Known gaps, none changed yet:
 
-- `cancel_generation` sets `cancel_requested_at` on a finished run too. Always use `isRunStopping`,
-  never the flag alone. (verified)
-- The overdue sweep only runs when that owner starts or cancels something; there is no schedule. A
-  workflow that dies leaves its run `running` until then. (verified)
-- No CHECK ties `finished_at`, `started_at` or `error_code` to the status. (reported)
-- "Admitted but the workflow did not start" is answered three ways: `/generations` returns 503 (the same
-  code as "switched off"), Naming returns 500, Creative direction restarts it after 15 seconds. (verified)
+- **Fixed** (migration `20261114140000_run_lifecycle_gaps`): `cancel_generation` leaves a finished run
+  untouched, and a CHECK ties `finished_at` to a finished status.
+- **Fixed:** a run that was admitted but whose workflow did not start answers `start_unconfirmed`, and
+  the next status read restarts it after 15 seconds (`resumeUnstartedRuns`); `engine_claim` refuses a
+  second claim.
+- Still open: the overdue sweep only runs when that owner starts or cancels something. Nothing in the
+  repository is scheduled (`vercel.json` has no crons), and a schedule would be a new job system.
 
-**R2.** One rule: 400, 401, 402, 403, 404, 409, 413, 422 and 429 prove nothing started ("final");
-everything else, 503 included, may have admitted a run ("uncertain"). An uncertain start keeps its
-request key, says it could not be confirmed, and Try again repeats the same key. `stepView` turns the
-run's phase and the last problem into what the step may offer: progress, Stop, Start, Try again and one
-message kind. Known cost: a step that is switched off also answers 503, so it reads "couldn't be
-confirmed" rather than "unavailable". The cure is for the start route to stop answering 503 for an
-admitted run whose workflow did not start (it does today; Naming answers 500 for the same case).
+**R2.** One rule: 400, 401, 402, 403, 404, 409, 413, 422 and 429 prove nothing started ("final"), and
+so does the error code `generation_unavailable`, which the server sends only when nothing was admitted
+(the step is switched off or paused). Everything else, including `start_unconfirmed` and any other 503,
+may have admitted a run ("uncertain"): the request keeps its key, the screen says it could not be
+confirmed, and Try again repeats the same key. `stepView` turns the run's phase and the last problem
+into what the step may offer: progress, Stop, Start, Try again and one message kind. Strategy reads it
+too, through `strategyJobsReport`.
 
-**R3.** Most copies stop for "not running", "stop asked" and "paused". `logo-run.ts` and
-`identity-run.ts` leave out `paused` and tolerate a missing run; the others do not. Whether that
-difference is intended is not recorded. Do not merge the copies without deciding.
+**R3.** One function decides continue, quit or cancel. A run that no longer exists (its account was
+deleted) ends quietly. Two callers pass `afterPaidCall` and ignore the pause on purpose: the image is
+already paid for and only storing it follows.
 
 **R4.** States `active`, `stopping`, `awaiting_resolution`, `deleted`, never stored: derived from two
 timestamps and the old `jobs` tables. Neither function reads `generation_runs`, so until November 14 a
@@ -89,14 +89,19 @@ lists are named sets (`isJobWorking`, `isJobWorkingOrUnconfirmed`, `isJobWorking
 working is not recorded. Two hand-written lists remain outside the declaration:
 `src/server/data/identity-asset-store.ts` and `src/features/identity-directions/server/fonts.ts`.
 
-**R6.** The job is created `running` while the run is still `queued`. A round stopped after its third
-board has run `cancelled` and job `succeeded`. The step's own routes read the job; `/generations` reads
-the run. The closing rule is one tested function: three boards succeeded; else a cancelled run
-cancelled; else some boards partial; else failed.
+A database test shows the unsettled reading of `partial` blocks nothing the app does (choosing a
+direction, a new round, deleting and restoring a project all work after a partial round).
 
-**R7.** Nothing in the database stops two live subscriptions for one account; the only guard is a check
-in `src/server/billing/sessions.ts`. The plan on the account and the plan on the subscription can differ
-between a downgrade and the next invoice. (reported)
+**R6.** The job is created `running` while the run is still `queued`, and a run can end `succeeded`
+or `failed` with its job `partial`: two honest views of one round, left as they are. **Fixed:** a round
+stopped or timed out after its third board now ends `succeeded`, matching its job and its kept credits.
+The closing rule is one tested function. Logo has the same stop-after-every-image case, left because a
+Logo run does not record how many images were asked.
+
+**R7.** Checkout is refused with `billing_pending` while an earlier payment is still being confirmed, and
+the webhook's sync time is taken before its Stripe read, so an older read cannot overwrite a newer one.
+Still open: two Checkout sessions opened before either is paid can create two subscriptions; the cure
+is to expire the open session in Stripe.
 
 ### Journey and workspace
 
@@ -107,9 +112,9 @@ between a downgrade and the next invoice. (reported)
 | J3 | Save status ("Saving…", "Saved", "Not saved") | **Declared** | `accountSaveStatus` in `src/components/workspace/account-save-status.ts`, read by the bar and the page |
 | J4 | Work-area view of the conversation | **Declared** | `workAreaView` and `workAreaReducer` in `src/components/workspace/guided-work-view.ts` |
 | J5 | Guided turn coordinator | Decision **declared**; the effect still runs it | `guidedTurnAction` and `guidedActivity` in `src/components/workspace/guided-turn-coordinator.ts` |
-| J6 | Session | Implicit, overloaded `error` | `account-session.tsx` |
-| J7 | Home prompt start | **Declared**, with its disagreements kept | `homeStartView` (`home-start-permissions.ts`), `homeStartFormReducer`, `homeStartOpeningReducer` |
-| J8 | Strategy job polling | Implicit | `use-strategy-jobs.ts` |
+| J6 | Session | **Declared** | `sessionView` and `sessionModeReducer` in `src/components/workspace/session-view.ts` |
+| J7 | Home prompt start | **Declared** | `homeStartView` (`home-start-permissions.ts`: one rule each for the field, the controls and Send), `homeStartFormReducer`, `homeStartOpeningReducer` |
+| J8 | Strategy job polling | **Declared** | `strategyJobsReport` in `src/components/workspace/strategy-jobs-view.ts`, built on `stepView` |
 | J9 | Project delete and restore dialog, profile save, home voice, auth forms | Explicit | `project-deletion-client.ts`, `account-profile-editor.tsx`, `use-home-voice.ts` |
 
 Defects below are reported, not yet reproduced, unless marked fixed.
@@ -133,18 +138,19 @@ as done. The conversation still derives its own open and closed sections from it
 **J4.** A typed message on a finished interview moves it back to Personality and hides the Identity
 section. A reload returns to Inspiration until the logo has saved state.
 
-**J5.** The decision function records what it found and did not change: a request key is marked as
-tried before its save is confirmed; three error messages cannot be reached; the clarification save has
-no error handling. (verified while extracting)
+**J5.** **Fixed:** a save that is not confirmed releases its request key, so the step is tried again;
+every save has error handling; a reply for an older version of the project says so instead of showing
+an empty area. A message typed after the interview is complete no longer moves it back to Personality:
+the stage stays `complete` and Embel answers in the chat.
 
-**J7.** `homeStartView` returns five separately named answers because the old checks disagree, and the
-disagreements are kept and named in `tests/client/home-start-permissions.test.ts`: the prompt can look
-editable while edits are ignored; a prompt hidden because it belongs to another account leaves Send
-enabled but the click does nothing; a locked Strategy makes the field read-only but not Send. Each is a
-candidate fix. The form and the hook each still hold their own "opening a project" state.
+**J7.** **Fixed.** One rule answers each question, and a click that would be ignored is a disabled
+control. The form and the hook each still hold their own "opening a project" state; the opening screen
+offers "Open saved project" if navigation stalls.
 
-**J6.** A wrong password leaves the account menu saying the account could not be checked, instead of the
-signed-out invitation.
+**J6.** **Fixed.** A refused sign-in (wrong password, too many attempts) leaves the ordinary signed-out
+state; only a real failure to check the account says so. After a sign-up that awaits its email link, the
+tab deliberately does not check the account by itself: an earlier account's cookies may still be in the
+browser. Do not remove that.
 
 ### AI step screens
 
@@ -153,11 +159,11 @@ signed-out invitation.
 | S1 | Naming feed | Flags in shared memory; what it offers comes from `stepView` | `naming-brain-memory.ts`, `naming-feed-controller.ts` (`namingStepView`), `use-naming-feed.ts` |
 | S2 | Logo screen | **Declared** | `logoScreenView` (`logo-screen-view.ts`) and `logoScreenReducer` (`logo-screen-mode.ts`); timing refs stay in the component |
 | S3 | Logo concept batch polling | Implicit | `logo-creation-workspace.tsx` |
-| S4 | Logo workspace saves (one lock for five operations) | Implicit | `use-logo-workspace.ts` |
+| S4 | Logo workspace saves (one lock for five operations) | Lock kept; a held lock now answers "busy" and a reload waits its turn | `use-logo-workspace.ts` |
 | S5 | Creative direction round | Lock plus flags; what it offers comes from `stepView` | `identity-generation-controller.ts` (`identityStepView`), `visual-directions-page.tsx`, `visual-directions-view.tsx` |
 | S6 | Refinement follow-up, saved-inputs preparation | Partly explicit | `refinement-history.ts`, `saved-inputs-controller.ts` |
-| S7 | Naming choices (heart, save, choose) | Implicit lock | `use-project-naming.ts` |
-| S8 | Plans page | Implicit | `plans-workspace.tsx` |
+| S7 | Naming choices (heart, save, choose) | Queue instead of a drop | `use-project-naming.ts` |
+| S8 | Plans page | **Declared** | `plansModeReducer` in `src/components/billing/plans-mode.ts` |
 | S9 | Asset library, asset detail, downloads, domain and handle checks, media frame, logo reveal | Explicit or well guarded | their own files |
 
 **The same server situation now shows one way** on Naming, Logo and Creative direction (`stepView`):
@@ -172,39 +178,33 @@ signed-out invitation.
 | First load fails | A message with Try again |
 | Start may have been admitted | "Couldn't be confirmed"; Try again repeats the same request |
 
-Remaining differences: Logo still offers Send after an unconfirmed start once it finds no working run
-(Naming and Creative direction wait for the kept request); Naming cannot disable "Suggest more names"
-at zero credits because it reads no balance; Creative direction's delayed-status message is still a
-warning with "Check availability" rather than a quiet note.
+Known limit: the browser knows the credit balance, not what a step costs, so a start refused for
+credits at a balance above zero leaves its button enabled on all three screens.
 
 Other reported defects:
 
 - **S2.** **Fixed.** Inside the Workspace a refused Logo request now shows its reason, and a refinement
   or a round that failed, timed out or was stopped says so (`logoRunEndSentence` in
-  `src/domain/logo-engine.ts`). Still open: outside the Workspace a refused "Retry N failed" shows
-  nothing.
+  `src/domain/logo-engine.ts`), outside the Workspace too.
 - **S3.** **Fixed.** A failed read while concepts are drawing keeps polling.
 - **S1.** **Fixed.** Leaving the Naming step mid-request no longer leaves "Stopping…" or "Generating
   names…" stuck; an unanswered start comes back as "couldn't be confirmed" with Try again, which repeats
   the same request.
 - **S5.** **Fixed.** A status check yields to Stop or Start, so neither is dropped; two starts still
   never run at once.
-- **S4.** A second save or reload while one is running returns "could not be loaded", which is false.
+- **S4.** **Fixed.** A reload or save that finds the lock held no longer reports a failure.
 
 ## Order of work
 
 Each line is one change: declare the machine and replace its copies first, then fix what it exposes.
 
-Done on November 14: R4 (deletion stops runs), R2 with S1, S2, S3 and S5 (one refusal rule and one
-step view), J4, J5, J7 and S2 (the four large screens, no behavior change), J1 and J2 (one journey progress, brief edits keep answers), J3 (one save status), R5 and R6
-(job state declared). What remains:
+Done on November 14: every machine in this file is declared or fixed except where a row says otherwise.
+What remains:
 
-1. The start route answers 503 both for "switched off" and for "admitted, workflow did not start" (R2).
-2. The three records of a Creative direction round (R6) and the three readings of `partial` (R5).
-3. The remaining differences listed under the table above.
-4. R3, the workflow stop check, about 15 inline copies with two that leave out `paused`.
-5. The disagreements and oddities that the J5 and J7 declarations preserved.
-6. J6 (session), J8 (Strategy polling), S4, S7 and S8 are still implicit.
+1. A scheduled sweep for runs whose workflow died (R1). Needs a decision: nothing is scheduled today.
+2. Two Checkout sessions opened at once (R7).
+3. The four session readers that still use the derived booleans instead of `activity` (J6).
+4. S6 (saved-inputs preparation) and the Logo screen's timing refs (S2) are unchanged.
 
 ## Adding or changing a machine
 

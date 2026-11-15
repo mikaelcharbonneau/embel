@@ -56,6 +56,10 @@ export async function syncSubscription(
   subscriptionId: string,
   now: () => Date = () => new Date(),
 ): Promise<Synced | null> {
+  // Taken before the read: the saved state is then at least as new as its time says, so a read
+  // that was slow to come back can never overwrite one that started after it
+  // (billing_apply_subscription keeps the row with the later stripe_synced_at).
+  const syncedAt = now();
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
   const customerId = idOf(subscription.customer);
   if (!customerId) return null;
@@ -84,7 +88,7 @@ export async function syncSubscription(
     periodStart: fromSeconds(item.current_period_start),
     periodEnd: fromSeconds(periodEnd),
     cancelAtPeriodEnd,
-    syncedAt: now(),
+    syncedAt,
   });
   return { ownerId, subscription, planId, live };
 }

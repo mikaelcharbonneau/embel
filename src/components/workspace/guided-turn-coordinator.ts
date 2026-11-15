@@ -55,7 +55,8 @@ export type GuidedTurnIdleReason =
   | "request_already_made"
   | "request_not_allowed";
 
-/** `key` names the attempt: the page makes each one once per mount. */
+/** `key` names the attempt: the page makes each one once per mount, unless its save was not confirmed
+ * (`guidedAttempts`). */
 export type GuidedTurnAction =
   /** A name is chosen and no slogans were proposed yet: save the first slogan turn. */
   | { do: "start_slogan"; key: string }
@@ -75,20 +76,16 @@ const nothing = (reason: GuidedTurnIdleReason): GuidedTurnAction => ({ do: "noth
  * What the conversation does next without being asked. The order of the checks is the priority: the first
  * slogan turn, then a redirect, a clarification, an accepted answer, and last the open turn's request.
  *
- * Known oddities, kept as they are (making the machine explicit changes no behavior):
- * - The page records `key` as attempted before the save or request is confirmed. A save that fails or is
- *   refused is not tried again until the page is opened again or the key changes (a new revision or job).
+ * Worth knowing:
  * - The slogan start is checked before the general guards and does not look at the open turn. When its own
  *   conditions hold but it was already attempted, nothing else is tried in that pass.
- * - The messages shown when a save throws ("Slogan suggestions could not be started…", "Your change of
- *   direction could not be saved…", "Your answer could not be saved.") are reported unreachable: the page's
- *   save reports its own failures and resolves instead of throwing. The clarification save has no catch at
- *   all, so a throw there would go unhandled.
  * - An "answer" reply before the four Strategy answers exist, and a "choices" or "question" reply, end at
  *   "request_already_made": the person acts on them, the page does not.
- * - The last guard in the page also compared the turn's revision with the saved one; that comparison can
- *   never be true there, because "turn_of_another_revision" has already returned.
- * - Sending the request takes no lock and does not mark the page as working; only the saves do.
+ * - A reply the page would act on itself, for a turn of another revision, is not acted on: the page says the
+ *   project changed (`guidedTurnStale`) and the person continues with a new message.
+ * - Sending the request needs no lock here: the request hook refuses a second send while one is in flight,
+ *   marks the page as working (`requestStarting`), and names the request after the project, revision and
+ *   operation, so the same turn cannot be requested twice.
  */
 export function guidedTurnAction(situation: GuidedTurnSituation): GuidedTurnAction {
   const { stage, savedRevision, currentTurn, bound } = situation;
@@ -131,6 +128,64 @@ export function guidedTurnAction(situation: GuidedTurnSituation): GuidedTurnActi
   if (bound) return nothing("request_already_made");
   if (!situation.requestAllowed) return nothing("request_not_allowed");
   return { do: "enqueue", key: `request:${currentTurn.id}`, turn: currentTurn };
+}
+
+// ----- Has this been tried? -----
+
+/** Which attempts the page has made since it was opened. An attempt is made once; when its save was not
+ * confirmed it may be made again, but only after the situation has changed enough for the decision to
+ * answer "nothing" in between (the failed save is on screen as unsaved, busy or in conflict). That keeps a
+ * save that fails every time from being repeated in a loop. */
+export function guidedAttempts() {
+  const made = new Set<string>();
+  const unconfirmed = new Set<string>();
+  return {
+    /** True when the page should run this action now; records it as made. */
+    begin(action: GuidedTurnAction): action is Exclude<GuidedTurnAction, { do: "nothing" }> {
+      if (action.do === "nothing") {
+        for (const key of unconfirmed) made.delete(key);
+        unconfirmed.clear();
+        return false;
+      }
+      if (made.has(action.key)) return false;
+      made.add(action.key);
+      return true;
+    },
+    /** The person asked for this attempt themselves ("Retry request"). */
+    record(key: string) {
+      made.add(key);
+    },
+    /** The attempt's save did not come back confirmed. */
+    saveNotConfirmed(key: string) {
+      if (made.has(key)) unconfirmed.add(key);
+    },
+  };
+}
+
+// ----- Did the project move on under the open turn? -----
+
+/** The open turn was saved for another revision of the project (a change in another tab, for example), so
+ * the page will neither request its reply nor act on one that arrived. Replies the person acts on
+ * themselves (choices, a question, an answer to read) stay usable and are not stale. */
+export function guidedTurnStale({
+  currentTurn,
+  savedRevision,
+  savePending,
+  reply,
+  strategyAnswered,
+}: {
+  currentTurn: Pick<GuidedTurn, "inputRevision"> | null;
+  savedRevision: number;
+  /** A conversation change is waiting to be confirmed as saved. */
+  savePending: boolean;
+  reply: Pick<GuidedReply, "kind"> | null;
+  /** Competitors, Audience, Positioning and Personality all have an answer. */
+  strategyAnswered: boolean;
+}): boolean {
+  if (!currentTurn || savePending || currentTurn.inputRevision === savedRevision) return false;
+  return (
+    !reply || reply.kind === "accepted" || reply.kind === "redirect" || (reply.kind === "answer" && strategyAnswered)
+  );
 }
 
 // ----- Is a request running? -----

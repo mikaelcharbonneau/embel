@@ -14,6 +14,7 @@ import { LOGO_CONCEPTS_KIND, LOGO_REFINE_KIND, LOGO_STYLE_NOTE_KIND } from "./lo
 import { buildNamingRunInput, NAMING_KIND } from "./naming";
 import {
   admitGeneration,
+  enabledGenerationKinds,
   findGeneration,
   runAwaitsWorkflow,
   type GenerationRunRow,
@@ -93,13 +94,42 @@ export async function startGeneration(
 }
 
 /** Starts the workflow of a run its step's route already admitted. A second start of
- * the same run loses the claim and ends without touching it. */
+ * the same run loses the claim and ends without touching it. The run exists, so every
+ * failure here is a WorkflowStartError, never "generation is unavailable". */
 export async function startAdmittedRun(kind: string, runId: string): Promise<void> {
   const workflow = Object.hasOwn(workflows, kind) ? workflows[kind]! : null;
-  if (!workflow) throw new ApiError("generation_unavailable");
+  if (!workflow) throw new WorkflowStartError();
   try {
     await start(workflow, [runId]);
   } catch {
     throw new WorkflowStartError();
+  }
+}
+
+/** A start is given this long before a status read tries again, so a read never races the
+ * first start; after the database's own limit the run is due to end as start_failed instead. */
+const RESUME_AFTER_MS = 15_000,
+  RESUME_UNTIL_MS = 10 * 60_000;
+type UnstartedRun = Pick<GenerationRunRow, "id" | "kind" | "status" | "workflow_run_id" | "created_at">;
+export function runNeedsStart(run: UnstartedRun, now = Date.now()): boolean {
+  const age = now - Date.parse(run.created_at);
+  return runAwaitsWorkflow(run) && age >= RESUME_AFTER_MS && age < RESUME_UNTIL_MS;
+}
+
+/**
+ * Called from status reads: a run that was admitted but whose workflow never started (a
+ * failed start, or a crash between admission and start) is started again while its kind is
+ * on. Best effort, and it never fails the read. It cannot run a request twice: engine_claim
+ * gives the run to one workflow and refuses every other. Creative direction rounds are left
+ * to their own step's read (identity-jobs.ts), which does the same.
+ */
+export async function resumeUnstartedRuns(auth: AuthenticatedContext, runs: readonly UnstartedRun[]): Promise<void> {
+  const waiting = runs.filter((run) => runNeedsStart(run) && !ROUTE_ONLY_KINDS.has(run.kind));
+  if (!waiting.length) return;
+  try {
+    const enabled = await enabledGenerationKinds(auth);
+    for (const run of waiting) if (enabled.has(run.kind)) await startAdmittedRun(run.kind, run.id);
+  } catch {
+    /* The run stays queued: Try again or Stop still work, and it ends with a refund after 10 minutes. */
   }
 }

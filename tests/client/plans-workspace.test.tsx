@@ -181,6 +181,100 @@ describe("Plans page", () => {
     expect(requests.filter((request) => request.path === "/api/billing/checkout")).toHaveLength(2);
   });
 
+  it("frees the plan buttons when the browser brings the page back from Stripe as it was left", async () => {
+    await render();
+    const upgrade = () =>
+      [...host.querySelectorAll("button")].find((button) => button.textContent === "Upgrade to Pro")!;
+    const other = () =>
+      [...host.querySelectorAll("button")].find((button) => button.textContent === "Upgrade to Studio")!;
+    await act(async () => upgrade().click());
+    expect(assign).toHaveBeenCalledOnce();
+    // On the way to Stripe every plan button waits.
+    expect(upgrade().getAttribute("aria-busy")).toBe("true");
+    expect(other().disabled).toBe(true);
+    // An ordinary page show (not a restored page) changes nothing.
+    await act(async () => window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: false })));
+    expect(other().disabled).toBe(true);
+    await act(async () => window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })));
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+    expect(upgrade().getAttribute("aria-busy")).toBeNull();
+    expect(other().disabled).toBe(false);
+    // The plan may have changed at Stripe, so it is read again.
+    expect(requests.filter((request) => request.path === "/api/billing")).toHaveLength(2);
+    await act(async () => other().click());
+    expect(requests.filter((request) => request.path === "/api/billing/checkout")).toHaveLength(2);
+  });
+
+  describe("after returning from Checkout", () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+    const open = async () => {
+      await act(async () => root.render(createElement(PlansWorkspace, { returnState: "checkout_success" })));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+    };
+    const reads = () => requests.filter((request) => request.path === "/api/billing").length;
+    const checkAgain = () =>
+      [...host.querySelectorAll("button")].find((button) => button.textContent === "Check again");
+
+    it("says the payment is still being confirmed when the subscription has not appeared, and offers Check again", async () => {
+      await open();
+      expect(host.textContent).toContain("Thank you. Your payment is being confirmed.");
+      expect(checkAgain()).toBeUndefined();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15 * 2000);
+      });
+      expect(reads()).toBe(16);
+      // It never claims the payment went through, and no longer looks like nothing happened.
+      expect(host.textContent).toContain(
+        "Your payment is still being confirmed, so your plan and credits here haven’t changed yet.",
+      );
+      expect(host.textContent).not.toContain("Thank you");
+      expect(host.textContent).not.toMatch(/plan is active/u);
+      expect(host.querySelector('[data-selected="true"] h2')?.textContent).toBe("Free");
+      // Check again looks for it anew, and the billing summary alone confirms the plan.
+      summary = proSummary;
+      await act(async () => {
+        checkAgain()!.click();
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(reads()).toBe(17);
+      expect(host.textContent).toContain("Thank you. Your Pro plan is active.");
+      expect(checkAgain()).toBeUndefined();
+    });
+
+    it("stops waiting as soon as the subscription appears", async () => {
+      await open();
+      summary = proSummary;
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2000);
+      });
+      expect(host.textContent).toContain("Thank you. Your Pro plan is active.");
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000);
+      });
+      expect(reads()).toBe(2);
+    });
+
+    it("does not call a payment confirmed when the plan can't be read", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (path: string, init: RequestInit) => {
+          requests.push({ path, init });
+          return new Response(null, { status: 500 });
+        }),
+      );
+      await open();
+      expect(host.textContent).toContain("Your payment is still being confirmed");
+      expect(host.textContent).toContain("Your plan can’t be shown right now.");
+      expect(host.textContent).not.toContain("Thank you");
+      // One way to look again, not two.
+      expect(checkAgain()).toBeUndefined();
+      expect([...host.querySelectorAll("button")].map((button) => button.textContent)).toContain("Try again");
+    });
+  });
+
   it("asks a signed-out visitor to sign in and never calls the billing API", async () => {
     fixture.session = { status: "signed_out", generation: 1 };
     await render();

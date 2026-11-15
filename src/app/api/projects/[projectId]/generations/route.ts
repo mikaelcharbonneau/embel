@@ -1,7 +1,7 @@
 import { assertNotBot } from "@/server/http/bot-protection";
 import { getAuthenticatedContext } from "@/server/auth/context";
 import { listGenerations, publicRun, startGenerationSchema } from "@/server/engine/runs";
-import { startGeneration, WorkflowStartError } from "@/server/engine/start";
+import { resumeUnstartedRuns, startGeneration, WorkflowStartError } from "@/server/engine/start";
 import { ApiError, errorResponse, privateJson } from "@/server/http/errors";
 import { assertMutationOrigin, readJson } from "@/server/http/request";
 
@@ -13,7 +13,10 @@ export async function GET(request: Request, context: RouteContext) {
     const auth = await getAuthenticatedContext();
     const params = new URL(request.url).searchParams;
     const filter = { kind: params.get("kind") ?? undefined, step: params.get("step") ?? undefined };
-    return privateJson({ runs: await listGenerations(auth, (await context.params).projectId, filter) });
+    const runs = await listGenerations(auth, (await context.params).projectId, filter, (rows) =>
+      resumeUnstartedRuns(auth, rows),
+    );
+    return privateJson({ runs });
   } catch (error) {
     return errorResponse(error);
   }
@@ -28,6 +31,6 @@ export async function POST(request: Request, context: RouteContext) {
     const { run } = await startGeneration(auth, (await context.params).projectId, body);
     return privateJson({ run: publicRun(run) }, 202);
   } catch (error) {
-    return errorResponse(error instanceof WorkflowStartError ? new ApiError("generation_unavailable") : error);
+    return errorResponse(error instanceof WorkflowStartError ? new ApiError("start_unconfirmed") : error);
   }
 }

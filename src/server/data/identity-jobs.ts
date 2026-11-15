@@ -27,8 +27,13 @@ import { startAdmittedRun } from "../engine/start";
 
 export class IdentityAdmissionUncertainError extends ApiError {
   readonly recovery: { projectId: string; input: IdentityGenerationIntent };
-  constructor(projectId: string, input: IdentityGenerationIntent) {
-    super("integration_unavailable");
+  /** `start_unconfirmed` when the round was admitted and only its workflow did not start. */
+  constructor(
+    projectId: string,
+    input: IdentityGenerationIntent,
+    code: "integration_unavailable" | "start_unconfirmed" = "integration_unavailable",
+  ) {
+    super(code);
     this.name = "IdentityAdmissionUncertainError";
     this.recovery = { projectId, input: structuredClone(input) };
   }
@@ -153,8 +158,13 @@ export async function enqueueIdentityBatch(
   if (!parsed.success) throw new ApiError("invalid_input");
   projectId = uuid(projectId);
   await ownedProject(auth, projectId);
-  // A saved request is still found through its request lookup after the kind is turned off.
-  if (!(await identityEngineEnabled(auth))) throw new ApiError("generation_unavailable");
+  if (!(await identityEngineEnabled(auth))) {
+    // "Unavailable" means nothing was admitted. A request that was admitted before the kind was
+    // turned off is returned as it is (and not started while the kind is off).
+    const saved = await read(auth, projectId, null, parsed.data.idempotencyKey);
+    if (saved && isDeepStrictEqual(saved.intent, parsed.data)) return saved;
+    throw new ApiError("generation_unavailable");
+  }
   return startEngineIdentityBatch(auth, projectId, parsed.data);
 }
 /**
@@ -192,7 +202,7 @@ async function startEngineIdentityBatch(
       try {
         await startAdmittedRun(IDENTITY_DIRECTIONS_KIND, run.id);
       } catch {
-        throw new IdentityAdmissionUncertainError(projectId, input);
+        throw new IdentityAdmissionUncertainError(projectId, input, "start_unconfirmed");
       }
     }
   }

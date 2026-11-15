@@ -276,6 +276,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
   );
   const currentCapability = capability?.fence === sessionFence ? capability : null;
   const openingHref = opening?.fence === sessionFence ? opening.href : null;
+  // "Signed out" for the notice below; whether the kept files need their account is asked in `situation`.
   const hiddenFiles = retainedFiles && !account;
   const hasFiles = !!inputIntent?.files.length;
   const frozenProject = inputIntent?.saveIntent?.project;
@@ -284,44 +285,47 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
   const displayedPrompt = frozenProject?.context.description ?? (hiddenPrompt ? "" : prompt);
   const displayedExample = frozenProject?.context.intake.example ?? (!hiddenPrompt && exampleUsed);
   const recoveryFull = drafts.filter((draft) => !draft.accountProjectId).length >= 50;
-  // "What may the person do now?" is answered in `homeStartView`, once for the screen and once per click.
-  const shown: Omit<HomeStartSituation, "now"> = {
-    draftsLoaded: loaded,
-    recoveryLoaded,
-    hiddenPrompt,
-    submitting,
-    strategyPending: strategy.pending,
-    strategyLocked: strategy.locked,
-    strategyRecoveryBlocked: strategy.recoveryBlocked,
-    navigating,
-    opening: Boolean(openingHref),
-    signedIn: Boolean(account),
-    hasFiles,
-    frozenBrief,
-    hiddenFiles,
-    selectingFiles,
-    keptDraft: Boolean(inputIntent?.browserDraftId) || Boolean(textDraftId),
-    recoveryFull,
-  };
+  // "What may the person do now?" is answered in `homeStartView`, once for the screen and once per click,
+  // by the same rule. The screen passes what it rendered; a click passes the guard and the file memory as
+  // they are at that moment.
+  function situation(sending: boolean, unsavedFiles: boolean, saveStarted: boolean): HomeStartSituation {
+    return {
+      draftsLoaded: loaded,
+      recoveryLoaded,
+      hiddenPrompt,
+      submitting: sending,
+      strategyPending: strategy.pending,
+      strategyLocked: strategy.locked,
+      strategyRecoveryBlocked: strategy.recoveryBlocked,
+      navigating,
+      opening: Boolean(openingHref),
+      signedIn: Boolean(account),
+      hasFiles,
+      attachedSaveStarted: saveStarted,
+      filesNeedAccount: unsavedFiles && (!account || !isCurrent(account)),
+      selectingFiles,
+      keptDraft: Boolean(inputIntent?.browserDraftId) || Boolean(textDraftId),
+      recoveryFull,
+    };
+  }
   const {
-    readOnly: frozenInputs,
-    sendDisabled: disabled,
-    inputControlsDisabled,
-  } = homeStartView({ ...shown, now: null });
-  /** The same question at the moment of a click: the guard ref and the file memory are read now. */
+    editHeld: frozenInputs,
+    sendHeld: disabled,
+    inputControlsHeld,
+  } = homeStartView(situation(submitting, retainedFiles, frozenBrief));
+  /** The same question at the moment of a click. The guard only adds a refusal to what was rendered. */
   function viewNow() {
-    return homeStartView({
-      ...shown,
-      now: {
-        submitting: submittingRef.current,
-        filesNeedAccount: homeInputSession.hasUnsaved() && (!account || !isCurrent(account)),
-        attachedSaveStarted: Boolean(account && homeInputSession.get(account)?.saveIntent),
-      },
-    });
+    return homeStartView(
+      situation(
+        submitting || submittingRef.current,
+        homeInputSession.hasUnsaved(),
+        Boolean(account && homeInputSession.get(account)?.saveIntent),
+      ),
+    );
   }
 
   function canEditInputs() {
-    return viewNow().mayEdit;
+    return !viewNow().editHeld;
   }
   function editPrompt(value: string) {
     if (canEditInputs()) {
@@ -370,20 +374,13 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
   }
 
   async function sendPrompt(mode: "ai" | "draft" = "ai") {
-    if (!viewNow().maySend) return;
+    if (viewNow().sendHeld) return;
     if (!account || !isCurrent(account)) {
       if (beforeSignIn(strategy.locked)) router.push("/sign-in");
       return;
     }
     if (homeInputSession.isSelecting()) {
       setError("Finish or explicitly cancel the pending file selection before sending.");
-      return;
-    }
-    // A session fence hides the file body, not the fact that an unsaved file intent must be recovered.
-    if (homeInputSession.hasUnsaved() && (!account || !isCurrent(account))) {
-      setError(
-        "Check the same account before sending this attached brief. Its files are retained privately in this tab.",
-      );
       return;
     }
     const original = account ? homeInputSession.get(account) : null;
@@ -634,7 +631,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
                       (account ? "Checking verified file storage…" : "Sign in to save verified input files."),
                   }
             }
-            disabled={inputControlsDisabled}
+            disabled={inputControlsHeld}
           />
         }
       />

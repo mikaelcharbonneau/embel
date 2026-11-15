@@ -1,5 +1,6 @@
 import { getWorkflowMetadata, sleep } from "workflow";
 import type { IdentitySystemSpecification } from "@/domain/identity-jobs";
+import { runStopDecision } from "../server/engine/stop-check";
 import { checkRun, claimRun, finishRun, type ClaimedRun } from "./engine-steps";
 import {
   beginIdentityDirections,
@@ -66,9 +67,9 @@ export async function identityDirectionsGeneration(runId: string) {
       specified.push({ ordinal, result });
     }
     if (stopped) {
-      const state = await checkRun(runId);
-      if (state.status !== "running") return { status: state.status };
-      return await finishRun(runId, "cancelled", state.paused ? "generation_paused" : "cancelled");
+      const stop = runStopDecision(await checkRun(runId));
+      if (stop.action === "quit") return { status: stop.status };
+      return await finishRun(runId, "cancelled", stop.action === "cancel" ? stop.code : "cancelled");
     }
     const boards: Promise<End>[] = specified.map(({ ordinal, result }) =>
       result.state === "ready"
@@ -85,16 +86,14 @@ export async function identityDirectionsGeneration(runId: string) {
     while (!settled) {
       await Promise.race([work, sleep(`${WATCH_SECONDS}s`)]);
       if (settled) break;
-      const state = await checkRun(runId);
-      if (state.status !== "running") return { status: state.status };
-      if (state.cancelRequested || state.paused)
-        return await finishRun(runId, "cancelled", state.paused ? "generation_paused" : "cancelled");
+      const stop = runStopDecision(await checkRun(runId));
+      if (stop.action === "quit") return { status: stop.status };
+      if (stop.action === "cancel") return await finishRun(runId, "cancelled", stop.code);
     }
     const ends = await work;
-    const state = await checkRun(runId);
-    if (state.status !== "running") return { status: state.status };
-    if (state.cancelRequested || state.paused)
-      return await finishRun(runId, "cancelled", state.paused ? "generation_paused" : "cancelled");
+    const stop = runStopDecision(await checkRun(runId));
+    if (stop.action === "quit") return { status: stop.status };
+    if (stop.action === "cancel") return await finishRun(runId, "cancelled", stop.code);
     // The database keeps a credit per delivered board; a round with none fails with its first reason.
     const reason = ends.find((end) => end.state !== "succeeded")?.code ?? null;
     return await finishRun(runId, "succeeded", reason && /^[a-z_]{1,64}$/u.test(reason) ? reason : null);
@@ -116,8 +115,7 @@ async function specify(run: ClaimedRun, ordinal: number, prior: Components[]): P
     last = "provider_unavailable";
   for (let attempt = 1; attempt <= SEND_TRIES; attempt++) {
     // No paid call starts after a Stop or while the engine is paused.
-    const state = await checkRun(run.id);
-    if (state.status !== "running" || state.cancelRequested || state.paused) return { state: "stopped" };
+    if (runStopDecision(await checkRun(run.id)).action !== "continue") return { state: "stopped" };
     const sent = await createSpecification(run, prepared, attempt);
     if (sent.state === "stopped") return sent;
     if (sent.state === "failed") return sent;
@@ -150,9 +148,8 @@ async function drawUntilSettled(
   specification: IdentitySystemSpecification,
 ): Promise<End> {
   for (let attempt = 1; attempt <= SEND_TRIES; attempt++) {
-    const state = await checkRun(run.id);
-    if (state.status !== "running" || state.cancelRequested || state.paused)
-      return { state: "stopped", code: "cancelled" };
+    // No paid call starts after a Stop or while the engine is paused.
+    if (runStopDecision(await checkRun(run.id)).action !== "continue") return { state: "stopped", code: "cancelled" };
     let result;
     try {
       result = await drawBoard(run, ordinal, specification, attempt);

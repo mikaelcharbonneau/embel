@@ -244,6 +244,128 @@ describe("Strategy on the generation engine", () => {
   });
 });
 
+describe("Strategy handles a run like the other step screens", () => {
+  const answer = (post: () => Response) => (path: string, init: RequestInit) =>
+    Promise.resolve(
+      init.method === "POST"
+        ? post()
+        : path === "/api/credits"
+          ? Response.json({ credits: { planId: "free", balance: 0, periodEnd: "2026-12-01T00:00:00+00:00" } })
+          : path.includes("/generations")
+            ? Response.json({ runs })
+            : Response.json(overview),
+    );
+
+  it("keeps progress, Stop and the 3 s pace when a status check fails while a run works", async () => {
+    runs = [run()];
+    await render();
+    expect(api.view).toMatchObject({ working: true, canStop: true, message: null });
+    fetcher.mockImplementation(async (path: string) => {
+      if (path.includes("/generations")) return new Response(null, { status: 500 });
+      return Response.json(overview);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_000);
+    });
+    expect(api.readError).not.toBeNull();
+    expect(api.overview?.jobs[0]).toMatchObject({ id: runId, state: "running" });
+    expect(api.view).toMatchObject({ working: true, canStop: true, message: "updates_delayed" });
+    expect(api.view.sentence).toBe(api.readError);
+    // It keeps checking at the working pace instead of dropping to every 15 s.
+    const before = calls("GET", `/api/projects/${projectId}/generations`).length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_000);
+    });
+    expect(calls("GET", `/api/projects/${projectId}/generations`).length).toBe(before + 1);
+  });
+
+  it.each([
+    [402, "out_of_credits"],
+    [429, "daily_limit"],
+  ])("offers no Try again after a %s, which would be refused again", async (status, message) => {
+    await render();
+    fetcher.mockImplementation(answer(() => Response.json({ error: { code: "refused" } }, { status })));
+    await act(async () => {
+      await api.enqueue("strategy.competitors", 1, allowance);
+    });
+    expect(api.view).toMatchObject({ message, retry: null, keepRequest: false, working: false });
+    expect(api.view.sentence).toBe(api.actionError);
+    expect(api.actionError).not.toMatch(/\$/u);
+  });
+
+  it("keeps an unanswered start, and Try again repeats the same request under the same key", async () => {
+    await render();
+    fetcher.mockImplementation(answer(() => new Response(null, { status: 503 })));
+    await act(async () => {
+      await api.enqueue("strategy.competitors", 1, allowance);
+    });
+    expect(api.view).toMatchObject({
+      message: "start_unconfirmed",
+      retry: "start",
+      keepRequest: true,
+      canStart: false,
+    });
+    // No matching run appeared, so the message stays until the person retries.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000);
+    });
+    expect(api.view.message).toBe("start_unconfirmed");
+    fetcher.mockImplementation(
+      answer(
+        () => (
+          (runs = [run({ status: "queued", createdAt: new Date().toISOString() })]),
+          Response.json({ run: runs[0] }, { status: 202 })
+        ),
+      ),
+    );
+    await act(async () => {
+      await api.enqueue("strategy.competitors", 1, allowance);
+    });
+    const keys = calls("POST").map(([, init]) => JSON.parse(init.body).idempotencyKey);
+    expect(keys).toEqual(Array(2).fill(`strategy.engine.v1:${projectId}:1:strategy.competitors`));
+    expect(api.view).toMatchObject({ working: true, message: null });
+    expect(api.actionError).toBeNull();
+  });
+
+  it("clears an unanswered start once a status check finds the one run it made", async () => {
+    await render();
+    fetcher.mockImplementation(
+      answer(() => ((runs = [run({ status: "queued", createdAt: new Date().toISOString() })]), Response.error())),
+    );
+    await act(async () => {
+      await api.enqueue("strategy.competitors", 1, allowance);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(calls("POST")).toHaveLength(1);
+    expect(api.actionError).toBeNull();
+    expect(api.view).toMatchObject({ working: true, canStop: true, message: null });
+  });
+
+  it("does not ask to stop a run that is already stopping, and says so", async () => {
+    runs = [run({ cancelRequested: true })];
+    await render();
+    expect(api.view).toMatchObject({ working: true, stopping: true, canStop: false, message: "stopping" });
+    await act(async () => {
+      await api.cancel(api.overview!.jobs[0]!);
+    });
+    expect(calls("POST")).toHaveLength(0);
+  });
+
+  it("reports a Stop that could not be confirmed, with the run still working", async () => {
+    runs = [run()];
+    await render();
+    fetcher.mockImplementation(answer(() => new Response(null, { status: 500 })));
+    await act(async () => {
+      await api.cancel(api.overview!.jobs[0]!);
+    });
+    expect(api.pending).toBe(false);
+    expect(api.view).toMatchObject({ working: true, canStop: true, retry: "stop", message: "stop_unconfirmed" });
+    expect(api.view.sentence).toBe(api.actionError);
+  });
+});
+
 describe("engine run mapping", () => {
   it("keeps only a verified result, and none for a run that did not succeed", () => {
     const ownerId = "aaaaaaaa-1111-4111-8111-111111111111";

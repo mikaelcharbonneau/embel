@@ -2,21 +2,29 @@ import type { z } from "zod";
 import { PROJECT_MUTATION_MAX_BYTES } from "@/domain/project-api";
 import { announceOutOfCredits } from "@/components/billing/out-of-credits";
 
+/** The server's `error.code` values the browser acts on. The two 503 codes tell a switched-off step
+ * (`generation_unavailable`: nothing was admitted) from an admitted run whose workflow did not start. */
+export type AccountErrorCode =
+  "naming_history_capacity" | "project_busy" | "billing_pending" | "generation_unavailable" | "start_unconfirmed";
+const ACCOUNT_ERROR_CODES: Record<number, readonly AccountErrorCode[]> = {
+  409: ["naming_history_capacity", "project_busy", "billing_pending"],
+  503: ["generation_unavailable", "start_unconfirmed"],
+};
+
 export class AccountRequestError extends Error {
   constructor(
     readonly status: number,
-    readonly code?: "naming_history_capacity" | "project_busy",
+    readonly code?: AccountErrorCode,
   ) {
     super("The account request could not be completed.");
   }
 }
 
 /** Retain allowlisted public codes only; never expose arbitrary server messages or read large error bodies. */
-async function safeAccountErrorCode(
-  response: Response,
-): Promise<"naming_history_capacity" | "project_busy" | undefined> {
+export async function safeAccountErrorCode(response: Response): Promise<AccountErrorCode | undefined> {
+  const allowed = ACCOUNT_ERROR_CODES[response.status];
   if (
-    response.status !== 409 ||
+    !allowed ||
     response.headers.get("content-type")?.split(";")[0]?.trim() !== "application/json" ||
     Number(response.headers.get("content-length")) > 4096
   )
@@ -36,10 +44,11 @@ async function safeAccountErrorCode(
           "error" in body &&
           body.error &&
           typeof body.error === "object" &&
-          "code" in body.error &&
-          (body.error.code === "naming_history_capacity" || body.error.code === "project_busy")
-        )
-          return body.error.code;
+          "code" in body.error
+        ) {
+          const code: unknown = body.error.code;
+          return allowed.find((item) => item === code);
+        }
         return undefined;
       }
       if (length + value.byteLength > bytes.byteLength) return undefined;

@@ -7,7 +7,9 @@ import { activeJobStates, jobActivityEntrySchema } from "@/domain/job-activity";
 import {
   JOB_DELIVERED_STATES,
   JOB_FINISHED_STATES,
+  JOB_LEASED_OR_PARTIAL_STATES,
   JOB_LEASED_STATES,
+  JOB_RUNNING_OR_PARTIAL_STATES,
   JOB_STATES,
   JOB_STATE_TRANSITIONS,
   JOB_UNSETTLED_STATES,
@@ -17,6 +19,8 @@ import {
   JOB_WORKING_STATES,
   canJobMove,
   isJobFinished,
+  isJobLeasedOrPartial,
+  isJobRunningOrPartial,
   isJobUnsettled,
   isJobWaitingOrRunning,
   isJobWorking,
@@ -181,6 +185,11 @@ describe("old job state: the declaration", () => {
       if (jobDeliveredSomething(state)) expect(isJobFinished(state)).toBe(true);
     }
     expect([...JOB_DELIVERED_STATES]).toEqual(["succeeded", "partial"]);
+    expect(sorted(JOB_LEASED_OR_PARTIAL_STATES)).toEqual(sorted([...JOB_LEASED_STATES, "partial"]));
+    // The font check's list is the asset store's without a job that was asked to stop.
+    expect(sorted(JOB_RUNNING_OR_PARTIAL_STATES)).toEqual(
+      sorted(without(JOB_LEASED_OR_PARTIAL_STATES, "cancel_requested")),
+    );
   });
 });
 
@@ -220,6 +229,13 @@ describe("old job state: every replaced copy answers the same for all eight stat
     ],
     ["identity-jobs.ts pending fulfillment", ["queued", "running", "cancel_requested"], isJobWorking],
     ["identity-jobs.ts terminal", ["succeeded", "failed", "cancelled", "partial"], isJobFinished],
+    ["identity-asset-store.ts leased", ["running", "partial", "cancel_requested"], isJobLeasedOrPartial],
+    ["identity-directions fonts.ts font check", ["running", "partial"], isJobRunningOrPartial],
+    [
+      "job-activity.ts listJobActivity active rows",
+      ["queued", "running", "cancel_requested", "needs_reconciliation"],
+      isJobWorkingOrUnconfirmed,
+    ],
   ];
   it.each(cases)("%s", (_site, old, now) => {
     expect(JOB_STATES.length).toBe(8);

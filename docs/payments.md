@@ -42,6 +42,12 @@ at checkout; cost estimates for generations still appear nowhere.
    (`flow_data.type = subscription_update_confirm`). Customers can also manage the same subscription from
    Link (link.com); both paths end in the same webhooks.
 
+_November 14, 2026: checkout is refused with `billing_pending` (409, "A plan payment is still being
+confirmed. Check again in a few minutes.") while an earlier subscription is still `incomplete`; the
+Plans page shows it as a neutral notice with Check again. The webhook takes its sync time before it
+reads Stripe, so of two events handled at once the older read cannot overwrite the newer. Not covered:
+two Checkout sessions opened before either is paid._
+
 ## Credit rules (database, migration `20261111100000_stripe_billing`)
 
 - **One allowance per paid period.** A paid invoice for a new billing period moves the account to the

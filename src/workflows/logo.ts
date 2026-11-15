@@ -1,4 +1,5 @@
 import { getWorkflowMetadata, sleep } from "workflow";
+import { runStopDecision } from "../server/engine/stop-check";
 import { checkRun, claimRun, finishRun, type ClaimedRun } from "./engine-steps";
 import type { LogoImageTarget } from "@/server/engine/logo-run";
 import {
@@ -49,16 +50,14 @@ export async function logoImagesGeneration(runId: string) {
     while (!settled) {
       await Promise.race([work, sleep(`${WATCH_SECONDS}s`)]);
       if (settled) break;
-      const state = await checkRun(runId);
-      if (state.status !== "running") return { status: state.status };
-      if (state.cancelRequested || state.paused)
-        return await finishRun(runId, "cancelled", state.paused ? "generation_paused" : "cancelled");
+      const stop = runStopDecision(await checkRun(runId));
+      if (stop.action === "quit") return { status: stop.status };
+      if (stop.action === "cancel") return await finishRun(runId, "cancelled", stop.code);
     }
     const ends = await work;
-    const state = await checkRun(runId);
-    if (state.status !== "running") return { status: state.status };
-    if (state.cancelRequested || state.paused)
-      return await finishRun(runId, "cancelled", state.paused ? "generation_paused" : "cancelled");
+    const stop = runStopDecision(await checkRun(runId));
+    if (stop.action === "quit") return { status: stop.status };
+    if (stop.action === "cancel") return await finishRun(runId, "cancelled", stop.code);
     // The database keeps a credit per delivered image; a round with none fails with its first reason.
     const reason = ends.find((end) => end.state !== "succeeded")?.code ?? null;
     return await finishRun(runId, "succeeded", reason && /^[a-z_]{1,64}$/u.test(reason) ? reason : null);
@@ -72,9 +71,7 @@ export async function logoImagesGeneration(runId: string) {
 async function drawUntilSettled(run: ClaimedRun, target: LogoImageTarget): Promise<ImageEnd> {
   for (let attempt = 1; attempt <= IMAGE_TRIES; attempt++) {
     // No paid call starts after a Stop or while the engine is paused.
-    const state = await checkRun(run.id);
-    if (state.status !== "running" || state.cancelRequested || state.paused)
-      return { state: "stopped", code: "cancelled" };
+    if (runStopDecision(await checkRun(run.id)).action !== "continue") return { state: "stopped", code: "cancelled" };
     let result;
     try {
       result = await drawLogoImage(run, target, attempt);
@@ -103,8 +100,9 @@ export async function logoStyleNoteGeneration(runId: string) {
     const references = (run.input as { references?: { referenceId: string }[] }).references ?? [];
     const results = await Promise.all(references.map((ref) => writeNote(run, ref.referenceId)));
     if (results.some((result) => result.state === "stopped")) {
-      const state = await checkRun(runId);
-      return await finishRun(runId, "cancelled", state.paused ? "generation_paused" : "cancelled");
+      const stop = runStopDecision(await checkRun(runId));
+      if (stop.action === "quit") return { status: stop.status };
+      return await finishRun(runId, "cancelled", stop.action === "cancel" ? stop.code : "cancelled");
     }
     const written = results.some((result) => result.state === "written");
     return await finishRun(
@@ -121,8 +119,8 @@ export async function logoStyleNoteGeneration(runId: string) {
 async function writeNote(run: ClaimedRun, referenceId: string) {
   const prepared = await prepareStyleNote(run, referenceId);
   if ("failed" in prepared) return { referenceId, state: "failed", code: prepared.failed };
-  const state = await checkRun(run.id);
-  if (state.status !== "running" || state.cancelRequested || state.paused)
+  // No paid call starts after a Stop or while the engine is paused.
+  if (runStopDecision(await checkRun(run.id)).action !== "continue")
     return { referenceId, state: "stopped", code: "cancelled" };
   let responseId: string;
   try {

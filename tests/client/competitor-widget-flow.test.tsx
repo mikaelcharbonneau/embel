@@ -18,7 +18,10 @@ const strategy = vi.hoisted(() => ({
   enqueue: vi.fn(),
   cancel: vi.fn(),
 }));
-vi.mock("@/components/workspace/use-strategy-jobs", () => ({ useStrategyJobs: () => strategy }));
+vi.mock("@/components/workspace/use-strategy-jobs", async () => {
+  const { withStrategyView } = await import("./guided-strategy-hook");
+  return { useStrategyJobs: () => withStrategyView(strategy) };
+});
 
 const account = { status: "ready" as const, userId: "aaaaaaaa-1111-4111-8111-111111111111", generation: 1 };
 const when = "2026-10-19T10:00:00Z";

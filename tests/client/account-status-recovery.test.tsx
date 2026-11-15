@@ -8,6 +8,7 @@ import {
   useAccountSession,
   type VerifiedAccount,
 } from "@/components/workspace/account-session";
+import { SignInRequestError } from "@/components/auth/sign-in-request";
 
 const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
   other = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -141,7 +142,61 @@ describe("inline account verification recovery", () => {
     expect(host.textContent).not.toContain(owner);
   });
 
-  it("does not bypass a pending sign-in and allows explicit recovery only after the failure", async () => {
+  it("returns to the ordinary signed-out state after a wrong password", async () => {
+    await resolveRead(0, Response.json({ authenticated: false }));
+    await act(async () => {
+      await account.signIn(async () => {
+        throw new SignInRequestError(401);
+      });
+    });
+    // The form shows the credential error. The rest of the app was never unable to check the account.
+    expect(account.session.status).toBe("signed_out");
+    expect(host.querySelector(".e-empty .e-empty__title")?.textContent).toBe("Sign in to see and save your work");
+    expect(host.textContent).not.toContain("could not be verified");
+    expect(retry()).toBeUndefined();
+    expect(reads).toHaveLength(1);
+    // Ordinary checks continue: returning to the tab looks again, as on any signed-out page.
+    await act(async () => window.dispatchEvent(new Event("focus")));
+    expect(reads).toHaveLength(2);
+  });
+
+  it("checks the account after a refused sign-in when it was not known to be signed out", async () => {
+    await resolveRead(0, new Response(null, { status: 500 }));
+    await act(async () => {
+      await account.signIn(async () => {
+        throw new SignInRequestError(401);
+      });
+    });
+    expect(reads).toHaveLength(2);
+    expect(host.textContent).toContain("Checking your account…");
+    await resolveRead(1, Response.json({ user: { id: owner } }));
+    expect(host.textContent).toBe(`Private content for ${owner}`);
+  });
+
+  it("does not check the account on returning to the tab while an email link is awaited", async () => {
+    await resolveRead(0, Response.json({ authenticated: false }));
+    await act(async () => {
+      await account.signIn(async () => "confirmation_required", "sign-up");
+    });
+    expect(account.awaitingConfirmation).toBe(true);
+    // An accepted sign-up is not a session: an earlier account's cookies may still be in this browser.
+    await act(async () => {
+      window.dispatchEvent(new Event("blur"));
+      window.dispatchEvent(new Event("focus"));
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(reads).toHaveLength(1);
+    expect(account.session.status).toBe("signed_out");
+    // Only an explicit check resumes, and a verified account is no longer waiting for its link.
+    await act(async () => account.refresh());
+    expect(reads).toHaveLength(2);
+    await resolveRead(1, Response.json({ user: { id: owner } }));
+    expect(host.textContent).toBe(`Private content for ${owner}`);
+    expect(account.awaitingConfirmation).toBe(false);
+  });
+
+  // A sign-in that was not answered may have signed someone in: that is a real failed account check.
+  it("does not bypass a pending sign-in and allows explicit recovery only after an unanswered one", async () => {
     await resolveRead(0, Response.json({ user: { id: owner } }));
     const attempt = deferred<void>();
     let result!: ReturnType<typeof account.signIn>;

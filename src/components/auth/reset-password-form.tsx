@@ -9,6 +9,8 @@ import { AuthCard } from "./auth-card";
 import { AuthField, fieldDescription } from "./auth-field";
 
 type FieldErrors = { password?: string; confirm?: string; form?: string };
+/** Where the page is. One at a time: a saved password and an expired link cannot both be true. */
+type ResetStep = "editing" | "saving" | "saved" | "expired";
 const passwordId = "auth-page-new-password";
 const confirmId = "auth-page-confirm-password";
 
@@ -17,9 +19,10 @@ export function ResetPasswordForm({ configured }: { configured: boolean }) {
   const passwordInput = useRef<HTMLInputElement>(null);
   const confirmInput = useRef<HTMLInputElement>(null);
   const pending = useRef(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [expired, setExpired] = useState(false);
+  const [step, setStep] = useState<ResetStep>("editing");
+  const submitting = step === "saving";
+  const saved = step === "saved";
+  const expired = step === "expired";
   const [shown, setShown] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const disabled = !configured || submitting;
@@ -56,15 +59,17 @@ export function ResetPasswordForm({ configured }: { configured: boolean }) {
     }
     setErrors({});
     pending.current = true;
-    setSubmitting(true);
+    setStep("saving");
     try {
       await saveNewPassword(password);
       clearPasswords();
-      setSaved(true);
+      setStep("saved");
       refresh();
     } catch (failure) {
       clearPasswords();
-      if (failure instanceof PasswordResetRequestError && failure.code === "recovery_required") setExpired(true);
+      setStep(
+        failure instanceof PasswordResetRequestError && failure.code === "recovery_required" ? "expired" : "editing",
+      );
       const message = newPasswordErrorMessage(failure);
       setErrors(
         failure instanceof PasswordResetRequestError &&
@@ -74,7 +79,6 @@ export function ResetPasswordForm({ configured }: { configured: boolean }) {
       );
     } finally {
       pending.current = false;
-      setSubmitting(false);
     }
   }
 

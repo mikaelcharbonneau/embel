@@ -193,7 +193,15 @@ describe("identity directions engine with the selected-logo board packet", () =>
     await f.db.exec(
       "update fluid_private.engine_settings set paused = false, global_daily_cost_cap_microusd = 50000000",
     );
-    await f.db.exec("update fluid_private.generation_kinds set enabled = true where kind = 'identity.directions'");
+    // Rounds add up across this suite's tests; the daily limit has its own test in generation-engine.test.ts.
+    await f.db.exec(
+      "update fluid_private.generation_kinds set enabled = true, max_per_day = 50 where kind = 'identity.directions'",
+    );
+    // The same for credits: every test starts with enough for its rounds (assertions compare balances).
+    await f.db.query(
+      "insert into public.credit_entries (owner_id, delta, kind, note) values ($1, 30, 'grant', 'Test allowance')",
+      [OWNER_A],
+    );
   });
 
   async function asEngine<T>(run: () => Promise<T>): Promise<T> {
@@ -593,6 +601,138 @@ describe("identity directions engine with the selected-logo board packet", () =>
     expect(
       await failure(() => f.rpc(OWNER_B, "cancel_identity_directions", [p.projectId, batch.batchId])),
     ).toBeTruthy();
+  });
+
+  it("ends a round whose three boards were all delivered as succeeded, even when Stop or the time limit came last", async () => {
+    const p = await prepared(),
+      before = await balance(OWNER_A);
+    const runRow = async (id: string) =>
+      (await f.db.query("select status, error_code from public.generation_runs where id=$1", [id])).rows[0];
+    const refunds = async (id: string) =>
+      (await f.db.query("select count(*)::int n from public.credit_entries where run_id=$1 and kind='refund'", [id]))
+        .rows[0];
+
+    // Stop arrives after the third board: every board was delivered and paid for.
+    const stopped = await claimed(p);
+    for (const n of [1, 2, 3])
+      await engine("engine_identity_save_board", [
+        stopped.run.id,
+        n,
+        await board(OWNER_A, p.projectId, n),
+        `req_${n}`,
+        1,
+      ]);
+    await f.rpc(OWNER_A, "cancel_identity_directions", [p.projectId, stopped.batch.batchId]);
+    // What the workflow does when it sees the stop request.
+    expect(await engine("engine_finish", [stopped.run.id, "cancelled", "cancelled"])).toMatchObject({
+      status: "succeeded",
+      errorCode: null,
+    });
+    // The run, its job and the credits now say the same thing.
+    expect(await runRow(stopped.run.id)).toEqual({ status: "succeeded", error_code: null });
+    expect(await batchState(OWNER_A, p.projectId, stopped.batch.batchId)).toMatchObject({
+      status: "succeeded",
+      terminal: true,
+      fulfillment: { status: "complete", acceptedCount: 3 },
+    });
+    expect(await refunds(stopped.run.id)).toEqual({ n: 0 });
+    expect(await balance(OWNER_A)).toBe(before - 6);
+  });
+
+  it("ends a round as succeeded when the time limit comes after its third board", async () => {
+    // The workflow died after the third board was saved and never reported the end.
+    const p = await prepared(),
+      before = await balance(OWNER_A),
+      late = await claimed(p);
+    for (const n of [1, 2, 3])
+      await engine("engine_identity_save_board", [late.run.id, n, await board(OWNER_A, p.projectId, n), `req_${n}`, 1]);
+    await f.db.query("update public.generation_runs set started_at = now() - interval '36 minutes' where id=$1", [
+      late.run.id,
+    ]);
+    await f.db.query("select fluid_private.expire_overdue_generation_runs($1)", [OWNER_A]);
+    expect(
+      (await f.db.query("select status, error_code from public.generation_runs where id=$1", [late.run.id])).rows,
+    ).toEqual([{ status: "succeeded", error_code: null }]);
+    expect(await batchState(OWNER_A, p.projectId, late.batch.batchId)).toMatchObject({ status: "succeeded" });
+    expect(await balance(OWNER_A)).toBe(before - 6);
+  });
+
+  it("lets every path the app uses go on after a round ended partial (one board of three)", async () => {
+    // R5: the old project guards still count a partial job as unsettled. That only matters to a
+    // direct deleted_at change (set_project_deleted), which the app no longer calls.
+    const p = await prepared(),
+      { run, batch } = await claimed(p);
+    const first = await engine<{ systemId: string }>("engine_identity_save_board", [
+      run.id,
+      1,
+      await board(OWNER_A, p.projectId, 1),
+      "req_1",
+      1000,
+    ]);
+    await engine("engine_finish", [run.id, "succeeded", "provider_rejected"]);
+    expect(await batchState(OWNER_A, p.projectId, batch.batchId)).toMatchObject({ status: "partial", terminal: true });
+    const project = async () =>
+      (
+        await f.db.query<{ current_revision: number; lifecycle_version: number }>(
+          "select current_revision, lifecycle_version from public.projects where id=$1",
+          [p.projectId],
+        )
+      ).rows[0]!;
+
+    // Choosing the delivered direction.
+    const selected = await selectSystem({ owner: OWNER_A, projectId: p.projectId }, first.systemId);
+    expect(selected.currentSelection.selection.systemVersionId).toBe(first.systemId);
+
+    // Starting another round.
+    const availability = logoBoardAvailabilitySchema.parse(
+      await f.rpc(OWNER_A, "get_identity_directions_availability", [p.projectId]),
+    );
+    expect(availability.status).toBe("available");
+    const again = await start(p, {
+      ...p.intent,
+      expectedLogoRevision: availability.expectedLogoRevision,
+      expectedProjectRevision: availability.expectedProjectRevision,
+      expectedReferenceRevision: availability.expectedReferenceRevision,
+      expectedPreferencesRevision: availability.expectedPreferencesRevision,
+      expectedIdentityRevision: availability.expectedIdentityRevision,
+      idempotencyKey: `directions-${randomUUID()}`,
+    });
+    expect(again.batch).toMatchObject({ status: "running" });
+    await f.rpc(OWNER_A, "cancel_identity_directions", [p.projectId, again.batch.batchId]);
+
+    // Deleting the project (the app's request_project_deletion) and restoring it.
+    let at = await project();
+    const deleted = await f.rpc<{ deletion_state: string }>(OWNER_A, "request_project_deletion", [
+      p.projectId,
+      at.current_revision,
+      at.lifecycle_version,
+    ]);
+    expect(deleted.deletion_state).toBe("deleted");
+    at = await project();
+    const restored = await f.rpc<{ deletion_state: string }>(OWNER_A, "restore_project_deletion", [
+      p.projectId,
+      at.current_revision,
+      at.lifecycle_version,
+    ]);
+    expect(restored.deletion_state).toBe("active");
+
+    // The only path the guards still refuse for a partial job is a direct deleted_at change.
+    // People cannot make one: set_project_deleted is not granted to them, and the app calls
+    // request_project_deletion instead.
+    at = await project();
+    expect(
+      await failure(() =>
+        f.rpc(OWNER_A, "set_project_deleted", [p.projectId, at.current_revision, at.lifecycle_version, true]),
+      ),
+    ).toMatchObject({ code: "42501" });
+    expect(
+      await failure(() =>
+        f.db.query(
+          "update public.projects set deleted_at = now(), lifecycle_version = lifecycle_version + 1 where id=$1",
+          [p.projectId],
+        ),
+      ),
+    ).toMatchObject({ code: "PT409", message: "project_busy" });
   });
 
   it("returns every credit of a round that delivered nothing, and ends a round that ran too long", async () => {

@@ -367,9 +367,11 @@ export type IdentityFulfillment = z.infer<typeof identityFulfillmentSchema>;
  * A round has three facts: the run's status (generation_runs), its job's state (jobs) and its
  * fulfillment (the boards delivered, out of three). This mirrors `engine_identity_close_job`, which
  * `finish_generation_run` calls, in the database's own order of checks: the boards are counted first,
- * so a round stopped after its third board has a cancelled run and a succeeded job, and a round
- * stopped after one board is cancelled, not partial. Only "cancelled" among the run's endings changes
- * the answer. The database closes the job only while it is still working (JOB_WORKING_STATES).
+ * so a round with all three boards is succeeded however it ended, and a round stopped after one
+ * board is cancelled, not partial. Since migration 20261114140000 `finish_generation_run` also ends
+ * the run itself as succeeded once three boards were delivered, so a Stop or the time limit that
+ * arrives after the third board no longer leaves a cancelled or failed run beside a succeeded job.
+ * Only "cancelled" among the run's endings changes the answer. The database closes the job only while it is still working (JOB_WORKING_STATES).
  * Fulfillment then reads from the boards alone: three complete, some partial, none none
  * (`shared_identity_batch_state`). tests/domain/identity-jobs.test.ts fails if the SQL changes.
  */

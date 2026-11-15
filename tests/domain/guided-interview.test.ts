@@ -3,6 +3,7 @@ import { contextSnapshotSchema, missingStrategy } from "../../src/domain/project
 import {
   appendGuidedTurn,
   confirmGuidedSelection,
+  guidedOpenTurn,
   guidedReplySchema,
   guidedSlogan,
   guidedTurnOperation,
@@ -554,5 +555,39 @@ describe("pure guided interview decisions", () => {
     expect(guidedReplySchema.safeParse({ ...reply, stage: "competitors", targetStage: "competitors" }).success).toBe(
       true,
     );
+  });
+
+  it("keeps a finished interview finished when a message is typed", () => {
+    const started = initializeGuidedInterview(context, { ...turn, stage: "personality", purpose: "propose" });
+    const finished = contextSnapshotSchema.parse({
+      ...started,
+      intake: {
+        ...started.intake,
+        conversation: [
+          ...started.intake.conversation!,
+          { id: "comment", kind: "user_message", text: "Why does this personality fit?", createdAt: now },
+        ],
+        guidedInterview: {
+          ...started.intake.guidedInterview!,
+          stage: "complete",
+          answers: [{ stage: "personality", turnId: turn.id, optionIds: [], customText: null, confirmedAt: now }],
+        },
+      },
+    });
+    expect(guidedOpenTurn(finished.intake.guidedInterview)).toBeNull();
+    const message = { id: "comment-turn", userMessageId: "comment", stage: "personality", inputRevision: 9 } as const;
+    // Only a typed message may be added to a finished interview; a new proposal would reopen a step.
+    expect(() => appendGuidedTurn(finished, { ...message, purpose: "propose" })).toThrow(
+      "Request a reply for the current interview stage",
+    );
+    const commented = appendGuidedTurn(finished, { ...message, purpose: "message" });
+    const state = commented.intake.guidedInterview!;
+    expect(state.stage).toBe("complete");
+    expect(state.answers).toEqual(finished.intake.guidedInterview!.answers);
+    expect(guidedOpenTurn(state)).toMatchObject({ id: "comment-turn", purpose: "message" });
+    expect(guidedTurnOperation(guidedOpenTurn(state)!)).toBe("strategy.reformulate");
+    // While a step is open, the open turn is that step's latest unanswered turn, as before.
+    expect(guidedOpenTurn(started.intake.guidedInterview)).toMatchObject({ id: turn.id });
+    expect(guidedOpenTurn(null)).toBeNull();
   });
 });

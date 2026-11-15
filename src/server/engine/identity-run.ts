@@ -22,6 +22,7 @@ import {
 } from "./identity-input";
 import { EngineProviderError, isTerminal, type EngineOpenAI } from "./openai";
 import { ENGINE_BOARD_IMAGE, EngineImageRejectedError, type EngineImages } from "./openai-images";
+import { runStopDecision, stopCode, type RunCheckState } from "./stop-check";
 import { EngineStorageError, type EngineStorage } from "./storage";
 
 // The Creative directions workflow's step logic, with the database, OpenAI,
@@ -33,11 +34,12 @@ import { EngineStorageError, type EngineStorage } from "./storage";
 // API call). Every try is marked as sent in the database before it is sent, so a
 // step that runs again after a crash never pays twice: it fails that direction.
 
-export type EngineRunCheck = { status: string; cancelRequested: boolean; paused: boolean };
+export type EngineRunCheck = RunCheckState;
 /** The run as engine_claim returns it. */
 export type ClaimedIdentityRun = { id: string; ownerId: string; projectId: string; kind: string; input: unknown };
 export type IdentityEngineDb = {
-  check(runId: string): Promise<EngineRunCheck>;
+  /** `engine_check`: null once the run is gone (its account was deleted). */
+  check(runId: string): Promise<EngineRunCheck | null>;
   /** fluid_private.engine_identity_begin */
   begin(runId: string): Promise<unknown>;
   /** fluid_private.engine_identity_save_board */
@@ -248,10 +250,8 @@ export async function pollSpecification(
   runId: string,
   responseId: string,
 ): Promise<SpecificationPoll> {
-  const state = await deps.db.check(runId);
-  if (state.status !== "running") return { state: "stop", code: "cancelled" };
-  if (state.cancelRequested || state.paused)
-    return { state: "stop", code: state.paused ? "generation_paused" : "cancelled" };
+  const stop = stopCode(runStopDecision(await deps.db.check(runId)));
+  if (stop) return { state: "stop", code: stop };
   const response = await deps.openai.retrieve(responseId);
   return isTerminal(response.status) ? { state: "terminal" } : { state: "pending" };
 }
@@ -582,9 +582,15 @@ export async function drawBoard(
   }
   if (inspection.width !== 1024 || inspection.height !== 1024)
     return saveBoard(deps, run, n, failed("invalid_dimensions"), reply.providerRequestId, reply.costMicrousd);
-  // A round stopped while this board was drawn keeps its usage but stores no file.
-  const state = await deps.db.check(run.id).catch(() => null);
-  if (state && (state.status !== "running" || state.cancelRequested))
+  // A round stopped while this board was drawn keeps its usage but stores no file. The board is
+  // already paid for and only free work follows, so a pause alone does not discard it. A check
+  // that could not be read is not a stop; a run that is gone has nothing to store or record.
+  const stop = await deps.db.check(run.id).then(
+    (state) => runStopDecision(state, { afterPaidCall: true }),
+    () => null,
+  );
+  if (stop?.action === "quit" && stop.status === "missing") return { state: "stopped" };
+  if (stop && stop.action !== "continue")
     return saveBoard(deps, run, n, failed("run_stopped"), reply.providerRequestId, reply.costMicrousd);
   const asset = { ownerId: run.ownerId, projectId: run.projectId, assetId: deps.newId(), versionId: deps.newId() };
   for (let tries = 1; ; tries++) {

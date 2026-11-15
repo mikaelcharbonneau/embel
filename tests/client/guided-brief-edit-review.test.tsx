@@ -18,17 +18,21 @@ vi.mock("@/components/visual-directions/visual-directions-page", () => ({ Visual
 vi.mock("@/components/naming/project-naming-workspace", () => ({
   ProjectNamingWorkspace: () => <section data-naming />,
 }));
-vi.mock("@/components/workspace/use-strategy-jobs", () => ({
-  useStrategyJobs: () => ({
-    overview: { jobs: [], availability: { status: "unavailable", operations: [], reason: "worker_unavailable" } },
-    pending: false,
-    readError: null,
-    actionError: null,
-    refresh: vi.fn(),
-    enqueue: vi.fn(),
-    cancel: vi.fn(),
-  }),
-}));
+vi.mock("@/components/workspace/use-strategy-jobs", async () => {
+  const { withStrategyView } = await import("./guided-strategy-hook");
+  return {
+    useStrategyJobs: () =>
+      withStrategyView({
+        overview: { jobs: [], availability: { status: "unavailable", operations: [], reason: "worker_unavailable" } },
+        pending: false,
+        readError: null,
+        actionError: null,
+        refresh: vi.fn(),
+        enqueue: vi.fn(),
+        cancel: vi.fn(),
+      }),
+  };
+});
 
 const when = "2026-11-14T00:00:00Z";
 const account = { status: "ready" as const, userId: crypto.randomUUID(), generation: 1 };
@@ -148,13 +152,15 @@ it("keeps the confirmed answers and the names open when the brief changes, and o
     // The names stay open, and nothing asks for a review.
     expect(host.querySelector("[data-naming]")).not.toBeNull();
     expect(host.textContent).not.toContain("Your strategy needs another look");
-    // One notice says what happened and offers the redo. It names no price.
+    // One notice says what happened and offers the redo. It says redoing uses credits (owner decision,
+    // November 14, 2026) and names no amount and no price.
     const notice = host.querySelector<HTMLElement>(".guided-brief-changed")!;
     expect(notice.textContent).toContain("Your brief changed");
     expect(notice.textContent).toContain(
       "You edited your brief after confirming your Strategy. Your answers and progress are kept. To base them on the new brief, redo Strategy from Competitors.",
     );
-    expect(notice.textContent).not.toMatch(/\$|credit|cost|price/iu);
+    expect(notice.textContent).toContain("Redoing Strategy uses credits.");
+    expect(notice.textContent).not.toMatch(/\$|\d|cost|price/iu);
     expect(saveContext).not.toHaveBeenCalled();
     const redo = button("Redo Strategy")!;
     expect(redo.disabled).toBe(false);

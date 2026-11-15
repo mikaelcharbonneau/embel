@@ -9,6 +9,7 @@ import { MainNavContent, NavFrame, type NavItem } from "@/components/journey/flo
 import { ProjectBarContent, ProjectMenu } from "@/components/journey/project-capsule";
 import { ProjectHeaderContext, projectDocumentTitle, type ProjectHeader } from "@/components/journey/project-header";
 import { AccountSessionProvider, useAccountSession } from "./account-session";
+import { sessionMenuLine, sessionView } from "./session-view";
 import { AccountProfileProvider, useAccountProfile } from "./account-profile-provider";
 import { AccountAccessNotice, useSignOutFlow } from "./account-access";
 import { ActivityDialog } from "./generation-activity";
@@ -170,7 +171,9 @@ function WorkspaceAccount({ pathname, accountPage }: { pathname: string; account
 }
 
 function WorkspaceAccountMenu({ pathname }: { pathname: string }) {
-  const { session, refresh, signingIn, signingUp, signingOut, signOutError } = useAccountSession();
+  const { session, refresh, activity, signingIn, signingOut, signOutError } = useAccountSession();
+  const notice = sessionView({ status: session.status, activity }).notice;
+  const line = notice ? sessionMenuLine(notice) : null;
   const profile = useAccountProfile();
   const billing = useBillingSummary();
   const signOutFlow = useSignOutFlow();
@@ -184,7 +187,7 @@ function WorkspaceAccountMenu({ pathname }: { pathname: string }) {
   const outOfCredits = billing.status === "ready" && creditsLeft(billing.summary) === 0;
 
   const summary = signingIn ? (
-    <span role="status">{signingUp ? "Creating account…" : "Signing in…"}</span>
+    <span role="status">{line}</span>
   ) : checking ? (
     <span role="status">Checking your account…</span>
   ) : ready ? (
@@ -206,10 +209,8 @@ function WorkspaceAccountMenu({ pathname }: { pathname: string }) {
         <span role="status">Checking your plan…</span>
       )}
     </>
-  ) : signOutError ? (
-    <span>Sign-out didn’t finish. Try again, or check your account.</span>
   ) : (
-    <span>Your account couldn’t be checked. Check your connection and try again.</span>
+    <span>{line}</span>
   );
 
   const signOutRow: MenuItem = {

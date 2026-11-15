@@ -104,4 +104,16 @@ describe("generation run lifecycle", () => {
     // 503 can follow an admitted run whose workflow did not start; 500, 502 and 504 prove nothing either.
     for (const status of [500, 502, 503, 504, 0]) expect(startRefusal(status)).toBe("uncertain");
   });
+
+  it("tells a step that is switched off from a start that couldn't be confirmed, by the error code", () => {
+    // The server sends generation_unavailable only when nothing was admitted.
+    expect(startRefusal(503, "generation_unavailable")).toBe("final");
+    // An admitted run whose workflow did not start, any other 503, and a 503 with no code may have started.
+    expect(startRefusal(503, "start_unconfirmed")).toBe("uncertain");
+    expect(startRefusal(503, "integration_unavailable")).toBe("uncertain");
+    expect(startRefusal(503, null)).toBe("uncertain");
+    expect(startRefusal(503)).toBe("uncertain");
+    // The code never weakens a status that already proves nothing started.
+    expect(startRefusal(409, "start_unconfirmed")).toBe("final");
+  });
 });

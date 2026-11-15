@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { ACTIVE_RUN_STATUSES, isRunStopping } from "@/domain/generation-run";
+import { ACTIVE_RUN_STATUSES, generationRunStatusSchema, isRunStopping } from "@/domain/generation-run";
 import {
   namingFeedCursorSchema,
   namingGenerationFeedSchema,
@@ -14,7 +14,7 @@ import {
 import type { AuthenticatedContext } from "../auth/context";
 import { NAMING_KIND, namingEngineRequest } from "../engine/naming";
 import { cancelGeneration, type GenerationRunRow } from "../engine/runs";
-import { startGeneration, WorkflowStartError } from "../engine/start";
+import { resumeUnstartedRuns, startGeneration, WorkflowStartError } from "../engine/start";
 import { ApiError } from "../http/errors";
 import { NAMING_FEED_PAGE_LIMIT, projectKey, rpc, verifyFeed, type NamingStartResult } from "./naming-generation";
 
@@ -46,6 +46,43 @@ export async function getNamingEngineFeed(
     namingGenerationFeedSchema,
   );
   return { ...verifyFeed(auth, project, feed), engine: true };
+}
+
+/**
+ * The feed's status read: a Naming run that was admitted but whose workflow never started is
+ * started again (see resumeUnstartedRuns: after 15 seconds, while the kind is on, and never
+ * twice). The feed only says "queued", so the run is read once more to be sure it is an
+ * engine run without a workflow. Best effort: it never fails the read.
+ */
+export async function resumeNamingEngineRun(
+  auth: AuthenticatedContext,
+  projectId: string,
+  feed: NamingGenerationFeed,
+): Promise<void> {
+  if (feed.run?.state !== "queued") return;
+  try {
+    const { data, error } = await auth.client
+      .from("generation_runs")
+      .select("id,kind,status,workflow_run_id,created_at")
+      .eq("owner_id", auth.userId)
+      .eq("project_id", projectKey(projectId))
+      .eq("kind", NAMING_KIND)
+      .eq("id", feed.run.runId)
+      .maybeSingle();
+    if (error || !data) return;
+    const run = z
+      .object({
+        id: z.uuid(),
+        kind: z.literal(NAMING_KIND),
+        status: generationRunStatusSchema,
+        workflow_run_id: z.string().nullable(),
+        created_at: z.string(),
+      })
+      .safeParse(data);
+    if (run.success) await resumeUnstartedRuns(auth, [run.data]);
+  } catch {
+    /* The feed is still returned; Try again or Stop still work. */
+  }
 }
 
 /** An engine run in the feed's run shape. Engine runs have no separate job: jobId repeats the run id. */
@@ -86,7 +123,7 @@ export async function startNamingEngineRun(
   } catch (error) {
     // Admitted but not started: an uncertain answer, so the screen keeps the request and
     // Try again repeats the same key, which starts it once.
-    if (error instanceof WorkflowStartError) throw new ApiError("internal_error");
+    if (error instanceof WorkflowStartError) throw new ApiError("start_unconfirmed");
     throw error;
   }
   const feed = await getNamingEngineFeed(auth, project);
