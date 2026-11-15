@@ -269,10 +269,3 @@ export function projectJourneyMark(
     current: next.step,
   };
 }
-
-/** "Competitors · 1 of 3", used in Embel's message label. */
-export function journeyPartLabel(step: JourneyStepId, part: string): string {
-  const parts: readonly string[] = JOURNEY.find((item) => item.id === step)?.parts ?? [];
-  const index = parts.indexOf(part);
-  return index < 0 ? part : `${part} · ${index + 1} of ${parts.length}`;
-}

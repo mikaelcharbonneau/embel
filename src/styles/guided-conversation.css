@@ -21,17 +21,6 @@
   flex-shrink: 0;
   scroll-margin-top: 24px;
 }
-.guided-assistant-identity {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-bottom: var(--space-3);
-  font-size: var(--font-size-2);
-  font-weight: 500;
-}
-.guided-assistant-identity img {
-  flex-shrink: 0;
-}
 .guided-assistant-copy {
   font-size: 15px;
   line-height: 24px;

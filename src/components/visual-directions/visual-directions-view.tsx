@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { useId, useState, type ReactNode } from "react";
 import { DirectionTypeSample } from "./direction-type-sample";
-import { EmbelIdentity } from "@/components/workspace/embel-identity";
-import { journeyPartLabel } from "@/domain/journey";
 import { Button, IconButton, Spinner } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { WorkAreaLayer } from "@/components/workspace/work-area-layer";
@@ -142,10 +140,8 @@ export function VisualDirectionsView({
       </StepHeading>
       {!external && (
         <div className="guided-assistant-message identity-conversation-message">
-          <EmbelIdentity label={journeyPartLabel("identity", "Creative direction")} />
           <p className="guided-assistant-copy">
-            Here are three ways to bring {brandName} to life, each built on your chosen logo. Choose the one that feels
-            right.
+            Here are three ways to bring {brandName} to life, each built on your chosen logo.
           </p>
           <section className={`identity-chosen-logo-row ${styles.chosenLogo}`} aria-label="Chosen logo">
             <div className="identity-chosen-logo">{logoPreview}</div>

@@ -1,8 +1,5 @@
 "use client";
 
-import { EmbelIdentity } from "@/components/workspace/embel-identity";
-import { journeyPartLabel } from "@/domain/journey";
-
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -169,8 +166,6 @@ type InspirationProps = {
   continueHidden?: boolean;
   /** The number of likes (brands, parts and your own images) once saved choices are read. */
   onLikes?: (count: number) => void;
-  /** Unused; kept until the Workspace stops passing it (account-guided-interview.tsx). */
-  brandName?: string;
 };
 export function InspirationWorkspace({
   projectId,
@@ -355,7 +350,6 @@ export function InspirationView({
     <h2 className="e-section__title inspiration-question">What do you like?</h2>
   ) : (
     <>
-      <EmbelIdentity label={journeyPartLabel("identity", "Inspiration")} />
       {!conversation && <h1 className="sr-only">Inspiration</h1>}
       <p className="guided-assistant-copy">{lead}</p>
       <h2 className="inspiration-question">What do you like?</h2>

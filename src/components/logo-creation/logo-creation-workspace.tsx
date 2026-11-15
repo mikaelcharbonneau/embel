@@ -42,7 +42,6 @@ import { LogoDownloadControls } from "./logo-download-controls";
 import { prepareSavedLogoConcepts, logoDraftHasProtectedWork, savedInputsStart } from "./saved-inputs-controller";
 import { LogoSavedInputsStatus, type LogoSavedInputState } from "./saved-inputs-status";
 import { LogoTypesChange, LogoTypesQuestion, toggleLogoType } from "./logo-types-question";
-import { EmbelIdentity } from "@/components/workspace/embel-identity";
 import { runWithCreditsInPlace } from "@/components/billing/out-of-credits";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { SelectField } from "@/components/ui/field";
@@ -53,7 +52,6 @@ import { NoCreditsNote, OutOfCreditsInPlace, useCreditBalance } from "./credits-
 import { shownVersion } from "./concept-grid";
 import { logoScreenView } from "./logo-screen-view";
 import { LOGO_SCREEN_START, logoScreenReducer } from "./logo-screen-mode";
-import { journeyPartLabel } from "@/domain/journey";
 import { createPortal } from "react-dom";
 import {
   useWorkspaceChatSlot,
@@ -1368,12 +1366,11 @@ function OwnedLogoCreation({
           </>
         ) : (
           <div className="guided-assistant-message logo-conversation-message" aria-label="Embel">
-            <EmbelIdentity label={journeyPartLabel("identity", "Logo")} />
             <StepHeading className="sr-only">Logo</StepHeading>
             <p className="guided-assistant-copy">
               {activeBatch
-                ? `Here are six concepts for ${brandName}. Pick the one you like most. To change it, tell me what to adjust below.`
-                : `Time for a logo. I’ll draw six concepts for ${brandName}, guided by the designs you liked. First, which kinds of logo should I explore?`}
+                ? `Here are six concepts for ${brandName}.`
+                : `Time for a logo. I’ll draw six concepts for ${brandName}, guided by the designs you liked.`}
             </p>
             {typesQuestion}
           </div>

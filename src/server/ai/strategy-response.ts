@@ -311,8 +311,7 @@ function resultId(responseId: string, index: number): string {
 type ObservedSource = { url: string; title: string };
 // When unverifiable competitors are dropped, the provider's message may count or
 // name them, so a neutral message replaces it.
-const VERIFIED_ONLY_MESSAGE =
-  "Here are the competitors research could verify. Choose any that fit, or name others in your own words.";
+const VERIFIED_ONLY_MESSAGE = "Here are the competitors research could verify.";
 function normalizeGuidedReply(options: {
   value: unknown;
   input: StrategyJobInput;

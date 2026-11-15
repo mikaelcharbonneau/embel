@@ -11,7 +11,6 @@ vi.mock("next/link", () => ({
 
 import {
   JOURNEY,
-  journeyPartLabel,
   journeyProgress,
   journeyStepOfPath,
   journeySteps,
@@ -52,10 +51,6 @@ describe("journey model", () => {
     const steps = journeySteps("identity", new Set(["strategy", "voice"]), { strategy: "/s", voice: "/v" });
     expect(steps.map((step) => step.status)).toEqual(["done", "done", "current", "upcoming"]);
     expect(steps[0]).toMatchObject({ number: 1, href: "/s" });
-  });
-  it("labels a part with its position", () => {
-    expect(journeyPartLabel("strategy", "Audience")).toBe("Audience · 2 of 3");
-    expect(journeyPartLabel("voice", "Unknown")).toBe("Unknown");
   });
 });
 

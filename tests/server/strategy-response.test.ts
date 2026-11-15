@@ -84,9 +84,7 @@ describe("completed research source rejection (synthetic provider responses)", (
       });
       expect(JSON.stringify(result)).not.toContain("unobserved.example");
       // The provider's message may count or name the dropped competitor.
-      expect(result.guidance.message).toBe(
-        "Here are the competitors research could verify. Choose any that fit, or name others in your own words.",
-      );
+      expect(result.guidance.message).toBe("Here are the competitors research could verify.");
       expect(transport.createResponse).toHaveBeenCalledTimes(1);
     },
   );
