@@ -156,9 +156,7 @@ it("keeps the confirmed answers and the names open when the brief changes, and o
     // November 14, 2026) and names no amount and no price.
     const notice = host.querySelector<HTMLElement>(".guided-brief-changed")!;
     expect(notice.textContent).toContain("Your brief changed");
-    expect(notice.textContent).toContain(
-      "You edited your brief after confirming your Strategy. Your answers and progress are kept. To base them on the new brief, redo Strategy from Competitors.",
-    );
+    expect(notice.textContent).toContain("Your Strategy answers are kept.");
     expect(notice.textContent).toContain("Redoing Strategy uses credits.");
     expect(notice.textContent).not.toMatch(/\$|\d|cost|price/iu);
     expect(saveContext).not.toHaveBeenCalled();

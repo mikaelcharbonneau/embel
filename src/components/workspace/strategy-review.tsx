@@ -30,13 +30,13 @@ const startingProfile: Personality = {
   sophistication: 50,
   ruggedness: 50,
 };
-const traits: { label: string; hint: string; dimension: keyof Personality }[] = [
-  { label: "Warm", hint: "Welcoming and human", dimension: "sincerity" },
-  { label: "Thoughtful", hint: "Careful and considered", dimension: "competence" },
-  { label: "Confident", hint: "Clear and assured", dimension: "competence" },
-  { label: "Playful", hint: "Light and unexpected", dimension: "excitement" },
-  { label: "Premium", hint: "Refined and elevated", dimension: "sophistication" },
-  { label: "Expressive", hint: "Distinctive and bold", dimension: "excitement" },
+const traits: { label: string; dimension: keyof Personality }[] = [
+  { label: "Warm", dimension: "sincerity" },
+  { label: "Thoughtful", dimension: "competence" },
+  { label: "Confident", dimension: "competence" },
+  { label: "Playful", dimension: "excitement" },
+  { label: "Premium", dimension: "sophistication" },
+  { label: "Expressive", dimension: "excitement" },
 ];
 
 type ReviewProps = {
@@ -115,10 +115,6 @@ export function PersonalityReview({
       {inline && (
         <fieldset className="project-personality-traits">
           <legend>Choose your brand’s personality</legend>
-          <p>
-            Choose up to three traits to start your own profile. Selected traits set their dimension to 80; other
-            dimensions keep their existing emphasis. Review Advanced settings before confirming.
-          </p>
           <div>
             {traits.map((trait) => (
               <label key={trait.label}>
@@ -141,22 +137,17 @@ export function PersonalityReview({
                     setError("");
                   }}
                 />
-                <span>
-                  <strong>{trait.label}</strong>
-                  <small>{trait.hint}</small>
-                </span>
+                <strong>{trait.label}</strong>
               </label>
             ))}
           </div>
         </fieldset>
       )}
-      <p className="editor-intro">Shape how the brand comes across through Aaker’s five personality dimensions.</p>
       {!inline && (
         <div className="strategy-provider-note">
           <Icon name="offline" size={17} />
           <p>
-            <strong>AI proposals are not connected.</strong> You can enter your own profile or return to this step
-            later.
+            <strong>AI proposals are not connected.</strong>
           </p>
         </div>
       )}
@@ -166,10 +157,6 @@ export function PersonalityReview({
             <Icon name="layers" size={24} />
           </span>
           <h2>No personality profile yet</h2>
-          <p>
-            Start your own profile with equal emphasis at 50 for each dimension. This is a starting point for your
-            edits.
-          </p>
           <button ref={startButton} type="button" className="button secondary" onClick={startProfile}>
             Enter my own profile
             <Icon name="pencil" size={15} />
@@ -249,7 +236,6 @@ export function PersonalityReview({
           <Icon name="check" size={20} />
           <div>
             <strong>Personality review complete</strong>
-            <p>Your confirmed profile stays with this brief.</p>
           </div>
         </div>
       )}
@@ -319,14 +305,11 @@ export function PositioningReview({
 
   return (
     <form className="strategy-review positioning-review" onSubmit={confirmPositioning} noValidate>
-      <p className="editor-intro">
-        Keep one clear statement of who the brand serves, what it offers, and why it matters.
-      </p>
       {!inline && (
         <div className="strategy-provider-note">
           <Icon name="offline" size={17} />
           <p>
-            <strong>AI proposals are not connected.</strong> You can write and refine your own statement here.
+            <strong>AI proposals are not connected.</strong>
           </p>
         </div>
       )}
@@ -334,7 +317,6 @@ export function PositioningReview({
         <div className="strategy-prerequisite">
           <div>
             <strong>Personality needs review</strong>
-            <p>You can draft your statement now. Confirm the personality profile before finishing this review.</p>
           </div>
           <button ref={personalityButton} className="button secondary small" type="button" onClick={onBack}>
             Review personality
@@ -354,14 +336,13 @@ export function PositioningReview({
           maxLength={5000}
           placeholder="Write your positioning statement"
           aria-invalid={(Boolean(error) && !positioning.trim()) || undefined}
-          aria-describedby={`${id}-hint${error ? ` ${id}-error` : ""}`}
+          aria-describedby={error ? `${id}-error` : undefined}
           onChange={(event) => {
             onChange(event.target.value);
             setError("");
           }}
         />
         <div className="positioning-input-footer">
-          <p id={`${id}-hint`}>Use the selected strategy inputs alongside your statement.</p>
           <span aria-label={`${positioning.length} of 5000 characters`}>
             {positioning.length.toLocaleString("en-US")} / 5,000
           </span>
@@ -372,7 +353,6 @@ export function PositioningReview({
           <Icon name="check" size={20} />
           <div>
             <strong>Positioning review complete</strong>
-            <p>Your confirmed statement stays with this brief.</p>
           </div>
         </div>
       )}

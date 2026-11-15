@@ -161,9 +161,6 @@ export function AudienceConversationWidget({
 
   return (
     <form className="audience-conversation-widget" onSubmit={submit} noValidate>
-      <p className="editor-intro">
-        Select the people you want to reach. You can adjust each group’s needs and reasons.
-      </p>
       {draft.knownAudience && !draft.segments.length && (
         <div className="audience-notes">
           <div>
@@ -177,7 +174,7 @@ export function AudienceConversationWidget({
       )}
       {!draft.segments.length && (
         <div className="conversation-widget-empty">
-          <p>No audience suggestions yet. You can add a group you already have in mind.</p>
+          <p>No audience suggestions yet.</p>
           <button ref={addButtonRef} type="button" className="button secondary small" onClick={() => addSegment()}>
             <Icon name="plus" size={15} />
             Add audience

@@ -156,7 +156,6 @@ it("asks one decision at a time, preserves every approach, and revisits without 
   expect(host.querySelectorAll('[role="radio"]')).toHaveLength(0);
   expect(host.querySelector(".naming-save-status")?.textContent).not.toBe("Saved");
   expect(host.textContent).toContain("Apple, BlackBerry, Jaguar");
-  expect(host.textContent).toMatch(/metaphor, symbolism and unexpected associations/i);
   expect(host.querySelectorAll('input[type="range"]')).toHaveLength(0);
   expect(host.textContent).toContain("Saved brand personality");
   expect(host.querySelectorAll(".naming-approach-option")).toHaveLength(11);
@@ -252,7 +251,6 @@ it("saves real guidance before clearing the composer and never admits a run", as
     "Synthetic quiet and warm direction",
   );
   expect(memory.get(account, projectId)?.steeringDraft.instruction).toBe("");
-  expect(host.textContent).toContain("Saved with your Naming choices");
   expect(start).not.toHaveBeenCalled();
 });
 

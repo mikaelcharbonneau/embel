@@ -39,8 +39,6 @@ import {
   resolveNamingChatProgress,
   type NamingChatStep as Step,
 } from "./naming-chat-progress";
-import { EmbelIdentity } from "@/components/workspace/embel-identity";
-import { journeyPartLabel } from "@/domain/journey";
 import styles from "./naming-chat.module.css";
 import "@/styles/conversation.css";
 import "@/styles/guided-interview.css";
@@ -156,7 +154,6 @@ function NamingRecoveryNotice({ memory, account }: { memory: NamingBrainMemory; 
   return (
     <div className="project-naming-notice" role="status">
       <strong>Unfinished Naming work is available</strong>
-      <p>Recover it into this verified account to check the saved version and confirm any unfinished request.</p>
       <div className="project-naming-actions">
         <button type="button" className="button secondary small" onClick={() => memory.recover(account)}>
           Recover my Naming work
@@ -169,12 +166,7 @@ function NamingRecoveryNotice({ memory, account }: { memory: NamingBrainMemory; 
   );
 }
 function Assistant({ children }: { children: ReactNode }) {
-  return (
-    <div className="guided-assistant-message">
-      <EmbelIdentity label={journeyPartLabel("voice", "Name")} />
-      {children}
-    </div>
-  );
+  return <div className="guided-assistant-message">{children}</div>;
 }
 export function NamingApproachWidgets({
   memory,
@@ -482,18 +474,8 @@ export function NamingApproachWidgets({
             {saved.preferences.maximumGraphemes ?? "Flexible"} characters
           </p>
           <p>{saved.preferences.notes}</p>
-          <p>Earlier choices stay saved. New approaches and directness have not been chosen.</p>
         </ContextDetails>
       ) : null}
-      {!inline && (
-        <Assistant>
-          <p className="guided-assistant-copy">
-            {exploring
-              ? "Your choices guide this exploration. Open a name for its story, save your favorites, or refine your direction here."
-              : "Let’s find a name that feels right. Your saved project context is here; we’ll shape the naming direction one choice at a time."}
-          </p>
-        </Assistant>
-      )}
       {sequence
         .filter((item) => progress.confirmed[item] && item !== step)
         .map((item) => (
@@ -530,9 +512,6 @@ export function NamingApproachWidgets({
             </h2>
             {step === "approaches" ? (
               <div className="guided-choice-widget">
-                <p className={styles.hint}>
-                  Choose as many as you like. Each approach leaves room for unusual connections.
-                </p>
                 <div className="naming-approach-options" role="group" aria-label="Naming approaches">
                   {NAMING_APPROACHES.map((approach) => (
                     <button
@@ -551,9 +530,6 @@ export function NamingApproachWidgets({
                     >
                       <strong>{approach.label}</strong>
                       <span>{approach.description}</span>
-                      {approach.id === "real_words" ? (
-                        <span>Explore metaphor, symbolism and unexpected associations.</span>
-                      ) : null}
                       {approach.examples.length ? <small>{approach.examples.join(", ")}</small> : null}
                     </button>
                   ))}
@@ -611,7 +587,6 @@ export function NamingApproachWidgets({
                       maxLength={3200}
                       value={value.requiredText.join("\n")}
                       disabled={blocked || working}
-                      aria-describedby={`${id}-fragments`}
                       onChange={(event) => patch({ requiredText: event.target.value.split("\n") })}
                     />
                   </label>
@@ -622,24 +597,12 @@ export function NamingApproachWidgets({
                       maxLength={3200}
                       value={value.excludedText.join("\n")}
                       disabled={blocked || working}
-                      aria-describedby={`${id}-fragments`}
                       onChange={(event) => patch({ excludedText: event.target.value.split("\n") })}
                     />
                   </label>
                 </div>
-                <p id={`${id}-fragments`} className={styles.hint}>
-                  Enter one fragment per line. Matches include parts of words and ignore case. Accents and punctuation
-                  still matter.
-                </p>
               </div>
             )}
-            {step === "review" && !generationUnavailable ? (
-              <p className="guided-assistant-copy">
-                {exploring
-                  ? "Edit any answer to change the direction for upcoming names. Earlier names keep their original context."
-                  : "Your naming choices are saved and ready to use."}
-              </p>
-            ) : null}
             {readiness.missing.includes("conflicting_text") || readiness.missing.includes("impossible_length") ? (
               <p role="alert">Review required text, excluded text and length limits so they can work together.</p>
             ) : null}
@@ -651,9 +614,7 @@ export function NamingApproachWidgets({
                       <Icon name="check" size="sm" />
                       Saved
                     </>
-                  ) : (
-                    "Your choices save automatically"
-                  )
+                  ) : null
                 ) : state.status === "saving" ? (
                   "Saving…"
                 ) : (
@@ -714,7 +675,6 @@ export function NamingApproachWidgets({
             disabled={blocked}
             onChange={(event) => patch({ notes: event.target.value })}
           />
-          <small>{state.dirty ? "Changes save automatically" : "Saved with your Naming choices"}</small>
         </section>
       ) : null}
       {step === "review" && !generationUnavailable && generationStatus}
@@ -760,9 +720,6 @@ export function NamingApproachWidgets({
           )}
         </div>
       ) : null}
-      {step !== "review" && generationUnavailable && (
-        <p className={styles.hint}>You can finish your choices while name generation is unavailable.</p>
-      )}
       {inline && manualName && (
         <details className={styles.inlineManual}>
           <summary>Add your own name</summary>
@@ -819,13 +776,7 @@ export function NamingApproachWidgets({
             <span className={`e-chip e-chip--static ${styles.nameChip}`}>Name: {nameChoice.name}</span>
           ) : undefined
         }
-        hint={
-          seeds.length || exploring
-            ? "Steers the next names"
-            : inline || compact
-              ? null
-              : "Saves guidance for upcoming names"
-        }
+        hint={null}
         disabled={
           continuing
             ? Boolean(nameChoice?.disabled)

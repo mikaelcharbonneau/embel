@@ -98,7 +98,6 @@ describe("project workspace retains account and saved-state safety without proje
         expect(host.querySelector(".project-access-state")?.textContent).not.toContain("Account status fixture");
       } else {
         expect(host.querySelector(".project-access-state")?.textContent).toContain("Account status fixture");
-        expect(host.querySelector('a[href="/brands"]')?.textContent).toBe("Back to Projects");
       }
       expect(host.textContent).not.toContain("Owned fixture");
       expect(host.querySelector("input")).toBeNull();

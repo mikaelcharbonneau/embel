@@ -123,7 +123,6 @@ it("lists the name's domains without checking any, then checks one domain only w
   vi.stubGlobal("fetch", lookup);
   await render();
   expect(document.querySelector("dialog h2")?.textContent).toBe("River Coil");
-  expect(document.querySelector("dialog")?.textContent).toContain("Your name");
   expect(lookup.mock.calls.map(([, init]) => init.method)).toEqual(["GET"]);
   expect(host.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe("rivercoil");
   // The exact name in the popular extensions, plus the default tweaks.
@@ -257,7 +256,7 @@ it("checks YouTube for the listed handles on one press and links the other platf
   ]);
   const statuses = [...host.querySelectorAll("tbody [data-status]")].map((badge) => badge.textContent);
   expect(statuses).toEqual(["Taken", "Available"]);
-  expect(host.textContent).toContain("For the other platforms, Open shows whether the profile exists.");
+  expect(host.textContent).toContain("Checking doesn’t reserve a handle.");
 });
 
 it("searches the EU register on demand and never presents it as legal clearance", async () => {

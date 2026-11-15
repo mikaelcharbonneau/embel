@@ -100,23 +100,6 @@
   align-items: center;
   gap: var(--space-1-5);
 }
-.field {
-  display: grid;
-  gap: var(--space-3);
-}
-.field p,
-.hint {
-  font-size: var(--font-size-2);
-  line-height: 20px;
-  color: var(--color-text-muted);
-}
-.field small,
-.guidance small {
-  font-size: var(--font-size-1);
-  line-height: 18px;
-  color: var(--color-text-muted);
-  font-weight: 400;
-}
 .guidance {
   display: grid;
   gap: var(--space-2);
@@ -270,10 +253,6 @@
   font: inherit;
   font-weight: 400;
 }
-.lengthForm > p:last-child {
-  margin-top: -10px;
-  font-size: var(--font-size-1);
-}
 @media (max-width: 760px) {
   .fragmentFields label textarea {
     font-size: var(--font-size-4);
@@ -297,11 +276,6 @@
   font: var(--text-title-md);
   letter-spacing: var(--tracking-title-md);
 }
-.namesHint {
-  flex: 1 1 100%;
-  font: var(--text-small);
-  color: var(--color-text-muted);
-}
 .nameNote {
   display: block;
   font: var(--text-small);
@@ -321,10 +295,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
-}
-.namesCount {
-  font: var(--text-small);
-  color: var(--color-text-muted);
 }
 /* The chosen name in the reply box, until the reply box shows chips itself. */
 .nameChip {

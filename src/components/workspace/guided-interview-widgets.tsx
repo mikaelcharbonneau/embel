@@ -28,37 +28,6 @@ const emptyStates: Record<GuidedStage, { icon: IconName; title: string }> = {
   personality: { icon: "type", title: "No personalities yet" },
   slogan: { icon: "type", title: "No slogans yet" },
 };
-export function stageHint(stage: GuidedStage, single: boolean) {
-  if (stage === "slogan") return "Choose one, write your own, or skip for now.";
-  return single ? "Choose one, then press Send." : "Choose one or more, then press Send.";
-}
-
-const words = (text: string) =>
-  new Set(
-    text
-      .toLowerCase()
-      .normalize("NFKC")
-      .split(/[^\p{L}\p{N}]+/u)
-      .filter((word) => word.length > 3),
-  );
-/** Whether a second text mostly repeats the first, so showing it adds nothing. */
-function repeats(first: string, second: string) {
-  const a = first.trim().toLowerCase(),
-    b = second.trim().toLowerCase();
-  if (!b || a.includes(b) || b.includes(a)) return true;
-  const shown = words(a),
-    extra = [...words(b)];
-  return extra.length > 0 && extra.filter((word) => shown.has(word)).length / extra.length >= 0.5;
-}
-
-function Detail({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <span className="guided-option__detail">
-      <span className="guided-option__label">{label}</span>
-      <span>{children}</span>
-    </span>
-  );
-}
 function Tags({ items }: { items: readonly string[] }) {
   return (
     <span className="e-cluster guided-option__tags">
@@ -71,59 +40,29 @@ function Tags({ items }: { items: readonly string[] }) {
   );
 }
 
-/** What a card says beyond its title and description. Phrasing content only: it sits inside the card's label. */
+/** What a card shows beyond its title and description. Phrasing content only: it sits inside the card's label. */
 function OptionDetails({ option, recommended }: { option: GuidedOption; recommended: boolean }) {
   const badge = recommended ? <span className="e-badge guided-option__recommended">Recommended</span> : null;
-  const reason =
-    recommended && option.recommendationReason && option.stage !== "competitors" && option.stage !== "positioning" ? (
-      <Detail label="Why we recommend it">{option.recommendationReason}</Detail>
-    ) : null;
-  if (option.stage === "competitors")
-    return badge || !repeats(option.description, option.payload.relevance) ? (
-      <>
-        {badge}
-        {!repeats(option.description, option.payload.relevance) && (
-          <Detail label="Why it matters">{option.payload.relevance}</Detail>
-        )}
-      </>
-    ) : null;
   if (option.stage === "audience")
     return (
       <>
         {badge}
-        {option.payload.needs.length > 0 && <Detail label="What they need">{option.payload.needs.join(" · ")}</Detail>}
-        {option.payload.reason.trim() !== option.description.trim() && (
-          <Detail label="Why they fit">{option.payload.reason}</Detail>
-        )}
-        {reason}
+        {option.payload.needs.length > 0 && <Tags items={option.payload.needs} />}
       </>
     );
   if (option.stage === "positioning")
     return (
       <>
         {badge}
-        <Detail label="Why it works">{option.payload.why}</Detail>
-        <Detail label="What you’ll lead with">
-          <Tags items={option.payload.leads} />
-        </Detail>
+        <Tags items={option.payload.leads} />
       </>
     );
   if (option.stage === "personality")
     return (
       <>
         {badge}
-        {option.payload.traits.length > 0 && (
-          <Detail label="Traits">
-            <Tags items={option.payload.traits} />
-          </Detail>
-        )}
-        {option.payload.expression.trim() !== option.description.trim() && (
-          <Detail label="How it comes to life">{option.payload.expression}</Detail>
-        )}
-        <Detail label="Example tone">
-          <span className="guided-option__tone">“{option.payload.toneExample}”</span>
-        </Detail>
-        {reason}
+        {option.payload.traits.length > 0 && <Tags items={option.payload.traits} />}
+        <span className="guided-option__tone">“{option.payload.toneExample}”</span>
       </>
     );
   return badge;
@@ -162,28 +101,11 @@ function OptionReferences({ option }: { option: GuidedOption }) {
   );
 }
 
-/** The step's heading in the work area: its question and how to answer. */
-export function StepHeading({
-  title,
-  hint,
-  hintId,
-  aside,
-}: {
-  title: string;
-  hint?: ReactNode;
-  hintId?: string;
-  aside?: ReactNode;
-}) {
+/** The step's heading in the work area: its question. */
+export function StepHeading({ title, aside }: { title: string; aside?: ReactNode }) {
   return (
     <div className="e-cluster e-cluster--between e-cluster--top conversation-step__head">
-      <div className="e-stack e-stack--xs">
-        <h2 className="e-section__title">{title}</h2>
-        {hint ? (
-          <p className="e-section__hint" id={hintId}>
-            {hint}
-          </p>
-        ) : null}
-      </div>
+      <h2 className="e-section__title">{title}</h2>
       {aside}
     </div>
   );
@@ -235,18 +157,7 @@ export function GuidedChoices({
 
   return (
     <section className="e-stack e-stack--lg conversation-step" aria-labelledby={`${id}-title`}>
-      <StepHeading
-        title={reply.question}
-        hint={stageHint(reply.stage, single)}
-        hintId={`${id}-hint`}
-        aside={
-          !single && !competitors ? (
-            <span className="e-section__hint" role="status">
-              {selected.length} selected
-            </span>
-          ) : undefined
-        }
-      />
+      <StepHeading title={reply.question} />
       <span id={`${id}-title`} hidden>
         {reply.question}
       </span>
@@ -254,7 +165,6 @@ export function GuidedChoices({
         <ChoiceGroup
           legend={reply.question}
           hideLegend
-          describedBy={`${id}-hint`}
           columns={competitors ? "list" : 2}
           className={`guided-choices guided-choices--${reply.stage}`}
         >
@@ -305,16 +215,10 @@ export function GuidedChoices({
           variant="results"
           icon={emptyStates[reply.stage].icon}
           title={emptyStates[reply.stage].title}
-          text="No options are available for this question yet. You can reply in the chat."
+          text="You can reply in the chat."
         />
       )}
       {additionalControls}
-      {competitors && (
-        <p className="e-section__hint" role="status">
-          {selected.length} selected.
-          {selected.length === 0 ? " Choose at least one competitor to continue." : ""}
-        </p>
-      )}
     </section>
   );
 }
@@ -334,10 +238,7 @@ export function GuidedChoicesLoading({ stage, title }: { stage: GuidedStage; tit
   const rows = stage === "competitors";
   return (
     <section className="e-stack e-stack--lg conversation-step" aria-label={title ?? stageQuestions[stage]}>
-      <StepHeading
-        title={title ?? stageQuestions[stage]}
-        hint={stage === "competitors" ? undefined : stageHint(stage, stage !== "audience")}
-      />
+      <StepHeading title={title ?? stageQuestions[stage]} />
       <LoadingRegion label={rows ? "Researching competitors" : "Writing options"}>
         <div className={rows ? "e-stack e-stack--md" : "e-grid-choices"}>
           {[0, 1, 2].map((index) => (
@@ -366,19 +267,12 @@ export function GuidedChoicesEmpty({
 }) {
   return (
     <section className="e-stack e-stack--lg conversation-step" aria-label={title ?? stageQuestions[stage]}>
-      <StepHeading
-        title={title ?? stageQuestions[stage]}
-        hint={stage === "competitors" ? undefined : stageHint(stage, stage !== "audience")}
-      />
+      <StepHeading title={title ?? stageQuestions[stage]} />
       <EmptyState
         variant="results"
         icon={emptyStates[stage].icon}
         title={emptyStates[stage].title}
-        text={
-          research
-            ? "They appear here when the research finishes."
-            : "They appear here when the response finishes. You can also reply in the chat."
-        }
+        text={research ? undefined : "You can reply in the chat."}
       />
     </section>
   );
@@ -386,12 +280,12 @@ export function GuidedChoicesEmpty({
 
 /** A step of Strategy that is no longer confirmed although the conversation has moved past it. */
 export type StrategyReviewStep = "brief" | Exclude<GuidedStage, "slogan">;
-const reviewSteps: Record<StrategyReviewStep, { action: string; text: string }> = {
-  brief: { action: "Edit brief", text: "Add a description to your brief to continue to names." },
-  competitors: { action: "Review competitors", text: "Review your competitors to continue to names." },
-  audience: { action: "Review audience", text: "Review your audience to continue to names." },
-  positioning: { action: "Review positioning", text: "Review your positioning to continue to names." },
-  personality: { action: "Review personality", text: "Review your personality to continue to names." },
+const reviewActions: Record<StrategyReviewStep, string> = {
+  brief: "Edit brief",
+  competitors: "Review competitors",
+  audience: "Review audience",
+  positioning: "Review positioning",
+  personality: "Review personality",
 };
 /** The work area when Strategy has no confirmation although the conversation moved on: it says so and offers
  * the step to reopen, instead of waiting for a response nobody asked for. A brief edit used to cause this and no
@@ -412,10 +306,9 @@ export function GuidedStrategyReview({
         variant="results"
         icon="rotate-ccw"
         title={title}
-        text={`Part of your strategy is no longer confirmed. ${reviewSteps[step].text}`}
         action={
           <Button variant="primary" size="sm" disabled={disabled} onClick={onReview}>
-            {reviewSteps[step].action}
+            {reviewActions[step]}
           </Button>
         }
       />
@@ -442,7 +335,7 @@ export function FoldedPart({
   return (
     <div className="e-stack e-stack--xs conversation-folded__part">
       <span className="e-answer__question">{label}</span>
-      <p>{answers.length ? answers.join(", ") : "Skipped for now. You can add it later."}</p>
+      <p>{answers.length ? answers.join(", ") : "Skipped"}</p>
       <div>
         <Button size="sm" disabled={disabled} aria-label={editName} onClick={onEdit}>
           {editLabel}

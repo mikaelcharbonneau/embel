@@ -11,15 +11,18 @@
 
 /* Your messages: a labelled bubble on the right. */
 
-/* Embel's messages: round avatar on the left, everything else beside it. */
+/* Embel's messages: plain text in the chat; with an avatar, the avatar on the left and everything else beside it. */
 :is(.project-workspace, .guided-interview-opening) .guided-assistant-message {
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   column-gap: var(--space-3);
   align-items: start;
 }
+:is(.project-workspace, .guided-interview-opening) .guided-assistant-message:has(> .guided-assistant-identity) {
+  grid-template-columns: 32px minmax(0, 1fr);
+}
 :is(.project-workspace, .guided-interview-opening) .guided-assistant-message > * {
-  grid-column: 2;
+  grid-column: -2;
 }
 :is(.project-workspace, .guided-interview-opening) .guided-assistant-message > .guided-assistant-identity {
   display: contents;
