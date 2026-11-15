@@ -112,7 +112,6 @@ const logoImage = logoCanvas.toDataURL("image/png");
 function Preview({ boards }: { boards: string[] }) {
   const mode = new URLSearchParams(location.search).get("state") ?? "complete";
   const [selected, setSelected] = useState<string | null>(mode === "complete" ? "1" : null);
-  const [message, setMessage] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
   const amount = mode === "empty" ? 0 : mode === "partial" ? 2 : 3;
   const cards = designs.map((d, index): VisualDirectionCard | null =>
@@ -137,10 +136,7 @@ function Preview({ boards }: { boards: string[] }) {
               </div>
             </figure>
           ),
-          onChoose: () => {
-            setSelected(String(index));
-            setMessage("Direction saved.");
-          },
+          onChoose: () => setSelected(String(index)),
         },
   ) as [VisualDirectionCard | null, VisualDirectionCard | null, VisualDirectionCard | null];
   return (
@@ -166,12 +162,10 @@ function Preview({ boards }: { boards: string[] }) {
           generation={{
             status: started ? "queued" : mode === "empty" ? "idle" : mode === "partial" ? "partial" : "complete",
             completed: amount,
-            usageLabel: amount ? "Recorded usage for this set: $0.04" : null,
             onGenerate: () => setStarted(true),
-            onCheck: () => setMessage("Progress checked."),
+            onCheck: () => {},
             onStop: () => setStarted(false),
           }}
-          selectionStatus={message}
           finalAction={
             selected !== null && (
               <a className="identity-primary-button" href="#brand-assets">

@@ -6,7 +6,6 @@
   container-type: inline-size;
 }
 
-.caption,
 .note {
   color: var(--color-text-muted);
   font-size: var(--font-size-1);

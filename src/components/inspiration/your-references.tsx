@@ -60,21 +60,18 @@ export function useYourReferences(account: VerifiedAccount, projectId: string): 
       });
       if (!saved) {
         setProgress(null);
-        if (index + 1 < files.length)
+        const left = files.length - index - 1;
+        if (left)
           upload.setNotice(
             (previous) =>
-              `${previous ?? "An image could not be added."} ${files.length - index - 1} more ${files.length - index - 1 === 1 ? "image was" : "images were"} not added; add ${files.length - index - 1 === 1 ? "it" : "them"} again once this is resolved.`,
+              `${previous ?? "An image could not be added."} ${left} more ${left === 1 ? "image was" : "images were"} not added.`,
           );
         return;
       }
       setProgress({ done: index + 1, total: files.length });
     }
     setProgress(null);
-    upload.setNotice(
-      files.length === 1
-        ? "Image added. Like it to use it as inspiration."
-        : `${files.length} images added. Like the ones to use as inspiration.`,
-    );
+    upload.setNotice(files.length === 1 ? "Image added." : `${files.length} images added.`);
   }
   const items = reference.page?.references.items.filter(userSupplied) ?? [];
   const liked = items.filter((entry) => entry.reaction.ensemble).length;
@@ -120,8 +117,7 @@ export function useYourReferences(account: VerifiedAccount, projectId: string): 
   ) : retained ? (
     <div className="inspiration-yours-status inspiration-recovery" role="status">
       <p>
-        {upload.notice ??
-          `“${retained.input.metadata.attribution.label}” is still being added. Keep this page open so the original file is kept.`}
+        {upload.notice ?? `“${retained.input.metadata.attribution.label}” is still being added. Keep this page open.`}
       </p>
       <div>
         <button type="button" disabled={upload.busy} onClick={() => void upload.check()}>
@@ -155,7 +151,6 @@ export function useYourReferences(account: VerifiedAccount, projectId: string): 
         <header className="inspiration-brand-header">
           <span className="inspiration-brand-title">
             <strong>Your images</strong>
-            <span className="inspiration-yours-count">{shown.length === 1 ? "1 image" : `${shown.length} images`}</span>
           </span>
         </header>
         <div className="inspiration-yours-grid">
@@ -184,9 +179,7 @@ export function useYourReferences(account: VerifiedAccount, projectId: string): 
           })}
         </div>
         {atLimit && !likedOnly && (
-          <p className="inspiration-yours-limit">
-            You’ve liked three of your own images, the most Embel can use. Unlike one to choose another.
-          </p>
+          <p className="inspiration-yours-limit">You can like up to three of your own images.</p>
         )}
         {reference.error && (
           <p className="inspiration-yours-status" role="alert">

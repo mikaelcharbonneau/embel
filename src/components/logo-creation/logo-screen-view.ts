@@ -157,24 +157,24 @@ export function logoScreenView(situation: LogoScreenSituation): LogoScreenView {
       ? "Loading saved concepts…"
       : choiceSaving
         ? "Saving your choice…"
-        : !drawingNow && hasChosenLogo && chosenLabel
-          ? `${chosenLabel.replace(" · ", ", ").replace("Version", "version")} · ${readyCount} concepts`
-          : `${readyCount} of 6 concepts ready`;
+        : drawingNow || readyCount < 6
+          ? `${readyCount} of 6 concepts ready`
+          : "";
 
   const conceptsDrawing = drawingNow || situation.conceptRunActive;
   const failedNow = situation.failedCount > 0 && !conceptsDrawing;
   const chosenConcept = chosenLabel?.split(" · ")[0];
   const stateMessage = refineRunActive
-    ? "I’m changing your logo. The new version appears on the right when it’s ready."
+    ? "I’m changing your logo."
     : conceptsDrawing
-      ? `I’m drawing six concepts for ${brandName}. They appear on the right as each one is ready.`
+      ? `I’m drawing six concepts for ${brandName}.`
       : !hasBatch
-        ? `Time for a logo. I’ll draw six concepts for ${brandName}, guided by the designs you liked. First, choose the kinds of logo to explore on the right, then press Send.`
+        ? `Time for a logo. I’ll draw six concepts for ${brandName}, guided by the designs you liked.`
         : hasChosenLogo && chosenConcept
-          ? `${chosenConcept} is your logo. ${canDescribeChange ? "To change it, describe the change below. " : ""}When you’re happy with it, press Send to continue to Creative direction.`
+          ? `${chosenConcept} is your logo.`
           : failedNow
             ? ""
-            : `Here are six concepts for ${brandName}. Choose the one you like most on the right. You can change it afterwards.`;
+            : `Here are six concepts for ${brandName}.`;
   // A run that just ended without its result is said first, then what the person can do now.
   const stepMessage = [situation.runEndSentence, stateMessage].filter(Boolean).join(" ");
 

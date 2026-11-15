@@ -139,7 +139,7 @@ export function LogoConceptGridView({
   /** Verifies and loads each private preview as a blob URL. */
   client?: AccountLogoClient | null;
   title: ReactNode;
-  /** The ready count or the chosen concept, under the title. */
+  /** Under the title: loading, saving, or the ready count until all six are ready (empty then). */
   subtitle: ReactNode;
   /** The heading row's actions: the version menu, Download PNG, More concepts, Retry. */
   actions?: ReactNode;
@@ -256,9 +256,6 @@ export function LogoConceptGridView({
             }
           >
             <MediaFrame ratio="16x9" contain src={urls[shown.ordinal]} alt={`Concept ${shown.ordinal + 1}, enlarged`} />
-            <p className="e-muted">
-              {position + 1} of {viewable.length} concepts
-            </p>
           </Dialog>
         </WorkAreaLayer>
       ) : null}

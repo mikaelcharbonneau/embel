@@ -1,46 +1,10 @@
 "use client";
 
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import type {
-  IdentityBoardPreview,
-  IdentityFreshness,
-  IdentityProductionFile,
-  IdentitySystemSource,
-} from "@/domain/project-identity";
+import type { IdentityBoardPreview } from "@/domain/project-identity";
 import { identityErrorMessage, type AccountIdentityClient } from "./account-identity-client";
 import { privatePreviewIdentity } from "../assets/private-preview-identity";
 
-export function identitySourceLabel(source: IdentitySystemSource): string {
-  return source.kind === "generated"
-    ? "Generated system"
-    : source.component === "colors"
-      ? "Manual colors edit"
-      : "Manual typography edit";
-}
-const componentLabels = {
-  logo: "logo",
-  colors: "colors",
-  typography: "typography",
-  graphics: "graphics",
-  imagery: "imagery",
-  composition: "composition",
-};
-export function IdentityFreshnessNotice({ freshness }: { freshness: IdentityFreshness }) {
-  if (freshness.status === "current") return <p className="identity-freshness">Matches the saved brand inputs</p>;
-  if (freshness.status === "unavailable")
-    return (
-      <p className="identity-freshness identity-freshness-stale">
-        {freshness.reason === "missing_name"
-          ? "Add a saved brand name to compare this system with current inputs."
-          : "The saved brand names disagree. Correct them before choosing or editing a system."}
-      </p>
-    );
-  return (
-    <p className="identity-freshness identity-freshness-stale">
-      Earlier inputs: {freshness.changed.map((key) => (key === "strategy" ? "Strategy" : key)).join(", ")}
-    </p>
-  );
-}
 export function IdentitySystemBoard({
   board,
   name,
@@ -147,86 +111,8 @@ export function IdentitySystemBoard({
         )}
       </div>
       {board.staleComponents.length > 0 && (
-        <figcaption className="identity-board-stale">
-          Preview predates this edit: {board.staleComponents.map((component) => componentLabels[component]).join(", ")}.
-          The saved component specifications below contain the changes.
-        </figcaption>
+        <figcaption className="identity-board-stale">This preview is from before your last edit.</figcaption>
       )}
     </figure>
-  );
-}
-function IdentityFile({ file, client }: { file: IdentityProductionFile; client: AccountIdentityClient }) {
-  const [state, setState] = useState<{
-    client: AccountIdentityClient;
-    pending: boolean;
-    message: string | null;
-  } | null>(null);
-  const pending = state?.client === client && state.pending;
-  async function download() {
-    if (!client.current() || pending) return;
-    setState({ client, pending: true, message: null });
-    try {
-      const reply = await client.download(file.asset);
-      if (!reply || !client.current()) return;
-      const anchor = document.createElement("a");
-      anchor.href = reply.url;
-      anchor.rel = "noopener noreferrer";
-      anchor.referrerPolicy = "no-referrer";
-      anchor.download = "";
-      anchor.click();
-      setState({ client, pending: false, message: "A checked download link was opened." });
-    } catch (error) {
-      if (client.current()) setState({ client, pending: false, message: identityErrorMessage(error, "file") });
-    }
-  }
-  return (
-    <li>
-      <div>
-        <strong>{file.role}</strong>
-        <span>
-          {componentLabels[file.component]} · {file.asset.mimeType}
-        </span>
-      </div>
-      <button
-        type="button"
-        className="text-link"
-        disabled={pending}
-        onClick={() => {
-          void download();
-        }}
-      >
-        {pending ? "Checking file…" : "Check and download"}
-      </button>
-      {state?.client === client && state.message && <p role="status">{state.message}</p>}
-    </li>
-  );
-}
-export function IdentityProductionFiles({
-  files,
-  client,
-}: {
-  files: IdentityProductionFile[];
-  client: AccountIdentityClient;
-}) {
-  return (
-    <section className="identity-files" aria-label="Production files">
-      <h4>Production files</h4>
-      {files.length ? (
-        <>
-          <p>Saved file roles and formats. Each download checks the private original.</p>
-          <ul>
-            {files.map((file) => (
-              <IdentityFile
-                key={`${file.component}:${file.role}:${file.asset.versionId}`}
-                file={file}
-                client={client}
-              />
-            ))}
-          </ul>
-        </>
-      ) : (
-        <p>No separate production files are attached to this system.</p>
-      )}
-    </section>
   );
 }
