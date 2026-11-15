@@ -187,7 +187,7 @@ async function concepts(page, b) {
   if (b.failedLogoSlots) {
     // The round ends once the refused images are recorded as failed.
     await expect(page.getByRole("button", { name: /Retry/u }).first()).toBeVisible({ timeout: GENERATION });
-  } else await expect(grid.getByText(/6 of 6 concepts ready/u)).toBeVisible({ timeout: GENERATION });
+  }
 }
 
 async function chooseLogo(page, b) {
@@ -217,10 +217,7 @@ async function directions(page) {
       .filter({ has: page.locator(".e-answer__question", { hasText: /^Logo$/u }) })
       .getByRole("img", { name: "Chosen logo concept", exact: true }),
   ).toBeVisible({ timeout: GENERATION });
-  await expect(
-    step.getByRole("region", { name: "Creative directions", exact: true }).getByText("3 of 3 ready", { exact: true }),
-  ).toBeVisible({ timeout: GENERATION });
-  await expect(step.getByRole("img", { name: /^Saved Identity board for /u })).toHaveCount(3);
+  await expect(step.getByRole("img", { name: /^Saved Identity board for /u })).toHaveCount(3, { timeout: GENERATION });
 }
 
 async function complete(page) {

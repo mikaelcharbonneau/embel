@@ -354,7 +354,7 @@ state("home", "empty-fresh", "audit-fresh", async (page) => {
 });
 state("projects", "empty-fresh", "audit-fresh", async (page) => {
   await open(page, "audit-fresh", "/brands");
-  await page.getByRole("heading", { name: "Your first project starts with an idea" }).waitFor({ timeout: 30_000 });
+  await page.getByRole("heading", { name: "No projects yet" }).waitFor({ timeout: 30_000 });
   await loaded(page);
 });
 state("projects-deleted", "empty-fresh", "audit-fresh", async (page) => {
@@ -818,7 +818,7 @@ state("brand-conversation", "logo-step-no-type-selected-disabled-explore-free", 
     const toggle = types.getByRole("checkbox", { name: type, exact: true });
     if (await toggle.isChecked()) await toggle.uncheck();
   }
-  await page.getByText("Choose at least one type").first().waitFor({ timeout: 10_000 });
+  await page.locator('button:disabled:has-text("Explore six concepts")').first().waitFor({ timeout: 10_000 });
   await loaded(page);
 });
 

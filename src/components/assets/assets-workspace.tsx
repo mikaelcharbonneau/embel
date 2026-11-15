@@ -57,7 +57,6 @@ export function AssetsWorkspace() {
       ) : (
         <SignedOutEmptyState
           title="Sign in to see your library"
-          text="Your logos, direction boards and brand images are kept in your account."
           fallback={<AccountStatus signedOut="Sign in to see your library." />}
         />
       )}

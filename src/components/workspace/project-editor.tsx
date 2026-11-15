@@ -530,7 +530,6 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
     <div className="home-intake conversation-intake">
       <div className="home-introduction">
         <h1 className="text-display">Your next brand starts here.</h1>
-        <p>Describe the idea. Embel asks a few questions, then builds the name, logo and look with you.</p>
       </div>
       {resumedPrompt && !hiddenPrompt && (
         <div className="prompt-recovery-notice">
@@ -628,7 +627,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
                     status: "unavailable",
                     reason:
                       currentCapability?.reason ??
-                      (account ? "Checking verified file storage…" : "Sign in to save verified input files."),
+                      (account ? "Checking verified file storage…" : "Sign in to add files."),
                   }
             }
             disabled={inputControlsHeld}

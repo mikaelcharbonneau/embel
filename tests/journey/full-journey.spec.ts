@@ -173,9 +173,8 @@ test("a new brand goes from the first prompt to downloadable assets", async ({ p
     // One deliberate click starts the round: no quote or confirmation screen.
     await draw.click();
     const concepts = page.getByRole("region", { name: "Logo concepts", exact: true });
-    await expect(concepts.getByText(/6 of 6 concepts ready/u)).toBeVisible({ timeout: GENERATION });
     // Artwork only (decision 4): each ready concept is one picture button, named after the concept.
-    await expect(concepts.getByRole("button", { name: /^Concept [1-6]$/u })).toHaveCount(6);
+    await expect(concepts.getByRole("button", { name: /^Concept [1-6]$/u })).toHaveCount(6, { timeout: GENERATION });
     await concepts.getByRole("button", { name: "Concept 1", exact: true }).click();
     await expect(concepts.getByRole("heading", { name: "Your logo", exact: true })).toBeVisible();
     await expect(replyBox(page).getByText("Logo: Concept 1", { exact: true })).toBeVisible();
@@ -191,10 +190,9 @@ test("a new brand goes from the first prompt to downloadable assets", async ({ p
         .filter({ has: page.locator(".e-answer__question", { hasText: /^Logo$/u }) })
         .getByRole("img", { name: "Chosen logo concept", exact: true }),
     ).toBeVisible({ timeout: GENERATION });
-    await expect(
-      step.getByRole("region", { name: "Creative directions", exact: true }).getByText("3 of 3 ready", { exact: true }),
-    ).toBeVisible({ timeout: GENERATION });
-    await expect(step.getByRole("img", { name: /^Saved Identity board for /u })).toHaveCount(3);
+    await expect(step.getByRole("img", { name: /^Saved Identity board for /u })).toHaveCount(3, {
+      timeout: GENERATION,
+    });
     await expectNoCostEstimate(page);
     // Each board has a real Choose button; the chosen one reads Chosen (pressed).
     const first = step
