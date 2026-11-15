@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   billingRedirectResponseSchema,
@@ -11,12 +10,7 @@ import {
   type BillingSummary,
   type PlanId,
 } from "@/domain/billing";
-import {
-  COMPLETE_BRAND_CREDITS,
-  COMPLETE_BRAND_CREDITS_REQUIRED,
-  completeBrandsPerMonth,
-  STEP_CREDITS,
-} from "@/domain/step-credits";
+import { COMPLETE_BRAND_CREDITS, COMPLETE_BRAND_CREDITS_REQUIRED, STEP_CREDITS } from "@/domain/step-credits";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/feedback";
 import { Icon } from "@/components/ui/icon";
@@ -38,12 +32,6 @@ import "@/styles/plans.css";
 export type PlansReturnState = "checkout_success" | "checkout_cancelled" | "portal_updated" | null;
 
 const ORDER: PlanId[] = ["free", "pro", "studio"];
-/** What each plan is for, under its credits. */
-const PLAN_PITCH: Record<PlanId, string> = {
-  free: "Try the full branding journey, with credits to spare for a second set of logo concepts.",
-  pro: "For building a brand from idea to assets, with room to redo any step until it is right.",
-  studio: "For people working on several brands.",
-};
 /** The one plan the page recommends to someone on Free or signed out. */
 const RECOMMENDED: PlanId = "pro";
 
@@ -88,19 +76,7 @@ export function PlansWorkspace({ returnState = null }: { returnState?: PlansRetu
   let body: ReactNode;
   if (session.status === "ready")
     body = <OwnedPlans key={`${session.userId}:${session.generation}`} account={session} returnState={returnState} />;
-  else if (session.status === "signed_out")
-    body = (
-      <>
-        <PlanGrid view={{ kind: "signed_out" }} />
-        <p className="plans-sign-in">
-          Already have an account?{" "}
-          <Link className="e-link" href="/sign-in">
-            Sign in
-          </Link>{" "}
-          to see your plan and credits.
-        </p>
-      </>
-    );
+  else if (session.status === "signed_out") body = <PlanGrid view={{ kind: "signed_out" }} />;
   else if (session.status === "checking") body = <LoadingPlans />;
   else
     body = (
@@ -113,10 +89,7 @@ export function PlansWorkspace({ returnState = null }: { returnState?: PlansRetu
     );
   return (
     <div className="e-container e-page plans-page">
-      <header className="plans-heading">
-        <h1>Plans</h1>
-        <p>Every plan includes the full branding journey. Paid plans add more credits each month.</p>
-      </header>
+      <h1 className="plans-title">Plans</h1>
       {body}
       <CreditPrices />
       <p className="plans-footnote">
@@ -468,7 +441,6 @@ function PlanGrid({ view }: { view: GridView }) {
       {ORDER.map((id) => {
         const catalog = PLAN_CATALOG[id];
         const monthly = monthlyCredits(owned?.summary ?? null, id);
-        const brands = completeBrandsPerMonth(monthly);
         const isCurrent = current === id;
         return (
           <li key={id} className="e-card e-card--pad e-plan plans-card" data-selected={isCurrent || undefined}>
@@ -486,21 +458,9 @@ function PlanGrid({ view }: { view: GridView }) {
             <p className="e-plan__price">
               {formatMonthlyPrice(catalog.monthlyPriceCents)} <small>USD a month</small>
             </p>
-            <p className="plans-card__outcome">
-              About {brands} complete {brands === 1 ? "brand" : "brands"} a month
+            <p className="plans-card__credits">
+              <strong>{monthly.toLocaleString("en-US")}</strong> credits every month
             </p>
-            <ul className="e-list-check plans-card__list">
-              <li>
-                <Icon name="check" size="sm" />
-                <span>
-                  <strong>{monthly.toLocaleString("en-US")}</strong> credits every month
-                </span>
-              </li>
-              <li>
-                <Icon name="check" size="sm" />
-                <span>{PLAN_PITCH[id]}</span>
-              </li>
-            </ul>
             <PlanAction id={id} view={view} />
           </li>
         );

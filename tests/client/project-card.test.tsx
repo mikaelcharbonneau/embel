@@ -313,11 +313,7 @@ describe("shared Home and Projects card", () => {
     expect(host.querySelector("h2")?.getAttribute("title")).toBe(title);
     expect(host.querySelector("h2")?.textContent).toBe(title);
     expect(link()).toEqual({ name: title, description: "Brand kit ready" });
-    const created = host.querySelector("time")!;
-    expect(created.getAttribute("datetime")).toBe("2026-10-20T00:00:00Z");
-    expect(created.textContent).toMatch(/^Created /);
-    expect(created.getAttribute("title")).toMatch(/2026/);
-    expect(created.getAttribute("title")).not.toBe("2026-10-20T00:00:00Z");
+    expect(host.querySelector("time")).toBeNull();
   });
 
   it("uses honest empty and unavailable states without inventing a logo", async () => {
@@ -370,8 +366,7 @@ describe("shared Home and Projects card", () => {
     expect(mock.createClient).not.toHaveBeenCalled();
     expect(host.querySelector("a")).toBeNull();
     expect(host.textContent).toContain("Deleted project retained");
-    expect(host.querySelector(".project-footer > time")?.textContent).toMatch(/^Deleted /);
-    expect(host.querySelector(".project-footer > time")?.getAttribute("datetime")).toBe("2026-10-20T01:00:00Z");
+    expect(host.querySelector("time")).toBeNull();
     expect(host.querySelector("button")).not.toBeNull();
   });
 

@@ -17,7 +17,7 @@
   display: none;
 }
 
-/* Under a field: its hint, then Saving, Saved or the failure with Try again. */
+/* Under a field: Saving, Saved or the failure with Try again. */
 .settings-guided .sg-status {
   display: flex;
   flex-wrap: wrap;
@@ -37,9 +37,6 @@
 }
 .settings-guided .sg-status__line--saved {
   color: var(--color-text-positive);
-}
-.settings-guided .sg-skeleton-hint {
-  margin-top: var(--space-1);
 }
 .settings-guided .e-setting-row__control .e-skeleton--block {
   width: 100%;

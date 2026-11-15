@@ -254,15 +254,6 @@ export function SignInForm({
       : signingUp
         ? "Create your Embel account"
         : "Sign in to Embel";
-  const intro = signedIn
-    ? "Continue to your projects and saved work."
-    : confirming
-      ? "Confirm your email to finish setting up your account."
-      : hasPrompt
-        ? ideaKept
-        : signingUp
-          ? "Save your projects and keep your work together."
-          : "Continue with your email and password.";
   const formMessage = errors.form ? (
     <InlineMessage id={ids.error} tone="danger">
       {errors.form}
@@ -274,20 +265,15 @@ export function SignInForm({
       titleId={ids.title}
       titleRef={titleElement}
       title={title}
-      intro={intro}
-      onLeave={clearPasswords}
+      intro={!signedIn && !confirming && hasPrompt ? ideaKept : undefined}
     >
       {confirmation === "failed" && (
         <InlineMessage tone="warning">
           We couldn&rsquo;t confirm your email with this link. Open the newest email link in the browser where you
-          signed up, or send a new confirmation email below. If your email is already confirmed, sign in.
+          signed up.
         </InlineMessage>
       )}
-      {confirmation === "complete" && (
-        <InlineMessage tone="positive">
-          {signedIn ? "Your email is confirmed." : "Email confirmed. Sign in to start your first brand."}
-        </InlineMessage>
-      )}
+      {confirmation === "complete" && <InlineMessage tone="positive">Email confirmed.</InlineMessage>}
       {signedIn ? (
         <ButtonLink variant="primary" block arrow href={hasPrompt ? "/" : "/brands"}>
           {hasPrompt ? "Continue your prompt" : "Go to Projects"}
@@ -307,7 +293,6 @@ export function SignInForm({
                   If this address is eligible, a confirmation email will arrive shortly. Open its link in this browser.
                   Check your spam folder too.
                 </p>
-                <p>Already have an account? Sign in with your existing password.</p>
                 {hasPrompt && <p>{ideaKept}</p>}
               </div>
             </InlineMessage>
@@ -424,7 +409,6 @@ export function SignInForm({
                   Checking your account…
                 </p>
               )}
-              {signingUp && <p className="auth-card__note">You&rsquo;ll confirm your email before you sign in.</p>}
             </form>
           )}
           {(confirming || confirmation === "failed") && !resend && (
@@ -492,7 +476,6 @@ export function SignInForm({
             </form>
           )}
           <p className="auth-card__switch">
-            {signingUp ? "Already have an account?" : "New to Embel?"}{" "}
             {submitting ? (
               <button type="button" className="e-link" disabled>
                 {signingUp ? "Sign in" : "Create account"}

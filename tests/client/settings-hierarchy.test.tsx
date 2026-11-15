@@ -47,7 +47,7 @@ vi.mock("@/components/workspace/recorded-usage", () => ({
     return createElement(
       "section",
       { className: "recorded-usage", "aria-labelledby": "recorded-usage-title", "data-active": String(active) },
-      createElement("h2", { id: "recorded-usage-title" }, "Recent requests"),
+      createElement("h2", { id: "recorded-usage-title" }, "Strategy and Voice requests"),
       createElement("p", null, "Synthetic recent usage history"),
     );
   },
@@ -148,16 +148,12 @@ describe("Settings keeps only working options", () => {
     expect(format.disabled).toBe(false);
     expect(email.readOnly).toBe(true);
     expect(email.value).toBe("fixture@example.invalid");
-    expect(account.querySelector(`#${email.getAttribute("aria-describedby")}`)?.textContent).toBe(
-      "You sign in with this email. It can’t be changed here.",
-    );
     expect(account.querySelectorAll('select[aria-label="Language"], select[aria-label="Appearance"]')).toHaveLength(0);
     expect(account.textContent).not.toContain("Account connection");
-    // Changes save on their own: no Save or Cancel buttons, and the profile says so.
-    expect(account.textContent).toContain("Changes on this page save automatically.");
-    expect(account.querySelector(`#${name.getAttribute("aria-describedby")}`)?.textContent).toBe(
-      "Your name appears in the account menu.",
-    );
+    // Changes save on their own: no Save or Cancel buttons, and nothing under a field until a save runs.
+    expect(account.querySelector(`#${name.getAttribute("aria-describedby")}`)?.textContent).toBe("");
+    // A date format is named by an example date in the chosen time zone.
+    expect([...format.options].map((option) => option.textContent)).toEqual(["Oct 12, 2026", "2026-10-12"]);
     const signOut = account.querySelector('[aria-label="Sign out"]')!;
     expect(signOut.querySelector("button")?.textContent).toBe("Sign out");
     expect([...account.querySelectorAll("button:not([hidden])")].map((button) => button.textContent)).toEqual([
@@ -186,7 +182,7 @@ describe("Settings keeps only working options", () => {
     setProfile(0);
     await render();
     const status = () => panel("account").querySelector("#profile-fullName-status")!;
-    expect(status().textContent).toBe("Your name appears in the account menu.");
+    expect(status().textContent).toBe("");
     fixture.profile = { ...fixture.profile, busy: true, saving: true };
     await render();
     expect(status().textContent).toBe("Saving");

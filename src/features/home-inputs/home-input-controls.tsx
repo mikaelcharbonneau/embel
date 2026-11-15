@@ -115,7 +115,7 @@ export function HomeInputControls({
               ? availability
               : {
                   status: "unavailable",
-                  reason: "Sign in to save verified input files. Your typed prompt stays available.",
+                  reason: "Sign in to add files.",
                 }
           }
           busy={busy}

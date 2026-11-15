@@ -7,6 +7,8 @@ import { AccountStatus, useAccountSession } from "./account-session";
 import { AccountCopyControl } from "./account-projects";
 import { draftTitle, useLocalDrafts } from "./local-drafts";
 
+const UNREADABLE = "Recovery data on this device couldn’t be read.";
+
 /** Legacy device content is revealed only by an explicit recovery action. */
 export function UnsavedProjectRecovery({ draftId }: { draftId?: string }) {
   const { session } = useAccountSession();
@@ -32,13 +34,13 @@ function OwnedRecovery({ ownerId, draftId }: { ownerId: string; draftId?: string
   const pending = eligible.filter((draft) => !draft.accountProjectId);
   const chosen = eligible.find((draft) => draft.id === selected);
   const recovered = draftId ? eligible.find((draft) => draft.accountProjectId) : null;
+  const unreadable = storage === "invalid" || storage === "unavailable";
   if (!loaded) return <p role="status">Checking recovery availability…</p>;
   if (recovered)
     return (
       <EmptyState
         icon="circle-check"
         title="This project is saved in your account"
-        text="It was recovered from this device earlier. Open it to carry on."
         action={
           <ButtonLink variant="primary" href={`/brands/account/${recovered.accountProjectId}`} arrow>
             Open project
@@ -50,21 +52,15 @@ function OwnedRecovery({ ownerId, draftId }: { ownerId: string; draftId?: string
     return draftId ? (
       <EmptyState
         title="No unsaved project to recover"
-        text={
-          storage === "invalid" || storage === "unavailable"
-            ? "Recovery data on this device could not be read. Your account projects remain available."
-            : "Nothing for this account is waiting on this device. Your saved projects are in Projects."
-        }
+        text={unreadable ? UNREADABLE : undefined}
         action={
           <ButtonLink variant="primary" href="/brands" icon="arrow-left">
             Back to projects
           </ButtonLink>
         }
       />
-    ) : storage === "invalid" || storage === "unavailable" ? (
-      <p className="field-hint">
-        Recovery data on this device could not be read. Your account projects remain available.
-      </p>
+    ) : unreadable ? (
+      <p className="field-hint">{UNREADABLE}</p>
     ) : null;
   return (
     <section className="account-edit-controls" aria-label="Recover unsaved projects" id="recover-unsaved-projects">
@@ -75,10 +71,6 @@ function OwnedRecovery({ ownerId, draftId }: { ownerId: string; draftId?: string
       ) : (
         <>
           <h2>Recover unsaved projects</h2>
-          <p>
-            Older projects may still be on this device. Select only work that belongs to you, then confirm it should be
-            saved to your current account.
-          </p>
           <fieldset>
             <legend>Select a project to recover</legend>
             {pending.map((draft) => (

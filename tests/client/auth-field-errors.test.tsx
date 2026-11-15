@@ -114,7 +114,11 @@ it("explains a short and a mismatched new password under their own fields", asyn
   expect(messageFor("password")).toBe("This password has 10 characters. Use at least 12.");
   expect(messageFor("confirmPassword")).toBe("The two passwords don’t match. Enter the same password again.");
   expect(document.activeElement).toBe(input("password"));
-  expect(host.textContent).toContain("You’ll confirm your email before you sign in.");
+});
+
+it("shows nothing under the title without a waiting prompt", async () => {
+  await render();
+  expect(host.querySelector(".auth-card__intro")).toBeNull();
 });
 
 it("says the idea is kept when a prompt is waiting", async () => {

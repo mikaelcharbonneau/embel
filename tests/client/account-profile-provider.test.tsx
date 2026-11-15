@@ -154,7 +154,7 @@ describe("real profile and account providers", () => {
     await edit({ fullName: "Renée Example", timeZone: "Asia/Tokyo", dateFormat: "iso" });
     expect(host.querySelector("[data-saved-name]")?.textContent).toBe("Saved A");
     // Nothing claims "Saved" before the server confirms.
-    expect(nameStatus().textContent).toBe("Your name appears in the account menu.");
+    expect(nameStatus().textContent).not.toContain("Saved");
     await autosave();
     await until(() => expect(nameStatus().textContent).toBe("Saved"));
     expect(host.querySelector("[data-saved-name]")?.textContent).toBe("Renée Example");

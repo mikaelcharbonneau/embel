@@ -18,7 +18,7 @@ export function useSignOutFlow(): { start: (discardUnsaved?: boolean) => Promise
   const dialog = confirming ? (
     <Dialog
       title="Sign out with unsaved account edits?"
-      description="Saved work stays in your account. Unsaved edits will be discarded only after sign-out is confirmed."
+      description="Unsaved edits will be lost."
       size="sm"
       onClose={() => setConfirming(false)}
       footer={
@@ -52,8 +52,7 @@ export function AccountAccessNotice() {
     );
   return activity.kind === "signing_in" && activity.slow ? (
     <div className="auth-session-notice" role="status">
-      {activity.as === "sign-up" ? "Account creation" : "Sign-in"} is taking longer than expected. Account actions will
-      resume when it finishes. Your work is kept while we check the connection.
+      {activity.as === "sign-up" ? "Account creation" : "Sign-in"} is taking longer than expected. Your work is kept.
     </div>
   ) : null;
 }

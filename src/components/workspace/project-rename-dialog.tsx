@@ -185,7 +185,6 @@ export function ProjectRenameDialog({
       <form ref={form} id={formId} noValidate onSubmit={(event) => void save(event)}>
         <TextField
           label="Project name"
-          hint="This changes the name on your cards and project bar. Your brand name and brand kit stay the same."
           value={value}
           maxLength={MAX_NAME_LENGTH}
           autoComplete="off"

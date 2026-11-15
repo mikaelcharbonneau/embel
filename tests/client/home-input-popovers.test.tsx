@@ -48,8 +48,7 @@ it("dismisses attachments with Escape from the prompt or an outside pointer with
   expect(files.open).toBe(true);
   expect(files.querySelector<HTMLInputElement>("input")!.disabled).toBe(true);
   expect(files.querySelector<HTMLInputElement>("input")!.hidden).toBe(true);
-  expect(files.querySelector('[role="status"]')?.textContent).toContain("keep writing your prompt");
-  expect(files.querySelector<HTMLDialogElement>(".home-attachment-details dialog")!.open).toBe(false);
+  expect(files.querySelector('[role="status"]')?.textContent).toBe("Sign in to add files.");
   prompt.focus();
   await act(async () =>
     prompt.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })),

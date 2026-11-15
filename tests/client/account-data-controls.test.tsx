@@ -65,7 +65,7 @@ describe("Delete account confirmation", () => {
     const dialog = document.querySelector("dialog")!;
     expect(dialog.querySelector("h2")?.textContent).toBe("Delete your account?");
     expect(dialog.textContent).toContain("This can’t be undone.");
-    expect(dialog.textContent).toContain("Your email is Person@Example.invalid.");
+    expect(input().placeholder).toBe("Person@Example.invalid");
     expect(document.activeElement).toBe(button("Cancel"));
     const confirm = [...dialog.querySelectorAll("button")].find((node) => node.textContent === "Delete account")!;
     expect(confirm.className).toContain("e-button--danger-filled");
@@ -117,7 +117,7 @@ describe("Delete account confirmation", () => {
   it("lets the server compare when the account email is not known here", async () => {
     fixture.email = null;
     await open();
-    expect(document.querySelector("dialog")!.textContent).toContain("Type the email you sign in with.");
+    expect(input().placeholder).toBe("");
     await type("anything@example.invalid");
     const confirm = [...document.querySelectorAll("dialog button")].find(
       (node) => node.textContent === "Delete account",

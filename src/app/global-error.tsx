@@ -41,10 +41,7 @@ export default function GlobalError({ retry }: { error: unknown; retry: () => vo
             <h1 ref={heading} tabIndex={-1} id="global-error-title" style={{ fontSize: 28, lineHeight: 1.2 }}>
               The workspace couldn’t load
             </h1>
-            <p>Try again. If the problem continues, return to Home.</p>
-            <p>
-              Recent changes may not have saved. Returning to Home reloads the workspace and may lose unsaved changes.
-            </p>
+            <p>Recent changes may not have saved. Returning to Home may lose unsaved changes.</p>
             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16 }}>
               <button
                 type="button"
