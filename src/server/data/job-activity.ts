@@ -6,6 +6,7 @@ import {
   jobActivitySchema,
   type JobActivityEntry,
 } from "@/domain/job-activity";
+import { isJobWorkingOrUnconfirmed } from "@/domain/jobs";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 import { projectDisplayName, readProjectDisplayNames } from "./project-display-names";
@@ -93,7 +94,7 @@ export async function listJobActivity(auth: AuthenticatedContext) {
   // The two reads can straddle a completion. Prefer the later recent observation.
   const newest = new Map([...active, ...recent].map((row) => [row.id, row]));
   const activeRows = [...newest.values()]
-    .filter((row) => activeJobStates.some((state) => state === row.state))
+    .filter((row) => isJobWorkingOrUnconfirmed(row.state))
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at) || b.id.localeCompare(a.id))
     .slice(0, 20);
   const activeIds = new Set(activeRows.map((row) => row.id));

@@ -14,7 +14,12 @@ import { getIdentityFreshness, type IdentitySystemVersion } from "@/domain/proje
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { useProjectIdentity } from "@/components/identity/use-project-identity";
 import { IdentitySystemBoard } from "@/components/identity/identity-system-board";
-import { identityBatchUnresolved, identityStepView } from "@/components/identity/identity-generation-controller";
+import {
+  IDENTITY_GENERATION_UNAVAILABLE,
+  identityBatchUnresolved,
+  identityGenerationMessage,
+  identityStepView,
+} from "@/components/identity/identity-generation-controller";
 import { useLogoDraftMemory } from "@/components/identity/logo-draft-memory-context";
 import { useLogoWorkspace } from "@/components/identity/use-logo-workspace";
 import { useLogoCandidate } from "@/components/logo-creation/use-logo-candidate";
@@ -126,7 +131,7 @@ function availabilityReason(availability: IdentityAvailability | undefined) {
     case "references_unavailable":
       return "An inspiration image could not be verified. Check your saved references.";
     default:
-      return "Generation is temporarily unavailable. Your saved work is kept.";
+      return IDENTITY_GENERATION_UNAVAILABLE;
   }
 }
 function progressStatus(batch: IdentityBatchState | null): VisualDirectionGeneration["status"] {
@@ -401,10 +406,10 @@ function OwnedVisualDirections({
     : step.canStop
       ? () => void generation.controller?.stop()
       : undefined;
-  // What the generation message offers: nothing when pressing would be refused again (today's limit),
-  // Try again for a Stop that couldn't be confirmed, otherwise the screen's usual Check availability.
+  // What the generation message offers: nothing when pressing would be refused again (today's limit, switched
+  // off), Try again for a Stop that couldn't be confirmed, otherwise the screen's usual Check availability.
   const generationErrorAction =
-    step.message === "daily_limit"
+    step.message === "daily_limit" || step.message === "unavailable"
       ? null
       : step.retry === "stop"
         ? { label: "Try again", onClick: () => void generation.controller?.stop() }
@@ -441,7 +446,11 @@ function OwnedVisualDirections({
   // step's status (progress, a failure with Try again, credits in place) sit in the chat.
   const chatSlot = useWorkspaceChatSlot();
   const inChat = reply === "external" && Boolean(chatSlot);
-  const shownError = ranOut ? null : (generation.error ?? identity.error ?? logo.error ?? shownHistory?.error ?? null);
+  // A status check that fails while the round works is a quiet note, as on Naming and Logo; it keeps checking.
+  const generationSaid = identityGenerationMessage(generation);
+  const shownError = ranOut
+    ? null
+    : (generationSaid.error ?? identity.error ?? logo.error ?? shownHistory?.error ?? null);
   const comparing = cards.some(Boolean);
   const drawFailed = !comparing && !unresolved && visibleStatus === "failed";
   const stepMessage =
@@ -477,7 +486,7 @@ function OwnedVisualDirections({
   );
   const stopping = visibleStatus === "stopping" || step.stopping;
   // The chat's message is about generation only when no other error took its place.
-  const generationError = shownError !== null && shownError === generation.error;
+  const generationError = shownError !== null && shownError === generationSaid.error;
   const chatStatus =
     inChat && chatSlot && visible
       ? createPortal(
@@ -491,6 +500,11 @@ function OwnedVisualDirections({
                   <div className="e-progress__track" />
                 </div>
               </div>
+            )}
+            {generationSaid.note && (
+              <p className="e-muted" role="status">
+                {generationSaid.note}
+              </p>
             )}
             {ranOut ? (
               <OutOfCreditsInPlace periodEnd={credits.periodEnd} onDismiss={() => setRanOut(false)} />
@@ -590,6 +604,7 @@ function OwnedVisualDirections({
           usageLabel: null,
           // A refusal for lack of credits is told once, in place, by the Out-of-credits message.
           error: inChat ? null : shownError,
+          note: inChat ? null : generationSaid.note,
           errorAction: generationError ? generationErrorAction : undefined,
           busy: Boolean(generation.busy || shownHistory?.busy),
           disabledReason: blockedReason,

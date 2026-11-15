@@ -24,6 +24,7 @@ export type ApiErrorCode =
   | "same_password"
   | "recovery_required"
   | "generation_unavailable"
+  | "start_unconfirmed"
   | "generation_active"
   | "daily_limit"
   | "insufficient_credits"
@@ -33,6 +34,7 @@ export type ApiErrorCode =
   | "deletion_incomplete"
   | "export_rate_limited"
   | "billing_active"
+  | "billing_pending"
   | "invalid_signature";
 
 const failures = {
@@ -62,6 +64,9 @@ const failures = {
   same_password: [422, "Choose a password you haven’t used for this account."],
   recovery_required: [403, "Open the newest password reset link from your email to set a new password."],
   generation_unavailable: [503, "Generation is unavailable right now. Please try again shortly."],
+  // A run was admitted (and charged) but its workflow did not start. Never answered when
+  // nothing was admitted: that is generation_unavailable (switched off or paused).
+  start_unconfirmed: [503, "This request couldn’t be confirmed. Check again before starting it once more."],
   generation_active: [409, "This step is already generating."],
   daily_limit: [429, "You’ve reached today’s limit for this step. Try again tomorrow."],
   insufficient_credits: [402, "You’re out of credits for this month."],
@@ -74,6 +79,7 @@ const failures = {
   ],
   export_rate_limited: [429, "You can download your data 3 times a day. Try again tomorrow."],
   billing_active: [409, "You already have a paid plan. Use Manage plan to change or cancel it."],
+  billing_pending: [409, "A plan payment is still being confirmed. Check again in a few minutes."],
   invalid_signature: [400, "The request signature could not be verified."],
 } as const;
 

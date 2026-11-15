@@ -58,6 +58,12 @@ let state: ProjectNamingOverview,
   manual: ProjectNameEntry[],
   server: NamingGenerationFeed,
   failImport: boolean,
+  /** The account's credit balance as /api/credits reports it, and how a start or a Stop is answered. */
+  creditBalance: number,
+  refuseStart: { status: number; code?: string } | null,
+  refuseStop: boolean,
+  /** Statuses that answer the next view saves, in order, before saves work again. */
+  refuseView: number[],
   onNameConfirmed: Mock<() => void>;
 const requests: { path: string; method: string; body: Record<string, unknown> | null; account: string | null }[] = [];
 const buttons = () => [...(namePreview(host) ?? host).querySelectorAll<HTMLButtonElement>("button")];
@@ -191,6 +197,10 @@ beforeEach(() => {
   requests.length = 0;
   manual = [];
   failImport = false;
+  creditBalance = 30;
+  refuseStart = null;
+  refuseStop = false;
+  refuseView = [];
   onNameConfirmed = vi.fn();
   const project = accountProjectSchema.parse({
     id: projectId,
@@ -249,6 +259,10 @@ beforeEach(() => {
     vi.fn(async (path: string, options: RequestInit) => {
       if (path === "/api/standalone-checks")
         return Response.json({ ownerId: account.userId, domains: "unavailable", youtube: false, euipo: false });
+      if (path === "/api/credits")
+        return Response.json({
+          credits: { planId: "free", balance: creditBalance, periodEnd: "2026-12-01T00:00:00Z" },
+        });
       const url = new URL(path, "https://fixture.invalid"),
         method = options.method ?? "GET",
         body = options.body ? JSON.parse(String(options.body)) : null;
@@ -261,10 +275,16 @@ beforeEach(() => {
         return Response.json({ feed: { ...server, entries: server.entries.slice(start) } });
       }
       if (url.pathname === `${base}/feed/ensure` || url.pathname === `${base}/steering`) {
+        if (refuseStart)
+          return Response.json(
+            { error: { code: refuseStart.code ?? "internal_error", message: "Synthetic refusal." } },
+            { status: refuseStart.status },
+          );
         server = { ...server, run: run({ kind: body.kind, state: "queued", runId: id(900 + requests.length) }) };
         return Response.json({ feed: server, run: server.run, reused: false });
       }
       if (url.pathname === `${base}/feed/stop`) {
+        if (refuseStop) return Response.json({ error: { code: "internal_error" } }, { status: 500 });
         server = { ...server, run: server.run && { ...server.run, state: "cancel_requested" } };
         return Response.json({ feed: server });
       }
@@ -286,6 +306,8 @@ beforeEach(() => {
         return Response.json({ entry });
       }
       if (url.pathname === `${base}/view`) {
+        const refusal = refuseView.shift();
+        if (refusal) return Response.json({ error: { code: "conflict" } }, { status: refusal });
         state = {
           ...state,
           session: { ...state.session!, viewRevision: body.expectedViewRevision + 1, viewState: body.viewState },
@@ -437,6 +459,120 @@ it("explains a failed run and Try again starts the same kind with a new request"
   expect(posts("/feed/ensure").map((row) => row.body)).toMatchObject([{ kind: "initial" }]);
 });
 
+describe("the same answer as Logo and Creative direction (docs/state-machines.md)", () => {
+  const finished = () => ({
+    ...server,
+    run: run({ state: "succeeded", savedCount: 2, finishedAt: when }),
+    entries: [generated(1), generated(2)],
+  });
+  const noCredits = "You have no credits left this month. New credits arrive on December 1.";
+  it("turns Suggest more names off at 0 credits, with the note the other steps show", async () => {
+    creditBalance = 0;
+    server = finished();
+    await render();
+    expect(button("Suggest more names")!.disabled).toBe(true);
+    expect(chat()).toContain(noCredits);
+    expect(hosts.messages.querySelector('a[href="/plans"]')?.textContent).toBe("See plans");
+    expect(chat() + names()).not.toMatch(/\$/);
+    expect(posts("/feed/ensure")).toHaveLength(0);
+  });
+  it("keeps Suggest more names on while the balance covers something or is not known", async () => {
+    server = finished();
+    await render();
+    expect(button("Suggest more names")!.disabled).toBe(false);
+    expect(chat()).not.toContain("You have no credits left");
+  });
+  it("after a start refused for credits, reads the balance again and turns the start off", async () => {
+    server = finished();
+    await render();
+    creditBalance = 0;
+    refuseStart = { status: 402, code: "insufficient_credits" };
+    await click("Suggest more names");
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(chat()).toContain("You’ve used this month’s credits. They renew on December 1. Your names are saved.");
+    expect(button("Suggest more names")!.disabled).toBe(true);
+    expect(button("Try again")).toBeUndefined();
+    // One message about credits, not two.
+    expect(chat()).not.toContain("You have no credits left");
+  });
+  it("keeps the start off after today's limit, with no Try again and no countdown", async () => {
+    server = finished();
+    await render();
+    refuseStart = { status: 429, code: "daily_limit" };
+    await click("Suggest more names");
+    expect(chat()).toContain(
+      "You’ve reached today’s limit for name generation. Try again tomorrow. Your names are saved.",
+    );
+    expect(button("Suggest more names")!.disabled).toBe(true);
+    expect(button("Try again")).toBeUndefined();
+    // Later reads that show nothing new change nothing.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    expect(button("Suggest more names")!.disabled).toBe(true);
+    expect(posts("/feed/ensure")).toHaveLength(1);
+    // A read that shows a run (started elsewhere before the limit) says otherwise.
+    server = { ...server, run: run({ kind: "more", runId: id(950), savedCount: 0 }) };
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000);
+    });
+    expect(chat()).toContain("Generating names… 0 of 100");
+    server = { ...server, run: run({ kind: "more", runId: id(950), state: "succeeded", finishedAt: when }) };
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_000);
+    });
+    expect(button("Suggest more names")!.disabled).toBe(false);
+  });
+  it("says generation is unavailable when the step is switched off, and lets the person ask again later", async () => {
+    server = finished();
+    await render();
+    refuseStart = { status: 503, code: "generation_unavailable" };
+    await click("Suggest more names");
+    expect(chat()).toContain("AI name generation is unavailable right now.");
+    expect(chat()).not.toContain("couldn’t be confirmed");
+    expect(button("Try again")).toBeUndefined();
+    expect(button("Suggest more names")!.disabled).toBe(false);
+    refuseStart = null;
+    await click("Suggest more names");
+    expect(chat()).toContain("Generating names… 0 of 100");
+    // Nothing was admitted the first time, so the second click is a new request.
+    const keys = posts("/feed/ensure").map((row) => row.body!.idempotencyKey);
+    expect(new Set(keys).size).toBe(2);
+  });
+  it.each([{ status: 503, code: "start_unconfirmed" }, { status: 503 }])(
+    "keeps an admitted start that may not have begun as unconfirmed: only Try again, same key (%o)",
+    async (refusal) => {
+      server = finished();
+      await render();
+      refuseStart = refusal;
+      await click("Suggest more names");
+      expect(chat()).toContain("Name generation couldn’t be confirmed. Try again.");
+      expect(button("Suggest more names")!.disabled).toBe(true);
+      refuseStart = null;
+      await click("Try again");
+      const keys = posts("/feed/ensure").map((row) => row.body!.idempotencyKey);
+      expect(keys).toHaveLength(2);
+      expect(new Set(keys).size).toBe(1);
+    },
+  );
+  it("keeps progress and Stop when Stop couldn't be confirmed while names are written", async () => {
+    server = { ...server, run: run({ savedCount: 2 }), entries: [generated(1), generated(2)] };
+    await render();
+    refuseStop = true;
+    await click("Stop");
+    expect(chat()).toContain("Generating names… 2 of 100");
+    expect(chat()).toContain("Stop couldn’t be confirmed.");
+    expect(button("Stop")!.disabled).toBe(false);
+    refuseStop = false;
+    await click("Try again");
+    expect(posts("/feed/stop")).toHaveLength(2);
+    expect(chat()).toContain("Stopping… 2 names saved.");
+    expect(chat()).not.toContain("Stop couldn’t be confirmed.");
+  });
+});
+
 it("says plainly when AI name generation is unavailable", async () => {
   server = {
     ...server,
@@ -504,6 +640,38 @@ it("returns an older saved filter or workshop view to the single names list", as
     { pane: "results", filter: "all", query: "", visibleBatchId: null, workshopCandidateId: null },
   ]);
   expect(names()).toContain("Synthetic 1");
+});
+
+it("returns the older view once: a refused return is sent again only when a newer saved view arrives", async () => {
+  const older = { ...state.session!.viewState, pane: "workshop" as const, filter: "saved" as const };
+  state = { ...state, session: { ...state.session!, viewState: older } };
+  server = { ...server, run: run({ state: "succeeded", savedCount: 1, finishedAt: when }), entries: [generated(1)] };
+  // The view was saved elsewhere meanwhile: the return is refused, and the newer view still needs it.
+  refuseView = [409];
+  await render();
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(0);
+  });
+  // Refused, and not sent again in a loop while the saved view is the same one.
+  expect(posts("/view")).toHaveLength(1);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(15_000);
+  });
+  expect(posts("/view")).toHaveLength(1);
+  state = { ...state, session: { ...state.session!, viewRevision: 2, viewState: { ...older, query: "Juniper" } } };
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(15_000);
+  });
+  expect(posts("/view").map((row) => row.body)).toMatchObject([
+    { expectedViewRevision: 1 },
+    { expectedViewRevision: 2, viewState: { pane: "results", filter: "all", query: "" } },
+  ]);
+  expect(state.session!.viewState).toMatchObject({ pane: "results", filter: "all", query: "" });
+  // Saved: never sent again.
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(30_000);
+  });
+  expect(posts("/view")).toHaveLength(2);
 });
 
 it("starts the first names when the last choices answer is confirmed", async () => {
@@ -680,6 +848,23 @@ describe("in the Workspace's reply box", () => {
   const reply = () => host.querySelector<HTMLFormElement>('form[aria-label="Reply"]')!;
   const chips = () => [...reply().querySelectorAll(".e-chip")].map((chip) => chip.textContent);
 
+  it("keeps the reply box's Stop and the progress when Stop couldn't be confirmed", async () => {
+    server = { ...server, run: run({ savedCount: 2 }), entries: [generated(1), generated(2)] };
+    await renderInWorkspace();
+    const stop = () => reply().querySelector<HTMLButtonElement>('button[aria-label="Stop writing names"]');
+    refuseStop = true;
+    await act(async () => stop()!.click());
+    expect(chat()).toContain("Generating names… 2 of 100");
+    expect(chat()).toContain("Stop couldn’t be confirmed.");
+    expect(stop()).not.toBeNull();
+    expect(stop()!.disabled).toBe(false);
+    refuseStop = false;
+    await act(async () =>
+      [...hosts.messages.querySelectorAll("button")].find((item) => item.textContent === "Try again")!.click(),
+    );
+    expect(posts("/feed/stop")).toHaveLength(2);
+    expect(chat()).toContain("Stopping… 2 names saved.");
+  });
   it("puts Stop in the reply box while names are written, and Send moves on once a name is marked", async () => {
     server = { ...server, run: run({ savedCount: 2 }), entries: [generated(1), generated(2)] };
     await renderInWorkspace();

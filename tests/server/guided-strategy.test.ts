@@ -620,6 +620,57 @@ describe("guided provider contract (synthetic transports, no live inference)", (
     ).toBe(false);
   });
 
+  it("only answers a message typed on a finished interview, whatever the provider proposes", async () => {
+    const finished = () => {
+      const input = guidedInput("personality", "message", "Could we change our audience?");
+      input.context.intake.guidedInterview!.stage = "complete";
+      return input;
+    };
+    const redirect = {
+      kind: "redirect",
+      targetStage: "audience",
+      message: "Your audience is one of your confirmed answers.",
+      question: null,
+      options: [],
+      selection: null,
+    };
+    const first = await execute(redirect, finished(), responseFixture(redirect));
+    expect(first.outcome).toMatchObject({ status: "succeeded", result: { operation: "strategy.reformulate" } });
+    if (first.outcome.status !== "succeeded") throw new Error("Synthetic fixture failed");
+    expect(strategyJobResultSchema.parse(first.outcome.result).guidance).toEqual({
+      kind: "answer",
+      turnId: "current-turn",
+      stage: "personality",
+      message: "Your audience is one of your confirmed answers.",
+    });
+    const request = vi.mocked(first.transport.createResponse).mock.calls[0]![0];
+    expect(request.instructions).toContain("the interview is finished");
+    expect(request.instructions).toContain("Change answer");
+    // New option cards are not a decision either: only the message is kept.
+    const offered = await execute(choices("personality"), finished(), responseFixture(choices("personality")));
+    if (offered.outcome.status !== "succeeded") throw new Error("Synthetic fixture failed");
+    expect(strategyJobResultSchema.parse(offered.outcome.result).guidance).toEqual({
+      kind: "answer",
+      turnId: "current-turn",
+      stage: "personality",
+      message: "Synthetic helpful introduction",
+    });
+    // A question back to the person is still a question.
+    const question = { ...redirect, kind: "question", targetStage: null, question: "Which part should I explain?" };
+    const asked = await execute(question, finished(), responseFixture(question));
+    expect(asked.outcome).toMatchObject({
+      status: "succeeded",
+      result: { guidance: { kind: "question", question: "Which part should I explain?" } },
+    });
+    // An interview with an open step is unchanged: the same redirect is still a redirect.
+    const open = await execute(
+      redirect,
+      guidedInput("personality", "message", "Could we change our audience?"),
+      responseFixture(redirect),
+    );
+    expect(open.outcome).toMatchObject({ status: "succeeded", result: { guidance: { kind: "redirect" } } });
+  });
+
   it("rejects automatic stage changes on research/propose and ambiguous mixed redirect output", async () => {
     const raw = {
       kind: "redirect",

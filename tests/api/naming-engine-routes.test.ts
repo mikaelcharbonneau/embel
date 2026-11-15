@@ -173,6 +173,33 @@ describe("the Naming routes on the generation engine", () => {
     expect(rpcCalls("get_naming_generation")).toHaveLength(0);
   });
 
+  it("start, on a feed read, a queued run whose workflow never started 15 seconds after admission", async () => {
+    const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
+    mocks.rpc.mockImplementation(async (name: string) =>
+      name === "get_name_feed"
+        ? { data: feedRow(engineRun("queued")), error: null }
+        : { data: { plans: [], kinds: [{ kind: "naming.generate", credits: 1, enabled: true }] }, error: null },
+    );
+    rows.generation_runs = generationRow({ created_at: ago(5_000) });
+    expect((await feedRoute(request(undefined, "GET"), params())).status).toBe(200);
+    expect(mocks.start).not.toHaveBeenCalled();
+    rows.generation_runs = generationRow({ created_at: ago(20_000), status: "running", workflow_run_id: "wrun_1" });
+    await feedRoute(request(undefined, "GET"), params());
+    expect(mocks.start).not.toHaveBeenCalled();
+    // An old-path run has no engine run: nothing to start.
+    rows.generation_runs = null;
+    await feedRoute(request(undefined, "GET"), params());
+    expect(mocks.start).not.toHaveBeenCalled();
+    rows.generation_runs = generationRow({ created_at: ago(20_000) });
+    const response = await feedRoute(request(undefined, "GET"), params());
+    expect(response.status).toBe(200);
+    expect(mocks.start).toHaveBeenCalledOnce();
+    expect(mocks.start.mock.calls[0]![1]).toEqual([runId]);
+    // A start that fails again never fails the read.
+    mocks.start.mockRejectedValueOnce(new Error("private queue outage"));
+    expect((await feedRoute(request(undefined, "GET"), params())).status).toBe(200);
+  });
+
   it("start the first names as one engine run: the server freezes the input and starts the Naming workflow once", async () => {
     const response = await ensureRoute(request(startBody()), params());
     expect(response.status).toBe(200);
@@ -255,8 +282,10 @@ describe("the Naming routes on the generation engine", () => {
     mocks.start.mockRejectedValueOnce(new Error("private queue outage"));
     vi.spyOn(console, "error").mockImplementation(() => {});
     const response = await ensureRoute(request(startBody()), params());
-    expect(response.status).toBe(500);
-    expect(await response.text()).not.toContain("private");
+    expect(response.status).toBe(503);
+    const body = await response.json();
+    expect(body.error.code).toBe("start_unconfirmed");
+    expect(JSON.stringify(body)).not.toContain("private");
   });
 
   it("stop the working engine run, which returns its credit", async () => {

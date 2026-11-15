@@ -1,5 +1,5 @@
 import { getAuthenticatedContext } from "@/server/auth/context";
-import { getNamingEngineFeed } from "@/server/data/naming-engine";
+import { getNamingEngineFeed, resumeNamingEngineRun } from "@/server/data/naming-engine";
 import { readNamingFeedQuery } from "@/server/data/naming-generation";
 import { errorResponse, privateJson } from "@/server/http/errors";
 export const dynamic = "force-dynamic";
@@ -10,7 +10,9 @@ export async function GET(request: Request, context: RouteContext) {
     const auth = await getAuthenticatedContext();
     const query = readNamingFeedQuery(request),
       projectId = (await context.params).projectId;
-    return privateJson({ feed: await getNamingEngineFeed(auth, projectId, query.cursor, query.limit) });
+    const feed = await getNamingEngineFeed(auth, projectId, query.cursor, query.limit);
+    await resumeNamingEngineRun(auth, projectId, feed);
+    return privateJson({ feed });
   } catch (error) {
     return errorResponse(error);
   }

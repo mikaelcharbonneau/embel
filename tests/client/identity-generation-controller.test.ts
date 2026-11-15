@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   createIdentityGenerationController,
+  identityGenerationMessage,
   identityStepView,
 } from "@/components/identity/identity-generation-controller";
 import { createIdentityDraftMemory } from "@/components/identity/identity-draft-memory";
@@ -431,9 +432,64 @@ describe("Creative direction answers the same situations as Naming and Logo", ()
       "The latest generation status could not be checked. The last verified results remain available.",
     );
     expect(view(f)).toMatchObject({ working: true, canStop: true, message: "updates_delayed" });
+    // The screen says it as the quiet note Naming and Logo show, not as the round's error.
+    expect(identityGenerationMessage(f.controller.getSnapshot())).toEqual({
+      error: null,
+      note: "Updates are delayed. Still working, and checking again.",
+    });
     await f.controller.poll();
     expect(f.controller.getSnapshot().error).toBeNull();
     expect(view(f)).toMatchObject({ working: true, canStop: true, message: null });
+    expect(identityGenerationMessage(f.controller.getSnapshot())).toEqual({ error: null, note: null });
+  });
+  it("keeps every other generation message as it is", async () => {
+    const f = setup();
+    await f.controller.refresh();
+    await f.controller.start(generationIntent);
+    f.client.stopBatch.mockRejectedValueOnce(new AccountRequestError(503));
+    await f.controller.stop();
+    expect(identityGenerationMessage(f.controller.getSnapshot())).toEqual({
+      error: "Stopping could not be confirmed. Check the request; its saved systems are kept.",
+      note: null,
+    });
+  });
+  it("says generation is unavailable when it is switched off: nothing kept, no Try again", async () => {
+    const f = setup();
+    await f.controller.refresh();
+    f.client.generate.mockRejectedValueOnce(new AccountRequestError(503, "generation_unavailable"));
+    await f.controller.start(generationIntent);
+    // The code proves nothing was admitted, so there is no request to recover.
+    expect(f.memory.hasUnsaved()).toBe(false);
+    expect(f.controller.getSnapshot()).toMatchObject({
+      retained: null,
+      error: "Generation is temporarily unavailable. Your saved work is kept.",
+    });
+    expect(view(f)).toMatchObject({ canStart: true, retry: null, keepRequest: false, message: "unavailable" });
+    // The person can simply ask again later.
+    await f.controller.start(generationIntent);
+    expect(f.client.generate).toHaveBeenCalledTimes(2);
+    expect(f.controller.getSnapshot().batch).toEqual(f.batch);
+  });
+  it("keeps an admitted round whose workflow did not start as unconfirmed, by its code", async () => {
+    const f = setup();
+    await f.controller.refresh();
+    f.client.generate.mockRejectedValueOnce(new AccountRequestError(503, "start_unconfirmed"));
+    await f.controller.start(generationIntent);
+    expect(f.memory.hasUnsaved()).toBe(true);
+    expect(view(f)).toMatchObject({ canStart: false, retry: "start", keepRequest: true, message: "start_unconfirmed" });
+  });
+  it("lets go of a kept request when its retry is answered that nothing started", async () => {
+    const f = setup();
+    await f.controller.refresh();
+    f.client.generate.mockRejectedValueOnce(new AccountRequestError(503, "start_unconfirmed"));
+    await f.controller.start(generationIntent);
+    expect(f.memory.hasUnsaved()).toBe(true);
+    // No round is recorded for the request, and the same key is now refused as switched off.
+    f.client.generate.mockRejectedValueOnce(new AccountRequestError(503, "generation_unavailable"));
+    await f.controller.retryOriginal();
+    expect(f.client.generate).toHaveBeenCalledTimes(2);
+    expect(f.memory.hasUnsaved()).toBe(false);
+    expect(view(f)).toMatchObject({ canStart: true, retry: null, keepRequest: false, message: "unavailable" });
   });
   it("says a first load failed, with Try again", async () => {
     const f = setup();

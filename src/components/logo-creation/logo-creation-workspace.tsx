@@ -24,7 +24,7 @@ import {
   logoRunEndSentence,
   logoUndrawnSlotIds,
 } from "@/domain/logo-engine";
-import { LogoGenerationAction } from "./generation-action";
+import { LogoGenerationAction, LogoRefusal } from "./generation-action";
 import { acceptedConceptAttempt } from "./presentation";
 import { LogoVerifiedPreview, useVerifiedPreview } from "./verified-preview";
 import { selectLogoCandidate, recoverLogoSelection, LogoSelectionConflictResolvedError } from "./selection-controller";
@@ -458,9 +458,12 @@ function OwnedLogoCreation({
   const engineStarter: LogoEngineStarter | null = engineOn
     ? {
         busy: logoEngine.starting || Boolean(engineRun),
+        // An unconfirmed start is kept: only its Try again (the same key) is offered until it is resolved.
+        held: logoEngine.unconfirmed,
         error: logoEngine.error,
         errorKey: engineErrorKey,
-        clearError: logoEngine.clearError,
+        tryAgain: step.message === "start_unconfirmed" || step.message === "start_refused",
+        clearError: step.message === "start_unconfirmed" ? logoEngine.retry : logoEngine.clearError,
         start(request) {
           setEngineErrorKey(JSON.stringify(request));
           if (request.operation === "refine_preview")
@@ -629,6 +632,11 @@ function OwnedLogoCreation({
         setSavedInputs({ status: "reading" });
         const result = await workspace.reload(false);
         if (!current()) return;
+        // Something else held the workspace and nothing failed: no error, the inputs are simply not prepared yet.
+        if (result === "busy") {
+          setSavedInputs({ status: "idle" });
+          return;
+        }
         if (result !== "reloaded") {
           setSavedInputs({
             status: "blocked",
@@ -964,7 +972,14 @@ function OwnedLogoCreation({
   const drawingNow = drawingSlotIds.size > 0 || batchDrawing;
   const logoTypes = draft?.brief.logoTypes ?? [];
   const refineStarter =
-    engineStarter && canEstimate && saved && selectedLogo && focusedReceipt && !refinementBusy && canRefine
+    engineStarter &&
+    !engineStarter.held &&
+    canEstimate &&
+    saved &&
+    selectedLogo &&
+    focusedReceipt &&
+    !refinementBusy &&
+    canRefine
       ? (instruction: string) =>
           engineStarter.start({ operation: "refine_preview", expected: saved.heads, source: selectedLogo, instruction })
       : null;
@@ -1168,22 +1183,26 @@ function OwnedLogoCreation({
   const gridNotice = inChat ? null : ranOut === "concepts" ? (
     outOfCreditsMessage
   ) : failedSlotIds.length > 0 && drawingSlotIds.size === 0 ? (
-    <InlineMessage
-      tone="danger"
-      live={false}
-      actions={
-        <Button
-          icon="rotate-ccw"
-          disabled={!retryEstimate.canStart}
-          aria-label={retryLabel}
-          onClick={retryEstimate.start}
-        >
-          {retryLabel}
-        </Button>
-      }
-    >
-      {failureSentence} The others are ready to choose.
-    </InlineMessage>
+    <>
+      <InlineMessage
+        tone="danger"
+        live={false}
+        actions={
+          <Button
+            icon="rotate-ccw"
+            disabled={!retryEstimate.canStart}
+            aria-label={retryLabel}
+            onClick={retryEstimate.start}
+          >
+            {retryLabel}
+          </Button>
+        }
+      >
+        {failureSentence} The others are ready to choose.
+      </InlineMessage>
+      {/* Outside the Workspace a refused retry is explained here, beside its button, like the other actions. */}
+      {!external && <LogoRefusal estimate={retryEstimate} />}
+    </>
   ) : noCredits && activeBatch ? (
     <NoCreditsNote periodEnd={credits.periodEnd} />
   ) : null;
@@ -1192,11 +1211,12 @@ function OwnedLogoCreation({
   // that was refused explains it; a Send-driven step has no such action for a change, a first set or a retry, so
   // the step says it here. More concepts keeps its own explanation beside its button in both.
   const refusal = external && !ranOut && !moreEstimate.error ? logoEngine.error : null;
-  // An unconfirmed request offers Try again, which repeats the same request key; a final refusal only its reason.
+  // An unconfirmed request offers Try again, which repeats the same request key, and stays said until it is
+  // resolved; a final refusal shows only its reason and can be closed.
   const refusalMessage = refusal ? (
     <InlineMessage
       tone="warning"
-      onDismiss={logoEngine.clearError}
+      onDismiss={logoEngine.unconfirmed ? undefined : logoEngine.clearError}
       actions={step.message === "start_unconfirmed" ? tryAgain : undefined}
     >
       {refusal}

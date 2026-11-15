@@ -6,9 +6,14 @@ import type { LogoRunRequest } from "@/domain/logo-jobs";
  * `errorKey` names the request whose start failed, so only its action explains why. */
 export type LogoEngineStarter = {
   busy: boolean;
+  /** A start couldn't be confirmed and is kept: nothing else starts until its Try again is answered. */
+  held?: boolean;
   error: string | null;
   errorKey: string | null;
+  /** Whether the refusal offers Try again; false when pressing would only be refused again. */
+  tryAgain?: boolean;
   start(request: LogoRunRequest): void;
+  /** Try again under the refusal: repeats an unconfirmed request, otherwise takes the message away. */
   clearError(): void;
 };
 
@@ -16,9 +21,11 @@ export type LogoEngineStarter = {
  * engine (its Logo kinds turned off, or not read yet) nothing can start. */
 export function useGenerationEstimate(request: LogoRunRequest | null, engine: LogoEngineStarter | null) {
   const key = request ? JSON.stringify(request) : null;
-  const ready = Boolean(engine && key && !engine.busy);
+  const ready = Boolean(engine && key && !engine.busy && !engine.held);
   return {
     canStart: ready,
+    held: Boolean(engine?.held),
+    tryAgain: engine?.tryAgain !== false,
     error: engine && engine.errorKey === key ? engine.error : null,
     busy: Boolean(engine?.busy),
     enabled: Boolean(engine && key),

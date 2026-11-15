@@ -127,6 +127,28 @@ describe("checkout", () => {
     expect(stripe.checkout.sessions.create).not.toHaveBeenCalled();
   });
 
+  it("refuses a second checkout while an earlier one's first payment is still being confirmed", async () => {
+    store = fakeStore({
+      customerId: "cus_Existing",
+      subscription: { id: "sub_1", planId: "pro", status: "incomplete", cancelAtPeriodEnd: false, live: false },
+    });
+    const response = await checkout(request("checkout", { plan: "pro" }));
+    expect(response.status).toBe(409);
+    expect((await response.json()).error.code).toBe("billing_pending");
+    expect(stripe.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  it.each(["canceled", "incomplete_expired"])(
+    "opens checkout again after a subscription ended (%s)",
+    async (status) => {
+      store = fakeStore({
+        customerId: "cus_Existing",
+        subscription: { id: "sub_1", planId: "pro", status, cancelAtPeriodEnd: false, live: false },
+      });
+      expect((await checkout(request("checkout", { plan: "pro" }))).status).toBe(200);
+    },
+  );
+
   it("validates the plan and refuses any other input", async () => {
     for (const body of [
       { plan: "free" },

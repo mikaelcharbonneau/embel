@@ -11,17 +11,21 @@ vi.mock("@/components/naming/project-naming-workspace", () => ({
   ProjectNamingWorkspace: ({ conversationHistory }: { conversationHistory?: import("react").ReactNode }) =>
     createElement("section", { "aria-label": "Inline Naming continuation" }, conversationHistory, "Naming approaches"),
 }));
-vi.mock("@/components/workspace/use-strategy-jobs", () => ({
-  useStrategyJobs: () => ({
-    overview: { jobs: [], availability: { status: "unavailable", operations: [], reason: "worker_unavailable" } },
-    pending: false,
-    readError: null,
-    actionError: null,
-    refresh: vi.fn(),
-    enqueue: vi.fn(),
-    cancel: vi.fn(),
-  }),
-}));
+vi.mock("@/components/workspace/use-strategy-jobs", async () => {
+  const { withStrategyView } = await import("./guided-strategy-hook");
+  return {
+    useStrategyJobs: () =>
+      withStrategyView({
+        overview: { jobs: [], availability: { status: "unavailable", operations: [], reason: "worker_unavailable" } },
+        pending: false,
+        readError: null,
+        actionError: null,
+        refresh: vi.fn(),
+        enqueue: vi.fn(),
+        cancel: vi.fn(),
+      }),
+  };
+});
 const id = (n: number) => `d0000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const when = "2026-10-15T00:00:00Z";
 let root: Root,

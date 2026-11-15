@@ -377,4 +377,27 @@ describe("what a Creative direction message offers", () => {
     expect(button("Check availability")).toBeUndefined();
     expect(button("Try again")).toBeUndefined();
   });
+  it("says updates are delayed as a quiet note while a round works: no warning, no Check availability, Stop stays", async () => {
+    const note = "Updates are delayed. Still working, and checking again.";
+    await render(
+      props({
+        generation: {
+          status: "running",
+          completed: 1,
+          note,
+          onGenerate: vi.fn(),
+          onCheck: vi.fn(),
+          onStop: vi.fn(),
+        },
+      }),
+    );
+    const said = [...host.querySelectorAll("p")].find((node) => node.textContent === note)!;
+    expect(said.getAttribute("role")).toBe("status");
+    expect(said.className).toContain("e-muted");
+    expect(host.querySelector(".e-message--danger")).toBeNull();
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(button("Check availability")).toBeUndefined();
+    expect(button("Stop generation").disabled).toBe(false);
+    expect(host.textContent).toContain("1 of 3 ready");
+  });
 });

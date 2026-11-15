@@ -1,4 +1,5 @@
 import { getWorkflowMetadata, sleep } from "workflow";
+import { runStopDecision } from "../server/engine/stop-check";
 import { checkRun, claimRun, finishRun } from "./engine-steps";
 import {
   createNamingResponse,
@@ -37,10 +38,9 @@ export async function namingGeneration(runId: string) {
     const codes: string[] = [];
     for (let round = 1; round <= MAX_ROUNDS && state.savedCount < TARGET; round++) {
       // No paid call starts after a cancel or while the engine is paused.
-      const check = await checkRun(runId);
-      if (check.status !== "running") return { status: check.status };
-      if (check.cancelRequested || check.paused)
-        return await finishRun(runId, "cancelled", check.paused ? "generation_paused" : "cancelled");
+      const stop = runStopDecision(await checkRun(runId));
+      if (stop.action === "quit") return { status: stop.status };
+      if (stop.action === "cancel") return await finishRun(runId, "cancelled", stop.code);
       let open: NamingOpenRequest[] = [];
       for (const plan of await planNamingRound(run, state, round)) {
         try {

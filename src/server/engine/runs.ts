@@ -130,11 +130,13 @@ export async function findGeneration(auth: AuthenticatedContext, project: string
   return data ? runRowSchema.parse(data) : null;
 }
 
-/** The latest runs of a project: one kind, one journey step's kinds, or all. */
+/** The latest runs of a project: one kind, one journey step's kinds, or all. `seen` gets the
+ * rows before they are made public (the status routes use it to start a run that never started). */
 export async function listGenerations(
   auth: AuthenticatedContext,
   project: string,
   filter: { kind?: string; step?: string } = {},
+  seen?: (rows: GenerationRunRow[]) => Promise<void>,
 ) {
   const kind = filter.kind === undefined ? undefined : generationKindSchema.safeParse(filter.kind);
   const step = filter.step === undefined ? undefined : generationStepSchema.safeParse(filter.step);
@@ -154,6 +156,7 @@ export async function listGenerations(
   databaseFailure(error);
   const runs = z.array(runRowSchema).parse(data ?? []);
   if (!runs.length) return [];
+  await seen?.(runs);
   const outputs = await auth.client
     .from("generation_outputs")
     .select("run_id,output_key,output,created_at")

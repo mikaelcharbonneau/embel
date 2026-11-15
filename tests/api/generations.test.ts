@@ -135,13 +135,34 @@ describe("starting a generation", () => {
     expect(await response.text()).not.toContain("private");
     expect(doubles.start).not.toHaveBeenCalled();
   });
-  it("reports a workflow that failed to start as unavailable", async () => {
+  it("answers an admitted run whose workflow failed to start as unconfirmed, never as switched off", async () => {
     doubles.start.mockRejectedValueOnce(new Error("private queue outage"));
     vi.spyOn(console, "error").mockImplementation(() => {});
     const response = await startRoute(post(`/api/projects/${project}/generations`), params());
     expect(response.status).toBe(503);
-    expect(await response.text()).not.toContain("private");
+    expect(await response.json()).toEqual({
+      error: {
+        code: "start_unconfirmed",
+        message: "This request couldn’t be confirmed. Check again before starting it once more.",
+      },
+    });
   });
+  it.each(["generation_unavailable", "generation_paused"])(
+    "answers %s, where nothing was admitted, as generation_unavailable",
+    async (message) => {
+      doubles.rpc.mockResolvedValueOnce({ data: null, error: { message, code: "55000" } });
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      const response = await startRoute(post(`/api/projects/${project}/generations`), params());
+      expect(response.status).toBe(503);
+      expect(await response.json()).toEqual({
+        error: {
+          code: "generation_unavailable",
+          message: "Generation is unavailable right now. Please try again shortly.",
+        },
+      });
+      expect(doubles.start).not.toHaveBeenCalled();
+    },
+  );
   it("refuses a run that belongs to someone else", async () => {
     doubles.rpc.mockResolvedValueOnce({ data: row({ owner_id: "dddddddd-4444-4444-8444-444444444444" }), error: null });
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -220,6 +241,48 @@ describe("Strategy runs", () => {
     expect(
       (await listRoute(new Request(`${origin}/api/projects/${project}/generations?step=Strategy%25`), params())).status,
     ).toBe(422);
+  });
+});
+
+describe("a status read", () => {
+  const catalog = (enabled: boolean) => ({
+    data: { plans: [], kinds: [{ kind: "engine.probe", credits: 0, enabled }] },
+    error: null,
+  });
+  const read = () => listRoute(new Request(`${origin}/api/projects/${project}/generations`), params());
+  const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
+  it("starts a run that was admitted 15 seconds ago and never got a workflow, while its kind is on", async () => {
+    doubles.from.mockReturnValueOnce(query([row({ created_at: ago(20_000) })])).mockReturnValueOnce(query([]));
+    doubles.rpc.mockResolvedValueOnce(catalog(true));
+    const response = await read();
+    expect((await response.json()).runs).toMatchObject([{ id: runId, status: "queued" }]);
+    expect(doubles.start).toHaveBeenCalledOnce();
+    expect(doubles.start.mock.calls[0]![1]).toEqual([runId]);
+  });
+  it.each([
+    ["was admitted a moment ago", { created_at: ago(5_000) }, true],
+    ["already has a workflow", { created_at: ago(20_000), status: "running", workflow_run_id: "wrun_1" }, true],
+    ["has ended", { created_at: ago(20_000), status: "failed" }, true],
+    ["is past the 10 minutes after which it ends as start_failed", { created_at: ago(11 * 60_000) }, true],
+    ["belongs to a kind that is switched off", { created_at: ago(20_000) }, false],
+    [
+      "is a Creative direction round, which its own route starts",
+      { created_at: ago(20_000), kind: "identity.directions" },
+      true,
+    ],
+  ])("starts nothing for a run that %s", async (_name, overrides, enabled) => {
+    doubles.from.mockReturnValueOnce(query([row(overrides)])).mockReturnValueOnce(query([]));
+    doubles.rpc.mockResolvedValueOnce(catalog(enabled));
+    expect((await read()).status).toBe(200);
+    expect(doubles.start).not.toHaveBeenCalled();
+  });
+  it("still answers when the start fails again", async () => {
+    doubles.from.mockReturnValueOnce(query([row({ created_at: ago(20_000) })])).mockReturnValueOnce(query([]));
+    doubles.rpc.mockResolvedValueOnce(catalog(true));
+    doubles.start.mockRejectedValueOnce(new Error("private queue outage"));
+    const response = await read();
+    expect(response.status).toBe(200);
+    expect((await response.json()).runs).toHaveLength(1);
   });
 });
 

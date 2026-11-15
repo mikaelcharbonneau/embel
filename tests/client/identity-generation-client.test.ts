@@ -55,6 +55,22 @@ describe("Identity generation owned bounded transport", () => {
     await expect(g.client.generate(generationIntent)).rejects.toMatchObject({ status: 502 });
     g.client.dispose();
   });
+  it("passes on the error code that tells a switched-off step from an unconfirmed start, and no other", async () => {
+    for (const [code, expected] of [
+      ["generation_unavailable", "generation_unavailable"],
+      ["start_unconfirmed", "start_unconfirmed"],
+      ["integration_unavailable", undefined],
+    ] as const) {
+      const f = setup();
+      f.fetcher.mockResolvedValueOnce(
+        Response.json({ error: { code, message: "A server sentence the browser never shows." } }, { status: 503 }),
+      );
+      const refusal = await f.client.generate(generationIntent).catch((error: unknown) => error);
+      expect(refusal).toMatchObject({ status: 503 });
+      expect((refusal as { code?: string }).code).toBe(expected);
+      f.client.dispose();
+    }
+  });
   it("never turns a late response from an old account into visible results", async () => {
     const f = setup();
     let release!: (value: Response) => void;

@@ -174,6 +174,17 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
   const [pending, setPending] = useState(false);
   const [refreshVersion, setRefreshVersion] = useState(0);
   const inFlight = useRef(false);
+  /** Choices made while another is being saved, in the order they wait (docs/state-machines.md, S7): at most
+   * one per kind. Each entry lets its caller go ahead (`true`) or tells it a newer one took its place. */
+  const waiting = useRef(new Map<string, (turn: boolean) => void>());
+  /** The view changes waiting for their turn: later ones join it, so none is lost. */
+  const waitingView = useRef<{
+    patch: Partial<NamingViewState>;
+    session?: NamingSession;
+    result: Promise<boolean>;
+  } | null>(null);
+  /** Heart and save answers confirmed in this visit, by name: a change queued behind one builds on it. */
+  const acknowledged = useRef(new Map<string, ProjectNameEntry["retention"]>());
   const epoch = useRef(0);
   const readSequence = useRef(0);
   const importIntent = useRef<ImportProjectName | null>(null);
@@ -273,28 +284,59 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
     };
   }, [base, ownedProject, publish, refreshVersion, scope, syncProject]);
 
+  /**
+   * One choice is saved at a time. A choice made meanwhile is never dropped: it waits its turn, in order, one
+   * per `kind` (the newest of a kind takes the place of an older one still waiting, which then answers "not
+   * saved"). An operation reads the saved state when its turn comes, never when it was queued.
+   */
   async function mutate<T>(
+    kind: string,
     operation: () => Promise<T | null>,
     shouldRefresh = true,
     retentionField?: "favorite" | "saved",
   ): Promise<T | null> {
-    if (!scope.current() || inFlight.current) return null;
-    inFlight.current = true;
+    if (!scope.current()) return null;
+    if (inFlight.current) {
+      const turn = await new Promise<boolean>((resolve) => {
+        waiting.current.get(kind)?.(false);
+        waiting.current.delete(kind);
+        waiting.current.set(kind, resolve);
+      });
+      // The lock was handed over still held. If this page has gone, pass it on.
+      if (!turn) return null;
+      if (!scope.current()) {
+        handOver();
+        return null;
+      }
+    } else {
+      inFlight.current = true;
+      setPending(true);
+      // A message about an earlier choice in the same queue stays until a new first choice.
+      setActionError(null);
+    }
     epoch.current += 1;
-    setPending(true);
-    setActionError(null);
     try {
       return await operation();
     } catch (error) {
       if (scope.current()) setActionError(namingErrorMessage(error, retentionField));
       return null;
     } finally {
-      inFlight.current = false;
-      if (scope.current()) {
+      if (!handOver() && scope.current()) {
         setPending(false);
         if (shouldRefresh) refresh();
       }
     }
+  }
+  /** Gives the lock to the choice that has waited longest; false when none waits and the lock is free. */
+  function handOver() {
+    const next = waiting.current.entries().next().value;
+    if (!next) {
+      inFlight.current = false;
+      return false;
+    }
+    waiting.current.delete(next[0]);
+    next[1](true);
+    return true;
   }
   function readyForContextMutation() {
     const before = current.current;
@@ -308,8 +350,8 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
   async function savePreferences(preferences: NamingPreferences, expectedVersion?: number) {
     const before = current.current;
     if (!before || !scope.current()) return false;
-    const response = await mutate(async () => {
-      const version = expectedVersion ?? before.preferences?.version ?? 0;
+    const response = await mutate("preferences", async () => {
+      const version = expectedVersion ?? (current.current ?? before).preferences?.version ?? 0;
       const reply = await scope.request(
         `${base}/preferences`,
         updateNamingPreferencesResponseSchema,
@@ -324,17 +366,32 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
     });
     return Boolean(response);
   }
-  async function saveView(patch: Partial<NamingViewState>, acknowledgedSession?: NamingSession) {
-    const overview = current.current;
-    const before = overview && acknowledgedSession ? { ...overview, session: acknowledgedSession } : overview;
-    if (!before?.session || !scope.current()) return false;
-    const response = await mutate(async () => {
-      const viewState = { ...before.session!.viewState, ...patch };
+  function saveView(patch: Partial<NamingViewState>, acknowledgedSession?: NamingSession): Promise<boolean> {
+    if (!(acknowledgedSession ?? current.current?.session) || !scope.current()) return Promise.resolve(false);
+    const newer = (a?: NamingSession, b?: NamingSession) => (a && (!b || a.viewRevision >= b.viewRevision) ? a : b);
+    // View changes waiting for their turn are sent as one save: a later one joins it instead of replacing it.
+    const joined = waitingView.current;
+    if (joined) {
+      joined.patch = { ...joined.patch, ...patch };
+      joined.session = newer(acknowledgedSession, joined.session);
+      return joined.result;
+    }
+    const change: NonNullable<typeof waitingView.current> = { patch, session: acknowledgedSession, result: null! };
+    waitingView.current = change;
+    const started = () => {
+      if (waitingView.current === change) waitingView.current = null;
+    };
+    change.result = mutate("view", async () => {
+      // Its turn: from here a later view change is a new save, built on what this one saves.
+      started();
+      const session = newer(change.session, current.current?.session ?? undefined);
+      if (!session) return null;
+      const viewState = { ...session.viewState, ...change.patch };
       const reply = await scope.request(
         `${base}/view`,
         updateNamingViewStateResponseSchema,
         (value) => owned(value.session),
-        { method: "PATCH", body: { expectedViewRevision: before.session!.viewRevision, viewState } },
+        { method: "PATCH", body: { expectedViewRevision: session.viewRevision, viewState } },
       );
       if (!reply) return null;
       const expectedView =
@@ -342,15 +399,18 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
           ? { ...viewState, namingChat: reply.session.viewState.namingChat }
           : viewState;
       if (
-        reply.session.viewRevision !== before.session!.viewRevision + 1 ||
+        reply.session.viewRevision !== session.viewRevision + 1 ||
         JSON.stringify(reply.session.viewState) !== JSON.stringify(expectedView)
       )
         throw new AccountRequestError(502);
       const latest = current.current;
       if (latest) publish({ ...latest, session: reply.session });
       return reply;
+    }).then((reply) => {
+      started();
+      return Boolean(reply);
     });
-    return Boolean(response);
+    return change.result;
   }
   async function saveChatProgress(checkpoint: NamingChatCheckpoint) {
     // Preference autosave owns its newer receipt independently of this overview.
@@ -363,21 +423,31 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
         : viewSession;
     return saveView({ namingChat: checkpoint }, session ?? undefined);
   }
+  /** The newest confirmed heart and save state of a name: what a queued change builds on. */
+  function newestRetention(entry: ProjectNameEntry) {
+    const confirmed = acknowledged.current.get(entry.candidate.id);
+    return confirmed && confirmed.revision > entry.retention.revision ? confirmed : entry.retention;
+  }
   async function retain(
     entry: ProjectNameEntry,
     field: "favorite" | "saved",
     onAcknowledged?: (entry: ProjectNameEntry) => void,
   ) {
     if (!scope.current()) return false;
+    // What the person asked for, from the card they saw.
+    const wanted = !entry.retention[field];
     return Boolean(
       await mutate(
+        `retain:${entry.candidate.id}:${field}`,
         async () => {
+          // A change to the same name saved just before this one moved its revision: build on the newest.
+          const from = newestRetention(entry);
           const body = {
             candidateId: entry.candidate.id,
-            expectedRevision: entry.retention.revision,
-            favorite: entry.retention.favorite,
-            saved: entry.retention.saved,
-            [field]: !entry.retention[field],
+            expectedRevision: from.revision,
+            favorite: from.favorite,
+            saved: from.saved,
+            [field]: wanted,
           };
           const reply = await scope.request(
             `${base}/retention`,
@@ -388,10 +458,11 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
           if (!reply) return null;
           if (
             reply.entry.candidate.id !== entry.candidate.id ||
-            reply.entry.retention.revision !== entry.retention.revision + 1 ||
-            reply.entry.retention[field] !== body[field]
+            reply.entry.retention.revision !== from.revision + 1 ||
+            reply.entry.retention[field] !== wanted
           )
             throw new AccountRequestError(502);
+          acknowledged.current.set(entry.candidate.id, reply.entry.retention);
           namingBrainDrafts?.applyRetention(account, projectId, reply.entry);
           onAcknowledged?.(reply.entry);
           const latest = current.current;
@@ -421,23 +492,18 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
       return false;
     }
     return Boolean(
-      await mutate(async () => {
+      await mutate("select", async () => {
+        // The saved project as it is when this choice's turn comes.
+        const expectedRevision = (current.current ?? before).project.current_revision;
         const reply = await scope.request(
           `${base}/selection`,
           selectProjectNameResponseSchema,
           (value) => ownedProject(value.project),
-          {
-            method: "POST",
-            body: {
-              candidateId: entry.candidate.id,
-              expectedRevision: before.project.current_revision,
-              acceptEarlierContext,
-            },
-          },
+          { method: "POST", body: { candidateId: entry.candidate.id, expectedRevision, acceptEarlierContext } },
         );
         if (!reply) return null;
         if (
-          reply.project.current_revision !== before.project.current_revision + 1 ||
+          reply.project.current_revision !== expectedRevision + 1 ||
           reply.currentSelection.candidate.id !== entry.candidate.id
         )
           throw new AccountRequestError(502);
@@ -462,7 +528,7 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
     };
     const body = importIntent.current;
     return Boolean(
-      await mutate(async () => {
+      await mutate("import", async () => {
         const reply = await scope.request(
           `${base}/imports`,
           importProjectNameResponseSchema,

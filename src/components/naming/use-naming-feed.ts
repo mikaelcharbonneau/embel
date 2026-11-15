@@ -1,7 +1,9 @@
 "use client";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
+import { useCreditBalance } from "@/components/logo-creation/credits-in-place";
 import { getNamingPreferencesReadiness } from "@/domain/naming-brain-preferences";
+import { namingRunActive } from "@/domain/naming-generation";
 import { createNamingFeedController, namingStatus, namingStepView } from "./naming-feed-controller";
 import type { NamingBrainRecord } from "./naming-brain-memory";
 const hidden = () => null;
@@ -79,7 +81,21 @@ export function useNamingFeed({
   const contextReady = enabled && savedChoicesReady(record);
   // One decision for Start and Stop, shared with Logo and Creative direction (docs/state-machines.md).
   const step = namingStepView(state);
-  const canExplore = Boolean(contextReady && feed?.availability.status === "available" && step.canStart);
+  // Credits are read where Logo and Creative direction read them: at 0 the start actions are off before the
+  // click, with the same note. Display only: the server admits or refuses every start, whatever this says.
+  const { balance, periodEnd, refresh: refreshCredits } = useCreditBalance(account);
+  const noCredits = balance !== null && balance <= 0;
+  // A start, and a run ending, can change the balance: read it again.
+  const runMark = feed?.run ? `${feed.run.runId}:${namingRunActive(feed.run)}` : "";
+  const answered = `${runMark}:${state?.retry ?? ""}:${state?.failedStatus ?? ""}`;
+  const lastAnswered = useRef(answered);
+  useEffect(() => {
+    if (lastAnswered.current === answered) return;
+    lastAnswered.current = answered;
+    refreshCredits();
+  });
+  // After today's limit `stepView` offers no start either, until a read shows a run or the page is reloaded.
+  const canExplore = Boolean(contextReady && feed?.availability.status === "available" && step.canStart && !noCredits);
   const entries = useMemo(() => state?.entries ?? [], [state?.entries]);
   const updateSteeringDraft = useCallback(
     (patch: Partial<typeof emptySteeringDraft>) =>
@@ -96,6 +112,11 @@ export function useNamingFeed({
     updateSteeringDraft,
     canExplore,
     canMore: canExplore,
+    /** The balance is known and is 0: the start actions are off and the note says why. */
+    noCredits,
+    /** A start pressed now would be refused at once: no credits, or today's limit was reached. */
+    startRefused: noCredits || step.message === "daily_limit",
+    creditsPeriodEnd: periodEnd,
     canStop: step.canStop,
     start: controller.start,
     more: controller.more,

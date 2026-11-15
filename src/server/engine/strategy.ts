@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { guidedTurnOperation } from "@/domain/guided-interview";
+import { guidedOpenTurn, guidedTurnOperation } from "@/domain/guided-interview";
 import {
   STRATEGY_ASSISTANT_HISTORY_MAX_BYTES,
   STRATEGY_ASSISTANT_HISTORY_MAX_ENTRIES,
@@ -304,17 +304,9 @@ export async function buildStrategyRunInput(
   const project = await getProject(auth, projectId);
   if (project.current_revision !== revision) throw new ApiError("conflict");
   const context = project.context;
-  const state = context.intake.guidedInterview;
-  const turn = state?.turns.at(-1);
-  if (
-    !state ||
-    !turn ||
-    state.stage === "complete" ||
-    turn.stage !== state.stage ||
-    turn.inputRevision !== revision ||
-    guidedTurnOperation(turn) !== operation ||
-    state.answers.some((answer) => answer.turnId === turn.id)
-  )
+  // The open turn: the open step's latest unanswered turn, or a message typed on a finished interview.
+  const turn = guidedOpenTurn(context.intake.guidedInterview);
+  if (!turn || turn.inputRevision !== revision || guidedTurnOperation(turn) !== operation)
     throw new ApiError("conflict");
   const policy = engineStrategyPolicy(operation);
   const base = {

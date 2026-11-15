@@ -134,6 +134,23 @@ describe("Creative directions with the engine kind off", () => {
     expect(f.calls().filter((name) => name.includes("shared"))).toEqual([]);
     expect(started.runs).toEqual([]);
   });
+  it("refuse a new request as unavailable, but return the round a repeated request already started", async () => {
+    // Nothing was admitted under this key: the step is off.
+    const fresh = fixture({ enabled: false, answers: { get_shared_identity_batch: { data: null } } });
+    await expect(enqueueIdentityBatch(fresh.auth, projectId, intent)).rejects.toMatchObject({
+      code: "generation_unavailable",
+    });
+    // The same key was admitted before the kind was switched off: "unavailable" would say nothing
+    // started. The saved round is returned, and nothing is started while the kind is off.
+    const replay = fixture({
+      enabled: false,
+      runs: [runRow({ created_at: new Date(Date.now() - 60_000).toISOString() })],
+      answers: { get_shared_identity_batch: { data: batch() } },
+    });
+    expect(await enqueueIdentityBatch(replay.auth, projectId, intent)).toMatchObject({ batchId, status: "running" });
+    expect(replay.calls()).toEqual(["get_shared_identity_batch"]);
+    expect(started.runs).toEqual([]);
+  });
 });
 
 describe("Creative directions with the engine kind on", () => {
@@ -223,9 +240,10 @@ describe("Creative directions with the engine kind on", () => {
       enabled: true,
       answers: { start_identity_directions: { data: { replayed: false, run: runRow(), batch: batch() } } },
     });
-    await expect(enqueueIdentityBatch(unstarted.auth, projectId, intent)).rejects.toBeInstanceOf(
-      IdentityAdmissionUncertainError,
-    );
+    const unconfirmed = await enqueueIdentityBatch(unstarted.auth, projectId, intent).catch((error: unknown) => error);
+    expect(unconfirmed).toBeInstanceOf(IdentityAdmissionUncertainError);
+    // Admitted, workflow not started: its own code, so the screen can tell it from "switched off".
+    expect(unconfirmed).toMatchObject({ code: "start_unconfirmed", status: 503 });
   });
 
   it("refuse a run that belongs to another batch or person", async () => {

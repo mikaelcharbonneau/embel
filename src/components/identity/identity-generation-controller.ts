@@ -5,7 +5,15 @@ import {
   type IdentityBatchState,
   type IdentityGenerationIntent,
 } from "@/domain/identity-jobs";
-import { startRefusal, stepView, type RunPhase, type StepProblem, type StepView } from "@/domain/generation-run";
+import {
+  GENERATION_UNAVAILABLE_CODE,
+  startRefusal,
+  stepView,
+  type RunPhase,
+  type StepProblem,
+  type StepView,
+} from "@/domain/generation-run";
+import { UPDATES_DELAYED } from "@/domain/generation-words";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 import { AccountRequestError } from "@/components/workspace/account-api";
 import { creditsMessage } from "@/components/workspace/credits-message";
@@ -66,9 +74,24 @@ export function identityStepView(
     sending: state.busy === "starting" ? "start" : state.busy === "stopping" ? "stop" : null,
   });
 }
+/** Creative direction is switched off, or cannot start for a reason the person cannot change here. */
+export const IDENTITY_GENERATION_UNAVAILABLE = "Generation is temporarily unavailable. Your saved work is kept.";
+/**
+ * What Creative direction says about generation. A status check that fails while the round still works is the
+ * quiet note Naming and Logo show (docs/state-machines.md): the screen keeps checking and Stop stays, so it is
+ * never shown as the round's error.
+ */
+export function identityGenerationMessage(
+  state: Parameters<typeof identityStepView>[0] & Pick<IdentityGenerationState, "error">,
+): { error: string | null; note: string | null } {
+  const delayed = identityStepView(state).message === "updates_delayed";
+  return { error: delayed ? null : state.error, note: delayed ? UPDATES_DELAYED : null };
+}
 /** What the screen says when a request or check fails. Never a price. */
 export function identityGenerationErrorMessage(error: unknown, failure: string): string {
   if (error instanceof AccountRequestError) {
+    // Switched off: the server sends this code only when nothing was admitted.
+    if (error.code === GENERATION_UNAVAILABLE_CODE) return IDENTITY_GENERATION_UNAVAILABLE;
     if (error.status === 409)
       return "Saved inputs changed. Check the latest before starting a new request. Existing systems and the original request are kept.";
     if (error.status === 402) return creditsMessage(null, "Your saved directions are kept.");
@@ -175,8 +198,22 @@ export function createIdentityGenerationController({
   const startProblem = (error: unknown): StepProblem => ({
     during: "start",
     httpStatus: error instanceof AccountRequestError ? error.status : null,
+    code: error instanceof AccountRequestError ? (error.code ?? null) : null,
   });
   const stopProblem = (): StepProblem => ({ during: "stop" });
+  /** Sends the request, first or again with its same key, and adopts the round it started. */
+  async function send(input: IdentityGenerationIntent, signal: AbortSignal) {
+    try {
+      const batch = await client.generate(input, signal);
+      if (!current() || signal.aborted || !batch) throw new AccountRequestError(503);
+      recover(batch, input);
+    } catch (error) {
+      // A final refusal (startRefusal) admitted nothing, so the request is not kept for recovery.
+      if (current() && error instanceof AccountRequestError && startRefusal(error.status, error.code) === "final")
+        memory.resolveGenerationRequest(account.userId, projectId, input.idempotencyKey);
+      throw error;
+    }
+  }
   async function lookup(signal: AbortSignal, input: IdentityGenerationIntent) {
     const found = await client.batchRequest(input.idempotencyKey, signal);
     if (!current() || signal.aborted || !found) throw new AccountRequestError(503);
@@ -272,18 +309,7 @@ export function createIdentityGenerationController({
       }
       await run(
         "starting",
-        async (signal) => {
-          try {
-            const batch = await client.generate(input, signal);
-            if (!current() || signal.aborted || !batch) throw new AccountRequestError(503);
-            recover(batch, input);
-          } catch (error) {
-            // A final refusal (startRefusal) admitted nothing, so the request is not kept for recovery.
-            if (current() && error instanceof AccountRequestError && startRefusal(error.status) === "final")
-              memory.resolveGenerationRequest(account.userId, projectId, input.idempotencyKey);
-            throw error;
-          }
-        },
+        (signal) => send(input, signal),
         "The generation request could not be confirmed. Check the original request before trying again.",
         startProblem,
       );
@@ -296,9 +322,7 @@ export function createIdentityGenerationController({
         async (signal) => {
           if (await lookup(signal, original.input)) return;
           if (!current() || signal.aborted) return;
-          const batch = await client.generate(original.input, signal);
-          if (!current() || signal.aborted || !batch) throw new AccountRequestError(503);
-          recover(batch, original.input);
+          await send(original.input, signal);
         },
         "The original request is still unconfirmed. Its saved inputs and request identity are kept.",
         startProblem,

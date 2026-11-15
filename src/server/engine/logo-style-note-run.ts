@@ -7,6 +7,7 @@ import type { ResponsesRequest } from "../ai/openai-transport";
 import { OPENAI_STRATEGY_MODEL } from "../ai/config";
 import { createStyleNoteRequest, type StyleNoteImage } from "../ai/style-note-request";
 import { EngineProviderError, isTerminal, type EngineOpenAI } from "./openai";
+import { runStopDecision, stopCode } from "./stop-check";
 import type { EngineStorage } from "./storage";
 import {
   LOGO_STYLE_NOTE_KIND,
@@ -50,7 +51,8 @@ export type StyleNoteRunDeps = {
   storage: EngineStorage;
   /** Decodes the upload in the isolated raster child and places it on white. */
   onWhite(bytes: Uint8Array, mimeType: string): Promise<StyleNoteImage>;
-  check(runId: string): Promise<EngineRunCheck>;
+  /** `engine_check`: null once the run is gone (its account was deleted). */
+  check(runId: string): Promise<EngineRunCheck | null>;
   save(
     runId: string,
     outputKey: string,
@@ -146,10 +148,8 @@ export async function createStyleNote(
 }
 
 export async function pollStyleNote(deps: StyleNoteRunDeps, runId: string, responseId: string): Promise<StyleNotePoll> {
-  const state = await deps.check(runId);
-  if (state.status !== "running") return { state: "stop", code: "cancelled" };
-  if (state.cancelRequested || state.paused)
-    return { state: "stop", code: state.paused ? "generation_paused" : "cancelled" };
+  const stop = stopCode(runStopDecision(await deps.check(runId)));
+  if (stop) return { state: "stop", code: stop };
   const response = await deps.openai.retrieve(responseId);
   return isTerminal(response.status) ? { state: "terminal" } : { state: "pending" };
 }

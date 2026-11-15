@@ -8,6 +8,7 @@ import { ENGINE_IDENTITY_POLICY_IDENTITY, ENGINE_IDENTITY_TEXT_POLICY } from "..
 import {
   createSpecification,
   drawBoard,
+  pollSpecification,
   prepareSpecification,
   readIdentityRound,
   recordBoardFailure,
@@ -74,6 +75,7 @@ function harness(
     marked?: boolean | Error;
     size?: number;
     stopped?: boolean;
+    check?: { status: string; cancelRequested: boolean; paused: boolean } | null;
     put?: (Error | null)[];
     stored?: Record<string, Uint8Array>;
     tokens?: number;
@@ -142,7 +144,10 @@ function harness(
     newId: () => `99999999-8888-4888-8888-${String(++ids).padStart(12, "0")}`,
     inspect: async () => ({ width: options.size ?? 1024, height: options.size ?? 1024 }),
     db: {
-      check: async () => ({ status: "running", cancelRequested: options.stopped ?? false, paused: false }),
+      check: async () =>
+        options.check === undefined
+          ? { status: "running", cancelRequested: options.stopped ?? false, paused: false }
+          : options.check,
       begin: async () => options.begin ?? { batchId: job.batchId, jobId, job, pending: [1, 2, 3], prior: [] },
       async saveOutput(_run, key, output, responseId, cost) {
         if (key.startsWith("sent.") && options.marked instanceof Error) throw options.marked;
@@ -372,6 +377,33 @@ describe("a direction's board", () => {
       code: "run_stopped",
     });
     expect([...wrong.written, ...stopped.written]).toEqual([]);
+  });
+  it("delivers a board drawn before a pause, and stores nothing for a run that is gone", async () => {
+    const paused = harness({ check: { status: "running", cancelRequested: false, paused: true } });
+    expect(await drawBoard(paused.deps, run, 1, boardSpecification(1), 1)).toMatchObject({ state: "succeeded" });
+    expect(paused.written).toHaveLength(1);
+    // An account deletion purged the run: engine_check answers NULL.
+    const gone = harness({ check: null });
+    expect(await drawBoard(gone.deps, run, 1, boardSpecification(1), 1)).toEqual({ state: "stopped" });
+    expect(gone.written).toEqual([]);
+    expect(gone.boards).toEqual([]);
+  });
+  it("stops polling a specification when the run was stopped, paused or is gone", async () => {
+    const poll = (check: { status: string; cancelRequested: boolean; paused: boolean } | null) =>
+      pollSpecification(harness({ check }).deps, run.id, "resp_open");
+    expect(await poll({ status: "running", cancelRequested: true, paused: false })).toEqual({
+      state: "stop",
+      code: "cancelled",
+    });
+    expect(await poll({ status: "running", cancelRequested: false, paused: true })).toEqual({
+      state: "stop",
+      code: "generation_paused",
+    });
+    expect(await poll({ status: "failed", cancelRequested: false, paused: false })).toEqual({
+      state: "stop",
+      code: "cancelled",
+    });
+    expect(await poll(null)).toEqual({ state: "stop", code: "cancelled" });
   });
   it("fails a direction whose chosen logo is gone, and retries a passing Storage outage", async () => {
     const gone = harness({ stored: {} });

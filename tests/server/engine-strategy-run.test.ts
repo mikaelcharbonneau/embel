@@ -144,7 +144,14 @@ function openai(
     ...overrides,
   } as never;
 }
-function deps(provider: EngineOpenAI, check = { status: "running", cancelRequested: false, paused: false }) {
+function deps(
+  provider: EngineOpenAI,
+  check: { status: string; cancelRequested: boolean; paused: boolean } | null = {
+    status: "running",
+    cancelRequested: false,
+    paused: false,
+  },
+) {
   const save = vi.fn<StrategyRunDeps["save"]>(async () => true);
   return { openai: provider, check: vi.fn(async () => check), save } satisfies StrategyRunDeps;
 }
@@ -239,6 +246,11 @@ describe("polling, settling and stopping", () => {
         "resp_synthetic_engine",
       ),
     ).toEqual({ state: "stop", code: "generation_paused" });
+    // An account deletion purged the run: engine_check answers NULL, and the poll stops instead of throwing.
+    expect(await pollStrategyAttempt(deps(provider, null), runId, "resp_synthetic_engine")).toEqual({
+      state: "stop",
+      code: "cancelled",
+    });
     expect(provider.retrieve).not.toHaveBeenCalled();
   });
   it("reports pending until the response finishes", async () => {

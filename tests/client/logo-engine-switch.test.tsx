@@ -76,6 +76,37 @@ describe("starting Logo work", () => {
   });
 });
 
+describe("while a start couldn't be confirmed", () => {
+  it("holds every action without saying a request is in progress, and offers Try again on its own action", async () => {
+    const engine: LogoEngineStarter = {
+      busy: false,
+      held: true,
+      error: "This request could not be confirmed.",
+      errorKey: JSON.stringify(request),
+      start: vi.fn(),
+      clearError: vi.fn(),
+    };
+    await render(request, engine);
+    expect(probe.current).toMatchObject({ canStart: false, busy: false, held: true, tryAgain: true });
+    probe.current!.start();
+    expect(engine.start).not.toHaveBeenCalled();
+    await render({ ...request, operation: "more_concepts" }, engine);
+    expect(probe.current).toMatchObject({ canStart: false, held: true, error: null });
+  });
+  it("offers no Try again for a refusal that would be refused at once", async () => {
+    const engine: LogoEngineStarter = {
+      busy: false,
+      error: "Logo drawing is unavailable right now. Nothing has started and nothing was used.",
+      errorKey: JSON.stringify(request),
+      tryAgain: false,
+      start: vi.fn(),
+      clearError: vi.fn(),
+    };
+    await render(request, engine);
+    expect(probe.current).toMatchObject({ canStart: true, tryAgain: false, error: engine.error });
+  });
+});
+
 describe("following an engine round", () => {
   const runId = "cccccccc-3333-4333-8333-333333333333",
     batchId = "ffffffff-6666-4666-8666-666666666666";

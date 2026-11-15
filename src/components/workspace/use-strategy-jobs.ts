@@ -27,16 +27,17 @@ import {
   verifyStrategyJobs,
   type StrategyAllowance,
 } from "./account-strategy-client";
+import {
+  idleStrategyAction,
+  strategyJobsReport,
+  strategyStartFailure,
+  type StrategyAction,
+  type StrategyEnqueueRequest,
+} from "./strategy-jobs-view";
 
 type ReadState = { identity: string; overview: StrategyOverview | null; error: string | null };
-type EnqueueRequest = { epoch: number; operation: StrategyOperation; revision: number };
-type ActionState = {
-  identity: string;
-  pending: boolean;
-  error: string | null;
-  pendingLabel?: string;
-  unconfirmedEnqueue?: EnqueueRequest;
-};
+type EnqueueRequest = StrategyEnqueueRequest;
+type ActionState = StrategyAction & { identity: string };
 /** Status checks: every 3 s while a request runs, otherwise every 15 s. */
 const ACTIVE_POLL_MS = 3_000,
   IDLE_POLL_MS = 15_000;
@@ -60,12 +61,26 @@ export function useStrategyJobs({
   const projectId = workspace.saved.id;
   const identity = `${account.userId}:${account.generation}:${projectId}`;
   const [read, setRead] = useState<ReadState | null>(null);
-  const [action, setAction] = useState<ActionState | null>(null);
+  const [action, setActionState] = useState<ActionState | null>(null);
+  // The same value, readable in the turn it was set: a second press in that turn sees the first request.
+  const latestAction = useRef<ActionState | null>(null);
+  const setAction = useCallback((next: ActionState) => {
+    latestAction.current = next;
+    setActionState(next);
+  }, []);
+  /** Ends a request that returned without an answer to show, so it never looks like it is still on its way. */
+  const settle = useCallback(
+    (started: ActionState) => {
+      if (latestAction.current === started) setAction({ ...started, sending: null });
+    },
+    [setAction],
+  );
   const [refreshVersion, setRefreshVersion] = useState(0);
   const live = useRef(false);
   const controllers = useRef(new Set<AbortController>());
   const mutationEpoch = useRef(0);
-  const inFlight = useRef(false);
+  /** Whether the last answered status check found a request working, so a failed check keeps its pace. */
+  const working = useRef<{ identity: string; active: boolean } | null>(null);
   const engineRuns = useRef(new Set<string>());
   const restarted = useRef(new Set<string>());
   const legacy = useRef<{ identity: string; overview: StrategyOverview } | null>(null);
@@ -148,28 +163,26 @@ export function useStrategyJobs({
         legacy.current = { identity, overview: saved };
         legacyDue.current = !jobs.some(strategyJobActive) || saved.jobs.some(strategyJobActive);
         soon = overview.jobs.some(strategyJobActive);
+        working.current = { identity, active: soon };
         if (epoch === mutationEpoch.current) {
           setRead({ identity, overview, error: null });
-          setAction((previous) => {
-            const request = previous?.unconfirmedEnqueue;
-            if (
-              previous?.identity !== identity ||
-              previous.pending ||
-              !request ||
-              request.epoch !== epoch ||
-              epoch !== mutationEpoch.current
-            )
-              return previous;
-            // Confirm the saved operation only from one matching owned run;
-            // ambiguous history cannot resolve an unknown acknowledgement.
-            return overview.jobs.filter((job) => matchesRequest(job, request)).length === 1
-              ? { identity, pending: false, error: null }
-              : previous;
-          });
+          const previous = latestAction.current;
+          const request = previous?.unconfirmed;
+          // Confirm the saved operation only from one matching owned run;
+          // ambiguous history cannot resolve an unknown acknowledgement.
+          if (
+            previous?.identity === identity &&
+            !previous.sending &&
+            request?.epoch === epoch &&
+            overview.jobs.filter((job) => matchesRequest(job, request)).length === 1
+          )
+            setAction({ identity, ...idleStrategyAction });
         }
       } catch (error: unknown) {
         if (controller.signal.aborted || !getWorkspace()) return;
         legacyDue.current = true;
+        // A failed check while a request works keeps checking at the working pace.
+        soon = working.current?.identity === identity && working.current.active;
         if (epoch === mutationEpoch.current) {
           if (error instanceof AccountRequestError && error.status === 401) {
             expire(account);
@@ -189,22 +202,26 @@ export function useStrategyJobs({
       controller.abort();
       clearTimeout(timer);
     };
-  }, [account, expire, getWorkspace, identity, matchesRequest, projectId, refreshVersion]);
+  }, [account, expire, getWorkspace, identity, matchesRequest, projectId, refreshVersion, setAction]);
 
-  const overview = read?.identity === identity ? read.overview : null;
-  const readError = read?.identity === identity ? read.error : null;
-  const pending = action?.identity === identity && action.pending;
-  const pendingLabel =
-    action?.identity === identity ? (action.pendingLabel ?? "Submitting your request…") : "Submitting your request…";
-  const actionError = action?.identity === identity ? action.error : null;
-  const report = useCallback((message: string) => setAction({ identity, pending: false, error: message }), [identity]);
+  // Answers kept for another account, session or project are not this one's.
+  const { overview, readError, actionError, pending, pendingLabel, view } = strategyJobsReport({
+    overview: read?.identity === identity ? read.overview : null,
+    readError: read?.identity === identity ? read.error : null,
+    action: action?.identity === identity ? action : idleStrategyAction,
+  });
+  const report = useCallback(
+    (message: string) =>
+      setAction({ identity, ...idleStrategyAction, problem: { during: "local", sentence: message } }),
+    [identity, setAction],
+  );
 
   // The guided turn passes its accepted availability; the server freezes the request itself.
   const enqueue = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async (operation: StrategyOperation, revision: number, _allowance?: StrategyAllowance) => {
       const current = getWorkspace();
-      if (!current || inFlight.current) return null;
+      if (!current || latestAction.current?.sending) return null;
       if (current.conflict || accountDraftChanged(current) || current.saved.current_revision !== revision) {
         report(
           "Your draft changed before the request was submitted. Save your current edits before requesting a proposal.",
@@ -213,9 +230,9 @@ export function useStrategyJobs({
       }
       const controller = new AbortController();
       controllers.current.add(controller);
-      inFlight.current = true;
       const epoch = ++mutationEpoch.current;
-      setAction({ identity, pending: true, error: null });
+      const started: ActionState = { identity, ...idleStrategyAction, sending: "start" };
+      setAction(started);
       try {
         // The server freezes the request from this saved revision; the browser only names it.
         const { run } = await boundedAccountRequest(
@@ -251,7 +268,8 @@ export function useStrategyJobs({
               }
             : previous,
         );
-        setAction({ identity, pending: false, error: null });
+        working.current = { identity, active: true };
+        setAction({ identity, ...idleStrategyAction });
         refresh();
         return job;
       } catch (error: unknown) {
@@ -268,37 +286,45 @@ export function useStrategyJobs({
             /* The message stands without a date. */
           }
           if (controller.signal.aborted || !getWorkspace()) return null;
-          setAction({ identity, pending: false, error: strategyCreditsMessage(periodEnd) });
-        } else {
-          const unconfirmed = !(error instanceof AccountRequestError) || error.status === 408 || error.status >= 500;
           setAction({
             identity,
-            pending: false,
-            error: strategyErrorMessage(error),
-            ...(unconfirmed ? { unconfirmedEnqueue: { epoch, operation, revision } } : {}),
+            ...idleStrategyAction,
+            problem: { during: "start", httpStatus: 402, sentence: strategyCreditsMessage(periodEnd) },
+          });
+        } else {
+          // A start that may have been admitted is kept: sending it again uses the same key, so it
+          // returns the run it made and never a second one.
+          const { httpStatus, uncertain } = strategyStartFailure(error);
+          setAction({
+            identity,
+            sending: null,
+            problem: { during: "start", httpStatus, sentence: strategyErrorMessage(error) },
+            unconfirmed: uncertain ? { epoch, operation, revision } : null,
           });
         }
         refresh();
         return null;
       } finally {
         controllers.current.delete(controller);
-        inFlight.current = false;
+        settle(started);
       }
     },
-    [account, expire, getWorkspace, identity, matchesRequest, projectId, refresh, report],
+    [account, expire, getWorkspace, identity, matchesRequest, projectId, refresh, report, setAction, settle],
   );
 
   const cancel = useCallback(
     async (job: StrategyJob) => {
-      if (!getWorkspace() || inFlight.current || !strategyJobActive(job)) return;
+      if (!getWorkspace() || latestAction.current?.sending || !strategyJobActive(job)) return;
       forgetStrategyIntent(account.userId, projectId, job.input_revision);
       if (job.operation === "strategy.competitors")
         forgetStrategyIntent(account.userId, projectId, job.input_revision - 1);
+      // Stop was already asked, here or in another tab: it is not asked again.
+      if (job.state === "cancel_requested") return;
       const controller = new AbortController();
       controllers.current.add(controller);
-      inFlight.current = true;
       mutationEpoch.current += 1;
-      setAction({ identity, pending: true, error: null });
+      const started: ActionState = { identity, ...idleStrategyAction, sending: "stop" };
+      setAction(started);
       try {
         // An engine run stops before its next paid step and cancels its open OpenAI response.
         // An earlier old-system request that never finished is marked cancelled.
@@ -348,19 +374,24 @@ export function useStrategyJobs({
               }
             : previous,
         );
-        setAction({ identity, pending: false, error: null });
+        setAction({ identity, ...idleStrategyAction });
         refresh();
       } catch (error: unknown) {
         if (controller.signal.aborted || !getWorkspace()) return;
         if (error instanceof AccountRequestError && error.status === 401) expire(account);
-        else report(strategyErrorMessage(error));
+        else
+          setAction({
+            identity,
+            ...idleStrategyAction,
+            problem: { during: "stop", sentence: strategyErrorMessage(error) },
+          });
       } finally {
         controllers.current.delete(controller);
-        inFlight.current = false;
+        settle(started);
       }
     },
-    [account, expire, getWorkspace, identity, projectId, refresh, report],
+    [account, expire, getWorkspace, identity, projectId, refresh, setAction, settle],
   );
 
-  return { overview, readError, actionError, pending, pendingLabel, enqueue, cancel, refresh, report };
+  return { overview, readError, actionError, pending, pendingLabel, view, enqueue, cancel, refresh, report };
 }

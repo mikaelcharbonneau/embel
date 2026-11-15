@@ -81,10 +81,14 @@ describe("what a step screen lets the person do", () => {
       message: "out_of_credits",
     });
     expect(stepView({ ...idle, problem: start(429) })).toMatchObject({
+      // Today's limit has no end the browser knows: no new start until the screen clears the problem.
+      canStart: false,
       retry: null,
       keepRequest: false,
       message: "daily_limit",
     });
+    // Credits can come back (a new period, a plan): the screen's own balance read decides, not this.
+    expect(stepView({ ...idle, problem: start(402) }).canStart).toBe(true);
   });
 
   it("shows the reason for any other final refusal and lets the person ask again", () => {
@@ -94,6 +98,27 @@ describe("what a step screen lets the person do", () => {
         retry: "start",
         keepRequest: false,
         message: "start_refused",
+      });
+  });
+
+  it("says a switched-off step is unavailable, with no Try again that would be refused at once", () => {
+    expect(
+      stepView({ ...idle, problem: { during: "start", httpStatus: 503, code: "generation_unavailable" } }),
+    ).toMatchObject({
+      working: false,
+      // Nothing was admitted, so nothing is kept; the person can simply ask again later.
+      canStart: true,
+      retry: null,
+      keepRequest: false,
+      message: "unavailable",
+    });
+    // An admitted run whose workflow did not start, or a 503 with another code or none, stays unconfirmed.
+    for (const code of ["start_unconfirmed", "integration_unavailable", null, undefined])
+      expect(stepView({ ...idle, problem: { during: "start", httpStatus: 503, code } })).toMatchObject({
+        canStart: false,
+        retry: "start",
+        keepRequest: true,
+        message: "start_unconfirmed",
       });
   });
 

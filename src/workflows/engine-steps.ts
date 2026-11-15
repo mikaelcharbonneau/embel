@@ -45,10 +45,11 @@ export async function claimRun(runId: string, workflowRunId: string): Promise<Cl
   return call<ClaimedRun>("engine_claim", [runId, workflowRunId]);
 }
 
-/** Reads the cancel request and the engine-wide stop switch between paid steps. */
-export async function checkRun(runId: string): Promise<RunCheck> {
+/** Reads the cancel request and the engine-wide stop switch between paid steps. Null when the
+ * run is gone (its account was deleted). Always pass the answer to runStopDecision. */
+export async function checkRun(runId: string): Promise<RunCheck | null> {
   "use step";
-  return call<RunCheck>("engine_check", [runId]);
+  return call<RunCheck | null>("engine_check", [runId]);
 }
 
 /** Saves one output once; a replayed step returns false instead of duplicating it. */

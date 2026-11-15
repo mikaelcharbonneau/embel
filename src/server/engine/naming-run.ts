@@ -26,6 +26,7 @@ import {
   namingReplyFormat,
 } from "../ai/naming-prompt";
 import { NAMING_KIND, namingEnginePolicy, namingRunInputSchema, type NamingRunInput } from "./naming";
+import { runStopDecision, stopCode, type RunCheckState } from "./stop-check";
 import {
   EngineProviderError,
   isTerminal,
@@ -54,7 +55,7 @@ const FIRST_ROUND_CANDIDATES = 120,
 
 /** The run as engine_claim returns it. */
 export type ClaimedNamingRun = { id: string; ownerId: string; projectId: string; kind: string; input: unknown };
-export type EngineRunCheck = { status: string; cancelRequested: boolean; paused: boolean };
+export type EngineRunCheck = RunCheckState;
 /** What a run has saved so far: the database's count, the identities this run proposed and
  * the approaches of the names it saved. Plain data, carried by the workflow between steps. */
 export type NamingRunState = { savedCount: number; identities: string[]; approaches: NamingApproach[] };
@@ -81,7 +82,8 @@ export const namingSaveResultSchema = z.object({
 export type NamingSaveResult = z.infer<typeof namingSaveResultSchema>;
 export type NamingRunDeps = {
   openai: EngineOpenAI;
-  check(runId: string): Promise<EngineRunCheck>;
+  /** `engine_check`: null once the run is gone (its account was deleted). */
+  check(runId: string): Promise<EngineRunCheck | null>;
   /** engine_save_output; false when the run already ended. */
   save(
     runId: string,
@@ -269,10 +271,8 @@ export async function pollNamingAttempts(
   runId: string,
   responseIds: readonly string[],
 ): Promise<NamingPollResult> {
-  const state = await deps.check(runId);
-  if (state.status !== "running") return { state: "stop", code: "cancelled" };
-  if (state.cancelRequested || state.paused)
-    return { state: "stop", code: state.paused ? "generation_paused" : "cancelled" };
+  const stop = stopCode(runStopDecision(await deps.check(runId)));
+  if (stop) return { state: "stop", code: stop };
   const finished: string[] = [];
   for (const responseId of responseIds) {
     try {

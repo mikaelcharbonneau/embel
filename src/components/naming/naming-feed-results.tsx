@@ -2,6 +2,7 @@
 import { useId, useState, type ReactNode } from "react";
 import { Button, IconButton } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/feedback";
+import { NoCreditsNote } from "@/components/logo-creation/credits-in-place";
 import type { ProjectNameEntry } from "@/domain/project-naming";
 import { NAMING_RUN_TARGET } from "@/domain/naming-generation";
 import type { NamingFeed } from "./use-naming-feed";
@@ -211,8 +212,19 @@ function NameCard({
 }
 
 /** Generation status in plain words for the chat: progress (with Stop), Stopped, a failure with Try again, or
- * unavailable. `stopInReplyBox` leaves Stop to the reply box. */
-export function NamingFeedStatus({
+ * unavailable. `stopInReplyBox` leaves Stop to the reply box. At 0 credits the note other steps show follows it. */
+export function NamingFeedStatus(props: { feed: NamingFeed; blocked: boolean; stopInReplyBox?: boolean }) {
+  const { feed } = props;
+  // The out-of-credits message already says it; a run still working needs no note yet.
+  const said = ["active", "starting", "stopping"].includes(feed.status.kind) || feed.status.kind === "error";
+  return (
+    <>
+      <NamingRunStatus {...props} />
+      {feed.noCredits && !said && <NoCreditsNote periodEnd={feed.creditsPeriodEnd} />}
+    </>
+  );
+}
+function NamingRunStatus({
   feed,
   blocked,
   stopInReplyBox = false,
@@ -238,6 +250,19 @@ export function NamingFeedStatus({
           </div>
           <div className="e-progress__track" aria-hidden="true" />
           {status.note && <p className="e-muted">{status.note}</p>}
+          {status.stopUnconfirmed && (
+            <div role="alert">
+              <p>{status.stopUnconfirmed}</p>
+              <button
+                type="button"
+                className="button secondary small"
+                disabled={blocked}
+                onClick={() => void feed.retry()}
+              >
+                Try again
+              </button>
+            </div>
+          )}
         </div>
       );
     case "starting":
@@ -265,7 +290,7 @@ export function NamingFeedStatus({
       return (
         <div role="alert">
           <p>{status.message}</p>
-          {status.retry !== false && (
+          {status.retry !== false && !(status.kind === "failed" && feed.startRefused) && (
             <button
               type="button"
               className="button secondary small"

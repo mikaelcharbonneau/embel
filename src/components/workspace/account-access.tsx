@@ -43,17 +43,17 @@ export function useSignOutFlow(): { start: (discardUnsaved?: boolean) => Promise
 }
 
 export function AccountAccessNotice() {
-  const { signOutError, signInSlow, signingUp } = useAccountSession();
-  if (signOutError)
+  const { activity } = useAccountSession();
+  if (activity.kind === "sign_out_unconfirmed")
     return (
       <div className="auth-session-notice" role="alert">
-        {signOutError}
+        {activity.message}
       </div>
     );
-  return signInSlow ? (
+  return activity.kind === "signing_in" && activity.slow ? (
     <div className="auth-session-notice" role="status">
-      {signingUp ? "Account creation" : "Sign-in"} is taking longer than expected. Account actions will resume when it
-      finishes. Your work is kept while we check the connection.
+      {activity.as === "sign-up" ? "Account creation" : "Sign-in"} is taking longer than expected. Account actions will
+      resume when it finishes. Your work is kept while we check the connection.
     </div>
   ) : null;
 }

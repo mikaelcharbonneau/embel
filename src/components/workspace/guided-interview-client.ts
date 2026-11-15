@@ -1,6 +1,7 @@
 import {
   retainedCompetitorAnswerPrefix,
   appendGuidedTurn,
+  FINISHED_MESSAGE_STAGE,
   guidedReplySchema,
   guidedTurnOperation,
   initializeGuidedInterview,
@@ -99,20 +100,17 @@ export function guidedMessageContext(
 ): ContextSnapshot {
   const submitted = addUserMessage(context, text, now);
   let next = initializeGuidedInterview(submitted.context);
-  if (next.intake.guidedInterview!.stage === "complete") {
-    next = contextSnapshotSchema.parse({
-      ...next,
-      intake: { ...next.intake, guidedInterview: { ...next.intake.guidedInterview!, stage: "personality" } },
-    });
-  }
   const state = next.intake.guidedInterview!;
+  // On a finished interview the message is a question or comment: the stage stays complete, so no finished
+  // step closes and no answer is reopened (docs/state-machines.md, J4). Answers change through "Change answer".
+  const stage: GuidedStage = state.stage === "complete" ? FINISHED_MESSAGE_STAGE : state.stage;
   const first = state.turns.length === 0;
-  if (first && state.stage === "competitors") next = withStrategyBrief(next);
+  if (first && stage === "competitors") next = withStrategyBrief(next);
   return appendGuidedTurn(next, {
     id: crypto.randomUUID(),
     userMessageId: submitted.event.id,
-    stage: state.stage as GuidedStage,
-    purpose: first && state.stage === "competitors" ? "research" : "message",
+    stage,
+    purpose: first && stage === "competitors" ? "research" : "message",
     inputRevision: revision,
   });
 }

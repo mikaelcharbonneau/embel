@@ -60,7 +60,8 @@ const briefOf = (revision: LogoStageRevision<"brief_references"> | undefined): L
   return { name, activity, audience, personality, logoTypes };
 };
 
-type LogoWorkspaceReloadResult = "reloaded" | "draft_blocked" | "unavailable";
+/** "busy": the reload could not run because another operation held the workspace; nothing failed. */
+export type LogoWorkspaceReloadResult = "reloaded" | "draft_blocked" | "unavailable" | "busy";
 export const LOGO_AUTOSAVE_DELAY_MS = 650;
 export const LOGO_SAVE_TIMEOUT_MS = 30_000;
 
@@ -179,6 +180,13 @@ export function useLogoWorkspace({
   const [activity, setActivity] = useState<Activity | null>(null);
   const [payloads, setPayloads] = useState<{ scope: Scope; baseline: LogoWorkspaceBaseline } | null>(null);
   const operation = useRef<{ controller: AbortController; scope: Scope; editableSave: boolean } | null>(null);
+  /** The one reload waiting for the running operation to finish (docs/state-machines.md, S4). Every reload
+   * asked for meanwhile shares it, so its callers hear what it loaded, never a failure that did not happen. */
+  const queuedReload = useRef<{
+    discard: boolean;
+    start(): void;
+    result: Promise<LogoWorkspaceReloadResult>;
+  } | null>(null);
   const scope = account
     ? { ownerId: account.userId, generation: account.generation, projectId, memory, injected }
     : null;
@@ -252,10 +260,12 @@ export function useLogoWorkspace({
         account: VerifiedAccount,
       ) => Promise<void>,
       { editableSave = false, bounded = false }: { editableSave?: boolean; bounded?: boolean } = {},
-    ) => {
-      if (!account || !client || !isCurrent(account) || operation.current) return;
+    ): Promise<"ran" | "locked" | "not_ready"> => {
+      if (!account || !client || !isCurrent(account)) return "not_ready";
+      // One operation at a time. The caller decides what a held lock means; it is never a failure.
+      if (operation.current) return "locked";
       const capturedScope = { ownerId: account.userId, generation: account.generation, projectId, memory, injected };
-      if (!committedScope.current || !sameScope(committedScope.current, capturedScope)) return;
+      if (!committedScope.current || !sameScope(committedScope.current, capturedScope)) return "not_ready";
       const token = { controller: new AbortController(), scope: capturedScope, editableSave };
       operation.current = token;
       const current = () =>
@@ -310,15 +320,22 @@ export function useLogoWorkspace({
         // The original save may have committed. Keep its immutable pending intent
         // while stopping transport and rejecting any late acknowledgement.
         if (timedOut) token.controller.abort();
+        // The lock is free: the reload that waited for it runs now.
+        if (!operation.current) {
+          const next = queuedReload.current;
+          queuedReload.current = null;
+          next?.start();
+        }
       }
+      return "ran";
     },
     [account, client, injected, isCurrent, memory, projectId],
   );
 
-  const reload = useCallback(
+  const reloadNow = useCallback(
     async (discard: boolean): Promise<LogoWorkspaceReloadResult> => {
       let result: LogoWorkspaceReloadResult = "unavailable";
-      await perform(async (source, signal, current, verified) => {
+      const ran = await perform(async (source, signal, current, verified) => {
         const previous = memory.get(projectId);
         if (
           previous &&
@@ -363,9 +380,31 @@ export function useLogoWorkspace({
         setPayloads({ scope, baseline });
         result = "reloaded";
       });
-      return result;
+      return ran === "locked" ? "busy" : result;
     },
     [injected, memory, perform, projectId],
+  );
+  const latestReload = useRef(reloadNow);
+  useLayoutEffect(() => {
+    latestReload.current = reloadNow;
+  }, [reloadNow]);
+  /** Reloads now, or, while another operation runs, once it finishes: at most one reload waits. */
+  const reload = useCallback(
+    (discard: boolean): Promise<LogoWorkspaceReloadResult> => {
+      if (!operation.current) return reloadNow(discard);
+      const waiting = queuedReload.current;
+      if (waiting) {
+        waiting.discard ||= discard;
+        return waiting.result;
+      }
+      const queued = { discard, start: () => {}, result: null! as Promise<LogoWorkspaceReloadResult> };
+      queued.result = new Promise((resolve) => {
+        queued.start = () => resolve(latestReload.current(queued.discard));
+      });
+      queuedReload.current = queued;
+      return queued.result;
+    },
+    [reloadNow],
   );
 
   useEffect(() => {

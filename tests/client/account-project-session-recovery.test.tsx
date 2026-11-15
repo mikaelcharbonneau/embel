@@ -31,20 +31,24 @@ vi.mock("@/components/workspace/account-guided-interview", async (importOriginal
     },
   };
 });
-vi.mock("@/components/workspace/use-strategy-jobs", () => ({
-  useStrategyJobs: () => ({
-    overview: capture.overview ?? {
-      jobs: [],
-      availability: { status: "unavailable", operations: [], reason: "worker_unavailable" },
-    },
-    pending: false,
-    readError: null,
-    actionError: null,
-    refresh: vi.fn(),
-    enqueue: vi.fn(),
-    cancel: vi.fn(),
-  }),
-}));
+vi.mock("@/components/workspace/use-strategy-jobs", async () => {
+  const { withStrategyView } = await import("./guided-strategy-hook");
+  return {
+    useStrategyJobs: () =>
+      withStrategyView({
+        overview: capture.overview ?? {
+          jobs: [],
+          availability: { status: "unavailable", operations: [], reason: "worker_unavailable" },
+        },
+        pending: false,
+        readError: null,
+        actionError: null,
+        refresh: vi.fn(),
+        enqueue: vi.fn(),
+        cancel: vi.fn(),
+      }),
+  };
+});
 
 let account: ReturnType<typeof useAccountSession>;
 let root: Root, host: HTMLDivElement, project: AccountProject, fetcher: ReturnType<typeof vi.fn>;

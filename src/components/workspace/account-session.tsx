@@ -4,7 +4,7 @@ import { createInspirationMemory } from "@/components/inspiration/inspiration-me
 import { createNamingBrainMemory } from "@/components/naming/naming-brain-memory";
 import { createProjectScreeningMemory } from "@/components/naming/project-screening-memory";
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useReducer, useRef, useState } from "react";
 import { z } from "zod";
 import { accountSessionSchema } from "@/domain/project-api";
 import { accountRequest, AccountRequestError } from "./account-api";
@@ -21,6 +21,14 @@ import { createHomeInputSession } from "@/features/home-inputs/home-input-sessio
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/feedback";
 import { InlineMessage } from "@/components/ui/message";
+import {
+  initialSessionMode,
+  sessionModeReducer,
+  sessionPageSentence,
+  sessionView,
+  signInFailure,
+  type SessionActivity,
+} from "./session-view";
 
 type Session =
   | { status: "checking" | "signed_out" | "unavailable" | "error"; generation: number }
@@ -51,6 +59,9 @@ type AccountSession = {
     attempt: () => Promise<void | "confirmation_required">,
     mode?: "sign-in" | "sign-up",
   ) => Promise<SignInResult>;
+  /** What the account is doing besides its status (docs/state-machines.md, J6). The six values below it
+   * are read from this one and from `awaitingConfirmation`; none is stored on its own. */
+  activity: SessionActivity;
   signingIn: boolean;
   signingUp: boolean;
   awaitingConfirmation: boolean;
@@ -122,6 +133,9 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
   const request = useRef<AbortController | null>(null);
   const signOutRequest = useRef<AbortController | null>(null);
   const signInPending = useRef(false);
+  /** Checks on startup and on returning to the tab are held back: the outcome of a sign-in or sign-out
+   * is unknown, or an account was created and awaits its email link. Only an explicit check, a
+   * confirmed sign-out or a sign-in that was plainly refused resumes them. */
   const suppressAutomaticRefresh = useRef(false);
   const previousOwner = useRef<string | null>(null);
   const [drafts] = useState(createAccountDraftMemory);
@@ -134,13 +148,8 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
   const [homeInputSession] = useState(createHomeInputSession);
   const [logoInputSession] = useState(createLogoInputSession);
   const [viewCache] = useState(createAccountViewCache);
-  const [signingOut, setSigningOut] = useState(false);
-  const [signingIn, setSigningIn] = useState(false);
-  const [signingUp, setSigningUp] = useState(false);
-  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
-  const dismissConfirmation = useCallback(() => setAwaitingConfirmation(false), []);
-  const [signInSlow, setSignInSlow] = useState(false);
-  const [signOutError, setSignOutError] = useState<string | null>(null);
+  const [{ activity, awaitingConfirmation }, dispatch] = useReducer(sessionModeReducer, initialSessionMode);
+  const dismissConfirmation = useCallback(() => dispatch({ type: "confirmation_dismissed" }), []);
   const publish = useCallback(
     (next: Session) => {
       // Fence the previous account before notifying private-memory subscribers.
@@ -187,7 +196,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
   const refresh = useCallback(() => {
     if (signOutRequest.current || signInPending.current) return;
     suppressAutomaticRefresh.current = false;
-    setSignOutError(null);
+    dispatch({ type: "check_started" });
     request.current?.abort();
     const controller = new AbortController();
     request.current = controller;
@@ -200,6 +209,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
           publish({ status: "signed_out", generation });
           return;
         }
+        dispatch({ type: "account_verified" });
         publish({ status: "ready", userId: state.user.id, generation });
       })
       .catch((error: unknown) => {
@@ -264,40 +274,48 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
       signInPending.current = true;
       suppressAutomaticRefresh.current = true;
       request.current?.abort();
+      const before = current.current.status;
       const generation = current.current.generation + 1;
       publish({ status: "checking", generation });
-      setSigningIn(true);
-      setSigningUp(mode === "sign-up");
-      setSignInSlow(false);
-      setSignOutError(null);
-      const slowNotice = window.setTimeout(() => setSignInSlow(true), 30_000);
+      dispatch({ type: "sign_in_started", as: mode });
+      const slowNotice = window.setTimeout(() => dispatch({ type: "sign_in_slow" }), 30_000);
       let result: SignInResult;
+      let outcome: "signed_in" | "confirmation_required" | "failed" = "failed";
+      let check = false;
       try {
         // Hold admission until the POST settles, even if the form unmounts. Aborting or
         // ignoring its callback cannot safely order the response's cookie side effect.
-        const outcome = await attempt();
-        if (outcome === "confirmation_required") {
+        const answer = await attempt();
+        if (answer === "confirmation_required") {
           // An accepted signup is not a session. Retain the privacy fence until
           // explicit verification or a later successful sign-in; never expose an
           // earlier account whose cookies may still exist in this browser.
-          setAwaitingConfirmation(true);
+          outcome = "confirmation_required";
           publish({ status: "signed_out", generation });
           result = { ok: true, confirmationRequired: true };
         } else {
-          setAwaitingConfirmation(false);
+          outcome = "signed_in";
+          check = true;
           result = { ok: true };
         }
       } catch (error: unknown) {
-        publish({ status: "error", generation });
+        if (signInFailure(error) === "unconfirmed") {
+          // The request may have signed someone in: only an explicit check may show an account.
+          publish({ status: "error", generation });
+        } else if (before === "signed_out") {
+          // Refused, for example a wrong password. Nobody was signed in before and nobody is now:
+          // the form shows the reason and the rest of the app stays ordinarily signed out.
+          suppressAutomaticRefresh.current = false;
+          publish({ status: "signed_out", generation });
+        } else check = true;
         result = { ok: false, reason: "failed", error };
       } finally {
         window.clearTimeout(slowNotice);
         signInPending.current = false;
-        setSigningIn(false);
-        setSigningUp(false);
-        setSignInSlow(false);
+        dispatch({ type: "sign_in_finished", outcome });
       }
-      if (result.ok && !result.confirmationRequired) refresh();
+      // A new session is verified afresh. So is a refusal that followed an unknown account state.
+      if (check) refresh();
       return result;
     },
     [publish, refresh],
@@ -326,8 +344,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
       const generation = current.current.generation + 1;
       // isCurrent() stops accepting outstanding private responses in this same event turn.
       publish({ status: "checking", generation });
-      setSigningOut(true);
-      setSignOutError(null);
+      dispatch({ type: "sign_out_started" });
       const timeout = window.setTimeout(() => controller.abort(), 30_000);
       try {
         await accountRequest("/api/auth/sign-out", signedOutSchema, {
@@ -347,7 +364,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
         homeInputSession.clear();
         logoInputSession.clear();
         previousOwner.current = null;
-        setAwaitingConfirmation(false);
+        dispatch({ type: "sign_out_confirmed" });
         suppressAutomaticRefresh.current = false;
         publish({ status: "signed_out", generation });
         return { ok: true };
@@ -355,16 +372,15 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
         if (signOutRequest.current !== controller) return { ok: false, reason: "failed" };
         // Keep both the privacy fence and the owner's edits until an explicit recovery action.
         publish({ status: "error", generation });
-        setSignOutError(
-          "Sign-out couldn’t be confirmed. Your account content stays hidden and unsaved edits remain in this tab. Retry sign-out, or use Check account in the account menu.",
-        );
+        dispatch({
+          type: "sign_out_unconfirmed",
+          message:
+            "Sign-out couldn’t be confirmed. Your account content stays hidden and unsaved edits remain in this tab. Retry sign-out, or use Check account in the account menu.",
+        });
         return { ok: false, reason: "failed" };
       } finally {
         window.clearTimeout(timeout);
-        if (signOutRequest.current === controller) {
-          signOutRequest.current = null;
-          setSigningOut(false);
-        }
+        if (signOutRequest.current === controller) signOutRequest.current = null;
       }
     },
     [
@@ -470,14 +486,15 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
         logoInputSession,
         viewCache,
         signIn,
-        signingIn,
-        signingUp,
+        activity,
+        signingIn: activity.kind === "signing_in",
+        signingUp: activity.kind === "signing_in" && activity.as === "sign-up",
         awaitingConfirmation,
         dismissConfirmation,
-        signInSlow,
+        signInSlow: activity.kind === "signing_in" && activity.slow,
         signOut,
-        signingOut,
-        signOutError,
+        signingOut: activity.kind === "signing_out",
+        signOutError: activity.kind === "sign_out_unconfirmed" ? activity.message : null,
       }}
     >
       <LogoDraftMemoryProvider memory={logoDrafts}>{children}</LogoDraftMemoryProvider>
@@ -501,32 +518,18 @@ export function AccountStatus({
   retainedEdits?: boolean;
   signedOut?: string;
 }) {
-  const { session, refresh, signingIn, signingUp, signingOut, signOutError } = useAccountSession();
+  const { session, refresh, activity } = useAccountSession();
   const retryGeneration = useRef<number | null>(null);
-  if (session.status === "ready") return null;
-  const canRetry = (session.status === "error" || session.status === "unavailable") && !signingIn && !signingOut;
+  const view = sessionView({ status: session.status, activity });
+  if (!view.notice) return null;
   function checkAccount() {
     // Guard repeated activation before React renders the checking state. Only
     // the existing session refresh can verify identity or release private views.
-    if (!canRetry || retryGeneration.current === session.generation) return;
+    if (!view.canCheck || retryGeneration.current === session.generation) return;
     retryGeneration.current = session.generation;
     refresh();
   }
-  const invite = session.status === "signed_out" && !signingIn && !signingOut && !signOutError;
-  const message = signingIn
-    ? `${signingUp ? "Creating your account" : "Signing in"}… Account content is hidden while the request completes.`
-    : signingOut
-      ? "Signing out… Account content is hidden while the request completes."
-      : signOutError
-        ? "Account content remains hidden until your session is verified."
-        : session.status === "checking"
-          ? "Checking your account…"
-          : session.status === "unavailable"
-            ? "Account saving is unavailable. Check your connection and try again. Unsaved edits are kept in this tab."
-            : invite
-              ? signedOut
-              : "Your account session could not be verified. Check your connection and try again.";
-  if (invite)
+  if (view.invite)
     return (
       <EmptyState
         icon="lock"
@@ -537,16 +540,16 @@ export function AccountStatus({
     );
   return (
     <InlineMessage
-      tone={signOutError || (session.status !== "checking" && !signingIn && !signingOut) ? "warning" : "neutral"}
+      tone={view.warning ? "warning" : "neutral"}
       actions={
-        canRetry ? (
+        view.canCheck ? (
           <Button size="sm" onClick={checkAccount}>
             Check account
           </Button>
         ) : undefined
       }
     >
-      <p>{message}</p>
+      <p>{sessionPageSentence(view.notice, signedOut)}</p>
       {retainedEdits && (
         <p>
           Unsaved account edits are held in this tab. Check your account after restoring the same session to recover

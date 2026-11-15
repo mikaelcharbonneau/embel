@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   asRole,
@@ -309,6 +311,89 @@ describe("running a generation", () => {
     await db.query("update public.generation_runs set started_at = now() - interval '2 hours' where id = $1", [run.id]);
     expect(await cancel()).toMatchObject({ status: "failed", error_code: "run_timed_out" });
     expect((await balance(OWNER_A)).balance).toBe(30);
+  });
+  it("leaves a finished run untouched when it is cancelled, and still returns it", async () => {
+    const project = await seedProject(db);
+    const run = await start(OWNER_A, project.id, "test.paid");
+    await engine.claim(run.id);
+    await engine.finish(run.id, "succeeded");
+    const cancel = (owner: string) =>
+      asRole(
+        db,
+        "authenticated",
+        owner,
+        async () =>
+          (
+            await db.query<Run & { cancel_requested_at: string | null }>("select * from public.cancel_generation($1)", [
+              run.id,
+            ])
+          ).rows[0]!,
+      );
+    expect(await cancel(OWNER_A)).toMatchObject({ id: run.id, status: "succeeded", cancel_requested_at: null });
+    expect(
+      (await db.query("select status, cancel_requested_at from public.generation_runs where id = $1", [run.id])).rows,
+    ).toEqual([{ status: "succeeded", cancel_requested_at: null }]);
+    expect((await balance(OWNER_A)).balance).toBe(20);
+    // Another person still learns nothing about it.
+    expect(await failure(() => cancel(OWNER_B))).toMatchObject({ code: "P0002" });
+  });
+  it("keeps finished_at empty on a working run and set on an ended one", async () => {
+    const project = await seedProject(db);
+    const run = await start(OWNER_A, project.id, "test.paid");
+    const finishedAt = async () =>
+      (
+        await db.query<{ finished_at: Date | null }>("select finished_at from public.generation_runs where id = $1", [
+          run.id,
+        ])
+      ).rows[0]!.finished_at;
+    expect(await finishedAt()).toBeNull();
+    await engine.claim(run.id);
+    expect(await finishedAt()).toBeNull();
+    for (const write of [
+      "update public.generation_runs set finished_at = now() where id = $1",
+      "update public.generation_runs set status = 'succeeded' where id = $1",
+    ])
+      expect((await failure(() => db.query(write, [run.id]))).message).toContain("generation_runs_finished_at_check");
+    await engine.finish(run.id, "failed", "generation_failed");
+    expect(await finishedAt()).toBeInstanceOf(Date);
+    expect(
+      (await failure(() => db.query("update public.generation_runs set finished_at = null where id = $1", [run.id])))
+        .message,
+    ).toContain("generation_runs_finished_at_check");
+  });
+  it("applies the lifecycle migration to a database whose existing rows break the finished_at rule", async () => {
+    const first = await seedProject(db);
+    const second = await seedProject(db);
+    const ended = await start(OWNER_A, first.id, "test.paid", key(1));
+    await engine.claim(ended.id);
+    await engine.finish(ended.id, "succeeded");
+    const working = await start(OWNER_A, second.id, "test.paid", key(2));
+    await engine.claim(working.id, "wrun_fixture_2");
+    // The state an older database can be in: no rule yet, and rows on both wrong sides of it.
+    await db.exec("alter table public.generation_runs drop constraint generation_runs_finished_at_check");
+    await db.query("update public.generation_runs set finished_at = null where id = $1", [ended.id]);
+    await db.query("update public.generation_runs set finished_at = now() where id = $1", [working.id]);
+    await db.exec(
+      readFileSync(join(process.cwd(), "supabase/migrations/20261114140000_run_lifecycle_gaps.sql"), "utf8"),
+    );
+    const rows = (
+      await db.query<{ id: string; status: string; ended: boolean; credits: number }>(
+        "select id, status, finished_at is not null as ended, credits from public.generation_runs order by created_at",
+      )
+    ).rows;
+    // An ended run gets a time (its start, the best the row knows); a working run loses its false one.
+    expect(rows).toEqual([
+      { id: ended.id, status: "succeeded", ended: true, credits: 10 },
+      { id: working.id, status: "running", ended: false, credits: 10 },
+    ]);
+    expect((await balance(OWNER_A)).balance).toBe(10);
+    expect(
+      (
+        await failure(() =>
+          db.query("update public.generation_runs set finished_at = now() where id = $1", [working.id]),
+        )
+      ).message,
+    ).toContain("generation_runs_finished_at_check");
   });
   it("cancels a queued run at claim time when the engine is paused", async () => {
     const project = await seedProject(db);

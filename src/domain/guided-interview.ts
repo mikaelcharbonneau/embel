@@ -164,11 +164,30 @@ export function initializeGuidedInterview(context: ContextSnapshot, initialTurn?
   return initialTurn ? appendGuidedTurn(initialized, initialTurn) : initialized;
 }
 
+/** A turn always names a step. A message typed after the interview is complete is filed under this one, the last
+ * step of the conversation that every finished interview has answered. */
+export const FINISHED_MESSAGE_STAGE: GuidedStage = "personality";
+
+/** A message typed after the interview is complete is a question or a comment. Its turn asks for a reply and
+ * nothing else: the stage stays complete, and no answer is reopened by it. */
+function messageOnFinishedInterview(state: GuidedInterviewState, turn: GuidedTurn): boolean {
+  return state.stage === "complete" && turn.purpose === "message";
+}
+
+/** The turn that is waiting, for Embel's reply or for the person's answer: the latest turn, not yet answered, of
+ * the step that is open, or a message typed after the interview is complete. */
+export function guidedOpenTurn(state: GuidedInterviewState | null | undefined): GuidedTurn | null {
+  const turn = state?.turns.at(-1);
+  if (!state || !turn || state.answers.some((answer) => answer.turnId === turn.id)) return null;
+  return turn.stage === state.stage || messageOnFinishedInterview(state, turn) ? turn : null;
+}
+
 export function appendGuidedTurn(context: ContextSnapshot, turn: GuidedTurn): ContextSnapshot {
   const parsed = contextSnapshotSchema.parse(context);
   const state = parseGuidedInterview(parsed);
   const nextTurn = guidedTurnSchema.parse(turn);
-  if (!state || state.stage !== nextTurn.stage) throw new Error("Request a reply for the current interview stage");
+  if (!state || (state.stage !== nextTurn.stage && !messageOnFinishedInterview(state, nextTurn)))
+    throw new Error("Request a reply for the current interview stage");
   return contextSnapshotSchema.parse({
     ...parsed,
     intake: {

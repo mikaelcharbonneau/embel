@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import Stripe from "stripe";
+import { syncSubscription } from "@/server/billing/webhook";
 import { handleStripeWebhook } from "@/server/billing/webhook-endpoint";
 import type { BillingStore } from "@/server/billing/store";
 import type { StripeClient } from "@/server/billing/stripe";
@@ -113,6 +114,26 @@ describe("signature", () => {
     vi.stubEnv("STRIPE_WEBHOOK_SECRET", "");
     expect((await deliver(event("invoice.paid", { id: "in_1" }))).status).toBe(503);
     expect(store.eventSeen).not.toHaveBeenCalled();
+  });
+});
+
+describe("the time of a Stripe read", () => {
+  it("is taken before the read, so a slow older read never looks newer than a later one", async () => {
+    stripe = fakeStripe();
+    store = fakeStore();
+    let clock = 1_000;
+    // The read takes five seconds; another event's read could start and finish meanwhile.
+    stripe.subscriptions.retrieve.mockImplementationOnce(async () => {
+      clock += 5_000;
+      return subscription();
+    });
+    await syncSubscription(
+      stripe as unknown as StripeClient,
+      store as unknown as BillingStore,
+      "sub_A",
+      () => new Date(clock),
+    );
+    expect(store.applySubscription.mock.calls[0]![0]).toMatchObject({ syncedAt: new Date(1_000) });
   });
 });
 

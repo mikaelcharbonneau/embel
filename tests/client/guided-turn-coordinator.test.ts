@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { GuidedReply, GuidedTurn } from "@/domain/guided-interview";
 import {
   guidedActivity,
+  guidedAttempts,
   guidedTurnAction,
+  guidedTurnStale,
   type GuidedTurnIdleReason,
   type GuidedTurnSituation,
 } from "@/components/workspace/guided-turn-coordinator";
@@ -144,6 +146,74 @@ describe("what the conversation does next", () => {
       [{ readFailed: true }, "no_open_turn"],
     ];
     for (const [change, reason] of blockers) expect(idle({ ...named, ...change })).toBe(reason);
+  });
+});
+
+describe("has this been tried?", () => {
+  const accept = guidedTurnAction({ ...ready, bound: bound(accepted) });
+  const failedSave = guidedTurnAction({ ...ready, bound: bound(accepted), dirty: true });
+
+  it("makes each attempt once", () => {
+    const attempts = guidedAttempts();
+    expect(attempts.begin(accept)).toBe(true);
+    expect(attempts.begin(accept)).toBe(false);
+    expect(attempts.begin(guidedTurnAction(ready))).toBe(true);
+    expect(attempts.begin(failedSave)).toBe(false);
+    // A confirmed attempt stays made, whatever happens in between.
+    expect(attempts.begin(accept)).toBe(false);
+  });
+
+  it("makes an attempt again after its save was not confirmed, once the failed save is settled", () => {
+    const attempts = guidedAttempts();
+    expect(attempts.begin(accept)).toBe(true);
+    attempts.saveNotConfirmed("accept:job-1");
+    // The failed save is on screen as unsaved edits: nothing is tried while it is.
+    expect(attempts.begin(failedSave)).toBe(false);
+    // "Retry save" or "Load latest version" settled it and the same step is still due.
+    expect(attempts.begin(accept)).toBe(true);
+    expect(attempts.begin(accept)).toBe(false);
+  });
+
+  it("does not repeat a save that fails without leaving anything to settle", () => {
+    const attempts = guidedAttempts();
+    expect(attempts.begin(accept)).toBe(true);
+    attempts.saveNotConfirmed("accept:job-1");
+    for (let pass = 0; pass < 3; pass += 1) expect(attempts.begin(accept)).toBe(false);
+  });
+
+  it("counts a request the person retried themselves as made", () => {
+    const attempts = guidedAttempts();
+    attempts.record("request:turn-1");
+    expect(attempts.begin(guidedTurnAction(ready))).toBe(false);
+  });
+});
+
+describe("did the project move on under the open turn?", () => {
+  const moved = { currentTurn: turn, savedRevision: 5, savePending: false, reply: null, strategyAnswered: false };
+
+  it("is stale when the turn was saved for another revision and has no reply", () => {
+    expect(guidedTurnStale(moved)).toBe(true);
+    expect(guidedTurnStale({ ...moved, savedRevision: 4 })).toBe(false);
+    expect(guidedTurnStale({ ...moved, savePending: true })).toBe(false);
+    expect(guidedTurnStale({ ...moved, currentTurn: null })).toBe(false);
+  });
+
+  it("is stale for exactly the replies the page would have acted on itself and now will not", () => {
+    for (const [reply, strategyAnswered] of [
+      [accepted, false],
+      [redirect, false],
+      [answer, true],
+    ] as const) {
+      expect(idle({ ...ready, bound: bound(reply), strategyAnswered, savedRevision: 5 })).toBe(
+        "turn_of_another_revision",
+      );
+      expect(guidedTurnStale({ ...moved, reply, strategyAnswered })).toBe(true);
+      expect(guidedTurnStale({ ...moved, reply, strategyAnswered, savedRevision: 4 })).toBe(false);
+    }
+  });
+
+  it("leaves replies the person acts on usable", () => {
+    for (const reply of [choices, question, answer]) expect(guidedTurnStale({ ...moved, reply })).toBe(false);
   });
 });
 

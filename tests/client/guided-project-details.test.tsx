@@ -27,16 +27,20 @@ vi.mock("@/components/workspace/account-session", () => ({
     refresh: mock.refresh,
   }),
 }));
-vi.mock("@/components/workspace/use-strategy-jobs", () => ({
-  useStrategyJobs: () => ({
-    overview,
-    pending: false,
-    readError: null,
-    actionError: null,
-    refresh: mock.refresh,
-    enqueue: mock.enqueue,
-  }),
-}));
+vi.mock("@/components/workspace/use-strategy-jobs", async () => {
+  const { withStrategyView } = await import("./guided-strategy-hook");
+  return {
+    useStrategyJobs: () =>
+      withStrategyView({
+        overview,
+        pending: false,
+        readError: null,
+        actionError: null,
+        refresh: mock.refresh,
+        enqueue: mock.enqueue,
+      }),
+  };
+});
 
 const projectId = "bbbbbbbb-1111-4111-8111-111111111111",
   when = "2026-10-17T00:00:00Z";

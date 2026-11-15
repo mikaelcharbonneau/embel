@@ -37,7 +37,7 @@ import {
   type SelectIdentitySystem,
   type UpdateIdentityPreferences,
 } from "@/domain/project-identity";
-import { AccountRequestError } from "@/components/workspace/account-api";
+import { AccountRequestError, safeAccountErrorCode } from "@/components/workspace/account-api";
 import { announceOutOfCredits } from "@/components/billing/out-of-credits";
 import {
   identityBatchOverviewSchema,
@@ -240,7 +240,8 @@ export function createAccountIdentityClient(
           }
           if (!response.ok) {
             if (response.status === 402) announceOutOfCredits();
-            throw new AccountRequestError(response.status);
+            // The allowlisted `error.code` tells a switched-off step from a start that couldn't be confirmed.
+            throw new AccountRequestError(response.status, await safeAccountErrorCode(response));
           }
           if (mimeBase(response.headers.get("content-type") ?? "") !== "application/json")
             throw new AccountRequestError(502);

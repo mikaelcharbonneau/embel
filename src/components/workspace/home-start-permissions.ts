@@ -1,4 +1,8 @@
-/** Everything the Home prompt reads to decide what the person may do (docs/state-machines.md, J7). */
+/** Everything the Home prompt reads to decide what the person may do (docs/state-machines.md, J7).
+ *
+ * The screen asks with what it last rendered; a click or keystroke asks again with the values read at
+ * that moment (`submitting` from the synchronous guard, the file memory read now). Both go through
+ * `homeStartView`, so a control is disabled exactly when acting on it would be refused. */
 export type HomeStartSituation = {
   /** The projects kept on this device have been read. */
   draftsLoaded: boolean;
@@ -6,11 +10,13 @@ export type HomeStartSituation = {
   recoveryLoaded: boolean;
   /** The kept prompt belongs to another account, so it is not shown. */
   hiddenPrompt: boolean;
-  /** A send is under way, as last rendered. */
+  /** A send is under way. At a click this includes the synchronous guard, which is ahead of the
+   * rendered value: it only ever adds a refusal, it never allows what the screen shows as held. */
   submitting: boolean;
   /** The account save or start is in flight (`useAccountStrategyStart().pending`). */
   strategyPending: boolean;
-  /** The prompt is tied to an earlier account save (`.locked`). */
+  /** The prompt is tied to an earlier account save (`.locked`): the text of that save is kept as it
+   * was, and Send repeats the same save or opens its project. */
   strategyLocked: boolean;
   /** That earlier save cannot be continued from here (`.recoveryBlocked`). */
   strategyRecoveryBlocked: boolean;
@@ -19,102 +25,52 @@ export type HomeStartSituation = {
   /** A saved project is being opened in this account session. */
   opening: boolean;
   signedIn: boolean;
-  /** Files are attached, as last rendered. */
+  /** Files are attached. */
   hasFiles: boolean;
-  /** The attached save has frozen its project, as last rendered (`saveIntent.project`). */
-  frozenBrief: boolean;
-  /** Unsaved files are kept in this tab and nobody is signed in, as last rendered. */
-  hiddenFiles: boolean;
+  /** An attached save has started (`saveIntent`), which freezes the brief it was made from. */
+  attachedSaveStarted: boolean;
+  /** Unsaved files are kept in this tab and the account that owns them is absent or no longer current. */
+  filesNeedAccount: boolean;
   /** A file picker is open. */
   selectingFiles: boolean;
   /** The prompt already has a copy kept on this device. */
   keptDraft: boolean;
   /** This device holds 50 unsaved projects. */
   recoveryFull: boolean;
-  /** Read at the moment of a click or keystroke, not from the last render. `null` while rendering: a
-   * render answers no click, so `mayEdit` and `maySend` are then false. */
-  now: HomeStartNow | null;
 };
 
-export type HomeStartNow = {
-  /** A send is under way (the synchronous guard, ahead of the rendered `submitting`). */
-  submitting: boolean;
-  /** Unsaved files are kept and the account that owns them is absent or no longer current. */
-  filesNeedAccount: boolean;
-  /** An attached save has started, with or without a frozen project (`saveIntent`). */
-  attachedSaveStarted: boolean;
-};
-
-/** One named answer per place that asks. They do NOT agree today, and each returns exactly what its
- * place computed before this function existed; `tests/client/home-start-permissions.test.ts` lists the
- * differences. Making them agree is a later change (docs/state-machines.md, rule 5). */
+/** One answer per question. */
 export type HomeStartView = {
-  /** The prompt field is read-only; "Start a new prompt" and the example chips are disabled. */
-  readOnly: boolean;
+  /** The prompt text may not change: the field is read-only, and "Start a new prompt" and the example
+   * chips are disabled. */
+  editHeld: boolean;
+  /** Voice and file controls are disabled. The same answer as `editHeld`, except during an attached
+   * save: the file controls hold themselves then and keep their own way out ("Start a new attached
+   * brief"), which disabling them from here would remove. */
+  inputControlsHeld: boolean;
   /** Send and "Save project" are disabled. */
-  sendDisabled: boolean;
-  /** Voice and file controls are disabled. */
-  inputControlsDisabled: boolean;
-  /** A keystroke, an example or "Start a new prompt" is accepted. */
-  mayEdit: boolean;
-  /** A send goes past its first, silent check. Later checks answer with a message. */
-  maySend: boolean;
+  sendHeld: boolean;
 };
 
-/** Within each answer, the order of the checks is the order its place used. */
 export function homeStartView(situation: HomeStartSituation): HomeStartView {
-  const {
-    recoveryLoaded,
-    hiddenPrompt,
-    submitting,
-    strategyPending,
-    strategyLocked,
-    navigating,
-    opening,
-    hiddenFiles,
-    frozenBrief,
-    now,
-  } = situation;
-  const textRecoveryBlocked = situation.strategyRecoveryBlocked && !situation.hasFiles && !frozenBrief;
+  const { hiddenPrompt, strategyLocked, attachedSaveStarted, filesNeedAccount } = situation;
+  const notReady = !situation.draftsLoaded || !situation.recoveryLoaded;
+  const busy = situation.submitting || situation.strategyPending || situation.navigating || situation.opening;
+  // Nobody is signed in and this device has no room to keep another prompt: it could be neither kept
+  // nor sent. The screen says so and links to recovery.
+  const noRoom = !situation.signedIn && !situation.keptDraft && situation.recoveryFull;
+  // Held for the prompt, its controls and Send alike.
+  const held = notReady || busy || hiddenPrompt || filesNeedAccount || noRoom;
+  const inputControlsHeld = held || strategyLocked;
   return {
-    readOnly:
-      !recoveryLoaded ||
-      hiddenPrompt ||
-      submitting ||
-      strategyPending ||
-      strategyLocked ||
-      navigating ||
-      opening ||
-      frozenBrief ||
-      hiddenFiles,
-    sendDisabled:
-      !situation.draftsLoaded ||
-      !recoveryLoaded ||
-      textRecoveryBlocked ||
-      (!situation.signedIn && !situation.keptDraft && situation.recoveryFull) ||
-      submitting ||
-      strategyPending ||
-      navigating ||
-      opening ||
-      hiddenFiles ||
+    editHeld: inputControlsHeld || attachedSaveStarted,
+    inputControlsHeld,
+    // A locked prompt and a frozen attached brief stay sendable: Send repeats the same save. Typed text
+    // alone cannot be sent while its earlier save cannot be continued. An open file picker holds Send
+    // only: the text typed meanwhile is kept, and the picker has its own Cancel.
+    sendHeld:
+      held ||
+      (situation.strategyRecoveryBlocked && !situation.hasFiles && !attachedSaveStarted) ||
       situation.selectingFiles,
-    inputControlsDisabled: !recoveryLoaded || submitting || navigating || strategyPending || strategyLocked,
-    mayEdit:
-      now !== null &&
-      !hiddenPrompt &&
-      !(!recoveryLoaded || now.submitting || strategyPending || strategyLocked || navigating || opening) &&
-      !now.filesNeedAccount &&
-      !now.attachedSaveStarted,
-    maySend:
-      now !== null &&
-      !(
-        !recoveryLoaded ||
-        hiddenPrompt ||
-        now.submitting ||
-        navigating ||
-        opening ||
-        strategyPending ||
-        textRecoveryBlocked
-      ),
   };
 }

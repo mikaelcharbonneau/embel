@@ -25,7 +25,10 @@ const fixture = vi.hoisted(() => ({
     cancel: () => undefined,
   },
 }));
-vi.mock("@/components/workspace/use-strategy-jobs", () => ({ useStrategyJobs: () => fixture.strategy }));
+vi.mock("@/components/workspace/use-strategy-jobs", async () => {
+  const { withStrategyView } = await import("./guided-strategy-hook");
+  return { useStrategyJobs: () => withStrategyView(fixture.strategy) };
+});
 vi.mock("@/components/workspace/project-progress", () => ({ useProjectProgress: () => fixture.progress }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: fixture.replace, push: fixture.push, refresh: vi.fn() }),

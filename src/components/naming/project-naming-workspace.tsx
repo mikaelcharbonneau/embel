@@ -87,19 +87,28 @@ function AccountProjectNaming({
     enabled: Boolean(overview?.readiness.ready && !blocked && !readError),
   });
   // The conversation has one names list: an earlier saved pane, filter or batch view returns to it once.
-  const resetView = useRef(false);
+  // It counts as done only once its save is confirmed. A save that was not confirmed is sent again when a newer
+  // saved view arrives, never in a loop against the same one.
+  const resetView = useRef<{ done: boolean; saving: boolean; refusedAt: number | null }>({
+    done: false,
+    saving: false,
+    refusedAt: null,
+  });
   const viewNeedsReset = Boolean(overview?.session && namingViewNeedsReset(overview.session.viewState));
+  const viewRevision = overview?.session?.viewRevision ?? null;
   useEffect(() => {
-    if (!viewNeedsReset || resetView.current || !isCurrent(account)) return;
-    resetView.current = true;
-    void naming.saveView({
-      pane: "results",
-      filter: "all",
-      query: "",
-      visibleBatchId: null,
-      workshopCandidateId: null,
-    });
-  }, [viewNeedsReset, account, isCurrent, naming]);
+    const reset = resetView.current;
+    if (!viewNeedsReset || reset.done || reset.saving || reset.refusedAt === viewRevision || !isCurrent(account))
+      return;
+    reset.saving = true;
+    void naming
+      .saveView({ pane: "results", filter: "all", query: "", visibleBatchId: null, workshopCandidateId: null })
+      .then((saved) => {
+        reset.saving = false;
+        reset.done = saved;
+        if (!saved) reset.refusedAt = viewRevision;
+      });
+  }, [viewNeedsReset, viewRevision, account, isCurrent, naming]);
   const onCanvas = inline.onCanvas;
   useLayoutEffect(() => {
     onCanvas(false);
@@ -229,7 +238,8 @@ function AccountProjectNaming({
       onSaveProgress={naming.saveChatProgress}
       blocked={blocked || Boolean(readError)}
       generationUnavailable={generationUnavailable}
-      runtimeReady={feed.state?.feed?.availability.status === "available"}
+      // At 0 credits or after today's limit a start would be refused at once, so the choices offer none.
+      runtimeReady={feed.state?.feed?.availability.status === "available" && !feed.startRefused}
       exploring={generating}
       canSteer={feed.canExplore && feed.entries.length > 0}
       onSteer={feed.steer}

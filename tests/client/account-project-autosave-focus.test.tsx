@@ -7,17 +7,21 @@ import { AccountSessionProvider, useAccountSession } from "@/components/workspac
 import { AccountProjectEditor } from "@/components/workspace/account-project-editor";
 import { accountProjectSchema, type AccountProject } from "@/domain/project-api";
 
-vi.mock("@/components/workspace/use-strategy-jobs", () => ({
-  useStrategyJobs: () => ({
-    overview: { jobs: [], availability: { status: "unavailable", operations: [], reason: "worker_unavailable" } },
-    pending: false,
-    readError: null,
-    actionError: null,
-    refresh: vi.fn(),
-    enqueue: vi.fn(),
-    cancel: vi.fn(),
-  }),
-}));
+vi.mock("@/components/workspace/use-strategy-jobs", async () => {
+  const { withStrategyView } = await import("./guided-strategy-hook");
+  return {
+    useStrategyJobs: () =>
+      withStrategyView({
+        overview: { jobs: [], availability: { status: "unavailable", operations: [], reason: "worker_unavailable" } },
+        pending: false,
+        readError: null,
+        actionError: null,
+        refresh: vi.fn(),
+        enqueue: vi.fn(),
+        cancel: vi.fn(),
+      }),
+  };
+});
 
 const owner = "aaaaaaaa-2222-4222-8222-111111111111",
   projectId = "bbbbbbbb-2222-4222-8222-111111111111";

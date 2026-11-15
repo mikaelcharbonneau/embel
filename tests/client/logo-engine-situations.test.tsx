@@ -115,6 +115,7 @@ const delayed = "Updates are delayed. Still working, and checking again.";
 const stopFailed = "Stop couldn’t be confirmed.";
 const unconfirmed = "This request could not be confirmed. Your logos are kept; check again before trying once more.";
 const loadFailed = "Logo drawing couldn’t be loaded. Your logos are saved.";
+const switchedOff = "Logo drawing is unavailable right now. Nothing has started and nothing was used.";
 
 describe("Stop asked, run still working", () => {
   it("says Stopping in the chat and the reply box of a tab that never pressed Stop", async () => {
@@ -325,4 +326,121 @@ describe("a start that couldn't be confirmed", () => {
     expect(new Set(posts.map((post) => post.idempotencyKey)).size).toBe(2);
     expect(chatButton("Try again")).toBeUndefined();
   }, 30_000);
+
+  it("offers only Try again while a start is unconfirmed: nothing else can start with a new key", async () => {
+    const f = await syntheticRefinementWorkspaceHttp(),
+      projectId = f.workspace.projectId,
+      runId = id(6700);
+    const posts: { kind: string; idempotencyKey: string; input: { instruction?: string } }[] = [];
+    let answer: "lost" | "started" = "lost",
+      started = false;
+    const fetcher: typeof fetch = async (input, init) => {
+      const path = String(input).split("?")[0]!;
+      if (path === `/api/projects/${projectId}/logo/engine`)
+        return Response.json({ engine: true, runs: started ? [engineRun(runId, "logo.refine", "running")] : [] });
+      if (path === `/api/projects/${projectId}/generations` && init?.method === "POST") {
+        posts.push(JSON.parse(String(init.body)));
+        if (answer === "lost") return Response.json({ error: { code: "start_unconfirmed" } }, { status: 503 });
+        started = true;
+        return Response.json({ run: engineRun(runId, "logo.refine", "running") }, { status: 202 });
+      }
+      return f.fetcher(input, init);
+    };
+    const state = await inWorkspace(projectId, fetcher);
+    await until(() => expect(state.reply?.acceptsText).toBe(true));
+    await act(async () => state.reply!.send("Make the lettering bolder"));
+    await until(() => expect(chat.textContent).toContain(unconfirmed));
+    // The lookup found no working run. A different request is not offered: the first may still be admitted.
+    await until(() => expect(state.reply?.acceptsText).toBe(false));
+    await act(async () => state.reply!.send("Make it round instead"));
+    const more = () => host.querySelector<HTMLButtonElement>('button[aria-label="More concepts"]');
+    const retryFailed = () => chat.querySelector<HTMLButtonElement>('button[aria-label="Retry 1 failed concept"]');
+    expect(more()?.disabled).toBe(true);
+    expect(retryFailed()?.disabled).toBe(true);
+    // The message stays until the request is resolved: it cannot be dismissed into a silent, blocked screen.
+    expect([...chat.querySelectorAll("button")].map((button) => button.getAttribute("aria-label"))).not.toContain(
+      "Dismiss",
+    );
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(posts).toHaveLength(1);
+    answer = "started";
+    await act(async () => chatButton("Try again")!.click());
+    await until(() => expect(chat.textContent).toContain("Changing your logo."));
+    expect(posts.map((post) => post.input.instruction)).toEqual([
+      "Make the lettering bolder",
+      "Make the lettering bolder",
+    ]);
+    expect(new Set(posts.map((post) => post.idempotencyKey)).size).toBe(1);
+    expect(chat.textContent).not.toContain(unconfirmed);
+  }, 60_000);
+
+  it("lets a new request start again once Try again was answered with a final refusal", async () => {
+    const f = await syntheticRefinementWorkspaceHttp(),
+      projectId = f.workspace.projectId;
+    const posts: { idempotencyKey: string }[] = [];
+    let status = 500;
+    const fetcher: typeof fetch = async (input, init) => {
+      const path = String(input).split("?")[0]!;
+      if (path === `/api/projects/${projectId}/logo/engine`) return Response.json({ engine: true, runs: [] });
+      if (path === `/api/projects/${projectId}/generations` && init?.method === "POST") {
+        posts.push(JSON.parse(String(init.body)));
+        return Response.json({ error: { code: "refused" } }, { status });
+      }
+      return f.fetcher(input, init);
+    };
+    const state = await inWorkspace(projectId, fetcher);
+    await until(() => expect(state.reply?.acceptsText).toBe(true));
+    await act(async () => state.reply!.send("Make the lettering bolder"));
+    await until(() => expect(chat.textContent).toContain(unconfirmed));
+    status = 409;
+    await act(async () => chatButton("Try again")!.click());
+    await until(() => expect(chat.textContent).not.toContain(unconfirmed));
+    // Answered: nothing started, so the next request is a new one.
+    await until(() => expect(state.reply?.acceptsText).toBe(true));
+    await act(async () => state.reply!.send("Make it round instead"));
+    await until(() => expect(posts).toHaveLength(3));
+    expect(posts[0]!.idempotencyKey).toBe(posts[1]!.idempotencyKey);
+    expect(posts[2]!.idempotencyKey).not.toBe(posts[0]!.idempotencyKey);
+  }, 60_000);
+});
+
+describe("Logo drawing is switched off", () => {
+  it("says it is unavailable, not unconfirmed: nothing kept, no Try again, and a later request is a new one", async () => {
+    const f = await syntheticRefinementWorkspaceHttp(),
+      projectId = f.workspace.projectId,
+      runId = id(6800);
+    const posts: { idempotencyKey: string }[] = [];
+    let off = true,
+      started = false;
+    const fetcher: typeof fetch = async (input, init) => {
+      const path = String(input).split("?")[0]!;
+      if (path === `/api/projects/${projectId}/logo/engine`)
+        return Response.json({ engine: true, runs: started ? [engineRun(runId, "logo.refine", "running")] : [] });
+      if (path === `/api/projects/${projectId}/generations` && init?.method === "POST") {
+        posts.push(JSON.parse(String(init.body)));
+        if (off)
+          return Response.json(
+            { error: { code: "generation_unavailable", message: "Generation is unavailable right now." } },
+            { status: 503 },
+          );
+        started = true;
+        return Response.json({ run: engineRun(runId, "logo.refine", "running") }, { status: 202 });
+      }
+      return f.fetcher(input, init);
+    };
+    const state = await inWorkspace(projectId, fetcher);
+    await until(() => expect(state.reply?.acceptsText).toBe(true));
+    await act(async () => state.reply!.send("Make the lettering bolder"));
+    await until(() => expect(chat.textContent).toContain(switchedOff));
+    expect(chat.textContent!.split(switchedOff).length).toBe(2);
+    expect(chat.textContent).not.toContain(unconfirmed);
+    expect(chatButton("Try again")).toBeUndefined();
+    // The person can simply ask again later.
+    await until(() => expect(state.reply?.acceptsText).toBe(true));
+    off = false;
+    await act(async () => state.reply!.send("Make the lettering bolder"));
+    await until(() => expect(chat.textContent).toContain("Changing your logo."));
+    expect(new Set(posts.map((post) => post.idempotencyKey)).size).toBe(2);
+    expect(chat.textContent).not.toContain(switchedOff);
+  }, 60_000);
 });
