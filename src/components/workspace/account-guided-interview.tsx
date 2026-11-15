@@ -1323,8 +1323,8 @@ export function AccountGuidedInterview({
     directions: stepMessages.directions ?? "Each creative direction uses your chosen logo.",
     finished:
       summaries.logo && summaries.directions
-        ? `You chose ${summaries.logo.answer} as your logo and ${summaries.directions.answer} as your direction. Your brand kit is in Assets.`
-        : "Your logo and creative direction are chosen. Your brand kit is in Assets.",
+        ? `You chose ${summaries.logo.answer} as your logo and ${summaries.directions.answer} as your direction.`
+        : "Your logo and creative direction are chosen.",
   };
   const identityKey =
     view === "directions"
