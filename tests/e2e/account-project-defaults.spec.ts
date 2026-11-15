@@ -77,6 +77,14 @@ async function setup(page: Page, initial: AccountProject[] = []) {
         }
       : { status: "unavailable", operations: [], reason: "worker_unavailable" };
     if (path === "/api/strategy") return reply({ availability });
+    // Strategy requests are generation engine runs: none exist, and a start counts as AI work.
+    if (path.endsWith("/generations")) {
+      if (request.method() === "POST") {
+        state.ai.push(request.postData()!);
+        return reply({}, 503);
+      }
+      return reply({ runs: [] });
+    }
     if (path.endsWith("/strategy")) {
       if (request.method() === "POST") {
         state.ai.push(request.postData()!);

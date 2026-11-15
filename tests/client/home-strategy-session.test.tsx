@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { createAccountDraftMemory } from "@/components/workspace/account-draft-memory";
@@ -20,14 +21,15 @@ const mock = vi.hoisted(() => ({
 let accountDrafts: ReturnType<typeof createAccountDraftMemory>;
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mock.push }) }));
 vi.mock("@/components/workspace/account-session", () => ({
-  useAccountSession: () => ({
-    drafts: accountDrafts,
-    session: mock.session,
-    homeInputSession: mock.memory,
-    isCurrent: mock.current,
-    expire: mock.expire,
-    refresh: mock.refresh,
-  }),
+  useAccountSession: () =>
+    sessionStandIn({
+      drafts: accountDrafts,
+      session: mock.session,
+      homeInputSession: mock.memory,
+      isCurrent: mock.current,
+      expire: mock.expire,
+      refresh: mock.refresh,
+    }),
 }));
 let root: Root | null, host: HTMLDivElement, owner: string, fetcher: ReturnType<typeof vi.fn>;
 const ready = {

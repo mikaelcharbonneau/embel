@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -20,7 +21,8 @@ const mock = vi.hoisted(() => ({
   action: vi.fn(),
 }));
 vi.mock("@/components/workspace/account-session", () => ({
-  useAccountSession: () => ({ session: mock.session, drafts, isCurrent: mock.isCurrent, expire: mock.expire }),
+  useAccountSession: () =>
+    sessionStandIn({ session: mock.session, drafts, isCurrent: mock.isCurrent, expire: mock.expire }),
 }));
 vi.mock("@/components/identity/account-logo-client", () => ({
   createAccountLogoClient: (...args: unknown[]) => mock.createClient(...args),

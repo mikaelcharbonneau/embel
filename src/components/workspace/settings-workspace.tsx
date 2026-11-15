@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useAccountSession } from "./account-session";
+import { isSignOutUnconfirmed, isSigningIn, isSigningOut, signOutLabel, signingInLabel } from "./session-view";
 import { useSignOutFlow } from "./account-access";
 import { preparePromptForSignIn } from "./prompt-recovery";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -112,11 +113,13 @@ function AccountSettings() {
  * Profile section says so with a labelled "Try again". The hidden check button keeps the explicit check
  * reachable for the recorded-usage browser test, as before. */
 function SessionSection() {
-  const { session, refresh, signingIn, signingUp, signingOut, signOutError } = useAccountSession();
+  const { session, refresh, activity } = useAccountSession();
+  const signingIn = isSigningIn(activity);
+  const signingOut = isSigningOut(activity);
+  const signOutUnconfirmed = isSignOutUnconfirmed(activity);
   const { start, dialog } = useSignOutFlow();
-  const signedIn =
-    session.status === "ready" || session.status === "checking" || Boolean(signingOut) || Boolean(signOutError);
-  const signOutAvailable = session.status === "ready" || signingOut || Boolean(signOutError);
+  const signedIn = session.status === "ready" || session.status === "checking" || signingOut || signOutUnconfirmed;
+  const signOutAvailable = session.status === "ready" || signingOut || signOutUnconfirmed;
   return (
     <section className="e-section sg-session" aria-label={signedIn ? "Sign out" : "Sign in"}>
       <h2 className="e-section__title">{signedIn ? "Sign out" : "Sign in"}</h2>
@@ -128,11 +131,11 @@ function SessionSection() {
         </p>
         {signingIn ? (
           <Button variant="secondary" disabled>
-            {signingUp ? "Creating account…" : "Signing in…"}
+            {signingInLabel(activity)}
           </Button>
         ) : signOutAvailable ? (
           <Button icon="log-out" variant="secondary" onClick={() => void start()} disabled={signingOut}>
-            {signingOut ? "Signing out…" : signOutError ? "Retry sign-out" : "Sign out"}
+            {signOutLabel(activity)}
           </Button>
         ) : session.status === "checking" ? (
           <span className="e-muted" role="status">

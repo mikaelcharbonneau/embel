@@ -31,6 +31,18 @@ function fakeStripe() {
         create: vi.fn<(params: unknown) => Promise<{ url: string }>>(async () => ({
           url: "https://checkout.stripe.com/c/pay/cs_test_fake",
         })),
+        list: vi.fn<(params: unknown) => Promise<{ data: { id: string }[]; has_more: boolean }>>(async () => ({
+          data: [],
+          has_more: false,
+        })),
+        expire: vi.fn<(id: string) => Promise<{ id: string; status: string }>>(async (id) => ({
+          id,
+          status: "expired",
+        })),
+        retrieve: vi.fn<(id: string) => Promise<{ id: string; status: string }>>(async (id) => ({
+          id,
+          status: "open",
+        })),
       },
     },
     billingPortal: {
@@ -114,6 +126,62 @@ describe("checkout", () => {
     expect((await checkout(request("checkout", { plan: "pro" }))).status).toBe(200);
     expect(stripe.customers.create).not.toHaveBeenCalled();
     expect(stripe.checkout.sessions.create.mock.calls[0]![0]).toMatchObject({ customer: "cus_Existing" });
+  });
+
+  it("closes an earlier Checkout page that is still open before opening the new one", async () => {
+    store = fakeStore({ customerId: "cus_Existing", subscription: null });
+    stripe.checkout.sessions.list.mockResolvedValueOnce({
+      data: [{ id: "cs_test_old1" }, { id: "cs_test_old2" }],
+      has_more: false,
+    });
+    expect((await checkout(request("checkout", { plan: "pro" }))).status).toBe(200);
+    expect(stripe.checkout.sessions.list).toHaveBeenCalledWith({
+      customer: "cus_Existing",
+      status: "open",
+      limit: 100,
+    });
+    expect(stripe.checkout.sessions.expire.mock.calls.map(([id]) => id)).toEqual(["cs_test_old1", "cs_test_old2"]);
+    expect(stripe.checkout.sessions.create).toHaveBeenCalledTimes(1);
+    const lastExpire = Math.max(...stripe.checkout.sessions.expire.mock.invocationCallOrder);
+    expect(lastExpire).toBeLessThan(stripe.checkout.sessions.create.mock.invocationCallOrder[0]!);
+  });
+
+  it("closes nothing when no earlier page is open, and does not look for one before the account has a customer", async () => {
+    store = fakeStore({ customerId: "cus_Existing", subscription: null });
+    expect((await checkout(request("checkout", { plan: "pro" }))).status).toBe(200);
+    expect(stripe.checkout.sessions.list).toHaveBeenCalledTimes(1);
+    expect(stripe.checkout.sessions.expire).not.toHaveBeenCalled();
+    store = fakeStore({ customerId: null, subscription: null });
+    expect((await checkout(request("checkout", { plan: "pro" }))).status).toBe(200);
+    expect(stripe.checkout.sessions.list).toHaveBeenCalledTimes(1);
+    expect(stripe.checkout.sessions.expire).not.toHaveBeenCalled();
+    expect(stripe.checkout.sessions.create).toHaveBeenCalledTimes(2);
+  });
+
+  it("opens no second page when the open ones cannot be listed or closed", async () => {
+    store = fakeStore({ customerId: "cus_Existing", subscription: null });
+    stripe.checkout.sessions.list.mockRejectedValueOnce(new Error("stripe is down sk_test_never_shown"));
+    let response = await checkout(request("checkout", { plan: "pro" }));
+    expect(response.status).toBe(503);
+    expect(await response.text()).not.toMatch(/sk_|stripe is down/);
+    // An earlier page that cannot be closed and is still open.
+    stripe.checkout.sessions.list.mockResolvedValueOnce({ data: [{ id: "cs_test_old1" }], has_more: false });
+    stripe.checkout.sessions.expire.mockRejectedValueOnce(new Error("timeout"));
+    response = await checkout(request("checkout", { plan: "pro" }));
+    expect(response.status).toBe(503);
+    expect((await response.json()).error.code).toBe("integration_unavailable");
+    expect(stripe.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  it("answers that a payment is being confirmed when the earlier page was just paid", async () => {
+    store = fakeStore({ customerId: "cus_Existing", subscription: null });
+    stripe.checkout.sessions.list.mockResolvedValueOnce({ data: [{ id: "cs_test_paid" }], has_more: false });
+    stripe.checkout.sessions.expire.mockRejectedValueOnce(new Error("Only open sessions can be expired"));
+    stripe.checkout.sessions.retrieve.mockResolvedValueOnce({ id: "cs_test_paid", status: "complete" });
+    const response = await checkout(request("checkout", { plan: "pro" }));
+    expect(response.status).toBe(409);
+    expect((await response.json()).error.code).toBe("billing_pending");
+    expect(stripe.checkout.sessions.create).not.toHaveBeenCalled();
   });
 
   it("refuses a second subscription", async () => {

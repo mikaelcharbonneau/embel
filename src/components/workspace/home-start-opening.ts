@@ -1,9 +1,22 @@
 /** "Saving, then opening the project" as `useAccountStrategyStart` shows it (docs/state-machines.md, J7).
  *
- * Known duplication, kept on purpose: the Home form holds its own `opening` (`home-start-form-state.ts`)
- * for a brief saved with files, which never goes through this hook; this one serves a typed prompt. The
- * hook also keeps a `destination` ref with the same value as `destination` here: the ref answers a second
- * request synchronously, before this state is rendered. Merging any of the three would change timing. */
+ * "Opening a project" is held twice on Home, on purpose. Why there are two:
+ *
+ * - This one serves a typed prompt. `useAccountStrategyStart` saves the project itself and then opens it
+ *   (`openProject`), so the hook knows the destination and reports it as `starting` and `openingHref`.
+ * - The form's (`opening` in `home-start-form-state.ts`) serves a brief saved with files. The form saves
+ *   that brief itself, with the files' own request, and opens it with its own `openSavedProject` in
+ *   `project-editor.tsx`. That path never calls this hook, so the hook has nothing to report for it.
+ *
+ * Each belongs to one account session and holds the href; the form shows either one in the same opening
+ * view, its own first. They were not merged (November 14): one holder would mean the form
+ * handing its destination to the hook, and the two tests that cover the files path
+ * (`tests/client/home-inputs-integration.test.ts`, `tests/client/new-logo-entry.test.tsx`) replace the
+ * hook with a stand-in, so they cannot prove that nothing moves. Merge only with a test that runs the real
+ * hook through a save with files.
+ *
+ * The hook also keeps a `destination` ref with the same value as `destination` here: the ref answers a
+ * second request synchronously, before this state is rendered. Merging it would change timing. */
 export type HomeStartOpeningState = {
   /** What the notice says, and whether a save or start is in flight, for one account session. */
   action: { identity: string; pending: boolean; message: string } | null;

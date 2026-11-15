@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -18,12 +19,13 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ back: mocks.back }) }));
 vi.mock("@/components/workspace/account-session", () => ({
-  useAccountSession: () => ({
-    session: { status: "ready", userId: "owner", generation: 1 },
-    signOut: mocks.signOut,
-    isCurrent: mocks.current,
-    expire: mocks.expire,
-  }),
+  useAccountSession: () =>
+    sessionStandIn({
+      session: { status: "ready", userId: "owner", generation: 1 },
+      signOut: mocks.signOut,
+      isCurrent: mocks.current,
+      expire: mocks.expire,
+    }),
 }));
 vi.mock("@/components/workspace/account-api", () => ({
   accountRequest: mocks.request,

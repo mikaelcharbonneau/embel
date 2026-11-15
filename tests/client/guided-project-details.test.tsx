@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { installDialogMethods } from "../helpers/dialog-methods";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -19,13 +20,14 @@ const mock = vi.hoisted(() => ({
 const overview = { availability: { status: "unavailable", reason: "worker_unavailable", operations: [] }, jobs: [] };
 vi.mock("@/components/workspace/account-session", () => ({
   AccountStatus: () => null,
-  useAccountSession: () => ({
-    session: mock.account,
-    drafts: mock.memory,
-    isCurrent: mock.current,
-    expire: mock.expire,
-    refresh: mock.refresh,
-  }),
+  useAccountSession: () =>
+    sessionStandIn({
+      session: mock.account,
+      drafts: mock.memory,
+      isCurrent: mock.current,
+      expire: mock.expire,
+      refresh: mock.refresh,
+    }),
 }));
 vi.mock("@/components/workspace/use-strategy-jobs", async () => {
   const { withStrategyView } = await import("./guided-strategy-hook");

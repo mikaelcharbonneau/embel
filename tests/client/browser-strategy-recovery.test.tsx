@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -17,11 +18,12 @@ const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
 const mock = vi.hoisted(() => ({ push: vi.fn(), expire: vi.fn(), current: vi.fn(() => true) }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mock.push }) }));
 vi.mock("@/components/workspace/account-session", () => ({
-  useAccountSession: () => ({
-    session: { status: "ready", userId: owner, generation: 1 },
-    isCurrent: mock.current,
-    expire: mock.expire,
-  }),
+  useAccountSession: () =>
+    sessionStandIn({
+      session: { status: "ready", userId: owner, generation: 1 },
+      isCurrent: mock.current,
+      expire: mock.expire,
+    }),
 }));
 let root: Root, host: HTMLDivElement, draft: LocalDraft;
 async function click(text: string) {

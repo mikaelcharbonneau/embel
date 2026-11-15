@@ -39,7 +39,7 @@ import { LogoConceptGridView } from "./concept-grid";
 import { logoCandidateKey } from "./candidate-review";
 import { useLogoCandidate } from "./use-logo-candidate";
 import { LogoDownloadControls } from "./logo-download-controls";
-import { prepareSavedLogoConcepts, logoDraftHasProtectedWork } from "./saved-inputs-controller";
+import { prepareSavedLogoConcepts, logoDraftHasProtectedWork, savedInputsStart } from "./saved-inputs-controller";
 import { LogoSavedInputsStatus, type LogoSavedInputState } from "./saved-inputs-status";
 import { LogoTypesQuestion, LogoTypesSummary, toggleLogoType } from "./logo-types-question";
 import { EmbelIdentity } from "@/components/workspace/embel-identity";
@@ -553,34 +553,38 @@ function OwnedLogoCreation({
     void prepareSavedInputs(true);
   });
   useEffect(() => {
-    if (likes === null || likes === seenLikes.current) return;
-    if (seenLikes.current === null) {
-      seenLikes.current = likes;
+    const decision = savedInputsStart({
+      trigger: "likes_changed",
+      likes,
+      seenLikes: seenLikes.current,
+      conceptsExist: Boolean(batchId),
+      conceptsLoading: savedBatchLoading,
+      busy: savedInputsBusy,
+      status: savedInputs.status,
+    });
+    // The first reading is remembered without starting anything; a refusal for any other reason leaves the
+    // likes unseen, so the effect asks again when what held it changes.
+    if (decision.start === null) {
+      if (decision.why === "first_likes_reading") seenLikes.current = likes;
       return;
     }
-    if (
-      batchId ||
-      savedBatchLoading ||
-      savedInputsBusy ||
-      !["idle", "prepared", "blocked"].includes(savedInputs.status)
-    )
-      return;
     seenLikes.current = likes;
     const timer = setTimeout(refreshForLikes, 0);
     return () => clearTimeout(timer);
   }, [likes, batchId, savedBatchLoading, savedInputsBusy, savedInputs.status]);
   const preparationKey = saved ? JSON.stringify(saved.heads) : null;
   useEffect(() => {
-    if (
-      !preparationKey ||
-      !canPrepareInputs ||
-      batchId ||
-      savedBatchLoading ||
-      savedBatchUnavailable ||
-      !["idle", "prepared"].includes(savedInputs.status) ||
-      preparedInputsKey.current === preparationKey
-    )
-      return;
+    const decision = savedInputsStart({
+      trigger: "saved_heads",
+      headsKey: preparationKey,
+      preparedKey: preparedInputsKey.current,
+      canPrepare: canPrepareInputs,
+      conceptsExist: Boolean(batchId),
+      conceptsLoading: savedBatchLoading,
+      conceptsUnavailable: savedBatchUnavailable,
+      status: savedInputs.status,
+    });
+    if (decision.start !== "prepare") return;
     const timer = setTimeout(() => {
       preparedInputsKey.current = preparationKey;
       prepareLatestInputs();
@@ -613,7 +617,13 @@ function OwnedLogoCreation({
     if (current()) setLikesCheck({ key, outdated: result.status === "checked" && result.outdated });
   });
   useEffect(() => {
-    if (!likesCheckKey || likesCheck?.key === likesCheckKey || savedInputsBusy) return;
+    const decision = savedInputsStart({
+      trigger: "likes_check",
+      checkKey: likesCheckKey,
+      checkedKey: likesCheck?.key ?? null,
+      busy: savedInputsBusy,
+    });
+    if (decision.start !== "check" || !likesCheckKey) return;
     const timer = setTimeout(() => {
       void checkLikes(likesCheckKey);
     }, 0);

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, it, vi } from "vitest";
@@ -9,7 +10,7 @@ vi.mock("next/link", () => ({
     createElement("a", { href, ...rest }, children),
 }));
 vi.mock("@/components/workspace/account-session", () => ({
-  useAccountSession: () => ({ session: { status: fixture.status, generation: 1 } }),
+  useAccountSession: () => sessionStandIn({ session: { status: fixture.status, generation: 1 } }),
 }));
 import NotFound from "@/app/not-found";
 

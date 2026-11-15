@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -16,7 +17,7 @@ import {
 const account: VerifiedAccount = { status: "ready", userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", generation: 1 };
 const isCurrent = (current: VerifiedAccount) =>
   current.userId === account.userId && current.generation === account.generation;
-vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ isCurrent }) }));
+vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => sessionStandIn({ isCurrent }) }));
 const caps = { ownerId: account.userId, domains: "rdap", youtube: true, euipo: true };
 const now = Date.parse("2026-11-03T12:00:00Z"),
   at = new Date(now).toISOString();

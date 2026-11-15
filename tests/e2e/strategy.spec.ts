@@ -119,6 +119,8 @@ async function account(page: Page) {
         availability: { status: "unavailable", operations: [], reason: "runtime_disabled" },
         jobs: [],
       });
+    // Strategy requests are generation engine runs; this project has none.
+    if (path === `/api/projects/${id}/generations` && request.method() === "GET") return reply(route, { runs: [] });
     if (path !== `/api/projects/${id}`) return reply(route, { error: "Synthetic not found" }, 404);
     if (request.method() === "GET") return reply(route, { project: state.project });
     if (request.method() !== "PATCH") return reply(route, { error: "Synthetic unsupported method" }, 405);
@@ -172,9 +174,12 @@ test("account fixture: failed saving and a revision conflict retain brief edits 
   await page.getByRole("button", { name: "Retry save", exact: true }).click();
   await expect.poll(() => state.writes.length).toBe(2);
   expect(state.writes[1]).toEqual(state.writes[0]);
-  const notices = page.getByRole("region", { name: "Conversation notices", exact: true });
+  // Save notices are part of the conversation now, not a separate notices region.
+  const notices = page.getByRole("log", { name: "Conversation", exact: true });
   await expect(notices.getByText("A newer version is saved in your account.", { exact: true })).toBeVisible();
-  await expect(notices.getByRole("status")).toHaveText("Changes not saved");
+  await expect(notices.getByRole("status").filter({ hasText: "Changes not saved" })).toBeVisible();
+  // The journey bar reads the same save state (docs/state-machines.md, J3).
+  await expect(page.getByRole("banner").getByRole("status")).toHaveText("Not saved");
   await page.getByRole("button", { name: "Edit brief", exact: true }).click();
   await expect(brief.getByRole("status")).toHaveText("Changes not saved");
   await expect(field).toHaveValue("An unfinished thought to keep,");

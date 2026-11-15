@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,13 +16,14 @@ import { logoFixtureId as id } from "../fixtures/logo-creation";
 const drafts = createAccountDraftMemory();
 const mock = vi.hoisted(() => ({ session: null as VerifiedAccount | null, project: vi.fn() }));
 vi.mock("@/components/workspace/account-session", () => ({
-  useAccountSession: () => ({
-    session: mock.session,
-    drafts,
-    isCurrent: (value: VerifiedAccount) =>
-      mock.session?.userId === value.userId && mock.session.generation === value.generation,
-    expire: vi.fn(),
-  }),
+  useAccountSession: () =>
+    sessionStandIn({
+      session: mock.session,
+      drafts,
+      isCurrent: (value: VerifiedAccount) =>
+        mock.session?.userId === value.userId && mock.session.generation === value.generation,
+      expire: vi.fn(),
+    }),
 }));
 vi.mock("@/components/identity/account-logo-client", () => ({
   createAccountLogoClient: () => ({ dispose: vi.fn(), previewAsset: vi.fn() }),

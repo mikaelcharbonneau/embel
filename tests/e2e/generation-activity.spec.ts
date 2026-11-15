@@ -155,6 +155,8 @@ async function openPage(page: Page) {
   await expect(trigger(page)).toBeVisible();
 }
 async function openActivity(page: Page) {
+  // Choosing Activity closes the account menu, so a second opening starts from the menu again.
+  if (!(await trigger(page).isVisible())) await openAccountMenu(page);
   await trigger(page).click();
   await expect(dialog(page)).toBeVisible();
 }
@@ -315,7 +317,8 @@ for (const nextOwner of [otherOwnerId, null])
       });
       await expect.poll(() => fixture.state.sessionRequests).toBeGreaterThan(1);
       if (nextOwner) {
-        await expect(trigger(page)).toBeVisible();
+        // The Activity row lives in the account menu, which closed when it was chosen.
+        await expect(accountMenuButton(page)).toBeVisible();
         await expect(dialog(page)).not.toBeVisible();
         await openActivity(page);
         await expect(dialog(page).getByText(nothingYet, { exact: true })).toBeVisible();
@@ -407,7 +410,7 @@ test("activity accessibility fixture: keyboard navigation stays in the modal and
   expect(await dialog(page).evaluate((element) => element.matches(":modal"))).toBe(true);
   // Native modal dialogs make background controls inert. Moving into browser
   // chrome at a Tab boundary is browser behavior, outside this app's focus order.
-  await trigger(page).evaluate((element) => element.focus());
+  await accountMenuButton(page).evaluate((element) => (element as HTMLElement).focus());
   await expect(close).toBeFocused();
   for (let index = 0; index < 4; index++) {
     await page.keyboard.press("Tab");
@@ -421,12 +424,14 @@ test("activity accessibility fixture: keyboard navigation stays in the modal and
   await expect(close).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(dialog(page)).not.toBeVisible();
-  await expect(trigger(page)).toBeFocused();
+  // The Activity row closed with its menu, so focus returns to the account menu button.
+  await expect(accountMenuButton(page)).toBeFocused();
+  await accountMenuButton(page).press("Enter");
   await trigger(page).press("Space");
   await expect(close).toBeFocused();
   await close.press("Enter");
   await expect(dialog(page)).not.toBeVisible();
-  await expect(trigger(page)).toBeFocused();
+  await expect(accountMenuButton(page)).toBeFocused();
 });
 
 test("activity accessibility fixture: long private titles remain inside desktop and mobile viewports", async ({
@@ -498,6 +503,7 @@ test("activity accessibility fixture: a queued native close cannot dismiss a reo
   await openActivity(page);
   await page.keyboard.press("Escape");
   await expect(dialog(page)).not.toBeVisible();
+  await openAccountMenu(page);
   await trigger(page).press("Space");
   await expect(dialog(page)).toBeVisible();
   await dialog(page).evaluate((element) => element.dispatchEvent(new Event("close")));

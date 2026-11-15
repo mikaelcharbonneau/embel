@@ -20,6 +20,54 @@ export type LogoScreenMode = {
   checkingSave: boolean;
 };
 
+/*
+ * Refs that stay refs. `logo-creation-workspace.tsx` keeps the flags below with `useRef`, and they are not
+ * part of `LogoScreenMode` on purpose. Each is read in the same turn it is written, or after an `await`, or
+ * by an effect that must not run again because of it. Held as state, the value read would be the one from
+ * the last render, and writing it would render again and re-run the effects that list it. Do not move them
+ * here; an earlier pass tried and stopped for these reasons.
+ *
+ * Locks, read at the moment of a call and written before its first `await`:
+ * - `selecting` (boolean): one choice at a time. `selectCandidate` reads and sets it in one step, so a
+ *   second click, or the automatic choice of a finished refinement (queued in a microtask), is refused
+ *   before `choiceSaving` above has been rendered. `prepareSavedInputs` reads it too, so the brief is not
+ *   rewritten under a choice. `selectCandidate` is memoized without it; as state it would change that
+ *   function and re-run the effect that calls it.
+ * - `savedInputsRead` (the request's AbortController, or null): one read or preparation of the saved
+ *   inputs at a time. `prepareSavedInputs` and the read-only likes comparison read it inside
+ *   `setTimeout(0)` callbacks. Two triggers can set a timer in the same render (`savedInputsStart` in
+ *   `saved-inputs-controller.ts`); the second callback must see the lock the first one just took. It is
+ *   released only by the request that holds it, and aborted when the screen goes away.
+ * - `requestRead` (an AbortController, or null): the check of an unconfirmed save, or the choice, that is
+ *   out. A second check and "Discard local edits" are refused while it is set. `finally` compares it with
+ *   its own controller, so a request that ended late does not release a newer one; it is aborted when the
+ *   screen goes away. `checkingSave` above only draws the same fact.
+ *
+ * Read by work already under way:
+ * - `engineDrawing` (boolean): a concept round is running. The concept polling loop reads it after each
+ *   read has answered, to decide whether to read again in three seconds, so it needs the value at that
+ *   moment and not the one its effect started with. A layout effect writes it, which makes it right before
+ *   the effects of the same commit run.
+ *
+ * Memories that make something happen once:
+ * - `endedRound` (the running round's id, or null): when the round is no longer running, the saved
+ *   concepts, their history and the workspace are read again, once. That effect also runs again whenever
+ *   one of the things it calls changes; the ref is emptied first, so those runs do nothing. As state,
+ *   emptying it would be one more render and one more run.
+ * - `preparedInputsKey` (the saved heads last sent to be prepared): each set of heads is prepared once.
+ *   It is written inside the effect's timer, and again with the new heads when a preparation has saved the
+ *   brief, so the heads its own save produced are not prepared a second time. As state it would be a
+ *   dependency of the effect that reads it: writing it would cancel that effect's timer and set another.
+ * - `seenLikes` (the Inspiration likes revision last acted on): new likes refresh the brief once. It is
+ *   written inside the effect that compares it, and is deliberately left unwritten while the refresh is
+ *   held back, so the same likes are tried again when what held them changes.
+ * - `selectedRefinementRequests` and `refreshedRefinementRequests` (sets of refinement request keys): a
+ *   finished refinement is chosen automatically once, and the workspace is read again for it once, never
+ *   in a loop. Both are read and written inside a queued microtask, between renders.
+ *
+ * (`refinementInput` is an ordinary ref to the text field, not a flag.)
+ */
+
 /** Named after what the person did or what arrived. */
 export type LogoScreenEvent =
   /** A concept was clicked (`source`), or a check or retry of an unconfirmed choice was asked (`null`). */

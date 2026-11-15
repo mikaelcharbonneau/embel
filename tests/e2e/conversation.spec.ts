@@ -22,7 +22,8 @@ async function readDraft(page: Page): Promise<LocalDraft> {
 }
 
 test("composer supports multiline text and IME composition without premature submission", async ({ page }) => {
-  await page.goto("/brands/new");
+  // The first prompt is written on Home; /brands/new leads there.
+  await page.goto("/");
   const initial = page.getByRole("textbox", { name: "Your prompt", exact: true });
   const signIn = page.getByRole("dialog", { name: "Sign in to Embel", exact: true });
   await initial.fill("First line");
@@ -30,11 +31,11 @@ test("composer supports multiline text and IME composition without premature sub
   await initial.pressSequentially("Second line");
   await expect(initial).toHaveValue("First line\nSecond line");
   await initial.dispatchEvent("keydown", { key: "Enter", code: "Enter", isComposing: true, bubbles: true });
-  await expect(page).toHaveURL(/\/brands\/new$/);
+  await expect(page).toHaveURL(/^[^?#]+:\d+\/$/);
   await expect(signIn).toHaveCount(0);
   expect(await page.evaluate((storageKey) => localStorage.getItem(storageKey), key)).toBeNull();
   await initial.dispatchEvent("keydown", { key: "Enter", code: "Enter", keyCode: 229, bubbles: true });
-  await expect(page).toHaveURL(/\/brands\/new$/);
+  await expect(page).toHaveURL(/^[^?#]+:\d+\/$/);
   await expect(signIn).toHaveCount(0);
   expect(await page.evaluate((storageKey) => localStorage.getItem(storageKey), key)).toBeNull();
   await initial.press("Enter");

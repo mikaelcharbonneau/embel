@@ -58,8 +58,10 @@ allowed moves are in `GENERATION_RUN_TRANSITIONS`. Known gaps, none changed yet:
 - **Fixed:** a run that was admitted but whose workflow did not start answers `start_unconfirmed`, and
   the next status read restarts it after 15 seconds (`resumeUnstartedRuns`); `engine_claim` refuses a
   second claim.
-- Still open: the overdue sweep only runs when that owner starts or cancels something. Nothing in the
-  repository is scheduled (`vercel.json` has no crons), and a schedule would be a new job system.
+- **Fixed** (owner decision, November 14): a Vercel cron calls `/api/maintenance/expire-runs` every 10
+  minutes. `fluid_private.engine_expire_overdue_runs` ends every owner's overdue runs through
+  `finish_generation_run`, so credits return by the normal rule. It runs while the engine is paused and
+  never starts work. Migration `20261114150000_engine_expire_overdue_runs`.
 
 **R2.** One rule: 400, 401, 402, 403, 404, 409, 413, 422 and 429 prove nothing started ("final"), and
 so does the error code `generation_unavailable`, which the server sends only when nothing was admitted
@@ -100,8 +102,10 @@ Logo run does not record how many images were asked.
 
 **R7.** Checkout is refused with `billing_pending` while an earlier payment is still being confirmed, and
 the webhook's sync time is taken before its Stripe read, so an older read cannot overwrite a newer one.
-Still open: two Checkout sessions opened before either is paid can create two subscriptions; the cure
-is to expire the open session in Stripe.
+Opening Checkout first expires the account's earlier open Checkout pages
+(`expireOpenCheckouts`), so two cannot both be paid. Still possible: two requests in the same instant.
+If two subscriptions ever become live, credits are not doubled, but the person is charged twice and
+nothing flags it.
 
 ### Journey and workspace
 
@@ -157,7 +161,7 @@ browser. Do not remove that.
 | # | Machine | Status | Where the rules live |
 |---|---|---|---|
 | S1 | Naming feed | Flags in shared memory; what it offers comes from `stepView` | `naming-brain-memory.ts`, `naming-feed-controller.ts` (`namingStepView`), `use-naming-feed.ts` |
-| S2 | Logo screen | **Declared** | `logoScreenView` (`logo-screen-view.ts`) and `logoScreenReducer` (`logo-screen-mode.ts`); timing refs stay in the component |
+| S2 | Logo screen | **Declared** (S6 start rule: `savedInputsStart` in `saved-inputs-controller.ts`) | `logoScreenView` (`logo-screen-view.ts`) and `logoScreenReducer` (`logo-screen-mode.ts`); timing refs stay in the component |
 | S3 | Logo concept batch polling | Implicit | `logo-creation-workspace.tsx` |
 | S4 | Logo workspace saves (one lock for five operations) | Lock kept; a held lock now answers "busy" and a reload waits its turn | `use-logo-workspace.ts` |
 | S5 | Creative direction round | Lock plus flags; what it offers comes from `stepView` | `identity-generation-controller.ts` (`identityStepView`), `visual-directions-page.tsx`, `visual-directions-view.tsx` |
@@ -201,10 +205,10 @@ Each line is one change: declare the machine and replace its copies first, then 
 Done on November 14: every machine in this file is declared or fixed except where a row says otherwise.
 What remains:
 
-1. A scheduled sweep for runs whose workflow died (R1). Needs a decision: nothing is scheduled today.
-2. Two Checkout sessions opened at once (R7).
-3. The four session readers that still use the derived booleans instead of `activity` (J6).
-4. S6 (saved-inputs preparation) and the Logo screen's timing refs (S2) are unchanged.
+1. Two Checkout requests in the same instant, and nothing flags a second live subscription (R7).
+2. The Home form and hook each hold "opening a project" (J7): the tests that would prove a merge safe
+   replace the hook.
+3. The Logo screen's timing refs stay refs; `logo-screen-mode.ts` says why for each (S2).
 
 ## Adding or changing a machine
 

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act, createElement, useLayoutEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -12,7 +13,7 @@ import {
   type InspirationOverview,
 } from "@/domain/inspiration";
 const mock = vi.hoisted(() => ({ session: vi.fn() }));
-vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => mock.session() }));
+vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => sessionStandIn(mock.session()) }));
 const account = { status: "ready" as const, userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", generation: 1 },
   projectId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
   id = inspirationCatalog[0]!.id;

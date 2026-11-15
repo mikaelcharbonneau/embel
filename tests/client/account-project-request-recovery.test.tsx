@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act, createElement, type ComponentProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -18,13 +19,14 @@ const mock = vi.hoisted(() => ({
 }));
 vi.mock("@/components/workspace/account-session", () => ({
   AccountStatus: () => null,
-  useAccountSession: () => ({
-    session: mock.session,
-    drafts: mock.memory,
-    isCurrent: mock.current,
-    expire: mock.expire,
-    refresh: mock.refresh,
-  }),
+  useAccountSession: () =>
+    sessionStandIn({
+      session: mock.session,
+      drafts: mock.memory,
+      isCurrent: mock.current,
+      expire: mock.expire,
+      refresh: mock.refresh,
+    }),
 }));
 vi.mock("@/components/workspace/account-guided-interview", () => ({
   AccountGuidedInterview: (props: ComponentProps<typeof AccountGuidedInterview>) => {

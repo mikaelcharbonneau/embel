@@ -74,6 +74,26 @@ export function sessionModeReducer(state: SessionMode, event: SessionModeEvent):
   }
 }
 
+/* The questions screens ask about the activity. A screen imports these instead of comparing `activity.kind`
+ * itself, so the context carries one value and no copies of it. */
+
+/** A sign-in or an account creation request is on its way. */
+export const isSigningIn = (activity: SessionActivity): boolean => activity.kind === "signing_in";
+/** The request on its way creates an account. */
+export const isCreatingAccount = (activity: SessionActivity): boolean =>
+  activity.kind === "signing_in" && activity.as === "sign-up";
+export const isSigningOut = (activity: SessionActivity): boolean => activity.kind === "signing_out";
+/** A sign-out was asked for and not confirmed: the account stays hidden until it is retried or checked. */
+export const isSignOutUnconfirmed = (activity: SessionActivity): boolean => activity.kind === "sign_out_unconfirmed";
+
+/** What a disabled button says while a sign-in or account creation is on its way. */
+export const signingInLabel = (activity: SessionActivity): string =>
+  isCreatingAccount(activity) ? "Creating account…" : "Signing in…";
+
+/** What the Sign out control says. It is disabled while `isSigningOut`. */
+export const signOutLabel = (activity: SessionActivity): string =>
+  isSigningOut(activity) ? "Signing out…" : isSignOutUnconfirmed(activity) ? "Retry sign-out" : "Sign out";
+
 /** The one thing a person is told while their account content is not shown. */
 export type SessionNotice =
   | "signing_in"

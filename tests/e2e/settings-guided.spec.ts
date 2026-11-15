@@ -1,6 +1,5 @@
 import { test, expect, type Page, type TestInfo } from "@playwright/test";
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
-import { createHash } from "node:crypto";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const owner = "aaaaaaaa-1111-4111-8111-111111111111";
@@ -161,17 +160,7 @@ test("usage retries real read failures, marks unrecorded counts and rejects fore
 test("artwork, shared type, card shape and content width stay consistent", async ({ page }, info) => {
   if (info.project.name === "desktop") await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
-  const folder = new URL("../../public/settings/", import.meta.url);
-  for (const name of await readdir(folder)) {
-    const expected = await readFile(new URL(name, folder)),
-      response = await page.request.get(`/settings/${name}`);
-    expect(response.status()).toBe(200);
-    expect(
-      createHash("sha256")
-        .update(await response.body())
-        .digest("hex"),
-    ).toBe(createHash("sha256").update(expected).digest("hex"));
-  }
+  // Settings no longer ships its own artwork (public/settings is gone); type, card shape and width remain.
   await page.evaluate(() => document.fonts.ready);
   if (info.project.name === "desktop") {
     const profile = (await page.getByRole("region", { name: "Profile", exact: true }).boundingBox())!;

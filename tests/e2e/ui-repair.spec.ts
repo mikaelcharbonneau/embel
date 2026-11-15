@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { accountMenu, openAccountMenu } from "./account-check";
 
 // Every API is intercepted; these layout checks never reach an account or provider.
 test.beforeEach(async ({ page }) => {
@@ -89,21 +88,17 @@ test("logo has one main landmark", async ({ page }) => {
   await expect(page.getByRole("main")).toHaveCount(1);
 });
 
-test("sign-in recovery restores the prompt and scope from one retained browser copy", async ({ page }, info) => {
+test("sign-in recovery restores the prompt from one retained browser copy", async ({ page }, info) => {
   await page.goto("/");
   const prompt = "A repair workshop sharing tools and practical skills with local residents.";
   await page.getByRole("textbox", { name: "Your prompt", exact: true }).fill(prompt);
-  await page
-    .getByRole("group", { name: "What to create", exact: true })
-    .getByText("Name only", { exact: true })
-    .click();
-  await openAccountMenu(page);
-  await accountMenu(page).getByRole("menuitem", { name: "Sign in", exact: true }).click();
+  // Home no longer asks what to create: every project is a complete brand (src/domain/projects.ts).
+  // Signed out, the navigation pill offers Sign in directly.
+  await page.getByRole("banner").getByRole("link", { name: "Sign in", exact: true }).click();
   await expect(page.getByText("Your idea is kept. It will be waiting when you’re signed in.")).toBeVisible();
   // A full load, as after an authentication redirect, must use the retained sign-in copy.
   await page.goto("/");
   await expect(page.getByRole("textbox", { name: "Your prompt", exact: true })).toHaveValue(prompt);
-  await expect(page.getByRole("radio", { name: "Name only", exact: true })).toBeChecked();
   await expect(page.getByText(/Your prompt is ready to continue/)).toBeVisible();
   await page.screenshot({ path: info.outputPath("home-restored-prompt.png"), fullPage: true, scale: "css" });
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("fluid.local-drafts.v1")!).drafts.length)).toBe(1);
@@ -112,15 +107,7 @@ test("sign-in recovery restores the prompt and scope from one retained browser c
 test("320px layout keeps Home input disclosures and navigation reachable", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 740 });
   await page.goto("/");
-  const tools = page.getByRole("navigation", { name: "Main navigation", exact: true }).locator("summary");
-  await tools.click();
-  await expect(
-    page
-      .getByRole("navigation", { name: "Main navigation", exact: true })
-      .getByRole("link", { name: "Trademarks", exact: true }),
-  ).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(tools).toBeFocused();
+  // The Tools menu (Trademarks and the other standalone tools) was removed with the standalone tools.
   await page.locator(".home-files-popover summary").click();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
   await expect(page.getByRole("button", { name: "Send prompt", exact: true })).toBeVisible();

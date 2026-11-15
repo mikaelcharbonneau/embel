@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act, useLayoutEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -19,7 +20,7 @@ const fixture = vi.hoisted(() => ({
   isCurrent: vi.fn(),
   expire: vi.fn(),
 }));
-vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => fixture }));
+vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => sessionStandIn(fixture) }));
 let host: HTMLDivElement, root: Root, api: ReturnType<typeof useProjectIdentity>, hint: IdentityReferenceHint;
 let reads: { path: string; signal: AbortSignal; resolve: (response: Response) => void }[];
 function Harness() {
