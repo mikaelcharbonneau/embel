@@ -641,25 +641,18 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
             : strategy.notice}
         </div>
       )}
-      {account &&
-        (!home || !!displayedPrompt.trim() || textDraftId || resumedPrompt || strategy.locked) &&
-        !hasFiles &&
-        !hiddenFiles &&
-        !hiddenPrompt && (
-          <div className="account-recovery-actions home-draft-actions">
-            <div>
-              <button
-                type="button"
-                className="button secondary"
-                disabled={disabled}
-                onClick={() => void sendPrompt("draft")}
-              >
-                {strategy.locked ? "Check and retry save" : "Save project"}
-              </button>
-              <span className="field-hint">Saves to your account · does not start AI</span>
-            </div>
-          </div>
-        )}
+      {account && strategy.locked && !hasFiles && !hiddenFiles && !hiddenPrompt && (
+        <div className="account-recovery-actions home-draft-actions">
+          <button
+            type="button"
+            className="button secondary"
+            disabled={disabled}
+            onClick={() => void sendPrompt("draft")}
+          >
+            Check and retry save
+          </button>
+        </div>
+      )}
       {!account && recoveryFull && !inputIntent?.browserDraftId && !textDraftId && (
         <p className="form-error" role="alert">
           This device has 50 unsaved projects. <Link href="/brands?recover=1">Recover a project</Link> before starting

@@ -169,23 +169,24 @@ describe("Home account persistence and sign-in continuation", () => {
     expect(host.querySelector("textarea")!.readOnly).toBe(false);
   });
 
-  it("leaves typing and saving available while the initial AI read is pending", async () => {
+  it("leaves typing available while the initial AI read is pending, and sends once it is known", async () => {
     const held = deferred<Response>();
     fetcher.mockImplementation((path: string, init: RequestInit) =>
       path === "/api/strategy" ? held.promise : defaultFetch(path, init),
     );
     await render();
     expect(host.querySelector("textarea")!.readOnly).toBe(false);
-    await click("Save project");
+    await click("Send prompt");
+    expect(creations()).toHaveLength(0);
+    await act(async () => held.resolve(Response.json({ availability: ready })));
     const body = JSON.parse(String(creations()[0]![1].body));
     expect(body.scope).toBe("complete_brand");
     expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${body.requestKey}?view=strategy`);
-    await act(async () => held.resolve(Response.json({ availability: ready })));
     expect(mutations()).toHaveLength(1);
     expect(host.textContent).toContain("Project saved. Opening your project…");
   });
 
-  it("keeps a manual read-only AI recheck out of the editing and save lock", async () => {
+  it("keeps a manual read-only AI recheck out of the editing and send lock", async () => {
     fetcher.mockImplementation((path: string, init: RequestInit) =>
       path === "/api/strategy"
         ? Promise.resolve(
@@ -202,7 +203,7 @@ describe("Home account persistence and sign-in continuation", () => {
     expect(host.querySelector("textarea")!.readOnly).toBe(false);
     await click("A skincare studio");
     expect(host.querySelector("textarea")!.value).toContain("independent skincare studio");
-    await click("Save project");
+    await click("Send prompt");
     expect(creations()).toHaveLength(1);
     expect(JSON.parse(String(creations()[0]![1].body)).context.intake.guidedInterview).toBeUndefined();
     await act(async () => held.resolve(Response.json({ availability: ready })));
@@ -252,7 +253,7 @@ describe("Home account persistence and sign-in continuation", () => {
             : defaultFetch(path, init),
       );
       await click("Check AI availability");
-      await click("Save project");
+      await click("Send prompt");
       expect(host.textContent).toContain("Saving your project…");
       expect(host.querySelector(".home-composer")).toBeNull();
       await act(async () =>
@@ -268,7 +269,7 @@ describe("Home account persistence and sign-in continuation", () => {
     },
   );
 
-  it("keeps the current guest prompt through sign-in, then saves without AI", async () => {
+  it("keeps the current guest prompt through sign-in, then sends it", async () => {
     mock.session = { status: "signed_out", generation: 2 };
     mock.memory!.bind(null);
     await render();
@@ -280,7 +281,7 @@ describe("Home account persistence and sign-in continuation", () => {
     mock.memory!.bind(mock.session);
     await remountHome();
     expect(host.querySelector("textarea")!.value).toBe(original);
-    await click("Save project");
+    await click("Send prompt");
     expect(mutations()).toHaveLength(1);
     expect(creations()).toHaveLength(1);
     const stored = JSON.parse(window.localStorage.getItem(DRAFT_STORAGE_KEY)!);
@@ -489,7 +490,7 @@ describe("Home account persistence and sign-in continuation", () => {
       });
     const original = window.localStorage.getItem(DRAFT_STORAGE_KEY);
     await render();
-    await click("Save project");
+    await click("Send prompt");
     expect(creations()).toHaveLength(1);
     expect(mock.push).toHaveBeenCalledOnce();
     expect(window.localStorage.getItem(DRAFT_STORAGE_KEY)).toBe(original);
@@ -504,7 +505,7 @@ describe("Home account persistence and sign-in continuation", () => {
     );
     await render();
     const original = host.querySelector("textarea")!.value;
-    await click("Save project");
+    await click("Send prompt");
     const originalBuffer = window.sessionStorage.getItem(`fluid.prompt-buffer.v1:${owner}`);
     const firstOwner = owner;
     owner = crypto.randomUUID();
@@ -522,7 +523,7 @@ describe("Home account persistence and sign-in continuation", () => {
       path === "/api/projects" ? Promise.reject(new TypeError("Lost acknowledgement")) : defaultFetch(path, init),
     );
     await render();
-    await click("Save project");
+    await click("Send prompt");
     expect(window.sessionStorage.getItem(`fluid.prompt-buffer.v1:${owner}`)).not.toBeNull();
     window.sessionStorage.removeItem("fluid.prompt-sign-in.v1");
     await remountHome();

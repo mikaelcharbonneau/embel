@@ -554,7 +554,7 @@ describe("mounted Home attached brief integration", () => {
     expect(mock.create).toHaveBeenCalledTimes(1);
   });
 
-  it("reuses the pending account draft on retries and an explicit Save project", async () => {
+  it("reuses the pending account draft on Send retries", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => capability()),
@@ -567,11 +567,7 @@ describe("mounted Home attached brief integration", () => {
     expect(mock.push).not.toHaveBeenCalled();
     const first = mock.strategy.mock.calls[0]![0];
     expect(mock.strategy.mock.calls[1]![0]).toEqual(first);
-    await click("Save project");
-    expect(mock.create).not.toHaveBeenCalled();
-    expect(mock.strategy).toHaveBeenCalledTimes(2);
-    expect(mock.save).toHaveBeenCalledExactlyOnceWith(first);
-    expect(mock.push).not.toHaveBeenCalled();
+    expect(mock.save).not.toHaveBeenCalled();
   });
   it("does not duplicate local drafts or AI starts on same-turn Send clicks", async () => {
     vi.stubGlobal(
@@ -596,41 +592,16 @@ describe("mounted Home attached brief integration", () => {
     await act(async () => finish(false));
     expect(mock.push).not.toHaveBeenCalled();
   });
-  it("keeps Save project unavailable while attached files need recovery", async () => {
+  it("sends attached files as one brief", async () => {
     selectFiles();
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => capability()),
     );
     await render();
-    expect(
-      [...host.querySelectorAll("button")].find(
-        (button) => (button.getAttribute("aria-label") ?? button.textContent) === "Save project",
-      ),
-    ).toBeUndefined();
     expect(host.querySelector<HTMLButtonElement>('button[type="submit"]')!.getAttribute("aria-label")).toBe(
       "Save brief with files",
     );
-  });
-
-  it("does not turn a stale Save project click into attached-file transmission", async () => {
-    const fetcher = vi.fn(async () => capability());
-    vi.stubGlobal("fetch", fetcher);
-    await render();
-    await click("Send prompt");
-    mock.create.mockClear();
-    mock.strategy.mockClear();
-    const save = [...host.querySelectorAll("button")].find(
-      (button) => (button.getAttribute("aria-label") ?? button.textContent) === "Save project",
-    )!;
-    await act(async () => {
-      selectFiles();
-      save.click();
-    });
-    expect(mock.create).not.toHaveBeenCalled();
-    expect(mock.strategy).not.toHaveBeenCalled();
-    expect(fetcher.mock.calls).toHaveLength(1);
-    expect(mock.push).not.toHaveBeenCalled();
   });
 
   it("keeps the typed prompt before following the sign-in recovery link", async () => {
@@ -649,7 +620,7 @@ describe("mounted Home attached brief integration", () => {
     expect(mock.strategy).not.toHaveBeenCalled();
   });
 
-  it("saves the latest unlocked Home text before opening its retained draft", async () => {
+  it("sends the latest unlocked Home text with its retained draft", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => capability()),
@@ -660,12 +631,13 @@ describe("mounted Home attached brief integration", () => {
     const latest = host.querySelector("textarea")!.value;
     expect(latest).toContain("neighborhood coffee shop");
     mock.update.mockClear();
-    await click("Save project");
+    await click("Send prompt");
     expect(mock.update).not.toHaveBeenCalled();
-    expect(mock.save).toHaveBeenCalledExactlyOnceWith(
+    expect(mock.strategy).toHaveBeenCalledTimes(2);
+    expect(mock.strategy.mock.calls[1]![0]).toEqual(
       expect.objectContaining({ description: latest, id: mock.strategy.mock.calls[0]![0].id }),
     );
-    expect(mock.strategy).toHaveBeenCalledTimes(1);
+    expect(mock.save).not.toHaveBeenCalled();
     expect(mock.create).not.toHaveBeenCalled();
   });
 
