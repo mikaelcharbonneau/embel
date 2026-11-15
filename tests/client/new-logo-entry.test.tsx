@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act, createElement, type AnchorHTMLAttributes } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -49,12 +50,13 @@ vi.mock("next/link", () => ({
   },
 }));
 vi.mock("@/components/workspace/account-session", () => ({
-  useAccountSession: () => ({
-    session: mock.account,
-    homeInputSession: mock.memory,
-    isCurrent: mock.current,
-    expire: mock.expire,
-  }),
+  useAccountSession: () =>
+    sessionStandIn({
+      session: mock.account,
+      homeInputSession: mock.memory,
+      isCurrent: mock.current,
+      expire: mock.expire,
+    }),
 }));
 vi.mock("@/components/workspace/account-strategy-start", () => ({ useAccountStrategyStart: () => mock.strategy }));
 let root: Root, host: HTMLDivElement, fetcher: ReturnType<typeof vi.fn>;

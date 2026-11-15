@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -12,7 +13,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/components/workspace/project-progress", () => ({ useProjectProgress: () => fixture.progress }));
 vi.mock("@/components/workspace/account-session", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/components/workspace/account-session")>()),
-  useAccountSession: () => ({ session: { status: "loading" } }),
+  useAccountSession: () => sessionStandIn({ session: { status: "loading" } }),
   AccountStatus: () => <p data-account-status />,
 }));
 import { shownAsChosen, VisualDirectionsPage } from "@/components/visual-directions/visual-directions-page";

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { readFileSync } from "node:fs";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -13,7 +14,7 @@ const fixture = vi.hoisted(() => ({
   account: { status: "ready", userId: "owner-a", generation: 1 },
 }));
 vi.mock("@/components/workspace/account-session", () => ({
-  useAccountSession: () => ({ session: fixture.account }),
+  useAccountSession: () => sessionStandIn({ session: fixture.account }),
   AccountStatus: () => <p>Account unavailable</p>,
 }));
 vi.mock("@/components/assets/use-asset-library", () => ({ useAssetLibrary: () => fixture.library }));

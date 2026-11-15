@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { webcrypto } from "node:crypto";
 import { act, useLayoutEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -29,7 +30,8 @@ const session = vi.hoisted(() => ({
   expire: vi.fn(),
 }));
 vi.mock("../../src/components/workspace/account-session", () => ({
-  useAccountSession: () => ({ session: session.account, isCurrent: session.isCurrent, expire: session.expire }),
+  useAccountSession: () =>
+    sessionStandIn({ session: session.account, isCurrent: session.isCurrent, expire: session.expire }),
 }));
 
 type SaveInput = {

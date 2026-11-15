@@ -241,6 +241,49 @@ describe("paid plans", () => {
     expect(await service("select public.billing_owner_for_customer($1) as r", [CUSTOMER_A])).toBe(OWNER_A);
   });
 
+  // Two Checkout pages paid for one account (docs/payments.md): Stripe then holds two live
+  // subscriptions. The app no longer opens two pages, but the webhook must stay truthful if it happens.
+  it("never adds a second allowance on top of the first when one account has two live subscriptions", async () => {
+    const SUB_B = "sub_TestOwnerASecond";
+    await link(OWNER_A, CUSTOMER_A);
+    const first = { start: at(-1), end: at(29) };
+    const second = { start: at(-0.5), end: at(29.5) };
+    await applySubscription(OWNER_A, first);
+    expect(await applyInvoice(OWNER_A, "in_First", "pro", first.start, first.end)).toMatchObject({ credits: 120 });
+    await spend(OWNER_A, 40);
+    // The second subscription is saved as it is: nothing refuses what Stripe reports.
+    expect(await applySubscription(OWNER_A, { subscription: SUB_B, ...second })).toMatchObject({
+      stored: true,
+      live: true,
+      accountPlanId: "pro",
+    });
+    // Its first invoice starts a new period: the balance returns to the allowance (150), not 150 + 150.
+    expect(await applyInvoice(OWNER_A, "in_Second", "pro", second.start, second.end, SUB_B)).toMatchObject({
+      applied: true,
+      outcome: "new_period",
+      credits: 40,
+    });
+    expect(await summary(OWNER_A)).toMatchObject({ planId: "pro", balance: 150 });
+    // The first one's invoice arriving late, or either one replayed, grants nothing.
+    expect(await applyInvoice(OWNER_A, "in_FirstLate", "pro", first.start, first.end)).toMatchObject({
+      outcome: "stale",
+      credits: 0,
+    });
+    expect(await applyInvoice(OWNER_A, "in_Second", "pro", second.start, second.end, SUB_B)).toMatchObject({
+      applied: false,
+    });
+    expect((await summary(OWNER_A)).balance).toBe(150);
+    // Ending one of the two keeps the paid plan, because the other is still live.
+    expect(await applySubscription(OWNER_A, { status: "canceled", ...first })).toMatchObject({
+      live: false,
+      accountPlanId: "pro",
+    });
+    expect(await summary(OWNER_A)).toMatchObject({ planId: "pro", balance: 150 });
+    expect(await service("select public.billing_owner_state($1) as r", [OWNER_A])).toMatchObject({
+      subscription: { id: SUB_B, live: true },
+    });
+  });
+
   it("records each Stripe event once", async () => {
     expect(await service("select public.billing_event_seen('evt_One') as r")).toBe(false);
     expect(await service("select public.billing_record_event('evt_One', 'invoice.paid') as r")).toBe(true);

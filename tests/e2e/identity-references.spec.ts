@@ -385,6 +385,10 @@ async function trackUrls(page: Page) {
 }
 
 test("references fixture: a brand opens the grid before strategy or a name", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   fixture.project = project();
   await ready(page);
@@ -397,6 +401,10 @@ test("references fixture: a brand opens the grid before strategy or a name", asy
 test("references fixture: an unavailable source preserves real persisted references and independent likes", async ({
   page,
 }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   await ready(page);
   await expect(
@@ -427,6 +435,10 @@ test("references fixture: an unavailable source preserves real persisted referen
   expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain("Warm forms");
 });
 test("references fixture: empty source is honest and failed reads are not empty success", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   fixture.rows = [];
   fixture.readStatus = 503;
@@ -443,6 +455,10 @@ test("references fixture: empty source is honest and failed reads are not empty 
   ).toBeVisible();
 });
 test("references fixture: keyboard disclosure exposes only relevant elements", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   await setup(page);
   await ready(page);
   await page.getByRole("heading", { name: "Build a visual starting point", exact: true }).focus();
@@ -457,6 +473,10 @@ test("references fixture: keyboard disclosure exposes only relevant elements", a
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 test("references fixture: touch-style disclosure remains independently operable", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   await setup(page);
   await ready(page);
   const disclosure = card(page).getByRole("button", { name: /elements for Warm forms/ });
@@ -468,6 +488,10 @@ test("references fixture: touch-style disclosure remains independently operable"
 test("references fixture: actual tags filter the server page and incomplete suggestions are labeled", async ({
   page,
 }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   fixture.tagsComplete = false;
   await ready(page);
@@ -484,6 +508,10 @@ test("references fixture: actual tags filter the server page and incomplete sugg
   await expect(page.getByRole("article")).toHaveCount(6);
 });
 test("references fixture: held and failed filter reads clear old rows and continuation", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   fixture.pageSize = 2;
   await ready(page);
@@ -504,6 +532,10 @@ test("references fixture: held and failed filter reads clear old rows and contin
   await expect(card(page)).toBeVisible();
 });
 test("references fixture: pagination retains both loaded pages after a page-two reaction", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   fixture.pageSize = 2;
   await ready(page);
@@ -518,6 +550,10 @@ test("references fixture: pagination retains both loaded pages after a page-two 
   expect(fixture.reads.at(-1)!.cursor?.referenceId).toBe(id(11));
 });
 test("references fixture: pages from different aggregate revisions cannot be combined", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   fixture.pageSize = 2;
   await ready(page);
@@ -533,6 +569,10 @@ test("references fixture: pages from different aggregate revisions cannot be com
   await expect(page.getByRole("article")).toHaveCount(4);
 });
 test("references fixture: late old reads cannot roll back a successful reaction", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   await ready(page);
   fixture.holdRead = fixture.reads.length + 1;
@@ -547,6 +587,10 @@ test("references fixture: late old reads cannot roll back a successful reaction"
   await expect(page.getByText("1 reference selected in this project", { exact: true })).toBeVisible();
 });
 test("references fixture: independent out-of-order writes keep authoritative aggregate counts", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   await ready(page);
   fixture.holdWrite = 1;
@@ -564,6 +608,10 @@ test("references fixture: independent out-of-order writes keep authoritative agg
   await expect(card(page).getByRole("button", { name: /^Ensemble for/ })).toHaveAttribute("aria-pressed", "true");
 });
 test("references fixture: lost successful response is checked without replaying the write", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   fixture.lostWrite = true;
   await ready(page);
@@ -578,6 +626,10 @@ test("references fixture: lost successful response is checked without replaying 
   expect(fixture.writes).toHaveLength(1);
 });
 test("references fixture: conflicts preserve pending choices until explicit resolution", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   await ready(page);
   fixture.rows[0]!.reaction = { ...fixture.rows[0]!.reaction, ensemble: true, revision: 1, updatedAt: when };
@@ -594,6 +646,10 @@ test("references fixture: conflicts preserve pending choices until explicit reso
   expect(fixture.writes[1]!.body).toEqual({ expectedRevision: 1, ensemble: false, elements: ["logo"] });
 });
 test("references fixture: recovery checks the exact page even after filters hide its row", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   fixture.pageSize = 2;
   fixture.lostWrite = true;
@@ -612,6 +668,10 @@ test("references fixture: recovery checks the exact page even after filters hide
   expect(fixture.writes).toHaveLength(1);
 });
 test("references fixture: same-owner session rechecks retain unconfirmed choices privately", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   fixture.lostWrite = true;
   await ready(page);
@@ -627,6 +687,10 @@ test("references fixture: same-owner session rechecks retain unconfirmed choices
   expect(fixture.writes).toHaveLength(1);
 });
 test("references fixture: owner changes revoke previews and hide previous-owner intent", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   await trackUrls(page);
   fixture.lostWrite = true;
@@ -656,6 +720,10 @@ test("references fixture: owner changes revoke previews and hide previous-owner 
   await expect(page.getByRole("heading", { name: "Pending choices · Warm forms · fixture" })).toHaveCount(0);
 });
 test("references fixture: invalid nested ownership never renders the reference", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   fixture.corrupt = true;
   await page.goto(url);
@@ -665,6 +733,10 @@ test("references fixture: invalid nested ownership never renders the reference",
   await expect(page.getByRole("article")).toHaveCount(0);
 });
 test("references fixture: failed bytes stay unavailable and source URLs are never auto-fetched", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   fixture.previewStatus = 404;
   const outbound: string[] = [];
@@ -683,6 +755,10 @@ test("references fixture: failed bytes stay unavailable and source URLs are neve
   await expect(card(page).getByRole("img")).toBeVisible();
 });
 test("references fixture: decoded image failure immediately releases its private blob", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   await trackUrls(page);
   fixture.previewBytes = Buffer.from("not a decodable raster");
@@ -703,6 +779,10 @@ test("references fixture: decoded image failure immediately releases its private
     .toBe(true);
 });
 test("references fixture: returning to the direct route keeps dirty project memory guarded", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   // A failed autosave keeps the renamed project unsaved while the route is revisited.
   const fixture = await setup(page);
   fixture.projectPatchStatus = 503;
@@ -726,6 +806,10 @@ test("references fixture: returning to the direct route keeps dirty project memo
   ).toHaveValue("Unsaved private identity brief");
 });
 test("references fixture: long attribution and tags stay in the viewport", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   fixture.rows[0]!.reference.attribution.label = "LongUnbrokenSyntheticAttribution".repeat(7);
   fixture.rows[0]!.reference.tags = ["長".repeat(80)];
@@ -737,6 +821,10 @@ test("references fixture: long attribution and tags stay in the viewport", async
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 test("references fixture: stable desktop and mobile visual evidence", async ({ page }, info) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   fixture.rows[0]!.reaction = {
     ...fixture.rows[0]!.reaction,
@@ -772,6 +860,10 @@ test("references fixture: stable desktop and mobile visual evidence", async ({ p
 });
 
 test("references fixture: oversized Unicode filter intent stays visible and recoverable", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   const tags = Array.from({ length: 50 }, (_, index) => "界".repeat(78) + String(index).padStart(2, "0"));
   fixture.rows[5]!.reference.tags = tags;
@@ -805,6 +897,10 @@ test("references fixture: invalid route identifiers do not read private referenc
 });
 
 test("references fixture: tag menu Escape returns focus and pointer outside dismisses", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   await setup(page);
   await ready(page);
   const trigger = page.locator(".identity-reference-tags summary");
@@ -819,6 +915,10 @@ test("references fixture: tag menu Escape returns focus and pointer outside dism
 });
 
 test("references fixture: confirmed sign-out clears pending intent before the same owner returns", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   fixture.lostWrite = true;
   await ready(page);
@@ -839,6 +939,10 @@ test("references fixture: confirmed sign-out clears pending intent before the sa
   await expect(page.getByRole("heading", { name: "Pending choices · Warm forms · fixture" })).toHaveCount(0);
 });
 test("references fixture: an intent whose original page shifted can be explicitly discarded", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   fixture.pageSize = 2;
   fixture.writeStatus = 503;
@@ -862,6 +966,10 @@ test("references fixture: an intent whose original page shifted can be explicitl
   expect(fixture.writes).toHaveLength(1);
 });
 test("references fixture: refreshed loaded pages follow returned cursors after insertion", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   fixture.pageSize = 2;
   await ready(page);
@@ -887,6 +995,10 @@ test("references fixture: refreshed loaded pages follow returned cursors after i
 });
 
 test("references fixture: server header limits keep exclusions removable", async ({ page }) => {
+  test.fixme(
+    true,
+    "needs a rewrite or deletion: the Brand references screen is no longer in src (the old /identity page now shows the Inspiration gallery); nothing this drives is on screen",
+  );
   const fixture = await setup(page);
   await ready(page);
   fixture.readStatus = 431;

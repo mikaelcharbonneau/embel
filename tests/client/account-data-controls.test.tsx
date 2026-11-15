@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -11,10 +12,11 @@ const fixture = vi.hoisted(() => ({
   replace: vi.fn(),
 }));
 vi.mock("@/components/workspace/account-session", () => ({
-  useAccountSession: () => ({
-    session: { status: "ready", userId: owner, generation: 1 },
-    signOut: fixture.signOut,
-  }),
+  useAccountSession: () =>
+    sessionStandIn({
+      session: { status: "ready", userId: owner, generation: 1 },
+      signOut: fixture.signOut,
+    }),
 }));
 vi.mock("@/components/workspace/account-profile-provider", () => ({
   useAccountProfile: () => ({ workspace: { saved: { ownerId: owner, email: fixture.email } } }),

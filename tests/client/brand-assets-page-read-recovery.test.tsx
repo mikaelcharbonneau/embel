@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -29,7 +30,7 @@ const state = vi.hoisted(() => ({
   logo: null as unknown as Logo,
 }));
 vi.mock("@/components/workspace/account-session", () => ({
-  useAccountSession: () => state,
+  useAccountSession: () => sessionStandIn(state),
   AccountStatus: () => null,
 }));
 vi.mock("@/components/identity/use-project-identity", () => ({ useProjectIdentity: () => state.identity }));

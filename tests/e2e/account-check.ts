@@ -38,14 +38,33 @@ export async function closeAccountMenu(page: Page) {
   if ((await button.count()) && (await button.getAttribute("aria-expanded")) === "true") await button.click();
 }
 
-/** Normal app account verification, rather than a component-preview control. */
+/**
+ * Normal app account verification. A signed-in account's menu no longer has a "Check account" row
+ * (it is only offered after a failed check), so this uses the check the app makes itself when the
+ * window regains focus.
+ */
 export async function checkNormalAccount(page: Page) {
-  await openAccountMenu(page);
+  await closeAccountMenu(page);
   const response = page.waitForResponse(
     (response) => new URL(response.url()).pathname === "/api/session" && response.request().method() === "GET",
   );
-  // Choosing the row closes the menu.
-  await accountMenu(page).getByRole("menuitem", { name: "Check account", exact: true }).click();
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("blur"));
+    window.dispatchEvent(new Event("focus"));
+  });
   expect((await response).status()).toBe(200);
-  await expect(accountMenuButton(page)).toHaveAttribute("aria-expanded", "false");
+}
+
+/**
+ * What a page shows in place of account content when nobody is signed in: an invitation whose
+ * heading names what signing in shows ("Sign in to open this brand"), with Sign in and Create account.
+ */
+export const signedOutInvite = (page: Page) => page.locator("main").getByRole("heading", { name: /^Sign in to / });
+
+/** The check the app makes by itself when the window regains focus, without waiting for its answer. */
+export async function refocusWindow(page: Page) {
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("blur"));
+    window.dispatchEvent(new Event("focus"));
+  });
 }

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act, createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -18,7 +19,7 @@ const isCurrent = (value: VerifiedAccount) => value === account && session === a
   expire = vi.fn();
 vi.mock("next/navigation", () => ({ usePathname: () => pathname }));
 vi.mock("@/components/workspace/account-session", () => ({
-  useAccountSession: () => ({ session, drafts, isCurrent, expire }),
+  useAccountSession: () => sessionStandIn({ session, drafts, isCurrent, expire }),
   AccountStatus: () => <p>Account status fixture</p>,
 }));
 const project = accountProjectSchema.parse({

@@ -43,7 +43,10 @@ where status in ('queued', 'running') group by 1, 2;
 ```
 
 Runs left over after a stop end on their own: the engine checks for a pause before every paid step,
-and overdue runs are ended with a refund the next time their owner starts or cancels a run.
+and overdue runs are ended with a refund the next time their owner starts or cancels a run. The
+scheduled sweep (`/api/maintenance/expire-runs`, every 10 minutes) does the same for every account
+and keeps running while paused: it only ends overdue runs and returns their credits, and never
+starts work.
 
 ## Money backstop
 

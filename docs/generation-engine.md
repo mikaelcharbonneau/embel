@@ -73,11 +73,26 @@ fluid_private.engine_settings(id bool pk default true, paused bool, global_daily
   
   It's idempotent per (owner, idempotency_key).
 - `cancel_generation(run_id)`: owner only.
+- **Scheduled sweep of overdue runs** (owner decision, November 14; migration
+  `20261114150000_engine_expire_overdue_runs`). A person who closes the page never starts or cancels
+  anything again, so their stuck run and its credits would wait for their return. A Vercel cron
+  (`vercel.json`, every 10 minutes) calls `GET /api/maintenance/expire-runs`, which calls
+  `fluid_private.engine_expire_overdue_runs` through the engine login (`src/server/engine/sweep.ts`).
+  It applies the same two rules to every account, oldest first, at most 200 runs per call, each through
+  `finish_generation_run`, so the refund rule is the usual one. A run that a workflow is finishing at
+  that moment is skipped, not waited for. The route is not a worker or a job system: it starts no work,
+  only ends overdue runs, and keeps doing so while generation is paused. It answers counts only
+  (`{ ended, failed }`) and logs `overdue_runs_ended` when the count is above zero;
+  `overdue_runs_not_ended` means the database could not end a run (its id is in the Postgres log).
+  Only Vercel Cron can call it: it requires `Authorization: Bearer <CRON_SECRET>` and answers 503
+  while `CRON_SECRET` is not set ([environment-variables.md](environment-variables.md)). Vercel runs
+  crons on the production deployment only.
 - **Engine-only functions** (`fluid_private.engine_*`, granted to `embel_engine` and nothing else):
   - `engine_claim(run_id, workflow_run_id)`
   - `engine_check(run_id)`, which returns status, cancel request and pause
   - `engine_save_output(run_id, key, output, response_id, cost)`
   - `engine_finish(run_id, status, error_code)`, which refunds the credits on failure or cancellation
+  - `engine_expire_overdue_runs(limit)`, the scheduled sweep above
 
 ## Code layout
 
@@ -87,6 +102,8 @@ src/server/engine/database.ts           pg pool for embel_engine (attachDatabase
 src/server/engine/runs.ts               engine_* function calls (step functions)
 src/server/engine/openai.ts             background create / retrieve / cancel, cost from usage
 src/server/engine/start.ts              route helper: start_generation (user client) + start(workflow)
+src/server/engine/sweep.ts              scheduled sweep of overdue runs (engine_expire_overdue_runs)
+src/app/api/maintenance/expire-runs     the cron's route (CRON_SECRET)
 src/app/api/projects/[projectId]/generations/...   start, status, cancel
 ```
 

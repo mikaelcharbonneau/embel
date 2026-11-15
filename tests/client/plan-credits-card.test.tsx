@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act, createElement, type ComponentProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -6,9 +7,10 @@ import type { BillingSummary } from "@/domain/billing";
 
 const fixture = vi.hoisted(() => ({ request: vi.fn() }));
 vi.mock("@/components/workspace/account-session", () => ({
-  useAccountSession: () => ({
-    session: { status: "ready", userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", generation: 1 },
-  }),
+  useAccountSession: () =>
+    sessionStandIn({
+      session: { status: "ready", userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", generation: 1 },
+    }),
 }));
 vi.mock("@/components/workspace/account-api", () => ({ accountRequest: fixture.request }));
 vi.mock("next/link", () => ({

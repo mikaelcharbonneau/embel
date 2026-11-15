@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act, createElement, useLayoutEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { createAccountDraftMemory } from "@/components/workspace/account-draft-memory";
@@ -13,13 +14,14 @@ const account = { status: "ready" as const, userId: owner, generation: 1 };
 let accountDrafts: ReturnType<typeof createAccountDraftMemory>;
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mocks.push }) }));
 vi.mock("@/components/workspace/account-session", () => ({
-  useAccountSession: () => ({
-    drafts: accountDrafts,
-    session: account,
-    isCurrent: mocks.current,
-    expire: mocks.expire,
-    refresh: vi.fn(),
-  }),
+  useAccountSession: () =>
+    sessionStandIn({
+      drafts: accountDrafts,
+      session: account,
+      isCurrent: mocks.current,
+      expire: mocks.expire,
+      refresh: vi.fn(),
+    }),
 }));
 vi.mock("@/components/workspace/save-local-draft-to-account", () => ({
   saveLocalDraftToAccount: (...args: unknown[]) => mocks.save(...args),

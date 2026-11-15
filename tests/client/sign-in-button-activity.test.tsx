@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -10,13 +11,13 @@ vi.mock("next/link", () => ({
   default: ({ children, href }: { children: React.ReactNode; href: string }) => createElement("a", { href }, children),
 }));
 vi.mock("@/components/workspace/account-session", () => ({
-  useAccountSession: () => ({
-    session: { status: "signed_out", generation: 1 },
-    signIn: fixture.signIn,
-    signingIn: fixture.signingIn,
-    awaitingConfirmation: false,
-    dismissConfirmation() {},
-  }),
+  useAccountSession: () =>
+    sessionStandIn({
+      session: { status: "signed_out", generation: 1 },
+      signIn: fixture.signIn,
+      doing: fixture.signingIn ? "signing_in" : "nothing",
+      dismissConfirmation() {},
+    }),
 }));
 vi.mock("@/components/workspace/prompt-recovery", () => ({ hasPromptRecovery: () => false }));
 

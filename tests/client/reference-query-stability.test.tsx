@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act, useLayoutEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,12 +15,13 @@ const session = vi.hoisted(() => ({
   expire: vi.fn(),
 }));
 vi.mock("@/components/workspace/account-session", () => ({
-  useAccountSession: () => ({
-    drafts: session.drafts,
-    isCurrent: (account: VerifiedAccount) =>
-      session.current?.userId === account.userId && session.current.generation === account.generation,
-    expire: session.expire,
-  }),
+  useAccountSession: () =>
+    sessionStandIn({
+      drafts: session.drafts,
+      isCurrent: (account: VerifiedAccount) =>
+        session.current?.userId === account.userId && session.current.generation === account.generation,
+      expire: session.expire,
+    }),
 }));
 const id = (n: number) => `40000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const account: VerifiedAccount = { status: "ready", userId: id(1), generation: 1 },

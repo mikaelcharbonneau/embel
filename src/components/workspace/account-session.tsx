@@ -23,6 +23,8 @@ import { EmptyState } from "@/components/ui/feedback";
 import { InlineMessage } from "@/components/ui/message";
 import {
   initialSessionMode,
+  isCreatingAccount,
+  isSigningIn,
   sessionModeReducer,
   sessionPageSentence,
   sessionView,
@@ -59,17 +61,17 @@ type AccountSession = {
     attempt: () => Promise<void | "confirmation_required">,
     mode?: "sign-in" | "sign-up",
   ) => Promise<SignInResult>;
-  /** What the account is doing besides its status (docs/state-machines.md, J6). The six values below it
-   * are read from this one and from `awaitingConfirmation`; none is stored on its own. */
+  /** What the account is doing besides its status (docs/state-machines.md, J6): the one source. Screens ask
+   * it questions with the functions in `session-view.ts` (`isSigningIn`, `isSigningOut`, `signOutLabel` …). */
   activity: SessionActivity;
-  signingIn: boolean;
-  signingUp: boolean;
+  /** An account was created and its email link has not been opened yet. Held beside `activity`, not read from it. */
   awaitingConfirmation: boolean;
   dismissConfirmation: () => void;
-  signInSlow: boolean;
   signOut: (discardUnsaved?: boolean) => Promise<SignOutResult>;
-  signingOut: boolean;
-  signOutError: string | null;
+  /** Read from `activity`, and read by no screen. Kept only because `tests/client/account-signup-session.test.tsx`
+   * asserts both on the real provider; drop them when those assertions move to `activity`. */
+  signingIn: boolean;
+  signingUp: boolean;
 };
 const initialSession: Session = { status: "checking", generation: 0 };
 const SessionContext = createContext<AccountSession | null>(null);
@@ -487,14 +489,11 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
         viewCache,
         signIn,
         activity,
-        signingIn: activity.kind === "signing_in",
-        signingUp: activity.kind === "signing_in" && activity.as === "sign-up",
         awaitingConfirmation,
         dismissConfirmation,
-        signInSlow: activity.kind === "signing_in" && activity.slow,
         signOut,
-        signingOut: activity.kind === "signing_out",
-        signOutError: activity.kind === "sign_out_unconfirmed" ? activity.message : null,
+        signingIn: isSigningIn(activity),
+        signingUp: isCreatingAccount(activity),
       }}
     >
       <LogoDraftMemoryProvider memory={logoDrafts}>{children}</LogoDraftMemoryProvider>

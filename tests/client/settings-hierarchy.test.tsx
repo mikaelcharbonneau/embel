@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act, createElement, useEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -23,7 +24,7 @@ const fixture = vi.hoisted(() => ({
   signOut: vi.fn(),
 }));
 vi.mock("@/components/workspace/account-session", () => ({
-  useAccountSession: () => ({ session: fixture.session }),
+  useAccountSession: () => sessionStandIn({ session: fixture.session }),
   AccountStatus: () => createElement("p", null, "Synthetic account status"),
 }));
 vi.mock("@/components/workspace/account-profile-provider", () => ({

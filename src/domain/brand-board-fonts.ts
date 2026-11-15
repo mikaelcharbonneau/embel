@@ -1,4 +1,4 @@
-import fontProvenance from "../../public/fonts/brand/provenance.json";
+import fontProvenance from "../../public/fonts/brand/provenance.json" with { type: "json" };
 
 /** Original, unmodified OFL variable faces. Generation and downloads share the
  * same inspected coverage; no system-font substitution is allowed. */

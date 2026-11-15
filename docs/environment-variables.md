@@ -20,7 +20,7 @@ also be 24.x.
 | `EMBEL_SHARED_ACCOUNT_HTTP_CONFIG` | Server-only JSON with the restricted database logins for the Identity and Home lanes (`identity`, `homeVerifier`). See `src/server/shared-account/README.md`. | Vercel, Production (secret) |
 | `EMBEL_SHARED_LOGO_HTTP_CONFIG` | Server-only JSON (`roleName`, `roleOid`, `databaseUrl`) for the Logo lane's restricted login. | Vercel, Production (secret) |
 | `OPENAI_API_KEY` | OpenAI key for all text and image generation. A missing key is a configuration error, never a fake result. | Vercel, Production (secret) |
-| `CRON_SECRET` | Bearer secret that Vercel Cron sends to `/api/maintenance/account-cleanup`. | Vercel, Production (secret) |
+| `CRON_SECRET` | A random secret of at least 16 characters that the owner adds in Vercel, Project Settings, Environment Variables. Vercel Cron then sends it as `Authorization: Bearer <CRON_SECRET>` to the scheduled route `/api/maintenance/expire-runs` (every 10 minutes, `vercel.json`; ends overdue generation runs and returns their credits). The callable cleanup `/api/maintenance/account-cleanup` checks the same header. Without it both routes answer 503 and do nothing, so overdue runs are only ended when their owner starts or stops work. | Vercel, Production (secret) |
 | `FLUID_NAMECOM_API_TOKEN` | Name.com API token for live domain availability checks. | Vercel, Production (secret) |
 | `FLUID_NAMECOM_USERNAME` | Name.com API username. | Vercel, Production |
 | `FLUID_NAMECOM_CHECKS_ENABLED` | `true` turns on the Name.com domain checks. | Vercel, Production |

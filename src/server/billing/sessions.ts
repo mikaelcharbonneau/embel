@@ -1,7 +1,7 @@
 import "server-only";
 import type Stripe from "stripe";
 import { PLAN_CATALOG, type PaidPlanId } from "@/domain/billing";
-import { ApiError } from "../http/errors";
+import { ApiError, logServerError } from "../http/errors";
 import type { BillingStore } from "./store";
 import type { StripeClient } from "./stripe";
 
@@ -40,6 +40,48 @@ function checkedUrl(url: string | null | undefined): string {
   return parsed.href;
 }
 
+/** Stripe's page size limit. One account has at most a handful of open sessions (each new
+ * checkout closes the earlier ones, and Stripe closes a session by itself after a day). */
+const OPEN_SESSIONS_PAGE = 100;
+
+/**
+ * Closes the customer's Checkout pages that are still open, so that only the one about to be
+ * created can be paid: two pages opened before either was paid would otherwise make two
+ * subscriptions. The rule is that a new page is opened only when no earlier one can still be paid:
+ * - the open pages cannot be listed, or one can neither be closed nor shown to be closed:
+ *   `integration_unavailable` (503, nothing was opened, trying again is safe);
+ * - a page turns out to be paid already (the person finished it a moment ago): `billing_pending`,
+ *   the same answer as for a first payment that is still being confirmed.
+ */
+export async function expireOpenCheckouts(stripe: StripeClient, customer: string): Promise<void> {
+  let open: Stripe.ApiList<Stripe.Checkout.Session>;
+  try {
+    open = await stripe.checkout.sessions.list({ customer, status: "open", limit: OPEN_SESSIONS_PAGE });
+  } catch (error) {
+    logServerError("billing_open_checkouts_list_failed", error);
+    throw new ApiError("integration_unavailable");
+  }
+  for (const session of open.data) {
+    try {
+      await stripe.checkout.sessions.expire(session.id);
+    } catch (error) {
+      // Stripe refuses to expire a page that is no longer open. Read what it became.
+      let status: string | null = null;
+      try {
+        status = (await stripe.checkout.sessions.retrieve(session.id)).status;
+      } catch {
+        /* Unknown: handled below as "may still be open". */
+      }
+      if (status === "expired") continue;
+      if (status === "complete") throw new ApiError("billing_pending");
+      logServerError("billing_open_checkout_expire_failed", error);
+      throw new ApiError("integration_unavailable");
+    }
+  }
+  // More than one page of open sessions: the rest may still be payable. The next try closes them.
+  if (open.has_more) throw new ApiError("integration_unavailable");
+}
+
 /**
  * A Stripe-hosted Checkout page for a paid plan, with Managed Payments on (Stripe is the
  * merchant of record and handles tax). One click on the Plans page starts it. Parameters that
@@ -63,6 +105,8 @@ export async function startCheckout(
     customerForOwner(deps, owner, state.customerId),
     priceForPlan(deps.stripe, plan),
   ]);
+  // An account that had no Stripe customer until now has no earlier page to close.
+  if (state.customerId) await expireOpenCheckouts(deps.stripe, customer);
   const metadata = { embel_owner_id: owner.id, embel_plan: plan };
   const session = await deps.stripe.checkout.sessions.create({
     mode: "subscription",

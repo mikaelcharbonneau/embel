@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act, StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -8,7 +9,7 @@ import type { useAssetLibrary } from "@/components/assets/use-asset-library";
 type Library = ReturnType<typeof useAssetLibrary>;
 const fixture = vi.hoisted(() => ({ library: null as unknown as Library }));
 vi.mock("@/components/workspace/account-session", () => ({
-  useAccountSession: () => ({ session: { status: "ready", userId: "owner-a", generation: 1 } }),
+  useAccountSession: () => sessionStandIn({ session: { status: "ready", userId: "owner-a", generation: 1 } }),
   AccountStatus: () => null,
 }));
 vi.mock("@/components/assets/use-asset-library", () => ({ useAssetLibrary: () => fixture.library }));

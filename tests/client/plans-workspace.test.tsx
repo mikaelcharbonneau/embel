@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act, createElement, type ComponentProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,7 +14,9 @@ vi.mock("next/link", () => ({
   default: ({ children, href, onClick, className }: ComponentProps<"a">) =>
     createElement("a", { href, className, onClick }, children),
 }));
-vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: fixture.session }) }));
+vi.mock("@/components/workspace/account-session", () => ({
+  useAccountSession: () => sessionStandIn({ session: fixture.session }),
+}));
 import { PlansWorkspace, type PlansReturnState } from "@/components/billing/plans-workspace";
 
 const plans = [

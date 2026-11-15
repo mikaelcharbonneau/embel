@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -12,7 +13,7 @@ const mock = vi.hoisted(() => ({
   expire: vi.fn(),
 }));
 vi.mock("@/components/workspace/account-session", () => ({
-  useAccountSession: () => ({ session: mock.session, isCurrent: mock.current, expire: mock.expire }),
+  useAccountSession: () => sessionStandIn({ session: mock.session, isCurrent: mock.current, expire: mock.expire }),
 }));
 
 const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";

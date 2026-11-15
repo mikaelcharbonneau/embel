@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { useReplyRegistry, WorkspaceReplyBox, WorkspaceReplyRegistry } from "@/components/workspace/workspace-reply";
@@ -40,13 +41,14 @@ const account = { status: "ready" as const, userId: id(1), generation: 1 },
   jobId = id(6),
   when = "2026-11-08T01:30:00Z";
 vi.mock("@/components/workspace/account-session", () => ({
-  useAccountSession: () => ({
-    session: account,
-    namingBrainDrafts: mock.memory,
-    drafts: mock.drafts,
-    isCurrent: mock.current,
-    expire: mock.expire,
-  }),
+  useAccountSession: () =>
+    sessionStandIn({
+      session: account,
+      namingBrainDrafts: mock.memory,
+      drafts: mock.drafts,
+      isCurrent: mock.current,
+      expire: mock.expire,
+    }),
   AccountStatus: () => null,
 }));
 const base = `/api/projects/${projectId}/naming`,

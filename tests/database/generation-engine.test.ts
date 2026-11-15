@@ -257,6 +257,146 @@ describe("starting a generation", () => {
   });
 });
 
+describe("the scheduled sweep of overdue runs", () => {
+  const sweep = (limit?: number) =>
+    asEngine(
+      async () =>
+        (
+          await db.query<{ r: { ended: number; failed: number } }>(
+            limit === undefined
+              ? "select fluid_private.engine_expire_overdue_runs() as r"
+              : "select fluid_private.engine_expire_overdue_runs($1) as r",
+            limit === undefined ? [] : [limit],
+          )
+        ).rows[0]!.r,
+    );
+  const row = async (id: string) =>
+    (await db.query<Run>("select * from public.generation_runs where id = $1", [id])).rows[0]!;
+  const age = (id: string, column: "created_at" | "started_at", minutes: number) =>
+    db.query(`update public.generation_runs set ${column} = now() - make_interval(mins => $2) where id = $1`, [
+      id,
+      minutes,
+    ]);
+
+  it("ends overdue queued and running runs of every owner and returns their credits", async () => {
+    await db.exec("update fluid_private.generation_kinds set max_running_minutes = 30 where kind = 'test.paid'");
+    const [a1, a2, b1] = [await seedProject(db), await seedProject(db), await seedProject(db, OWNER_B)];
+    // Owner A: one never picked up, one running too long. Owner B: one running too long.
+    // Starting or stopping work ends that owner's own overdue runs, so every run is started first.
+    const stuck = await start(OWNER_A, a1.id, "test.paid", key(1));
+    const slowA = await start(OWNER_A, a2.id, "test.paid", key(2));
+    const slowB = await start(OWNER_B, b1.id, "test.paid", key(3));
+    await engine.claim(slowA.id, "wrun_fixture_a");
+    await engine.claim(slowB.id, "wrun_fixture_b");
+    await age(stuck.id, "created_at", 11);
+    await age(slowA.id, "started_at", 31);
+    await age(slowB.id, "started_at", 31);
+    expect((await balance(OWNER_A)).balance).toBe(10);
+    expect((await balance(OWNER_B)).balance).toBe(20);
+    // Paused or not, overdue work is ended and refunded; nothing is started.
+    await db.exec("update fluid_private.engine_settings set paused = true");
+    expect(await sweep()).toEqual({ ended: 3, failed: 0 });
+    expect(await row(stuck.id)).toMatchObject({ status: "failed", error_code: "start_failed" });
+    expect(await row(slowA.id)).toMatchObject({ status: "failed", error_code: "run_timed_out" });
+    expect(await row(slowB.id)).toMatchObject({ status: "failed", error_code: "run_timed_out" });
+    expect((await balance(OWNER_A)).balance).toBe(30);
+    expect((await balance(OWNER_B)).balance).toBe(30);
+    expect((await db.query("select count(*)::int as n from public.credit_entries where kind = 'refund'")).rows).toEqual(
+      [{ n: 3 }],
+    );
+    // A second call finds nothing and refunds nothing twice.
+    expect(await sweep()).toEqual({ ended: 0, failed: 0 });
+    expect((await db.query("select count(*)::int as n from public.generation_runs")).rows).toEqual([{ n: 3 }]);
+    expect((await balance(OWNER_A)).balance).toBe(30);
+  });
+
+  it("leaves fresh, live and finished runs exactly as they are", async () => {
+    await db.exec("update fluid_private.generation_kinds set max_running_minutes = 30 where kind = 'test.paid'");
+    const [p1, p2, p3, p4] = [
+      await seedProject(db),
+      await seedProject(db),
+      await seedProject(db),
+      await seedProject(db, OWNER_B),
+    ];
+    const fresh = await start(OWNER_A, p1.id, "test.paid", key(1));
+    await age(fresh.id, "created_at", 9);
+    const live = await start(OWNER_A, p2.id, "test.paid", key(2));
+    await engine.claim(live.id, "wrun_fixture_a");
+    await age(live.id, "started_at", 29);
+    const done = await start(OWNER_A, p3.id, "test.once", key(3));
+    await engine.claim(done.id, "wrun_fixture_c");
+    await engine.finish(done.id, "succeeded");
+    await db.query(
+      "update public.generation_runs set created_at = now() - interval '3 hours', started_at = now() - interval '3 hours' where id = $1",
+      [done.id],
+    );
+    const stopped = await start(OWNER_B, p4.id, "test.paid", key(4));
+    await asRole(db, "authenticated", OWNER_B, () => db.query("select public.cancel_generation($1)", [stopped.id]));
+    await db.query("update public.generation_runs set created_at = now() - interval '3 hours' where id = $1", [
+      stopped.id,
+    ]);
+    const before = (await db.query("select * from public.generation_runs order by id")).rows;
+    const entries = (await db.query("select count(*)::int as n from public.credit_entries")).rows;
+    expect(await sweep()).toEqual({ ended: 0, failed: 0 });
+    expect((await db.query("select * from public.generation_runs order by id")).rows).toEqual(before);
+    expect((await db.query("select count(*)::int as n from public.credit_entries")).rows).toEqual(entries);
+    expect(await row(fresh.id)).toMatchObject({ status: "queued" });
+    expect(await row(live.id)).toMatchObject({ status: "running" });
+    expect(await row(done.id)).toMatchObject({ status: "succeeded" });
+    expect(await row(stopped.id)).toMatchObject({ status: "cancelled" });
+  });
+
+  it("ends at most the given number per call, oldest first, and refuses a senseless limit", async () => {
+    const projects = [await seedProject(db), await seedProject(db), await seedProject(db, OWNER_B)];
+    const owners = [OWNER_A, OWNER_A, OWNER_B];
+    const runs: Run[] = [];
+    for (const [index, project] of projects.entries()) {
+      runs.push(await start(owners[index]!, project.id, "test.paid", key(index + 1)));
+    }
+    // 60, 50 and 40 minutes old; aged after every start, because a start ends its owner's overdue runs.
+    for (const [index, run] of runs.entries()) await age(run.id, "created_at", 60 - index * 10);
+    expect(await sweep(2)).toEqual({ ended: 2, failed: 0 });
+    expect((await row(runs[0]!.id)).status).toBe("failed");
+    expect((await row(runs[1]!.id)).status).toBe("failed");
+    expect((await row(runs[2]!.id)).status).toBe("queued");
+    expect(await sweep(2)).toEqual({ ended: 1, failed: 0 });
+    expect((await row(runs[2]!.id)).status).toBe("failed");
+    for (const limit of [0, -1, 1001])
+      expect((await failure(() => sweep(limit))).message, String(limit)).toContain("invalid_input");
+  });
+
+  it("may be called by the engine login only", async () => {
+    const signature = "fluid_private.engine_expire_overdue_runs(integer)";
+    expect(
+      (
+        await db.query<Record<string, boolean>>(
+          "select has_function_privilege('anon',$1,'EXECUTE') anon, has_function_privilege('authenticated',$1,'EXECUTE') authenticated, has_function_privilege('service_role',$1,'EXECUTE') service, has_function_privilege('embel_engine',$1,'EXECUTE') engine",
+          [signature],
+        )
+      ).rows[0],
+    ).toEqual({ anon: false, authenticated: false, service: false, engine: true });
+    expect(
+      (
+        await db.query(
+          "select exists(select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a where p.oid = $1::regprocedure and a.grantee = 0) public_grant",
+          [signature],
+        )
+      ).rows,
+    ).toEqual([{ public_grant: false }]);
+    for (const role of ["anon", "authenticated", "service_role"] as const)
+      expect(
+        (
+          await failure(() =>
+            asRole(db, role, role === "authenticated" ? OWNER_A : null, () =>
+              db.query("select fluid_private.engine_expire_overdue_runs()"),
+            ),
+          )
+        ).message,
+        role,
+      ).toContain("permission denied");
+  });
+});
+
 describe("running a generation", () => {
   it("claims once per workflow, saves outputs once and refunds a failure exactly once", async () => {
     const project = await seedProject(db);

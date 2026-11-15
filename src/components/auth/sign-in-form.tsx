@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { Button, ButtonLink, IconButton } from "@/components/ui/button";
 import { InlineMessage } from "@/components/ui/message";
 import { useAccountSession } from "@/components/workspace/account-session";
+import { isSigningIn } from "@/components/workspace/session-view";
 import { requestSignIn, SignInRequestError, signInErrorMessage } from "./sign-in-request";
 import { requestSignUp, signUpErrorMessage } from "./sign-up-request";
 import { hasPromptRecovery } from "@/components/workspace/prompt-recovery";
@@ -54,7 +55,8 @@ export function SignInForm({
     resendEmail: `${idPrefix}-confirmation-email`,
     error: `${idPrefix}-error`,
   };
-  const { session, signIn, signingIn: submitting, awaitingConfirmation, dismissConfirmation } = useAccountSession();
+  const { session, signIn, activity, awaitingConfirmation, dismissConfirmation } = useAccountSession();
+  const submitting = isSigningIn(activity);
   const emailInput = useRef<HTMLInputElement>(null);
   const passwordInput = useRef<HTMLInputElement>(null);
   const confirmPasswordInput = useRef<HTMLInputElement>(null);

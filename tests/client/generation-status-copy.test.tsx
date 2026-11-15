@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { act } from "react";
 import Link from "next/link";
 import { createRoot, type Root } from "react-dom/client";
@@ -12,7 +13,7 @@ const fixture = vi.hoisted(() => ({
   useLibrary: vi.fn(),
 }));
 vi.mock("@/components/workspace/account-session", () => ({
-  useAccountSession: () => ({ session: fixture.session }),
+  useAccountSession: () => sessionStandIn({ session: fixture.session }),
   AccountStatus: () => <Link href="/sign-in">Sign in to view your account projects.</Link>,
 }));
 vi.mock("@/components/assets/use-asset-library", () => ({

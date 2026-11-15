@@ -16,8 +16,9 @@ export type HomeStartFormState = {
   /** A send is under way. The form also keeps a synchronous guard, which a second click in the same
    * turn reads before this value is rendered. */
   submitting: boolean;
-  /** A saved attached brief is being opened, for the account session named by `fence`. The typed-prompt
-   * path keeps its own copy in `home-start-opening.ts`; see the note there. */
+  /** A brief saved with files is being opened, for the account session named by `fence`. The form saves
+   * and opens that brief itself (`openSavedProject`), without `useAccountStrategyStart`, so the hook's own
+   * "opening" (`home-start-opening.ts`, for a typed prompt) never sees it. Why both stay: the note there. */
   opening: { fence: string; href: string } | null;
 };
 

@@ -24,7 +24,7 @@ async function setup(page: Page) {
       title: "A long project label with enough detail to demonstrate a two-line title and a stable fallback",
       scope: "complete_brand",
     },
-    { id: id(901), title: "Naming project fixture", scope: "naming_only" },
+    { id: id(901), title: "Naming project fixture", scope: "complete_brand" },
   ].map((row) => ({
     ...row,
     owner_id: workspace.ownerId,
@@ -158,7 +158,7 @@ for (const route of ["/brands", "/"])
     await expect(card.getByRole("img", { name: "Step 3 of 4: Identity" })).toBeVisible();
     await expect(fallback.getByRole("link")).toHaveAttribute(
       "href",
-      `/brands/account/${rows[1]!.id}?view=strategy#strategy-brief`,
+      `/brands/account/${rows[1]!.id}?view=strategy#journey-strategy`,
     );
     await open.focus();
     await page.keyboard.press("Tab");

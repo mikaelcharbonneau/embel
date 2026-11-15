@@ -9,7 +9,14 @@ import { MainNavContent, NavFrame, type NavItem } from "@/components/journey/flo
 import { ProjectBarContent, ProjectMenu } from "@/components/journey/project-capsule";
 import { ProjectHeaderContext, projectDocumentTitle, type ProjectHeader } from "@/components/journey/project-header";
 import { AccountSessionProvider, useAccountSession } from "./account-session";
-import { sessionMenuLine, sessionView } from "./session-view";
+import {
+  isSignOutUnconfirmed,
+  isSigningIn,
+  isSigningOut,
+  sessionMenuLine,
+  sessionView,
+  signOutLabel,
+} from "./session-view";
 import { AccountProfileProvider, useAccountProfile } from "./account-profile-provider";
 import { AccountAccessNotice, useSignOutFlow } from "./account-access";
 import { ActivityDialog } from "./generation-activity";
@@ -171,7 +178,10 @@ function WorkspaceAccount({ pathname, accountPage }: { pathname: string; account
 }
 
 function WorkspaceAccountMenu({ pathname }: { pathname: string }) {
-  const { session, refresh, activity, signingIn, signingOut, signOutError } = useAccountSession();
+  const { session, refresh, activity } = useAccountSession();
+  const signingIn = isSigningIn(activity);
+  const signingOut = isSigningOut(activity);
+  const signOutUnconfirmed = isSignOutUnconfirmed(activity);
   const notice = sessionView({ status: session.status, activity }).notice;
   const line = notice ? sessionMenuLine(notice) : null;
   const profile = useAccountProfile();
@@ -215,7 +225,7 @@ function WorkspaceAccountMenu({ pathname }: { pathname: string }) {
 
   const signOutRow: MenuItem = {
     kind: "action",
-    label: signingOut ? "Signing out…" : signOutError ? "Retry sign-out" : "Sign out",
+    label: signOutLabel(activity),
     icon: "log-out",
     disabled: signingOut,
     onSelect: () => void signOutFlow.start(),
@@ -234,8 +244,8 @@ function WorkspaceAccountMenu({ pathname }: { pathname: string }) {
         ...(checkFailed
           ? [{ kind: "action", label: "Check account", icon: "refresh-cw", onSelect: refresh } as const]
           : []),
-        ...(signingOut || signOutError ? [signOutRow] : []),
-        ...(checkFailed && !signOutError
+        ...(signingOut || signOutUnconfirmed ? [signOutRow] : []),
+        ...(checkFailed && !signOutUnconfirmed
           ? [
               {
                 kind: "link",

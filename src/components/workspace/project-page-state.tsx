@@ -5,6 +5,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { EmptyState, LoadingRegion, Skeleton } from "@/components/ui/feedback";
 import { useProjectHeader } from "@/components/journey/project-header";
 import { AccountStatus, useAccountSession } from "./account-session";
+import { isSigningIn, isSigningOut } from "./session-view";
 
 /**
  * What a brand page shows before its saved work is on screen: a neutral frame while the account or the project is
@@ -85,8 +86,8 @@ export function ProjectUnavailable({
 /** A brand page without a verified account: the neutral frame while the account is checked or a sign-in runs, the
  * account notice (sign in, or check again) once the check has answered. */
 export function ProjectAccountState({ retainedEdits = false }: { retainedEdits?: boolean }) {
-  const { session, signingIn, signingOut } = useAccountSession();
-  if (session.status === "checking" || signingIn || signingOut) return <ProjectOpening />;
+  const { session, activity } = useAccountSession();
+  if (session.status === "checking" || isSigningIn(activity) || isSigningOut(activity)) return <ProjectOpening />;
   return (
     <div className="page e-container e-page">
       <h1 className="e-sr">Your brand</h1>

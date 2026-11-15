@@ -45,8 +45,30 @@ at checkout; cost estimates for generations still appear nowhere.
 _November 14, 2026: checkout is refused with `billing_pending` (409, "A plan payment is still being
 confirmed. Check again in a few minutes.") while an earlier subscription is still `incomplete`; the
 Plans page shows it as a neutral notice with Check again. The webhook takes its sync time before it
-reads Stripe, so of two events handled at once the older read cannot overwrite the newer. Not covered:
-two Checkout sessions opened before either is paid._
+reads Stripe, so of two events handled at once the older read cannot overwrite the newer._
+
+**Only one Checkout page can be paid** (November 14, 2026; `expireOpenCheckouts` in
+`src/server/billing/sessions.ts`). Two pages opened before either was paid could both be completed and
+create two subscriptions. So before a new page is created, the account's Stripe customer is asked for
+its open Checkout sessions (`checkout.sessions.list` with `status: open`) and each one is expired
+(`checkout.sessions.expire`); an account with no Stripe customer yet has none. The earlier tab then
+shows Stripe's expired page. The rule when Stripe does not cooperate: a new page is opened only when no
+earlier one can still be paid.
+
+- The open sessions cannot be listed, or one can neither be expired nor read back as expired: 503
+  `integration_unavailable`, nothing is opened, and trying again is safe.
+- A session turns out to be paid already (finished a moment ago in the other tab): 409
+  `billing_pending`, the same notice as for a first payment still being confirmed.
+
+What is left: two requests arriving in the same instant can each find nothing open and each open a
+page. If two subscriptions ever become live for one account, credits are not added twice: the second
+subscription's first invoice starts a new paid period, which sets the balance back to the plan's
+allowance (150, not 150 + 150), and each later renewal does the same; both subscriptions are saved as
+Stripe reports them and the plan stays paid while either is live (database test "never adds a second
+allowance…"). The person is charged twice by Stripe, though, and nothing cancels the extra subscription
+automatically: cancel and refund it in the Stripe dashboard. Not tried against Stripe: that a Managed
+Payments Checkout session lists and expires like any other (the `stripe` 23.0.1 types have both calls
+and no exception for it).
 
 ## Credit rules (database, migration `20261111100000_stripe_billing`)
 

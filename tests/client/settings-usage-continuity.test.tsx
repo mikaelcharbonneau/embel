@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionStandIn } from "./session-stand-in";
 import { readFileSync } from "node:fs";
 import { act, createElement, Fragment, useLayoutEffect, type ComponentProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -17,7 +18,7 @@ const mock = vi.hoisted(() => ({
   expire: vi.fn(),
 }));
 vi.mock("@/components/workspace/account-session", () => ({
-  useAccountSession: () => ({ session: mock.session, isCurrent: mock.current, expire: mock.expire }),
+  useAccountSession: () => sessionStandIn({ session: mock.session, isCurrent: mock.current, expire: mock.expire }),
   AccountStatus: () => null,
 }));
 vi.mock("@/components/workspace/account-profile-editor", () => ({ AccountProfileEditor: () => null }));

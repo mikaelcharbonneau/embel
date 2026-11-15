@@ -248,3 +248,115 @@ export async function prepareSavedLogoConcepts(input: Input): Promise<LogoSavedI
     };
   }
 }
+
+/* ── When preparation starts (docs/state-machines.md, S6) ─────────────────────────────────────────────
+ * The Logo screen holds `LogoSavedInputState` (idle / reading / saving / prepared / blocked / checked /
+ * obsolete) and three effects may start work on it. Each effect asks `savedInputsStart` with its own
+ * trigger and does what the answer says, in a `setTimeout(0)`; the effects, their dependencies and that
+ * timing stay in the screen. Two triggers can say "start" in the same render (new likes and new saved
+ * heads): both timers are then set and the request itself admits one, because `prepareSavedInputs`
+ * refuses while a read is already out (`savedInputsRead`) or a choice is being saved (`selecting`).
+ * That refusal reads refs at the moment of the call, so it is not part of this decision. */
+
+/** Every status the screen's saved-inputs state can hold. */
+export type LogoSavedInputStatus = LogoSavedInputPreparation["status"] | "idle" | "reading" | "saving";
+
+const savedInputsBusy = (status: LogoSavedInputStatus) => status === "reading" || status === "saving";
+
+export type SavedInputsStartSituation =
+  /** The Inspiration likes signal was read. Before the first concepts, new likes refresh the brief. */
+  | {
+      trigger: "likes_changed";
+      /** The latest saved likes revision; null before Inspiration loads. */
+      likes: string | null;
+      /** The likes revision the screen last acted on or first saw. */
+      seenLikes: string | null;
+      conceptsExist: boolean;
+      conceptsLoading: boolean;
+      busy: boolean;
+      status: LogoSavedInputStatus;
+    }
+  /** The saved workspace heads were read. Each set of heads is prepared once. */
+  | {
+      trigger: "saved_heads";
+      /** The saved heads, as one string; null while nothing is saved. */
+      headsKey: string | null;
+      /** The heads last prepared, or last sent to be prepared. */
+      preparedKey: string | null;
+      /** The brief may be edited and nothing of it is unsaved, pending or in conflict. */
+      canPrepare: boolean;
+      conceptsExist: boolean;
+      conceptsLoading: boolean;
+      conceptsUnavailable: boolean;
+      status: LogoSavedInputStatus;
+    }
+  /** Concepts exist, so the brief is left alone: only compare it with the saved likes. */
+  | {
+      trigger: "likes_check";
+      /** The likes and heads to compare, as one string; null while there are no concepts or nothing saved. */
+      checkKey: string | null;
+      /** The key whose comparison has already answered. */
+      checkedKey: string | null;
+      busy: boolean;
+    };
+
+export type SavedInputsStartRefusal =
+  /** Inspiration has not loaded, or its likes are the ones already seen. */
+  | "likes_unchanged"
+  /** The first likes reading on this screen: it is remembered, and nothing starts for it. */
+  | "first_likes_reading"
+  /** Concepts exist: changing the brief would send the chosen logo back for review. */
+  | "concepts_exist"
+  | "concepts_loading"
+  | "concepts_unavailable"
+  /** A read or a save of the inputs is under way. */
+  | "busy"
+  /** The state is one that preparation must not replace (for example a blocker, for new heads). */
+  | "status_holds"
+  | "nothing_saved"
+  /** The brief has unsaved work, is being saved, is in conflict, or may not be edited now. */
+  | "cannot_prepare"
+  | "already_prepared"
+  /** No concepts yet, or nothing saved: there is nothing to compare. */
+  | "nothing_to_check"
+  | "already_checked";
+
+export type SavedInputsStartDecision =
+  /** "refresh": reload the workspace, then prepare. "prepare": prepare. "check": compare only, save nothing. */
+  { start: "refresh" | "prepare" | "check" } | { start: null; why: SavedInputsStartRefusal };
+
+const refuse = (why: SavedInputsStartRefusal): SavedInputsStartDecision => ({ start: null, why });
+
+/** Whether work on the saved inputs should start now, and why not otherwise. The order of the checks is
+ * the order each effect had them in. */
+export function savedInputsStart(situation: SavedInputsStartSituation): SavedInputsStartDecision {
+  switch (situation.trigger) {
+    case "likes_changed": {
+      const { likes, seenLikes, status } = situation;
+      if (likes === null || likes === seenLikes) return refuse("likes_unchanged");
+      if (seenLikes === null) return refuse("first_likes_reading");
+      if (situation.conceptsExist) return refuse("concepts_exist");
+      if (situation.conceptsLoading) return refuse("concepts_loading");
+      if (situation.busy) return refuse("busy");
+      if (status !== "idle" && status !== "prepared" && status !== "blocked") return refuse("status_holds");
+      return { start: "refresh" };
+    }
+    case "saved_heads": {
+      const { headsKey, status } = situation;
+      if (!headsKey) return refuse("nothing_saved");
+      if (!situation.canPrepare) return refuse("cannot_prepare");
+      if (situation.conceptsExist) return refuse("concepts_exist");
+      if (situation.conceptsLoading) return refuse("concepts_loading");
+      if (situation.conceptsUnavailable) return refuse("concepts_unavailable");
+      if (savedInputsBusy(status)) return refuse("busy");
+      if (status !== "idle" && status !== "prepared") return refuse("status_holds");
+      if (situation.preparedKey === headsKey) return refuse("already_prepared");
+      return { start: "prepare" };
+    }
+    case "likes_check":
+      if (!situation.checkKey) return refuse("nothing_to_check");
+      if (situation.checkedKey === situation.checkKey) return refuse("already_checked");
+      if (situation.busy) return refuse("busy");
+      return { start: "check" };
+  }
+}
