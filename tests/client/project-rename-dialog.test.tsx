@@ -159,9 +159,6 @@ describe("renaming a project from its card", () => {
     const dialog = host.querySelector("dialog")!;
     expect(dialog.open).toBe(true);
     expect(dialog.textContent).toContain("Rename project");
-    expect(dialog.textContent).toContain(
-      "This changes the name on your cards and project bar. Your brand name and brand kit stay the same.",
-    );
     expect(dialog.querySelector("label")?.textContent).toBe("Project name");
     expect(field().value).toBe("Persimmon");
     expect(document.activeElement).toBe(field());

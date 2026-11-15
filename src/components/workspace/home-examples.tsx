@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
-import { PLAN_MONTHLY_CREDITS } from "@/domain/billing";
 
 /** Three brands Embel really made (the showcase brands, owner-approved November 11 and 14). The pictures are the
  * top-left 720 × 540 of each chosen direction board (design-assets/manifest.md, IMG-007). */
@@ -23,17 +22,12 @@ const examples = [
 ] as const;
 
 /** The row of finished brands: proof of what Embel makes (D-017), and what a new account will get (D-060). */
-export function HomeExamples({ title, text }: { title: string; text: string }) {
+export function HomeExamples() {
   return (
     <section className="home-section" aria-labelledby="home-examples-title">
-      <div className="home-section__head">
-        <div className="e-stack e-stack--xs">
-          <h2 className="home-section__title" id="home-examples-title">
-            {title}
-          </h2>
-          <p className="e-muted text-small">{text}</p>
-        </div>
-      </div>
+      <h2 className="home-section__title" id="home-examples-title">
+        Made with Embel
+      </h2>
       <ul className="home-example-grid">
         {examples.map((example, index) => (
           <li key={example.file}>
@@ -69,18 +63,15 @@ export function HomeExamples({ title, text }: { title: string; text: string }) {
   );
 }
 
-/** One line under the ideas: what starting costs, in credits. */
+/** One line under the ideas: the way to Plans when signed out, or a new account's credits. */
 export function HomeCreditsLine({ credits }: { credits: number | "signed_out" }) {
   return (
     <p className="home-credits">
       {credits === "signed_out" ? (
-        <>
-          <span>Free to start with {PLAN_MONTHLY_CREDITS.free} credits.</span>
-          <Link className="e-link e-link--standalone" href="/plans">
-            See plans
-            <Icon name="arrow-right" size="sm" />
-          </Link>
-        </>
+        <Link className="e-link e-link--standalone" href="/plans">
+          See plans
+          <Icon name="arrow-right" size="sm" />
+        </Link>
       ) : (
         <span>You have {credits.toLocaleString("en-US")} credits to start.</span>
       )}

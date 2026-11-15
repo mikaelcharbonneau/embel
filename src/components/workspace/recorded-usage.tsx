@@ -23,22 +23,14 @@ const labels: Record<Entry["operation"], string> = {
 };
 const notRecorded = "Not recorded for this request.";
 
+/** Every row is a Strategy or Voice request; logo and image work is not recorded here, so the heading says so. */
+const TITLE = "Strategy and Voice requests";
+
 /** Input plus output when both were recorded; never an estimate. */
 function tokensUsed(tokens: Entry["tokens"]) {
   if (!tokens) return null;
   const sum = tokens.inputTokens + tokens.outputTokens;
   return tokens.totalTokens ?? (Number.isSafeInteger(sum) ? sum : null);
-}
-function usageSummary(usage: RecordedUsage) {
-  const count = usage.entries.length;
-  if (!count) return "No requests yet.";
-  const used = usage.entries
-    .map((entry) => tokensUsed(entry.tokens))
-    .filter((value): value is number => value !== null);
-  const total = used.reduce((sum, value) => sum + BigInt(value), 0n).toLocaleString("en-US");
-  const requests =
-    count === usage.limit ? `Last ${count} requests` : `${count} ${count === 1 ? "request" : "requests"}`;
-  return `${requests} · ${!used.length ? "tokens not recorded" : used.length < count ? `at least ${total} tokens used` : `${total} tokens used`}`;
 }
 
 export function RecordedUsageSection({ active = true }: { active?: boolean }) {
@@ -56,7 +48,6 @@ export function RecordedUsageSection({ active = true }: { active?: boolean }) {
                 Checking your account…
               </p>
               <PendingUsageFrame />
-              <CoverageNote />
             </>
           ) : (
             <p className="recorded-usage-message" role="status">
@@ -71,24 +62,15 @@ export function RecordedUsageSection({ active = true }: { active?: boolean }) {
   );
 }
 
-function UsageHeader({ summary, action }: { summary?: string; action?: ReactNode }) {
+function UsageHeader({ action }: { action?: ReactNode }) {
   return (
     <header className="recorded-usage-header">
-      <div className="e-stack e-stack--xs">
-        <h2 id="recorded-usage-title" className="e-section__title">
-          Recent requests
-        </h2>
-        <p className="recorded-usage-summary e-section__hint">
-          {summary ?? "Requests Embel completed for you, newest first."}
-        </p>
-      </div>
+      <h2 id="recorded-usage-title" className="e-section__title">
+        {TITLE}
+      </h2>
       {action}
     </header>
   );
-}
-
-function CoverageNote() {
-  return <p className="recorded-usage-note">Logo and image requests are not included.</p>;
 }
 
 function PendingUsageFrame() {
@@ -120,7 +102,7 @@ function UsageTable({ entries }: { entries: RecordedUsage["entries"] }) {
   return (
     <>
       <table className="e-table recorded-usage-table">
-        <caption className="sr-only">Recent requests</caption>
+        <caption className="sr-only">{TITLE}</caption>
         <thead>
           <tr>
             <th scope="col">Step</th>
@@ -238,7 +220,6 @@ function OwnedRecordedUsage({ account, active }: { account: VerifiedAccount; act
   return (
     <>
       <UsageHeader
-        summary={snapshot ? usageSummary(snapshot) : undefined}
         action={
           // aria-disabled, not disabled, while reading: the button keeps focus through a refresh.
           <button
@@ -267,14 +248,8 @@ function OwnedRecordedUsage({ account, active }: { account: VerifiedAccount; act
       {!snapshot && pending && <PendingUsageFrame />}
       {snapshot && snapshot.entries.length > 0 && <UsageTable entries={snapshot.entries} />}
       {snapshot && snapshot.entries.length === 0 && (
-        <EmptyState
-          icon="clock"
-          headingLevel={3}
-          title="No requests yet"
-          text="Your usage appears here after Embel completes a step for you."
-        />
+        <EmptyState icon="clock" headingLevel={3} title="No requests yet" />
       )}
-      <CoverageNote />
     </>
   );
 }

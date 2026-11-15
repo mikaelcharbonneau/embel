@@ -79,8 +79,9 @@ describe("Plans page", () => {
     expect(text).toContain("Credits left this month");
     expect(text).toContain("12");
     expect(text).toContain("New credits arrive on December 1.");
-    for (const expected of ["About 1 complete brand a month", "About 7 complete brands a month", "Recommended"])
-      expect(text).toContain(expected);
+    expect(text).toContain("Recommended");
+    // Each plan card holds its name, price, monthly credits and action only.
+    expect(text).not.toMatch(/complete brands? a month|For people working on several brands/);
     expect(buttons()).toEqual(["Upgrade to Pro", "Upgrade to Studio"]);
     expect(host.querySelector(".e-button--primary")?.textContent).toBe("Upgrade to Pro");
   });
@@ -278,15 +279,14 @@ describe("Plans page", () => {
     });
   });
 
-  it("asks a signed-out visitor to sign in and never calls the billing API", async () => {
+  it("offers a signed-out visitor account creation and never calls the billing API", async () => {
     fixture.session = { status: "signed_out", generation: 1 };
     await render();
-    expect(host.textContent).toContain("Already have an account? Sign in to see your plan and credits.");
+    // Sign in stays in the navigation; the page does not repeat it.
     expect([...host.querySelectorAll("a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
       ["Create free account", "/sign-up"],
       ["Create account to choose Pro", "/sign-up"],
       ["Create account to choose Studio", "/sign-up"],
-      ["Sign in", "/sign-in"],
     ]);
     expect(requests).toEqual([]);
   });

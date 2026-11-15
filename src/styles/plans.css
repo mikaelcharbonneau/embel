@@ -1,22 +1,14 @@
 /* Plans page (D-031, D-033, D-066, D-076). Built from the design system: Card, Badge, Button, Inline message,
- * Table and the plan parts (.e-plan, .e-stat, .e-list-check). Tokens only. */
+ * Table and the plan parts (.e-plan, .e-stat). Tokens only. */
 .plans-page {
   display: grid;
   gap: var(--space-8);
   align-content: start;
 }
-.plans-heading {
-  display: grid;
-  gap: var(--space-1);
-}
-.plans-heading h1 {
+.plans-title {
   margin: 0;
   font: var(--text-title-lg);
   letter-spacing: var(--tracking-title-lg);
-}
-.plans-heading p {
-  margin: 0;
-  color: var(--color-text-muted);
 }
 
 /* Your plan and credits: two labelled numbers, the renewal sentence on the right. */
@@ -64,7 +56,7 @@
   grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(var(--space-16) * 4.5)), 1fr));
 }
 .plans-card {
-  grid-template-rows: auto auto auto 1fr auto;
+  grid-template-rows: auto auto 1fr auto;
 }
 .plans-card > * {
   margin: 0;
@@ -81,16 +73,11 @@
   font: var(--text-title-sm);
   letter-spacing: var(--tracking-title-sm);
 }
-.plans-card__outcome {
-  font: var(--text-title-sm);
-  letter-spacing: var(--tracking-title-sm);
+.plans-card__credits {
+  align-self: start;
+  font: var(--text-small);
 }
-.plans-card__list {
-  align-content: start;
-  padding: 0;
-  list-style: none;
-}
-.plans-card__list strong {
+.plans-card__credits strong {
   font-weight: var(--font-weight-semibold);
 }
 .plans-card__actions {
@@ -99,11 +86,6 @@
 }
 .plans-card__note {
   align-self: end;
-  font: var(--text-small);
-}
-
-.plans-sign-in {
-  margin: 0;
   font: var(--text-small);
 }
 
@@ -139,15 +121,9 @@
   border-radius: var(--radius-panel);
   box-shadow: var(--shadow-raised);
 }
-.out-of-credits-copy strong {
+.out-of-credits-title {
   font-size: var(--font-size-3);
   font-weight: 500;
-}
-.out-of-credits-copy p {
-  margin: var(--space-1) 0 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-2);
-  line-height: 18px;
 }
 .out-of-credits-actions {
   display: flex;

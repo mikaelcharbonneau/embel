@@ -15,15 +15,15 @@ import type { LifecycleProject } from "./project-deletion-client";
 import { ProjectDeletionStatus } from "./project-deletion-status";
 import { ProjectCard, ProjectCardSkeletons } from "./project-card";
 
-/** Below the prompt. Signed out: the free start and three brands Embel made. Signed in: recent projects, or for an
- * account with none yet, its credits and what it will get. While the account is checked, a neutral frame. */
+/** Below the prompt. Signed out: the way to Plans and three brands Embel made. Signed in: recent projects, or for an
+ * account with none yet, its credits and the same brands. While the account is checked, a neutral frame. */
 export function HomeRecentBrands() {
   const { session } = useAccountSession();
   if (session.status === "signed_out")
     return (
       <>
         <HomeCreditsLine credits="signed_out" />
-        <HomeExamples title="Made with Embel" text="Each brand started as a short description of an idea." />
+        <HomeExamples />
       </>
     );
   if (session.status !== "ready") return session.status === "checking" ? <HomeRecentSkeleton /> : null;
@@ -49,10 +49,7 @@ function NewAccountHome() {
   return (
     <>
       {billing.status === "ready" && <HomeCreditsLine credits={creditsLeft(billing.summary)} />}
-      <HomeExamples
-        title="What you will get"
-        text="A logo, colors, type and example uses, built from your idea. These brands were made with Embel."
-      />
+      <HomeExamples />
     </>
   );
 }

@@ -151,8 +151,8 @@ export function ProjectCardActions({
           }
           description={
             action === "delete"
-              ? "It moves to Deleted projects with its files and history. You can restore it any time. If Embel is still working on it, that work is asked to stop; work already started may still finish and use credits."
-              : "This returns the project to Projects. Restoring won’t restart cancelled AI work."
+              ? "You can restore it from Deleted projects. Work already started may still finish and use credits."
+              : "Restoring won’t restart cancelled AI work."
           }
           busy={busy}
           onClose={closeDialog}

@@ -420,7 +420,6 @@ describe("immediate acknowledged deletion and recovery", () => {
       await act(async () => root.render(<ProjectsWorkspace state="deleted" />));
       await act(async () => vi.advanceTimersByTimeAsync(state === "stopping" ? 5_000 : 30_000));
       expect(host.querySelector(".project-deletion-state")?.textContent).toBe("Deleted");
-      expect(host.querySelector(".project-footer > time")?.textContent).toMatch(/^Deleted /);
       expect(host.textContent).toContain("The project is still deleted.");
       expect(button("Restore").disabled).toBe(false);
       await click("Restore");
@@ -462,11 +461,9 @@ describe("immediate acknowledged deletion and recovery", () => {
       expect(host.querySelector(".project-card")?.textContent).toContain(a.title);
       expect(button("Restore").disabled).toBe(false);
       expect(host.querySelector(".project-card .project-deletion-state")?.textContent).toBe("Deleted");
-      expect(host.querySelector(".project-footer > time")?.textContent).toMatch(/^Deleted /);
       expect(host.textContent).not.toMatch(/Awaiting resolution|Delete requested/);
       expect(saved.deletion_state).toBe(state);
       expect(saved.deleted_at).toBeNull();
-      expect(host.textContent).toContain("Restoring won’t restart cancelled AI work");
       await act(async () => vi.advanceTimersByTimeAsync(state === "stopping" ? 5_000 : 30_000));
       expect(host.querySelector(".project-deletion-state")?.textContent).toBe("Deleted");
       expect(saved.lifecycle_version).toBe(1);

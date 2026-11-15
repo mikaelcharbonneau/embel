@@ -6,7 +6,7 @@ import {
   type VoiceAvailability,
   type VoiceErrorCode,
 } from "./voice-contract";
-const DISCLOSURE = "Voice is transcribed on this device. Review the text before adding it to your prompt.";
+const DISCLOSURE = "Voice is transcribed on this device.";
 function deadline<T>(operation: Promise<T>, signal: AbortSignal, ms: number): Promise<T> {
   return new Promise((resolve, reject) => {
     if (signal.aborted) {

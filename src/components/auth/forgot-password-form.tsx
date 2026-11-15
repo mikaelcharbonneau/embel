@@ -55,16 +55,7 @@ export function ForgotPasswordForm({ configured, overlay = false }: { configured
   }
 
   return (
-    <AuthCard
-      overlay={overlay}
-      titleId={`${idPrefix}-title`}
-      title={sent ? "Check your email" : "Reset your password"}
-      intro={
-        sent
-          ? "Use the link we sent to choose a new password."
-          : "Enter your email and we’ll send you a link to choose a new password."
-      }
-    >
+    <AuthCard overlay={overlay} titleId={`${idPrefix}-title`} title={sent ? "Check your email" : "Reset your password"}>
       {!configured && <InlineMessage>Password reset is unavailable right now. Please try again shortly.</InlineMessage>}
       {sent ? (
         <>
@@ -120,7 +111,6 @@ export function ForgotPasswordForm({ configured, overlay = false }: { configured
         </form>
       )}
       <p className="auth-card__switch">
-        Remembered it?{" "}
         <Link className="e-link" href="/sign-in" replace={overlay}>
           Sign in
         </Link>

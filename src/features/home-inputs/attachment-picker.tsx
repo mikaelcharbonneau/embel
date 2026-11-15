@@ -1,5 +1,4 @@
 "use client";
-import { ContextDetails } from "@/components/ui/context-details";
 import { useId, useState } from "react";
 import type { AttachmentPolicy, DraftAttachment } from "@/domain/attachments";
 import { validateAttachmentSelection, type HomeAttachmentAvailability } from "./attachment-draft";
@@ -63,25 +62,9 @@ export function AttachmentPicker({ files, policy, availability, busy, onAdd, onR
       />
       {!available && (
         <p className="field-hint" role="status">
-          File attachments are currently unavailable. You can keep writing your prompt.
+          {availability.status === "unavailable" ? availability.reason : "File attachments are unavailable."}
         </p>
       )}
-      <ContextDetails
-        className="home-attachment-details"
-        title={<>{available ? "How files are used" : "Availability details"}</>}
-      >
-        {!available && (
-          <p className="field-hint">
-            {availability.status === "unavailable"
-              ? availability.reason
-              : "Verified attachment storage is unavailable."}
-          </p>
-        )}
-        <p className="field-hint">
-          Files stay in this tab until saved to your account. They are retained as input material; no AI reading or
-          upload to a provider is implied.
-        </p>
-      </ContextDetails>
       {!!files.length && (
         <ul>
           {files.map((file) => (

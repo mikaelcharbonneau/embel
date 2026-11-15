@@ -8,18 +8,10 @@
 }
 .recorded-usage-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-4) var(--space-6);
   flex-wrap: wrap;
-}
-.recorded-usage-header > div {
-  flex: 1 1 280px;
-  min-width: 0;
-}
-.recorded-usage-summary {
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
 }
 .recorded-usage-header .recorded-usage-refresh {
   flex-shrink: 0;
@@ -87,7 +79,4 @@
 }
 .recorded-usage .recorded-usage-note {
   font: var(--text-small);
-}
-.recorded-usage .recorded-usage-note + .recorded-usage-note {
-  margin-top: calc(var(--space-1) - var(--space-6));
 }

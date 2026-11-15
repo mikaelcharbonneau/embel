@@ -84,18 +84,7 @@ export function ResetPasswordForm({ configured }: { configured: boolean }) {
 
   const title = saved ? "Your password is updated" : expired ? "This link has expired" : "Choose a new password";
   return (
-    <AuthCard
-      overlay={false}
-      titleId="auth-page-title"
-      title={title}
-      intro={
-        saved
-          ? "You’re signed in. Use your new password next time you sign in."
-          : expired
-            ? "Reset links work once and only for a short time."
-            : "You’ll stay signed in on this device."
-      }
-    >
+    <AuthCard overlay={false} titleId="auth-page-title" title={title}>
       {!configured && (
         <InlineMessage>Password changes are unavailable right now. Please try again shortly.</InlineMessage>
       )}

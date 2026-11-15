@@ -24,10 +24,7 @@ export default function RouteError({ retry }: { error: unknown; retry: () => voi
         <h1 ref={heading} tabIndex={-1} id="route-error-title" className="e-empty__title">
           This page couldn’t load
         </h1>
-        <p className="e-empty__text">
-          Try again, or return to Home if the problem continues. Recent changes may not have saved. Try again before
-          leaving or reloading the page.
-        </p>
+        <p className="e-empty__text">Recent changes may not have saved.</p>
         <div className="e-empty__action e-cluster">
           <button type="button" className={buttonClass({ variant: "primary" })} onClick={() => retry()}>
             Try again
