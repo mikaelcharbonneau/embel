@@ -59,11 +59,6 @@ export function CompetitorWidgetControls({
             placeholder="https://"
           />
         </div>
-        <p className="e-section__hint">
-          {canGenerate
-            ? "Embel looks it up like the other competitors: its website, what it offers and why it competes."
-            : "Research isn’t available right now, so it’s added as you enter it."}
-        </p>
         <div className="e-form-actions">
           <Button variant="quiet" onClick={() => setAdding(false)}>
             Cancel

@@ -52,10 +52,6 @@
   font: var(--text-small);
   white-space: nowrap;
 }
-.note {
-  color: var(--color-text-muted);
-  font: var(--text-small);
-}
 .skeletonStatus {
   flex: none;
   width: var(--space-12);

@@ -722,10 +722,7 @@ export function ProjectEditor({ projectId }: { projectId: string }) {
   return (
     <div className="e-container e-page e-stack e-stack--xl recover-page">
       <header className="e-page-header">
-        <div className="e-stack e-stack--xs">
-          <h1 className="text-title-lg">Recover an unsaved project</h1>
-          <p className="e-muted">Work kept on this device can be saved to your account.</p>
-        </div>
+        <h1 className="text-title-lg">Recover an unsaved project</h1>
       </header>
       <UnsavedProjectRecovery draftId={projectId} />
     </div>
@@ -1310,11 +1307,9 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
               disabled={storage.promptPending}
               hint={
                 storage.promptHint ??
-                (account
-                  ? "Project context"
-                  : storage.saveLabel === "This tab only"
-                    ? "This tab only · browser storage unavailable"
-                    : "Saved in this browser · Shift + Enter for a new line")
+                (!account && storage.saveLabel === "This tab only"
+                  ? "This tab only · browser storage unavailable"
+                  : null)
               }
             />
           </div>

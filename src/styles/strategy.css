@@ -34,12 +34,6 @@
   font-size: 17px;
   margin-top: var(--space-1);
 }
-.strategy-empty p {
-  max-width: 370px;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-2);
-  line-height: 1.7;
-}
 .strategy-empty .button {
   margin-top: var(--space-1);
 }
@@ -220,7 +214,7 @@
 }
 .positioning-input-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--space-4);
   margin-top: var(--space-3);
   color: var(--color-text-muted);

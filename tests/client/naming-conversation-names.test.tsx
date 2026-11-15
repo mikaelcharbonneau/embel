@@ -455,7 +455,7 @@ it("shows fewer than 100 finished names without a warning", async () => {
 it("explains a failed run and Try again starts the same kind with a new request", async () => {
   server = { ...server, run: run({ state: "failed", errorCode: "send_interrupted", finishedAt: when }) };
   await render();
-  expect(chat()).toContain("Names appear as they’re ready.");
+  expect(chat()).toContain("No names yet.");
   expect(chat()).toContain("Name generation was interrupted before it started. Try again.");
   await click("Try again");
   expect(posts("/feed/ensure").map((row) => row.body)).toMatchObject([{ kind: "initial" }]);
@@ -778,7 +778,7 @@ describe("domain checks on the Naming results", () => {
     });
     expect(button("Details for Synthetic 1")).toBeDefined();
     expect(names()).toContain("Synthetic 40");
-    expect(names()).toContain("40 of 100 names");
+    expect(names()).toContain("Show 40 more names");
     expect(checks()).toHaveLength(0);
     expect(names()).not.toMatch(/\.com|domain/i);
   });

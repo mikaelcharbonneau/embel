@@ -141,21 +141,17 @@ describe("guided interview choice controls", () => {
     expect(host.textContent).not.toContain(competitor.recommendationReason);
     expect(host.querySelector<HTMLInputElement>("input")?.checked).toBe(false);
     expect(continueButton()).toBeUndefined();
-    expect(host.textContent).toContain("0 selected. Choose at least one competitor to continue.");
+    // Send in the reply box carries the instruction: no counter or how-to line under the cards.
+    expect(host.textContent).not.toMatch(/selected|press Send/);
     expect(onSelectionChange).not.toHaveBeenCalled();
     expect(host.querySelector("textarea")).toBeNull();
   });
 
-  it("leaves out the badge when every card is recommended, and a reason that repeats the description", async () => {
-    const repeated: GuidedOption = {
-      ...competitor,
-      payload: { ...competitor.payload, relevance: "Synthetic competitor description for this local test." },
-    };
-    await render(choices(repeated));
-    expect(host.querySelector(".guided-option__recommended")).toBeNull();
-    expect(host.textContent).not.toContain("Why it matters");
+  it("leaves out the badge when every card is recommended, and keeps competitor cards to their description", async () => {
     await render(choices(competitor));
-    expect(host.textContent).toContain("Why it matters");
+    expect(host.querySelector(".guided-option__recommended")).toBeNull();
+    expect(host.textContent).toContain(competitor.description);
+    expect(host.textContent).not.toContain(competitor.payload.relevance);
   });
 
   it("keeps multi-select choices editable; choosing never confirms them", async () => {
@@ -172,11 +168,10 @@ describe("guided interview choice controls", () => {
     await act(async () => inputs[0]!.click());
     await act(async () => inputs[1]!.click());
     expect(onSelectionChange).toHaveBeenLastCalledWith([audience.id, second.id]);
-    expect(host.textContent).toContain("2 selected");
+    expect(inputs[0]!.checked && inputs[1]!.checked).toBe(true);
     await act(async () => inputs[0]!.click());
     expect(onSelectionChange).toHaveBeenLastCalledWith([second.id]);
     expect(continueButton()).toBeUndefined();
-    expect(host.textContent).toContain("Choose one or more, then press Send.");
   });
 
   it("uses one native radio group for personality and replaces the earlier selection", async () => {
@@ -200,15 +195,15 @@ describe("guided interview choice controls", () => {
     expect(host.querySelector(".e-choice__mark")?.textContent).toBe("");
   });
 
-  it("shows audience needs and fit, then personality expression and tone examples", async () => {
+  it("shows audience needs as chips, then personality traits and a tone example, without section labels", async () => {
     await render(choices(audience));
     expect(host.textContent).toContain("Affordable essentials");
     expect(host.textContent).toContain("Pieces that last");
-    expect(host.textContent).toContain(audience.payload.reason);
+    expect(host.textContent).not.toContain(audience.payload.reason);
     await render(choices(personality));
-    expect(host.textContent).toContain(personality.payload.expression);
     expect(host.textContent).toContain(personality.payload.toneExample);
     expect(host.textContent).toContain("Thoughtful");
+    expect(host.textContent).not.toMatch(/Traits|Example tone|Why we recommend it/);
   });
 
   it("opens evidence separately from the competitor selection", async () => {
@@ -289,10 +284,10 @@ describe("guided interview choice controls", () => {
   it("does not count stale selection IDs or fabricate empty researched options", async () => {
     expect(selectedOptions(choices(competitor), [], ["an-option-from-another-turn"])).toEqual([]);
     await render(choices(competitor), { selectedIds: ["an-option-from-another-turn"] });
-    expect(host.textContent).toContain("0 selected.");
+    expect(host.querySelector<HTMLInputElement>("input")?.checked).toBe(false);
     await render({ ...choices(competitor), options: [] });
     expect(host.querySelectorAll("input").length).toBe(0);
-    expect(host.textContent).toContain("No options are available");
+    expect(host.textContent).toContain("No competitors yet");
     expect(host.textContent).not.toContain("Fixture Studio");
   });
 });
@@ -309,7 +304,6 @@ describe("waiting and failed steps", () => {
   it("shows a quiet empty state with no button after a response did not finish", async () => {
     await act(async () => root.render(<GuidedChoicesEmpty stage="competitors" title="Competitors" research />));
     expect(host.textContent).toContain("No competitors yet");
-    expect(host.textContent).toContain("They appear here when the research finishes.");
     expect(host.querySelector("button")).toBeNull();
   });
 });

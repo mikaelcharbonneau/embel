@@ -122,20 +122,12 @@ function OwnedActivityDialog({ account, onClose }: { account: VerifiedAccount; o
         </InlineMessage>
       )}
       {!snapshot && !error && <ActivitySkeleton />}
-      {snapshot && !groups.length && (
-        <EmptyState
-          icon="clock"
-          headingLevel={3}
-          title="Nothing has run yet"
-          text="When Embel is making names, logos or images for you, you can follow them here."
-        />
-      )}
+      {snapshot && !groups.length && <EmptyState icon="clock" headingLevel={3} title="Nothing has run yet" />}
       {snapshot && groups.length > 0 && (
         <>
           <p>{jobActivitySummary(groups)}</p>
           <ActivitySection title="Running and failed" groups={attention} now={snapshot.readAt} onClose={onClose} />
           <ActivitySection title="Done" groups={finished} now={snapshot.readAt} onClose={onClose} />
-          <p className={styles.note}>This is your latest activity. Open a project to see everything made for it.</p>
         </>
       )}
     </Dialog>

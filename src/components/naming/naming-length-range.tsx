@@ -144,9 +144,8 @@ export function NamingLengthRange({
         <span>20</span>
         <span>160</span>
       </div>
-      <p id={help} className={styles.hint}>
-        Leave either end flexible, or set a limit. Count combined letters and emoji as whole characters.
-        <span className="sr-only"> Use arrow keys to adjust a limit or Delete to clear it.</span>
+      <p id={help} className="sr-only">
+        Use arrow keys to adjust a limit or Delete to clear it.
       </p>
     </fieldset>
   );

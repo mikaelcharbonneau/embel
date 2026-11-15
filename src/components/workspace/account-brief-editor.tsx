@@ -113,9 +113,6 @@ export function AccountBriefEditor({
           </button>
         </header>
         <div className={styles.content}>
-          <p>
-            Changes save to this project. Earlier conversation messages stay unchanged. This does not start AI research.
-          </p>
           <p role="status">{saveLabel}</p>
           <label className="field-label">
             Project label

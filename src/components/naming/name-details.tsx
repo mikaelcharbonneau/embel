@@ -62,14 +62,6 @@ export function NameDetails({
   const [tab, setTab] = useState<Tab>("Domains");
   const live = useLiveChecks(account);
   const domains = useDomainSearch(name, account, live.adapters?.domains ?? null);
-  const badge =
-    candidate.origin.kind === "local_import"
-      ? "Your name"
-      : earlierContext
-        ? "Earlier strategy"
-        : candidate.origin.kind === "brainstorm"
-          ? "Unchecked brainstorm"
-          : null;
   const keys = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     const delta = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
     if (!delta && event.key !== "Home" && event.key !== "End") return;
@@ -88,7 +80,7 @@ export function NameDetails({
           size="xl"
           modal={!overlay}
           title={name}
-          aside={badge ? <span className="e-badge">{badge}</span> : undefined}
+          aside={earlierContext ? <span className="e-badge">Earlier strategy</span> : undefined}
           description={candidate.rationale || undefined}
           closeLabel="Close name details"
           className={styles.details}
