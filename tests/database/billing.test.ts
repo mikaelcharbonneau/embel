@@ -284,6 +284,38 @@ describe("paid plans", () => {
     });
   });
 
+  it("counts the account's live subscriptions", async () => {
+    const count = (owner: string) => service<number>("select public.billing_live_subscription_count($1) as r", [owner]);
+    await link(OWNER_A, CUSTOMER_A);
+    expect(await count(OWNER_A)).toBe(0);
+    await applySubscription(OWNER_A);
+    expect(await count(OWNER_A)).toBe(1);
+    await applySubscription(OWNER_A, { subscription: "sub_TestOwnerASecond" });
+    expect(await count(OWNER_A)).toBe(2);
+    await applySubscription(OWNER_A, { status: "canceled" });
+    expect(await count(OWNER_A)).toBe(1);
+    expect(await count(OWNER_B)).toBe(0);
+  });
+
+  it("gives the Checkout turn to one request per account at a time", async () => {
+    const claim = (owner: string) => service<boolean>("select public.billing_claim_checkout($1) as r", [owner]);
+    const release = (owner: string) => service("select public.billing_release_checkout($1) as r", [owner]);
+    // No Stripe customer yet: the server links one before it asks.
+    expect((await failure(() => claim(OWNER_A))).message).toContain("not_found");
+    await link(OWNER_A, CUSTOMER_A);
+    expect(await claim(OWNER_A)).toBe(true);
+    expect(await claim(OWNER_A)).toBe(false);
+    await release(OWNER_A);
+    expect(await claim(OWNER_A)).toBe(true);
+    // A turn that was never given back ends by itself after 30 seconds.
+    await db.query(
+      "update fluid_private.billing_customers set checkout_claimed_at = clock_timestamp() - interval '31 seconds' where owner_id = $1",
+      [OWNER_A],
+    );
+    expect(await claim(OWNER_A)).toBe(true);
+    expect(await claim(OWNER_A)).toBe(false);
+  });
+
   it("records each Stripe event once", async () => {
     expect(await service("select public.billing_event_seen('evt_One') as r")).toBe(false);
     expect(await service("select public.billing_record_event('evt_One', 'invoice.paid') as r")).toBe(true);
@@ -317,6 +349,9 @@ describe("privileges", () => {
       [OWNER_A],
     ],
     ["public.billing_apply_invoice($1, 'in_X', 'sub_X', 'pro', now(), now() + interval '1 day')", [OWNER_A]],
+    ["public.billing_claim_checkout($1)", [OWNER_A]],
+    ["public.billing_release_checkout($1)", [OWNER_A]],
+    ["public.billing_live_subscription_count($1)", [OWNER_A]],
   ] as const;
   for (const role of ["authenticated", "anon"] as const) {
     for (const [call, params] of serverOnly) {

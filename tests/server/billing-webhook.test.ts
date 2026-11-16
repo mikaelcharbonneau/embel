@@ -62,6 +62,9 @@ function fakeStore(): { [K in keyof BillingStore]: ReturnType<typeof vi.fn> } {
       live: ["active", "trialing", "past_due"].includes(state.status),
     })),
     applyInvoice: vi.fn(async () => undefined),
+    claimCheckout: vi.fn(),
+    releaseCheckout: vi.fn(),
+    liveSubscriptionCount: vi.fn(async () => 1),
   };
 }
 
@@ -134,6 +137,26 @@ describe("the time of a Stripe read", () => {
       () => new Date(clock),
     );
     expect(store.applySubscription.mock.calls[0]![0]).toMatchObject({ syncedAt: new Date(1_000) });
+  });
+});
+
+describe("two live subscriptions on one account", () => {
+  const sync = () => syncSubscription(stripe as unknown as StripeClient, store as unknown as BillingStore, "sub_A");
+  it("logs it, saves what Stripe reports all the same, and stays quiet for one", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      expect(await sync()).toMatchObject({ live: true });
+      expect(logged).not.toHaveBeenCalled();
+      store.liveSubscriptionCount.mockResolvedValueOnce(2);
+      expect(await sync()).toMatchObject({ live: true });
+      expect(store.applySubscription).toHaveBeenCalledTimes(2);
+      expect(JSON.stringify(logged.mock.calls)).toContain("billing_second_live_subscription");
+      // A count that cannot be read never stops the event.
+      store.liveSubscriptionCount.mockRejectedValueOnce(new Error("database"));
+      expect(await sync()).toMatchObject({ live: true });
+    } finally {
+      logged.mockRestore();
+    }
   });
 });
 

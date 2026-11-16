@@ -5,9 +5,14 @@ import { announceOutOfCredits } from "@/components/billing/out-of-credits";
 /** The server's `error.code` values the browser acts on. The two 503 codes tell a switched-off step
  * (`generation_unavailable`: nothing was admitted) from an admitted run whose workflow did not start. */
 export type AccountErrorCode =
-  "naming_history_capacity" | "project_busy" | "billing_pending" | "generation_unavailable" | "start_unconfirmed";
+  | "naming_history_capacity"
+  | "project_busy"
+  | "billing_pending"
+  | "checkout_opening"
+  | "generation_unavailable"
+  | "start_unconfirmed";
 const ACCOUNT_ERROR_CODES: Record<number, readonly AccountErrorCode[]> = {
-  409: ["naming_history_capacity", "project_busy", "billing_pending"],
+  409: ["naming_history_capacity", "project_busy", "billing_pending", "checkout_opening"],
   503: ["generation_unavailable", "start_unconfirmed"],
 };
 

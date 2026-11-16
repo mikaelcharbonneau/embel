@@ -90,7 +90,25 @@ export async function syncSubscription(
     cancelAtPeriodEnd,
     syncedAt,
   });
+  if (live) await flagSecondLiveSubscription(store, ownerId, subscription.id);
   return { ownerId, subscription, planId, live };
+}
+
+/** One account, one paid plan. Two live subscriptions mean the person pays twice (credits are
+ * not doubled): this logs it so it shows in the error report. Nothing is cancelled or refunded
+ * here, and a failed count never stops the event from being applied. */
+async function flagSecondLiveSubscription(store: BillingStore, ownerId: string, subscriptionId: string) {
+  try {
+    const count = await store.liveSubscriptionCount(ownerId);
+    if (count > 1) {
+      logServerError("billing_second_live_subscription", new Error("second_live_subscription"), {
+        subscription: subscriptionId,
+        live: String(count),
+      });
+    }
+  } catch (error) {
+    logServerError("billing_live_subscription_count_failed", error, { subscription: subscriptionId });
+  }
 }
 
 async function cancelOrphan(stripe: StripeClient, subscription: Stripe.Subscription, customerId: string) {

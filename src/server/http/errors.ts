@@ -35,6 +35,7 @@ export type ApiErrorCode =
   | "export_rate_limited"
   | "billing_active"
   | "billing_pending"
+  | "checkout_opening"
   | "invalid_signature";
 
 const failures = {
@@ -80,6 +81,7 @@ const failures = {
   export_rate_limited: [429, "You can download your data 3 times a day. Try again tomorrow."],
   billing_active: [409, "You already have a paid plan. Use Manage plan to change or cancel it."],
   billing_pending: [409, "A plan payment is still being confirmed. Check again in a few minutes."],
+  checkout_opening: [409, "Checkout is already opening for this account. Try again in a moment."],
   invalid_signature: [400, "The request signature could not be verified."],
 } as const;
 

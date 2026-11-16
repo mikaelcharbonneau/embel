@@ -513,10 +513,6 @@ test("auth fixture: sign-out confirms unsaved edits, fences pending requests and
 });
 
 test("auth fixture: the sign-out confirmation opens with focus on Keep editing", async ({ page }) => {
-  test.fixme(
-    true,
-    "possible defect: focus lands on the dialog's Close button, not on Keep editing (its autoFocus is overridden by showModal)",
-  );
   const fixture = await fixtures(page);
   await openAccount(page);
   await rename(page, "Unsaved auth focus fixture");
