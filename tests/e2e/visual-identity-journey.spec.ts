@@ -21,46 +21,43 @@ async function downloadedBytes(download: Download): Promise<Buffer> {
   expect(path).not.toBeNull();
   return readFile(path!);
 }
-async function checkProgress(page: Page) {
-  const button = page.getByRole("button", { name: "Check progress", exact: true });
-  await expect(button).toBeEnabled();
-  await button.click();
-}
+/** The Brand guidelines preview is a frame that never runs scripts. Playwright's own page instrumentation is
+ * refused there too, and the browser reports each refusal as a console error; nothing of the app's is involved. */
+const appConsoleErrors = (health: { consoleErrors: string[] }) =>
+  health.consoleErrors.filter((text) => !text.startsWith("Blocked script execution in 'about:srcdoc'"));
 async function fits(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 }
+// Logo and Creative direction are steps of the brand conversation: the work area shows the step, the chat tells
+// what is happening and Send in the reply box moves on.
+const directionsInConversation = `/brands/account/${projectId}?view=strategy#journey-directions`;
+const step = (page: Page) => page.getByRole("region", { name: "Creative direction", exact: true });
+const replyBox = (page: Page) => page.getByRole("form", { name: "Reply", exact: true });
+/** A finished Identity step, folded into the chat as one answer that opens to offer "Change …". */
+const identityAnswer = (page: Page, question: string) =>
+  page
+    .locator('[data-journey-section="identity"] details')
+    .filter({ has: page.locator(".e-answer__question", { hasText: new RegExp(`^${question}$`, "u") }) });
+const direction = (page: Page, number: number) =>
+  step(page).getByRole("article", { name: new RegExp(`^Direction ${number}: `, "u") });
+const boards = (page: Page) => step(page).getByRole("img", { name: "Saved Identity board for Cedar", exact: true });
+const choose = (page: Page, number: number) =>
+  direction(page, number).getByRole("button", { name: /^(Choose|Chosen)$/u });
 async function loadBoards(page: Page, count: number) {
-  const cards = page.locator('[aria-label="Direction comparison"] article');
-  for (let index = 0; index < count; index++) {
-    await cards.nth(index).scrollIntoViewIfNeeded();
+  for (let number = 1; number <= count; number++) {
+    await direction(page, number).scrollIntoViewIfNeeded();
     await expect(
-      cards.nth(index).getByRole("img", { name: "Saved Identity board for Cedar", exact: true }),
+      direction(page, number).getByRole("img", { name: "Saved Identity board for Cedar", exact: true }),
     ).toBeVisible();
   }
 }
-
-test("a project with saved Logo work still allows deliberate Strategy review and return", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: Logo and Creative direction are steps inside the brand conversation now (the old /logo and /logo/directions pages redirect to it) and rounds run on the generation engine; this drives the old step pages and batch routes",
-  );
-  const f = createVisualJourneyFixture({ standalone: true }),
-    health = await f.setup(page);
-  f.project.scope = "complete_brand";
-  await page.goto(conceptsUrl);
-  // The project bar's Strategy step replaces the old Review Strategy link.
-  await page
-    .getByRole("navigation", { name: "Brand journey" })
-    .getByRole("link", { name: /^Strategy/ })
-    .click();
-  await expect(page).toHaveURL(`/brands/account/${projectId}?view=strategy`);
-  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Edit brief", exact: true }).click();
-  await page.getByRole("dialog").getByRole("link", { name: "Return to saved work", exact: true }).click();
-  await expect(page).toHaveURL(directionsUrl);
-  expect(f.mutations).toHaveLength(0);
-  expect(health.pageErrors).toEqual([]);
-});
+/** Opens Creative direction and starts the one round with a deliberate click. */
+async function startDirections(page: Page, f: ReturnType<typeof createVisualJourneyFixture>) {
+  await page.goto(directionsUrl);
+  await expect(page).toHaveURL(directionsInConversation);
+  await step(page).getByRole("button", { name: "Create three directions", exact: true }).click();
+  await expect.poll(() => f.admissions.length).toBe(1);
+}
 
 test("a complete brand without saved Logo stages keeps the Strategy entry", async ({ page }) => {
   const f = createVisualJourneyFixture({ standalone: true }),
@@ -77,24 +74,20 @@ test("a complete brand without saved Logo stages keeps the Strategy entry", asyn
   expect(health.pageErrors).toEqual([]);
 });
 
-test("standalone logo brief opens the new direction flow through the old board URL without starting generation", async ({
+test("the old board address opens Creative direction in the conversation without starting generation", async ({
   page,
 }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: Logo and Creative direction are steps inside the brand conversation now (the old /logo and /logo/directions pages redirect to it) and rounds run on the generation engine; this drives the old step pages and batch routes",
-  );
-  const f = createVisualJourneyFixture({ standalone: true }),
+  const f = createVisualJourneyFixture({ voiceFinished: true }),
     health = await f.setup(page);
-  expect(f.input.context.description).toBe("");
-  expect(f.input.context.intake.suppliedName).toBe("");
-  expect(f.input.version).toBe(2);
-  expect(f.input.basis.name).toBe("Cedar");
   await page.goto(`/brands/account/${projectId}/brand-board`);
-  await expect(page).toHaveURL(directionsUrl);
-  await expect(page.getByRole("heading", { name: "Creative direction", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Create three directions", exact: true })).toBeEnabled();
-  await expect(page.getByRole("img", { name: "Chosen logo concept", exact: true })).toBeVisible();
+  await expect(page).toHaveURL(directionsInConversation);
+  await expect(step(page).getByRole("heading", { name: "Creative direction", exact: true })).toBeAttached();
+  await expect(step(page).getByRole("button", { name: "Create three directions", exact: true })).toBeEnabled();
+  // The chosen logo is the folded Logo answer in the chat, with its picture.
+  await expect(
+    identityAnswer(page, "Logo").getByRole("img", { name: "Chosen logo concept", exact: true }),
+  ).toBeVisible();
+  await expect(replyBox(page).getByRole("button", { name: "Continue to Assets", exact: true })).toBeDisabled();
   expect(f.admissions).toHaveLength(0);
   expect(f.mutations).toHaveLength(0);
   await fits(page);
@@ -104,17 +97,14 @@ test("standalone logo brief opens the new direction flow through the old board U
 test("chosen concept leads to three directions, a saved choice and usable brand assets without vector approval", async ({
   page,
 }, info) => {
-  test.fixme(
-    true,
-    "needs a rewrite: Logo and Creative direction are steps inside the brand conversation now (the old /logo and /logo/directions pages redirect to it) and rounds run on the generation engine; this drives the old step pages and batch routes",
-  );
+  test.skip(info.project.name === "mobile", "phone layout is on hold");
   test.setTimeout(90_000);
-  const f = createVisualJourneyFixture(),
+  const f = createVisualJourneyFixture({ voiceFinished: true }),
     health = await f.setup(page);
-  await page.goto(conceptsUrl);
-  const next = page.locator(`a[href="${directionsUrl}"]`, { hasText: /^Continue$/ });
-  await expect(next).toBeVisible();
-  await expect(next).toHaveAttribute("href", directionsUrl);
+  // The Logo step, reopened from its folded answer, with a concept already chosen and no vector approved.
+  await page.goto(`/brands/account/${projectId}?view=strategy`);
+  await identityAnswer(page, "Logo").locator("summary").click();
+  await identityAnswer(page, "Logo").getByRole("button", { name: "Change logo", exact: true }).click();
   expect(f.workspace.approvedLogo).toBeNull();
   expect(f.workspace.stages.vector).toBeNull();
   const originalDownload = page.waitForEvent("download");
@@ -122,12 +112,12 @@ test("chosen concept leads to three directions, a saved choice and usable brand 
   const original = await originalDownload;
   expect(original.suggestedFilename()).toBe("cedar-logo.png");
   expect(digest(await downloadedBytes(original))).toBe(digest(f.logoBytes));
-  await next.click();
-  await expect(page).toHaveURL(directionsUrl);
-  await expect(page.getByRole("img", { name: "Chosen logo concept", exact: true })).toBeVisible();
-  // Continue on the chosen logo is the deliberate click: the three directions start on their own.
-  await expect(page.getByText(/Estimated .*for three directions/u)).toHaveCount(0);
+  // Send on the chosen logo is the deliberate click: the three directions start on their own, with no estimate
+  // and no confirmation.
+  await replyBox(page).getByRole("button", { name: "Continue to Creative direction", exact: true }).click();
+  await expect(step(page)).toBeVisible();
   await expect.poll(() => f.admissions.length).toBe(1);
+  await expect(page.getByText(/Estimated/u)).toHaveCount(0);
   expect(f.admissions[0]).toMatchObject({
     version: 3,
     spendControl: "uncapped",
@@ -136,50 +126,45 @@ test("chosen concept leads to three directions, a saved choice and usable brand 
   });
   expect(f.admissions[0]).not.toHaveProperty("acceptedMaxCostMicrousd");
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(step(page).getByText("0 of 3 ready", { exact: true })).toBeVisible();
   f.complete();
-  await expect(page.getByText("3 of 3 ready", { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(boards(page)).toHaveCount(3, { timeout: 15_000 });
   await loadBoards(page, 3);
-  await expect(page.getByRole("button", { name: "Check progress", exact: true })).toHaveCount(0);
-  const cards = page.locator('[aria-label="Direction comparison"] article');
+  await expect(step(page).getByRole("button", { name: "Check progress", exact: true })).toHaveCount(0);
   for (const [index, system] of f.systems.entries()) {
-    const card = cards.nth(index);
+    const card = direction(page, index + 1);
     const palette = card.getByRole("list", { name: "Color palette" });
     for (const color of system.components.colors.swatches) {
       await expect(palette.getByTitle(`${color.name} ${color.hex}`, { exact: true })).toBeVisible();
     }
+    // The type sample shows the heading face; its name is there for screen readers.
     const heading = system.components.typography.styles.find(
       (style) => style.key === system.applicationDesign.headingStyleKey,
     )!;
-    await expect(card.getByText(`${heading.family} · ${heading.weight}`, { exact: true })).toBeVisible();
+    await expect(card.getByText(heading.family, { exact: true })).toBeAttached();
   }
-  const assets = page.getByRole("link", { name: "Continue", exact: true });
-  await expect(assets).toHaveCount(0);
-  await expect(page.getByRole("img", { name: "Saved Identity board for Cedar", exact: true })).toHaveCount(3);
+  const toAssets = replyBox(page).getByRole("button", { name: "Continue to Assets", exact: true });
+  await expect(toAssets).toBeDisabled();
   await fits(page);
-  await page.getByRole("heading", { name: "Creative direction", exact: true }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: info.outputPath("directions.png"), fullPage: true, scale: "css" });
-  const chosenCard = cards.nth(1);
-  await chosenCard.click();
+  await choose(page, 2).click();
   await expect.poll(() => f.selections.length).toBe(1);
-  await expect(page.locator('[aria-label="Direction comparison"] article[aria-checked="true"]')).toHaveCount(1);
-  await expect(chosenCard).toHaveAttribute("aria-checked", "true");
-  await expect(assets).toHaveAttribute("href", assetsUrl);
-  expect(
-    await assets.evaluate((link) =>
-      Boolean(
-        link.compareDocumentPosition(document.querySelector('[aria-label="Direction comparison"]')!) &
-        Node.DOCUMENT_POSITION_PRECEDING,
-      ),
-    ),
-  ).toBe(true);
+  await expect(choose(page, 2)).toHaveAttribute("aria-pressed", "true");
+  await expect(step(page).getByRole("button", { name: "Chosen", exact: true })).toHaveCount(1);
+  await expect(replyBox(page).getByText(/^Direction: /u)).toBeVisible();
+  await expect(toAssets).toBeEnabled();
   const selectedId = f.selection!.systemVersionId;
   expect(selectedId).toBe(f.systems[1]!.id);
+  // The saved choice survives a reload and starts nothing: a finished brand opens on its chosen direction.
   await page.reload();
-  await expect(page.locator('[aria-label="Direction comparison"] article[aria-checked="true"]')).toHaveCount(1);
+  const brand = page.getByRole("region", { name: "Your brand", exact: true });
+  await expect(brand.getByRole("article", { name: /^Chosen direction: /u })).toBeVisible();
+  await expect(brand.getByRole("img", { name: "Saved Identity board for Cedar", exact: true })).toBeVisible();
+  await expect(step(page)).toHaveCount(0);
   expect(f.selection!.systemVersionId).toBe(selectedId);
   expect(f.admissions).toHaveLength(1);
-  await expect(chosenCard).toHaveAttribute("aria-checked", "true");
-  await assets.click();
+  await expect(toAssets).toBeEnabled();
+  await toAssets.click();
   await expect(page).toHaveURL(assetsUrl);
   const kit = page.getByRole("button", { name: "Download brand kit", exact: true });
   await expect(kit).toBeEnabled();
@@ -286,102 +271,106 @@ test("chosen concept leads to three directions, a saved choice and usable brand 
     true,
   );
   expect(health.pageErrors).toEqual([]);
-  expect(health.consoleErrors).toEqual([]);
+  expect(appConsoleErrors(health)).toEqual([]);
+});
+
+test("Send on a Logo step opened from the old Logo address continues to Creative direction", async ({ page }) => {
+  test.fixme(
+    true,
+    "product defect: the old /logo address lands on #journey-logo, and while that hash stays in the address src/components/workspace/account-guided-interview.tsx:817 reopens the Logo step on every render, so Send (Continue to Creative direction) leaves the Logo step on screen",
+  );
+  const f = createVisualJourneyFixture({ voiceFinished: true });
+  await f.setup(page);
+  await page.goto(conceptsUrl);
+  await expect(page).toHaveURL(`/brands/account/${projectId}?view=strategy#journey-logo`);
+  await expect(page.getByRole("region", { name: "Logo concepts", exact: true })).toBeVisible();
+  await replyBox(page).getByRole("button", { name: "Continue to Creative direction", exact: true }).click();
+  await expect(step(page)).toBeVisible();
+  await expect.poll(() => f.admissions.length).toBe(1);
 });
 
 test("lost generation acknowledgement checks the original request and keeps a partial board usable", async ({
   page,
-}) => {
-  test.fixme(
-    true,
-    "needs a rewrite: Logo and Creative direction are steps inside the brand conversation now (the old /logo and /logo/directions pages redirect to it) and rounds run on the generation engine; this drives the old step pages and batch routes",
-  );
-  const f = createVisualJourneyFixture();
+}, info) => {
+  test.skip(info.project.name === "mobile", "phone layout is on hold");
+  const f = createVisualJourneyFixture({ voiceFinished: true });
   f.loseAdmission = true;
   const health = await f.setup(page);
-  await page.goto(directionsUrl);
-  await page.getByRole("button", { name: "Create three directions", exact: true }).click();
+  await startDirections(page, f);
   await expect(
-    page.getByText("Check the existing request before starting another. Saved boards stay available.", { exact: true }),
+    page.getByText("The generation request could not be confirmed. Check the original request before trying again.", {
+      exact: true,
+    }),
   ).toBeVisible();
-  expect(f.admissions).toHaveLength(1);
+  // Nothing else can be started while the first request is unconfirmed.
+  await expect(step(page).getByRole("button", { name: "More directions", exact: true })).toBeDisabled();
   const original = structuredClone(f.admissions[0]);
-  await checkProgress(page);
-  await expect(page.getByText("Your directions are queued.", { exact: true })).toBeVisible();
+  const check = step(page).getByRole("button", { name: "Check progress", exact: true });
+  await expect(check).toBeEnabled();
+  await check.click();
+  await expect(page.getByText(/could not be confirmed/u)).toHaveCount(0);
+  await expect(step(page).getByText("0 of 3 ready", { exact: true })).toBeVisible();
   await page.reload();
-  await expect(page.getByText("Your directions are queued.", { exact: true })).toBeVisible();
+  await expect(step(page).getByText("0 of 3 ready", { exact: true })).toBeVisible();
   expect(f.admissions).toEqual([original]);
   f.complete(1, "partial");
-  await checkProgress(page);
-  await expect(page.getByText("1 of 3 ready", { exact: true })).toBeVisible();
+  await expect(step(page).getByText("1 of 3 ready", { exact: true })).toBeVisible({ timeout: 15_000 });
   await loadBoards(page, 1);
-  await expect(page.getByRole("img", { name: "Saved Identity board for Cedar", exact: true })).toHaveCount(1);
-  await expect(page.getByRole("radio", { name: /^Direction 1:/ })).toHaveAttribute("aria-disabled", "false");
-  await page.getByRole("radio", { name: /^Direction 1:/ }).click();
-  await expect(page.getByRole("link", { name: "Continue", exact: true })).toBeVisible();
+  await expect(boards(page)).toHaveCount(1);
+  await expect(step(page).getByText("No board for this direction.", { exact: true })).toHaveCount(2);
+  await choose(page, 1).click();
+  await expect(choose(page, 1)).toHaveAttribute("aria-pressed", "true");
+  await expect(replyBox(page).getByRole("button", { name: "Continue to Assets", exact: true })).toBeEnabled();
   expect(f.admissions).toEqual([original]);
   expect(f.selection!.systemVersionId).toBe(f.systems[0]!.id);
   await fits(page);
   expect(health.pageErrors).toEqual([]);
 });
 
-test("saved boards explain unavailable selection and recover without another generation", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: Logo and Creative direction are steps inside the brand conversation now (the old /logo and /logo/directions pages redirect to it) and rounds run on the generation engine; this drives the old step pages and batch routes",
-  );
-  const f = createVisualJourneyFixture(),
+test("saved boards explain unavailable selection and recover without another generation", async ({ page }, info) => {
+  test.skip(info.project.name === "mobile", "phone layout is on hold");
+  const f = createVisualJourneyFixture({ voiceFinished: true }),
     health = await f.setup(page);
   f.savingAvailable = false;
-  await page.goto(directionsUrl);
-  await page.getByRole("button", { name: "Create three directions", exact: true }).click();
-  await expect.poll(() => f.admissions.length).toBe(1);
+  await startDirections(page, f);
   f.complete();
-  await expect(page.getByText("3 of 3 ready", { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(boards(page)).toHaveCount(3, { timeout: 15_000 });
   await loadBoards(page, 3);
   await expect(
-    page.getByText("Saving your direction is temporarily unavailable. Your boards are saved.", { exact: true }),
+    step(page).getByText("Saving your direction is temporarily unavailable. Your boards are saved.", { exact: true }),
   ).toHaveCount(3);
-  await expect(page.getByText("Checking your saved choice…", { exact: true })).toHaveCount(0);
-  for (const card of await page.getByRole("radio", { name: /^Direction \d:/ }).all())
-    await expect(card).toHaveAttribute("aria-disabled", "true");
+  for (const number of [1, 2, 3]) await expect(choose(page, number)).toBeDisabled();
   expect(f.selections).toHaveLength(0);
   expect(f.admissions).toHaveLength(1);
   f.savingAvailable = true;
-  await page.getByRole("button", { name: "Check saved choice", exact: true }).click();
-  const choose = page.getByRole("radio", { name: /^Direction \d:/ }).nth(1);
-  await expect(choose).toHaveAttribute("aria-disabled", "false");
+  await step(page).getByRole("button", { name: "Check saved choice", exact: true }).click();
+  await expect(choose(page, 2)).toBeEnabled();
   expect(f.selections).toHaveLength(0);
   expect(f.admissions).toHaveLength(1);
-  await choose.click();
-  await expect(page.getByRole("link", { name: "Continue", exact: true })).toBeVisible();
+  await choose(page, 2).click();
+  await expect(replyBox(page).getByRole("button", { name: "Continue to Assets", exact: true })).toBeEnabled();
   expect(f.selections).toHaveLength(1);
   expect(f.admissions).toHaveLength(1);
   await fits(page);
   expect(health.pageErrors).toEqual([]);
 });
 
-test("a changed logo prevents old directions and prepared files from being presented as current", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: Logo and Creative direction are steps inside the brand conversation now (the old /logo and /logo/directions pages redirect to it) and rounds run on the generation engine; this drives the old step pages and batch routes",
-  );
+test("a changed logo prevents old directions and prepared files from being presented as current", async ({
+  page,
+}, info) => {
+  test.skip(info.project.name === "mobile", "phone layout is on hold");
   test.setTimeout(90_000);
-  const f = createVisualJourneyFixture();
+  const f = createVisualJourneyFixture({ voiceFinished: true });
   await f.setup(page);
-  await page.goto(directionsUrl);
-  await page.getByRole("button", { name: "Create three directions", exact: true }).click();
-  await expect.poll(() => f.admissions.length).toBe(1);
+  await startDirections(page, f);
   f.complete();
-  await expect(page.getByText("3 of 3 ready", { exact: true })).toBeVisible({ timeout: 15_000 });
-  await page
-    .getByRole("radio", { name: /^Direction \d:/ })
-    .first()
-    .click();
-  await page.getByRole("link", { name: "Continue", exact: true }).click();
+  await expect(boards(page)).toHaveCount(3, { timeout: 15_000 });
+  await choose(page, 1).click();
+  const toAssets = replyBox(page).getByRole("button", { name: "Continue to Assets", exact: true });
+  await expect(toAssets).toBeEnabled();
+  await toAssets.click();
   const kit = page.getByRole("button", { name: "Download brand kit", exact: true });
   await expect(kit).toBeEnabled();
-  await expect(page.getByRole("button", { name: "Create brand assets", exact: true })).toHaveCount(0);
   await expect(page.getByRole("img", { name: "Cedar final brand board", exact: true })).toBeVisible({
     timeout: 45_000,
   });
@@ -394,28 +383,24 @@ test("a changed logo prevents old directions and prepared files from being prese
   );
   expect(downloads).toHaveLength(0);
   await page.goto(directionsUrl);
-  await expect(page.getByText("Earlier inputs", { exact: true })).toHaveCount(3);
-  await expect(page.getByRole("link", { name: "Continue", exact: true })).toHaveCount(0);
-  for (const card of await page.getByRole("radio", { name: /^Direction \d:/ }).all())
-    await expect(card).toHaveAttribute("aria-disabled", "true");
+  await expect(step(page).getByText("Made for an earlier logo.", { exact: true })).toHaveCount(3);
+  for (const number of [1, 2, 3]) {
+    await expect(choose(page, number)).toBeDisabled();
+    await expect(choose(page, number)).toHaveAttribute("aria-pressed", "false");
+  }
+  await expect(replyBox(page).getByRole("button", { name: "Continue to Assets", exact: true })).toBeDisabled();
   expect(f.admissions).toHaveLength(1);
   await fits(page);
 });
 
-test("account changes clear the former account's private boards", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: Logo and Creative direction are steps inside the brand conversation now (the old /logo and /logo/directions pages redirect to it) and rounds run on the generation engine; this drives the old step pages and batch routes",
-  );
-  const f = createVisualJourneyFixture(),
+test("account changes clear the former account's private boards", async ({ page }, info) => {
+  test.skip(info.project.name === "mobile", "phone layout is on hold");
+  const f = createVisualJourneyFixture({ voiceFinished: true }),
     health = await f.setup(page);
-  await page.goto(directionsUrl);
-  await page.getByRole("button", { name: "Create three directions", exact: true }).click();
-  await expect.poll(() => f.admissions.length).toBe(1);
+  await startDirections(page, f);
   f.complete();
-  await expect(page.getByText("3 of 3 ready", { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(boards(page)).toHaveCount(3, { timeout: 15_000 });
   await loadBoards(page, 3);
-  await expect(page.getByRole("img", { name: "Saved Identity board for Cedar", exact: true })).toHaveCount(3);
   f.owner = ownerId.replace(/001$/u, "999");
   await checkNormalAccount(page);
   await expect(page.getByRole("img", { name: "Saved Identity board for Cedar", exact: true })).toHaveCount(0);

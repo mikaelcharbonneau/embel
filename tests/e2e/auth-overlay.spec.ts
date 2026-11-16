@@ -114,7 +114,12 @@ test("auth overlay: continuation clears the slot; direct visits and reloads use 
     expect(box?.width).toBe(440);
     expect(box?.x).toBe(500);
   }
-  await expect(page.getByRole("link", { name: "Return to Home", exact: true })).toHaveAttribute("href", "/");
+  // The standalone card has no link of its own back to Home; the navigation's Home is the way back.
+  await expect(
+    page
+      .getByRole("navigation", { name: "Main navigation", exact: true })
+      .getByRole("link", { name: "Home", exact: true }),
+  ).toHaveAttribute("href", "/");
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
   await page.screenshot({ path: testInfo.outputPath("sign-in-page.png"), scale: "css" });
 });

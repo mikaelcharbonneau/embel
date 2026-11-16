@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { accountMenu, openAccountMenu } from "./account-check";
+import { accountMenuButton } from "./account-check";
 
 // Every API and external destination is intercepted. No account or email is created.
 const owner = "aaaaaaaa-2222-4222-8222-222222222222";
@@ -66,6 +66,9 @@ async function fixtures(page: Page) {
   return { state, release };
 }
 
+/** Signed out, the navigation pill offers Sign in directly. */
+const pillSignIn = (page: Page) => page.getByRole("banner").getByRole("link", { name: "Sign in", exact: true });
+
 async function fillSignup(page: Page, confirmationPassword = password) {
   const form = page.getByRole("form", { name: "Create account", exact: true });
   await expect(form.getByLabel("Email", { exact: true })).toBeEnabled();
@@ -124,9 +127,8 @@ test("signup: overlay dismissal retains pending authentication and the underlyin
   const fixture = await fixtures(page);
   fixture.state.hold = true;
   await page.goto("/settings");
-  await page.getByRole("tab", { name: "Notifications", exact: true }).click();
-  await openAccountMenu(page);
-  await accountMenu(page).getByRole("menuitem", { name: "Sign in", exact: true }).click();
+  await page.getByRole("tab", { name: "Usage", exact: true }).click();
+  await pillSignIn(page).click();
   await page.getByRole("dialog").getByRole("link", { name: "Create account", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Create your Embel account", exact: true });
   await expect(dialog).toBeVisible();
@@ -140,30 +142,25 @@ test("signup: overlay dismissal retains pending authentication and the underlyin
   await dialog.getByRole("button", { name: "Close account creation", exact: true }).click();
   await expect(page).toHaveURL(/\/settings$/);
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByRole("tab", { name: "Notifications", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Usage", exact: true })).toHaveAttribute("aria-selected", "true");
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   expect(fixture.state.sessionReads).toBe(reads);
   expect(fixture.state.signupCount).toBe(1);
   fixture.release();
-  // Route changes close the account menu; reopen it to inspect its actions.
-  await openAccountMenu(page);
-  await expect(accountMenu(page).getByRole("menuitem", { name: "Sign in", exact: true })).toBeVisible();
+  // The answer was "check your email": the pill still offers Sign in, and no account is shown.
+  await expect(pillSignIn(page)).toBeVisible();
+  await expect(accountMenuButton(page)).toHaveCount(0);
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   expect(fixture.state.sessionReads).toBe(reads);
   expect(fixture.state.privateWrites).toBe(0);
 });
 
-test("signup: prompt and scope survive signup, email waiting and subsequent sign-in", async ({ page }) => {
+test("signup: the prompt survives signup, email waiting and subsequent sign-in", async ({ page }) => {
   const { state } = await fixtures(page);
   const prompt = "A neighborhood repair workshop with beginner-friendly classes.";
   await page.goto("/");
   await page.getByRole("textbox", { name: "Your prompt", exact: true }).fill(prompt);
-  await page
-    .getByRole("group", { name: "What to create", exact: true })
-    .getByText("Name only", { exact: true })
-    .click();
-  await openAccountMenu(page);
-  await accountMenu(page).getByRole("menuitem", { name: "Sign in", exact: true }).click();
+  await pillSignIn(page).click();
   await page.getByRole("dialog").getByRole("link", { name: "Create account", exact: true }).click();
   await expect(
     page.getByText("Your idea is kept. It will be waiting when you’re signed in.", { exact: false }),
@@ -178,7 +175,6 @@ test("signup: prompt and scope survive signup, email waiting and subsequent sign
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Your prompt", exact: true })).toHaveValue(prompt);
-  await expect(page.getByRole("radio", { name: "Name only", exact: true })).toBeChecked();
   expect(state.signupCount).toBe(1);
   expect(state.signInCount).toBe(1);
   expect(state.privateWrites).toBe(0);
@@ -193,7 +189,9 @@ test("signup: confirmation redirects discard provider URL fragments", async ({ p
   await page.goto("/auth/callback#error=synthetic_provider_error&access_token=synthetic_fragment_only");
   await expect(page).toHaveURL(/\/sign-in\?confirmation=failed#?$/);
   expect(new URL(page.url()).hash).toBe("");
-  await expect(page.locator(".auth-card").getByRole("alert")).toContainText("couldn't complete this confirmation link");
+  await expect(page.locator(".auth-card").getByRole("alert")).toContainText(
+    "We couldn’t confirm your email with this link",
+  );
   expect(state.signupCount).toBe(0);
   expect(state.resendCount).toBe(0);
   expect(state.privateWrites).toBe(0);
@@ -202,7 +200,9 @@ test("signup: confirmation redirects discard provider URL fragments", async ({ p
 test("signup: failed confirmation offers generic bounded-provider resend recovery", async ({ page }) => {
   const { state } = await fixtures(page);
   await page.goto("/sign-in?confirmation=failed");
-  await expect(page.locator(".auth-card").getByRole("alert")).toContainText("couldn't complete this confirmation link");
+  await expect(page.locator(".auth-card").getByRole("alert")).toContainText(
+    "We couldn’t confirm your email with this link",
+  );
   await page.getByRole("button", { name: "Send a new confirmation email", exact: true }).click();
   const form = page.getByRole("form", { name: "Resend confirmation", exact: true });
   state.resendStatus = 429;

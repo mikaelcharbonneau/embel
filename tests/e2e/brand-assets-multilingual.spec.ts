@@ -16,10 +16,7 @@ for (const [name, family, direction] of [
   ["مقهى Studio", "Noto Sans Arabic", "rtl"],
 ] as const) {
   test(`multilingual brand pack preserves ${name} in the real browser PNG`, async ({ page }, info) => {
-    test.fixme(
-      true,
-      "needs a rewrite: Creative direction now lives inside the conversation, and this fixture opens the old step page",
-    );
+    test.skip(info.project.name === "mobile", "phone layout is on hold");
     test.setTimeout(90_000);
     const font =
       family === "Noto Sans SC"
@@ -28,31 +25,31 @@ for (const [name, family, direction] of [
             file: "/fonts/brand/noto-sans-arabic-variable.ttf",
             url: "https://fonts.google.com/specimen/Noto+Sans+Arabic",
           };
-    const f = createVisualJourneyFixture({ name, fontFamily: family }),
+    const f = createVisualJourneyFixture({ name, fontFamily: family, voiceFinished: true }),
       health = await f.setup(page);
     const fontRequests: string[] = [];
     page.on("request", (request) => {
       const path = new URL(request.url()).pathname;
       if (path.startsWith("/fonts/brand/")) fontRequests.push(path);
     });
+    // Creative direction is a step of the brand conversation; the old step address hands over to it.
     await page.goto(directionsUrl);
-    await page.getByRole("button", { name: "Create three directions", exact: true }).click();
+    const step = page.getByRole("region", { name: "Creative direction", exact: true });
+    await step.getByRole("button", { name: "Create three directions", exact: true }).click();
     await expect.poll(() => f.admissions.length).toBe(1);
     f.complete(1);
     f.systems[0]!.applicationDesign.graphic = "none";
-    await page.getByRole("button", { name: "Check progress", exact: true }).click();
-    const sample = page
-      .locator('[aria-label="Direction comparison"] article')
-      .first()
-      .locator("bdi")
-      .filter({ hasText: name });
-    await expect(sample).toBeVisible();
+    const first = step.getByRole("article", { name: /^Direction 1: /u });
+    const sample = first.locator("bdi").filter({ hasText: name });
+    await expect(sample).toBeVisible({ timeout: 15_000 });
     await expect(sample).toHaveAttribute("dir", direction);
-    await page
-      .getByRole("article", { name: /^Direction 1:/ })
-      .getByRole("button", { name: "Choose", exact: true })
-      .click();
-    await page.getByRole("link", { name: "Continue", exact: true }).click();
+    await first.getByRole("button", { name: "Choose", exact: true }).click();
+    // Send in the reply box moves on to Assets.
+    const toAssets = page
+      .getByRole("form", { name: "Reply", exact: true })
+      .getByRole("button", { name: "Continue to Assets", exact: true });
+    await expect(toAssets).toBeEnabled();
+    await toAssets.click();
     await expect(page).toHaveURL(assetsUrl);
     const kit = page.getByRole("button", { name: "Download brand kit", exact: true });
     await expect(kit).toBeEnabled();
@@ -166,6 +163,10 @@ for (const [name, family, direction] of [
     expect(f.admissions).toHaveLength(1);
     expect(f.selections).toHaveLength(1);
     expect(health.pageErrors).toEqual([]);
-    expect(health.consoleErrors).toEqual([]);
+    // The Brand guidelines preview is a frame that never runs scripts; Playwright's own page instrumentation is
+    // refused there too and the browser reports that as a console error. Nothing of the app's is involved.
+    expect(
+      health.consoleErrors.filter((text) => !text.startsWith("Blocked script execution in 'about:srcdoc'")),
+    ).toEqual([]);
   });
 }

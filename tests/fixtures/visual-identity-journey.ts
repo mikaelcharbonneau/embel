@@ -63,8 +63,10 @@ function own<T>(value: T): T {
   );
 }
 
+/** `voiceFinished` saves a finished Voice step (a chosen name, the slogan question skipped), so the project
+ * conversation shows its Identity steps: Logo and Creative direction live there, not on pages of their own. */
 export function createVisualJourneyFixture(
-  options: { standalone?: boolean; name?: string; fontFamily?: BrandBoardFontFamily } = {},
+  options: { standalone?: boolean; name?: string; fontFamily?: BrandBoardFontFamily; voiceFinished?: boolean } = {},
 ) {
   const name = options.name ?? "Cedar",
     baseInput = fixtureInput({ name, references: 0 });
@@ -72,7 +74,24 @@ export function createVisualJourneyFixture(
     pngHash = hash(png);
   const resolved = own(syntheticResolvedLogoConcept());
   const brief = { ...resolved.brief, payload: { ...resolved.brief.payload, name } };
-  const context = options.standalone ? contextSnapshotSchema.parse({}) : baseInput.context;
+  const briefContext = options.standalone ? contextSnapshotSchema.parse({}) : baseInput.context;
+  const context = options.voiceFinished
+    ? contextSnapshotSchema.parse({
+        ...briefContext,
+        selectedName: name,
+        intake: {
+          ...briefContext.intake,
+          guidedInterview: {
+            version: 1,
+            stage: "complete",
+            turns: [{ id: "slogan-turn", userMessageId: null, stage: "slogan", purpose: "propose", inputRevision: 1 }],
+            answers: [
+              { stage: "slogan", turnId: "slogan-turn", optionIds: [], customText: null, confirmedAt: fixtureAt },
+            ],
+          },
+        },
+      })
+    : briefContext;
   const input = createIdentityInputSnapshot({
     ...scope,
     scope: baseInput.scope,
@@ -382,6 +401,17 @@ export function createVisualJourneyFixture(
         });
       if (state.owner !== ownerId) return json(route, {}, 404);
       if (path === `/api/projects/${projectId}`) return json(route, { project });
+      if (options.voiceFinished && path === `/api/projects/${projectId}/strategy` && request.method() === "GET")
+        return json(route, {
+          availability: {
+            status: "available",
+            operations: [{ operation: "strategy.reformulate", maximumCostMicrousd: 100000, interviewVersion: 1 }],
+          },
+          jobs: [],
+        });
+      // No generation engine runs are in flight: the fixture's saved rounds are read from the routes below.
+      if (options.voiceFinished && path === `/api/projects/${projectId}/generations` && request.method() === "GET")
+        return json(route, { runs: [] });
       if (path === logoBase) return json(route, workspace);
       if (path.startsWith(`${logoBase}/stages/`) && path.includes("/revisions/"))
         return json(route, stages.get(path.split("/").at(-1)!));
