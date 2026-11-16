@@ -495,6 +495,7 @@ test("while Logo drawing is switched off Send stays off and nothing starts", asy
   await expect(page.getByRole("group", { name: "Which logo types should I explore?" })).toBeVisible();
   await expect(page.getByRole("checkbox", { name: "Wordmark", exact: true })).toBeChecked();
   await expect(draw).toBeDisabled();
+  await expect(page.getByText("Logo drawing is unavailable right now.", { exact: false }).first()).toBeVisible();
   await draw.click({ force: true });
   await page.getByRole("textbox", { name: "Message Embel" }).press("Enter");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

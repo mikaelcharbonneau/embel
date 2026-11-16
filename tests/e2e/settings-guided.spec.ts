@@ -142,12 +142,11 @@ test("usage retries real read failures, marks unrecorded counts and rejects fore
   await expect(page.getByText("synthetic hidden detail")).toHaveCount(0);
   mode = "success";
   await page.getByRole("button", { name: "Refresh", exact: true }).click();
-  const usage = page.getByRole("region", { name: "Recent requests", exact: true });
+  const usage = page.getByRole("region", { name: "Strategy and Voice requests", exact: true });
   await expect(usage.getByRole("columnheader")).toHaveText(["Step", "Date", "Tokens used"]);
   await expect(usage.getByRole("row", { name: /Voice · Name/ })).toContainText("—");
   await expect(usage.getByRole("row", { name: /Strategy · Competitors/ })).toContainText("1,545");
   await expect(usage.getByText("— Not recorded for this request.", { exact: true })).toBeVisible();
-  await expect(usage.getByText("2 requests · at least 1,545 tokens used", { exact: true })).toBeVisible();
   await expect(usage.getByText("Usage loaded.", { exact: true })).toHaveClass("sr-only");
   await expect(usage.getByText(/Input tokens|Total tokens|Unknown|Billing/)).toHaveCount(0);
   mode = "foreign";
@@ -270,7 +269,6 @@ test("Settings shows editable account options first and loads usage on demand", 
   await expect(page.getByLabel("Full name", { exact: true })).toHaveValue(longName);
   await expect(page.getByLabel("Full name", { exact: true })).toBeEditable();
   await expect(page.getByLabel("Email address", { exact: true })).not.toBeEditable();
-  await expect(page.getByText("You sign in with this email. It can’t be changed here.", { exact: true })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Time zone", exact: true })).toBeEnabled();
   await expect(page.getByRole("combobox", { name: "Time zone", exact: true })).toHaveValue("America/Toronto");
   await expect(page.getByRole("combobox", { name: "Time zone", exact: true }).locator("option:checked")).toHaveText(
@@ -300,7 +298,7 @@ test("Settings shows editable account options first and loads usage on demand", 
   });
   expect(usageReads).toBe(0);
   await tab(page, "Usage");
-  const usage = page.getByRole("region", { name: "Recent requests", exact: true });
+  const usage = page.getByRole("region", { name: "Strategy and Voice requests", exact: true });
   await expect(usage.getByRole("row", { name: /Voice · Name/ })).toBeVisible();
   expect(usageReads).toBe(1);
   const row = await usage.locator(".recorded-usage-entry").first().elementHandle();

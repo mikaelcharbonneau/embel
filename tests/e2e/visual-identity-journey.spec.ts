@@ -275,10 +275,6 @@ test("chosen concept leads to three directions, a saved choice and usable brand 
 });
 
 test("Send on a Logo step opened from the old Logo address continues to Creative direction", async ({ page }) => {
-  test.fixme(
-    true,
-    "product defect: the old /logo address lands on #journey-logo, and while that hash stays in the address src/components/workspace/account-guided-interview.tsx:817 reopens the Logo step on every render, so Send (Continue to Creative direction) leaves the Logo step on screen",
-  );
   const f = createVisualJourneyFixture({ voiceFinished: true });
   await f.setup(page);
   await page.goto(conceptsUrl);

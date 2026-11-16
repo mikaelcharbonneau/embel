@@ -183,12 +183,7 @@ async function fixtures(page: Page) {
 async function open(page: Page) {
   await page.goto(`/brands/account/${projectId}`);
   await expect(page.getByRole("textbox", { name: "Message Embel" })).toBeVisible();
-  await expect(
-    page.getByText(
-      "Your brief is saved. Next, I’ll find the brands you compete with, so you can choose the ones to compare against. Press Send to start research.",
-      { exact: true },
-    ),
-  ).toBeVisible();
+  await expect(page.getByText("Next, I’ll find the brands you compete with.", { exact: true })).toBeVisible();
 }
 
 test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));

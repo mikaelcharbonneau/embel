@@ -211,6 +211,11 @@ What remains:
 1. The Home form and hook each hold "opening a project" (J7): the tests that would prove a merge safe
    replace the hook.
 2. The Logo screen's timing refs stay refs; `logo-screen-mode.ts` says why for each (S2).
+3. "Continue to Naming" on a brand saved before the guided conversation (no `intake.guidedInterview`)
+   leads back to the same page: `src/domain/journey.ts` still points at `/naming`, which only redirects
+   to the conversation, and the conversation shows no Voice section for such a brand. Only data older
+   than the guided conversation is affected; the parked test in `tests/e2e/project-naming.spec.ts`
+   reproduces it.
 
 ## Adding or changing a machine
 

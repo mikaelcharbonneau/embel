@@ -142,11 +142,11 @@ async function setup(page: Page, initial: AccountProject[] = []) {
   return state;
 }
 
-test("account default: manual Save project persists across reload without AI", async ({ page }) => {
+test("account default: Send while AI is unavailable saves the project across reload without AI", async ({ page }) => {
   const state = await setup(page);
   await page.goto("/");
   await page.getByRole("textbox", { name: "Your prompt", exact: true }).fill(prompt);
-  await page.getByRole("button", { name: "Save project", exact: true }).click();
+  await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page).toHaveURL(/\/brands\/account\/[a-f0-9-]+\?view=strategy(#strategy-brief)?$/);
   await expect(
     page.getByRole("log", { name: "Conversation", exact: true }).getByRole("paragraph").filter({ hasText: prompt }),
@@ -202,7 +202,7 @@ test("account default: lost creation acknowledgement replays the original save w
   state.loseCreate = true;
   await page.goto("/");
   await page.getByRole("textbox", { name: "Your prompt", exact: true }).fill(prompt);
-  await page.getByRole("button", { name: "Save project", exact: true }).click();
+  await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText(/Your project could not be confirmed/)).toBeVisible();
   await page.reload();
   await expect(page.getByRole("textbox", { name: "Your prompt", exact: true })).toHaveValue(prompt);

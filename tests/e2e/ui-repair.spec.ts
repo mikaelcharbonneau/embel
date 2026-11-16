@@ -61,26 +61,26 @@ test("all public workspaces fit the viewport and retain visible page headings", 
   }
 });
 
-test("Home recovery controls are usable touch targets and remain grouped", async ({ page }) => {
-  // Saving a Home prompt is account-only since 96ef9f1; this fixture verifies a synthetic session only.
-  await page.route("**/api/**", (route) =>
-    new URL(route.request().url()).pathname === "/api/session"
-      ? route.fulfill({ json: { user: { id: "aaaaaaaa-1111-4111-8111-111111111111" } } })
-      : route.fulfill({ status: 404, json: { error: "Synthetic missing fixture" } }),
-  );
+test("Home recovery control is a usable touch target", async ({ page }) => {
+  // Home shows one recovery control, Check and retry save, and only after a save went unconfirmed.
+  // Synthetic session; the create request is dropped so the save stays unconfirmed.
+  await page.route("**/api/**", (route) => {
+    const request = route.request(),
+      path = new URL(request.url()).pathname;
+    if (path === "/api/session")
+      return route.fulfill({ json: { user: { id: "aaaaaaaa-1111-4111-8111-111111111111" } } });
+    if (path === "/api/projects" && request.method() === "POST") return route.abort("failed");
+    return route.fulfill({ status: 404, json: { error: "Synthetic missing fixture" } });
+  });
   await page.goto("/");
   await page
     .getByRole("textbox", { name: "Your prompt", exact: true })
     .fill("A repair workshop sharing tools with local residents.");
-  const save = page.getByRole("button", { name: "Save project", exact: true });
-  await expect(save).toBeEnabled();
-  expect((await save.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-  expect(
-    await page
-      .locator(".home-draft-actions .field-hint")
-      .first()
-      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
-  ).toBeGreaterThanOrEqual(13);
+  await expect(page.getByRole("button", { name: "Save project", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Send prompt", exact: true }).click();
+  const retry = page.getByRole("button", { name: "Check and retry save", exact: true });
+  await expect(retry).toBeEnabled();
+  expect((await retry.boundingBox())!.height).toBeGreaterThanOrEqual(44);
 });
 
 test("logo has one main landmark", async ({ page }) => {

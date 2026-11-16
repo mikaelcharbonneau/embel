@@ -154,11 +154,9 @@ for (const count of [0, 1, 20])
 
 test("Usage full page: explicit account verification uses matching public geometry and hides private data", async ({
   page,
-}) => {
-  test.fixme(
-    true,
-    "blocked by a product defect: while the account is checked the Usage card is 8px shorter on desktop (1106px, not 1114px), so the page jumps. Since the header lost its hint line (573340db) only the Refresh button holds the header's height, and the checking state renders the header without it (recorded-usage.tsx, <UsageHeader /> without an action; .recorded-usage-header has no minimum height). On phones the difference is larger (232px)",
-  );
+}, testInfo) => {
+  // On the phone the card still changes height while the account is checked (rows stack differently).
+  test.skip(testInfo.project.name === "mobile", "phone layout is on hold");
   const fixture = await install(page);
   await ready(page);
   const initial = await geometry(page);
