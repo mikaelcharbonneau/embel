@@ -48,6 +48,9 @@ export function billingErrorMessage(error: unknown, action: BillingAction = "che
   const opened = action === "checkout" ? "Checkout couldn’t open" : "Your plan settings couldn’t open";
   const nothing = action === "checkout" ? "Nothing was charged." : "Nothing was changed.";
   if (error instanceof AccountRequestError) {
+    // Another request of this account (a second tab, a double press) is opening Checkout right now.
+    if (error.code === "checkout_opening")
+      return "Checkout is already opening for this account. Try again in a moment.";
     if (error.status === 409) return "You already have a paid plan. Use Manage plan to change or cancel it.";
     if (error.status === 401) return "Your session ended. Sign in again to continue.";
     if (error.status === 403) return "This request was blocked. Reload the page and try again.";
@@ -68,6 +71,7 @@ const PAYMENT_PENDING = "A plan payment is still being confirmed. Check again in
 
 /** Only a failure that a second press can fix offers Try again. */
 function retryable(error: unknown) {
+  if (error instanceof AccountRequestError && error.code === "checkout_opening") return true;
   return !(error instanceof AccountRequestError) || ![401, 403, 404, 409].includes(error.status);
 }
 

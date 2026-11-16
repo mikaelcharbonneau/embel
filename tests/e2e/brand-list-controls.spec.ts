@@ -101,10 +101,6 @@ test("brand controls fixture: alphabetical sorting never changes continuation an
   expect(state.writes).toEqual([]);
 });
 test("brand controls fixture: later-page failure keeps sort plus all already-loaded cards", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: a retried page now brings 50 more cards (100 shown), not the 75 this expects; re-derive the paging expectations",
-  );
   const state = await fixture(page);
   await page.goto("/brands");
   await expect(cards(account(page))).toHaveCount(50);
@@ -115,8 +111,13 @@ test("brand controls fixture: later-page failure keeps sort plus all already-loa
   await expect(cards(account(page))).toHaveCount(50);
   state.status = 200;
   await account(page).getByRole("button", { name: "Try again", exact: true }).click();
-  await expect(cards(account(page))).toHaveCount(75);
-  await expect(cards(account(page)).first()).toContainText("Brand 51");
+  // Pages hold 50 projects: the retry adds Brand 75 to Brand 26 to the 50 already shown, in the chosen order.
+  await expect(cards(account(page))).toHaveCount(100);
+  await expect(account(page).getByRole("alert")).toHaveCount(0);
+  await cards(account(page)).first().scrollIntoViewIfNeeded();
+  await expect(cards(account(page)).first()).toContainText("Brand 26");
+  expect(await (await sortControl(page)).value()).toBe("alphabetical");
+  expect(state.writes).toEqual([]);
 });
 test("brand controls fixture: project sorts never modify durable device drafts, including ones saved with retired project types", async ({
   page,

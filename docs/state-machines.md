@@ -103,9 +103,12 @@ Logo run does not record how many images were asked.
 **R7.** Checkout is refused with `billing_pending` while an earlier payment is still being confirmed, and
 the webhook's sync time is taken before its Stripe read, so an older read cannot overwrite a newer one.
 Opening Checkout first expires the account's earlier open Checkout pages
-(`expireOpenCheckouts`), so two cannot both be paid. Still possible: two requests in the same instant.
-If two subscriptions ever become live, credits are not doubled, but the person is charged twice and
-nothing flags it.
+(`expireOpenCheckouts`), so two cannot both be paid. Two requests in the same instant take turns
+(November 15): `billing_claim_checkout` gives one of them a 30-second claim on the account's billing row
+and the other answers `checkout_opening` (409, Try again); the claim is given back as soon as the page
+exists. If two subscriptions ever become live anyway (a page paid outside the app), credits are not
+doubled, the person is charged twice, and the webhook logs `billing_second_live_subscription`. Nothing
+is cancelled or refunded automatically.
 
 ### Journey and workspace
 
@@ -205,10 +208,14 @@ Each line is one change: declare the machine and replace its copies first, then 
 Done on November 14: every machine in this file is declared or fixed except where a row says otherwise.
 What remains:
 
-1. Two Checkout requests in the same instant, and nothing flags a second live subscription (R7).
-2. The Home form and hook each hold "opening a project" (J7): the tests that would prove a merge safe
+1. The Home form and hook each hold "opening a project" (J7): the tests that would prove a merge safe
    replace the hook.
-3. The Logo screen's timing refs stay refs; `logo-screen-mode.ts` says why for each (S2).
+2. The Logo screen's timing refs stay refs; `logo-screen-mode.ts` says why for each (S2).
+3. "Continue to Naming" on a brand saved before the guided conversation (no `intake.guidedInterview`)
+   leads back to the same page: `src/domain/journey.ts` still points at `/naming`, which only redirects
+   to the conversation, and the conversation shows no Voice section for such a brand. Only data older
+   than the guided conversation is affected; the parked test in `tests/e2e/project-naming.spec.ts`
+   reproduces it.
 
 ## Adding or changing a machine
 

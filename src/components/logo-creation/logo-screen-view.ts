@@ -169,7 +169,10 @@ export function logoScreenView(situation: LogoScreenSituation): LogoScreenView {
     : conceptsDrawing
       ? `I’m drawing six concepts for ${brandName}.`
       : !hasBatch
-        ? `Time for a logo. I’ll draw six concepts for ${brandName}, guided by the designs you liked.`
+        ? situation.engine === false
+          ? // Switched off (docs/emergency-stop.md): Send is held, so say why.
+            "Logo drawing is unavailable right now. Nothing was started; come back a little later."
+          : `Time for a logo. I’ll draw six concepts for ${brandName}, guided by the designs you liked.`
         : hasChosenLogo && chosenConcept
           ? `${chosenConcept} is your logo.`
           : failedNow

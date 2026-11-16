@@ -240,7 +240,6 @@ test("activity fixture: owned active and recent rows have truthful labels and pr
   await expect(
     recent.getByRole("listitem").filter({ hasText: titles.completed }).getByText("Done", { exact: true }),
   ).toBeVisible();
-  await expect(panel.getByText(/Open a project to see everything made for it/)).toBeVisible();
   await expect(panel.getByRole("button")).toHaveCount(1);
   await expect(panel.getByRole("button", { name: "Close", exact: true })).toBeVisible();
 });

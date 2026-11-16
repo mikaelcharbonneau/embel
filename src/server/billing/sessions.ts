@@ -105,20 +105,31 @@ export async function startCheckout(
     customerForOwner(deps, owner, state.customerId),
     priceForPlan(deps.stripe, plan),
   ]);
-  // An account that had no Stripe customer until now has no earlier page to close.
-  if (state.customerId) await expireOpenCheckouts(deps.stripe, customer);
-  const metadata = { embel_owner_id: owner.id, embel_plan: plan };
-  const session = await deps.stripe.checkout.sessions.create({
-    mode: "subscription",
-    customer,
-    client_reference_id: owner.id,
-    line_items: [{ price: price.id, quantity: 1 }],
-    managed_payments: { enabled: true },
-    metadata,
-    subscription_data: { metadata },
-    success_url: `${deps.origin}/plans?checkout=success`,
-    cancel_url: `${deps.origin}/plans?checkout=cancelled`,
-  });
+  // One request at a time per account: two in the same instant would both find no open page and
+  // each open one. The second is refused; the claim ends by itself if this request never returns.
+  if (!(await deps.store.claimCheckout(owner.id))) throw new ApiError("checkout_opening");
+  let session: Stripe.Checkout.Session;
+  try {
+    // An account that had no Stripe customer until now has no earlier page to close.
+    if (state.customerId) await expireOpenCheckouts(deps.stripe, customer);
+    const metadata = { embel_owner_id: owner.id, embel_plan: plan };
+    session = await deps.stripe.checkout.sessions.create({
+      mode: "subscription",
+      customer,
+      client_reference_id: owner.id,
+      line_items: [{ price: price.id, quantity: 1 }],
+      managed_payments: { enabled: true },
+      metadata,
+      subscription_data: { metadata },
+      success_url: `${deps.origin}/plans?checkout=success`,
+      cancel_url: `${deps.origin}/plans?checkout=cancelled`,
+    });
+  } finally {
+    // The page exists (or nothing was opened): the next request closes it like any earlier page.
+    await deps.store.releaseCheckout(owner.id).catch((error: unknown) => {
+      logServerError("billing_release_checkout_failed", error);
+    });
+  }
   return checkedUrl(session.url);
 }
 

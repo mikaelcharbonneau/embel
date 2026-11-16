@@ -12,6 +12,8 @@
   justify-content: space-between;
   gap: var(--space-4) var(--space-6);
   flex-wrap: wrap;
+  /* The Refresh button is absent while the account is checked: keep its height so the card does not move. */
+  min-height: var(--button-height-sm);
 }
 .recorded-usage-header .recorded-usage-refresh {
   flex-shrink: 0;

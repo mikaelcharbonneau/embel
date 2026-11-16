@@ -9,7 +9,7 @@ export type DialogSize = "sm" | "md" | "lg" | "xl";
 
 /**
  * A native dialog for one decision or one focused view. Render it only while it is open: it opens with showModal()
- * on mount (focus moves in and is trapped), closes on Escape, the close button or a backdrop press, and returns
+ * on mount (focus moves in and is trapped; mark one control with `data-dialog-focus` to start there), closes on Escape, the close button or a backdrop press, and returns
  * focus to whatever had it before. While `busy`, it cannot be dismissed so a running action finishes in view.
  * `modal={false}` is for dialogs about the work in the Workspace: they open in the work-area overlay and leave the
  * chat usable.
@@ -64,6 +64,10 @@ export function Dialog({
     if (!dialog.open) {
       if (modal) dialog.showModal();
       else dialog.show();
+      // Opening puts focus on the first control, which is Close. A dialog that names a safer start
+      // (data-dialog-focus, for example Keep editing) gets it instead: React's autoFocus runs while
+      // the dialog is still closed, where focus() does nothing.
+      dialog.querySelector<HTMLElement>("[data-dialog-focus]")?.focus();
     }
     return () => {
       if (dialog.open) dialog.close();

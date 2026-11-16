@@ -77,6 +77,10 @@ it("tells a payment still being confirmed from the other refusals", () => {
   expect(billingErrorMessage(new AccountRequestError(409))).toBe(
     "You already have a paid plan. Use Manage plan to change or cancel it.",
   );
+  // Another request of the same account is opening Checkout: not a paid plan, and a second press helps.
+  expect(billingErrorMessage(new AccountRequestError(409, "checkout_opening"))).toBe(
+    "Checkout is already opening for this account. Try again in a moment.",
+  );
 });
 
 it("says the earlier payment is still being confirmed, with Check again, and reports no error", async () => {

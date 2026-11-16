@@ -117,6 +117,15 @@ export function SignInForm({
     if (document.activeElement !== field) field.focus();
   }, [errors, unavailable]);
 
+  // In the sign-in overlay the dialog opens while the session is still being checked, so its first
+  // focus falls on Close. Once the fields can be used, focus moves to Email unless the person already
+  // moved it somewhere else.
+  useEffect(() => {
+    if (unavailable) return;
+    const field = emailInput.current;
+    if (field && document.activeElement?.matches("dialog .auth-overlay__close")) field.focus();
+  }, [unavailable]);
+
   useEffect(() => () => clearPasswords(), [mode, clearPasswords]);
 
   useEffect(() => {

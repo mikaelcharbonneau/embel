@@ -57,7 +57,11 @@ function fakeStripe() {
     },
   };
 }
-function fakeStore(state: BillingOwnerState): BillingStore & { linkCustomer: ReturnType<typeof vi.fn> } {
+function fakeStore(state: BillingOwnerState): BillingStore & {
+  linkCustomer: ReturnType<typeof vi.fn>;
+  claimCheckout: ReturnType<typeof vi.fn>;
+  releaseCheckout: ReturnType<typeof vi.fn>;
+} {
   return {
     ownerState: vi.fn(async () => state),
     linkCustomer: vi.fn(async (_owner: string, customer: string) => customer),
@@ -66,6 +70,9 @@ function fakeStore(state: BillingOwnerState): BillingStore & { linkCustomer: Ret
     recordEvent: vi.fn(),
     applySubscription: vi.fn(),
     applyInvoice: vi.fn(),
+    claimCheckout: vi.fn(async () => true),
+    releaseCheckout: vi.fn(async () => undefined),
+    liveSubscriptionCount: vi.fn(async () => 1),
   };
 }
 
@@ -171,6 +178,34 @@ describe("checkout", () => {
     expect(response.status).toBe(503);
     expect((await response.json()).error.code).toBe("integration_unavailable");
     expect(stripe.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  it("lets one Checkout request per account through at a time and gives the turn back afterwards", async () => {
+    store = fakeStore({ customerId: "cus_Existing", subscription: null });
+    // Another request of this account is opening Checkout right now.
+    store.claimCheckout.mockResolvedValueOnce(false);
+    let response = await checkout(request("checkout", { plan: "pro" }));
+    expect(response.status).toBe(409);
+    expect((await response.json()).error.code).toBe("checkout_opening");
+    expect(stripe.checkout.sessions.list).not.toHaveBeenCalled();
+    expect(stripe.checkout.sessions.create).not.toHaveBeenCalled();
+    expect(store.releaseCheckout).not.toHaveBeenCalled(); // The turn belongs to the other request.
+    // The turn is taken before open pages are looked at, and given back once the page exists.
+    response = await checkout(request("checkout", { plan: "pro" }));
+    expect(response.status).toBe(200);
+    expect(store.claimCheckout.mock.invocationCallOrder[1]!).toBeLessThan(
+      stripe.checkout.sessions.list.mock.invocationCallOrder[0]!,
+    );
+    expect(stripe.checkout.sessions.create.mock.invocationCallOrder[0]!).toBeLessThan(
+      store.releaseCheckout.mock.invocationCallOrder[0]!,
+    );
+    // Given back after a failure too, so trying again is not held up.
+    stripe.checkout.sessions.list.mockRejectedValueOnce(new Error("network"));
+    expect((await checkout(request("checkout", { plan: "pro" }))).status).toBe(503);
+    expect(store.releaseCheckout).toHaveBeenCalledTimes(2);
+    // A release that fails does not turn an opened page into an error: the turn ends by itself.
+    store.releaseCheckout.mockRejectedValueOnce(new Error("database"));
+    expect((await checkout(request("checkout", { plan: "pro" }))).status).toBe(200);
   });
 
   it("answers that a payment is being confirmed when the earlier page was just paid", async () => {

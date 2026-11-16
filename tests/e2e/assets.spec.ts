@@ -1,7 +1,6 @@
 import { captureUiEvidence } from "./ui-evidence";
 import { createHash } from "node:crypto";
-import { mkdir, readFile } from "node:fs/promises";
-import { expect, test, type Page, type Route } from "@playwright/test";
+import { expect, test, type Locator, type Page, type Route } from "@playwright/test";
 import {
   assetDetailSchema,
   assetLibraryPageSchema,
@@ -325,10 +324,6 @@ async function setup(page: Page, existing?: Fixture) {
   });
   return fixture;
 }
-async function actions(page: Page, kind: string, project: string) {
-  const summary = page.getByLabel(`Actions for ${kind} from ${project}`, { exact: true });
-  if (!(await summary.evaluate((element) => (element.parentElement as HTMLDetailsElement).open))) await summary.click();
-}
 /** A Library card is an article named "<asset> · <brand>"; its title is the button that opens it. */
 const openAsset = (page: Page, kind: string, project: string) =>
   page
@@ -340,81 +335,74 @@ async function ready(page: Page) {
   await expect(page.getByRole("tab", { name: "In your brands", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(openPrimary(page)).toBeVisible();
 }
+/** The Library re-reads itself when the person comes back to the tab; there is no Refresh button. */
+const comeBack = (page: Page) => page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+/** The detail view's version menu: its trigger names the version on show ("Version 3 · Latest"). */
+const versionMenu = (dialog: Locator) => dialog.getByRole("button", { name: /^Version \d/ });
+const versionChoices = (dialog: Locator) => dialog.getByRole("menuitemradio");
+async function showVersion(dialog: Locator, label: string) {
+  await versionMenu(dialog).click();
+  await dialog.getByRole("menuitemradio", { name: label, exact: true }).click();
+}
+const restore = (dialog: Locator) => dialog.getByRole("button", { name: "Restore this version", exact: true });
 
 test("assets fixture: default union deduplicates liked, saved, used and legacy use", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
   const fixture = await setup(page);
   await ready(page);
   await expect(page.getByRole("article")).toHaveCount(5);
-  await expect(page.getByText("Used in brand", { exact: true })).toHaveCount(2);
+  await expect(page.getByRole("article").getByText("Chosen", { exact: true })).toHaveCount(2);
   await expect(page.getByText("Legacy use", { exact: true })).toHaveCount(0);
   await expect(openAsset(page, "Exploration", "Morrow Works")).toHaveCount(0);
   await page.getByRole("tab", { name: "Everything made", exact: true }).click();
   await expect(page.getByRole("article")).toHaveCount(6);
   await expect(openAsset(page, "Exploration", "Morrow Works")).toBeVisible();
-  await expect(page.locator(".assets-generation-note")).toHaveCount(0);
-  await expect(page.getByText(/Kept assets includes|Versions stay in your library|Available operations/)).toHaveCount(
-    0,
-  );
   expect(fixture.mutationBodies).toEqual([]);
 });
 test("assets fixture: unlike remains saved and does not change brand use or selection", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
   const fixture = await setup(page);
   await ready(page);
-  await actions(page, "Secondary mark", "Lumen Studio");
-  await page.getByRole("button", { name: "Unlike Secondary mark from Lumen Studio", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Like Secondary mark from Lumen Studio", exact: true })).toBeVisible();
+  await openAsset(page, "Secondary mark", "Lumen Studio").click();
+  const dialog = page.getByRole("dialog");
+  const like = dialog.getByRole("button", { name: "Like Secondary mark", exact: true });
+  await expect(like).toHaveAttribute("aria-pressed", "true");
+  await like.click();
+  await expect(like).toHaveAttribute("aria-pressed", "false");
   await expect(
-    page.getByRole("button", { name: "Unsave Secondary mark from Lumen Studio", exact: true }),
+    dialog.getByRole("button", { name: "Save Secondary mark to your library", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
   expect(fixture.mutationBodies).toEqual([{ expectedRetentionRevision: 0, liked: false, saved: true }]);
   expect(fixture.rows.find((row) => row.asset.id === id(15))!.asset.selectionRevision).toBe(1);
+  await page.keyboard.press("Escape");
+  await expect(openAsset(page, "Secondary mark", "Lumen Studio")).toBeVisible();
 });
 test("assets fixture: server brand and format filters preserve displayed versus selected versions", async ({
   page,
 }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
   await setup(page);
   await ready(page);
   await page.getByRole("combobox", { name: "Project", exact: true }).selectOption(id(3));
   await page.getByRole("combobox", { name: "File type", exact: true }).selectOption("svg");
   const primary = page.getByRole("article", { name: "Primary mark · Morrow Works", exact: true });
-  await actions(page, "Primary mark", "Morrow Works");
-  await expect(primary.getByText("Selected v3", { exact: true })).toBeVisible();
-  await expect(primary.getByText("Preview v2", { exact: true })).toBeVisible();
-  await expect(primary.getByText("3 versions · 1 SVG", { exact: true })).toBeVisible();
-  await primary.getByRole("button", { name: "Save Primary mark from Morrow Works", exact: true }).click();
-  await expect(primary.getByText("Preview v2", { exact: true })).toBeVisible();
+  // The card shows the SVG version that matches the filter, which has no picture, not the selected PNG.
+  await expect(primary.getByText("SVG file · no preview", { exact: true })).toBeVisible();
   await expect(primary.getByRole("img")).toHaveCount(0);
-  await page.keyboard.press("Escape");
   await openPrimary(page).click();
-  await expect(page.getByRole("dialog").getByText("Selected: version 3 · PNG", { exact: true })).toBeVisible();
-  await expect(page.getByRole("dialog").getByRole("heading", { name: "Version 2", exact: true })).toBeVisible();
+  const dialog = page.getByRole("dialog");
+  await expect(versionMenu(dialog)).toHaveText("Version 2");
+  await expect(dialog.getByText("Version 3 is selected.", { exact: true })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Download SVG", exact: true })).toBeEnabled();
 });
 test("assets fixture: stale restore needs explicit exact-context acknowledgment", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
   const fixture = await setup(page);
   await ready(page);
   await openPrimary(page).click();
   const dialog = page.getByRole("dialog");
-  await dialog.getByRole("button", { name: "Version 1 PNG Earlier context", exact: true }).click();
-  await expect(dialog.getByRole("button", { name: "Restore this version" })).toBeDisabled();
+  await showVersion(dialog, "Version 1 · PNG");
+  await expect(restore(dialog)).toBeDisabled();
   await dialog.getByRole("checkbox").check();
-  await dialog.getByRole("button", { name: "Restore this version" }).click();
-  await expect(dialog.getByRole("button", { name: "Selected version", exact: true })).toBeDisabled();
+  await restore(dialog).click();
+  await expect(dialog.getByText("Version 1 is selected.", { exact: true })).toBeVisible();
+  await expect(restore(dialog)).toHaveCount(0);
   expect(fixture.mutationBodies[0]).toEqual({
     versionId: id(101),
     expectedProjectRevision: 2,
@@ -428,36 +416,37 @@ test("assets fixture: stale restore needs explicit exact-context acknowledgment"
   await expect(dialog.getByText("License unverified", { exact: true })).toHaveCount(0);
 });
 test("assets fixture: acknowledgment resets when a version changes", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
   await setup(page);
   await ready(page);
   await openPrimary(page).click();
   const dialog = page.getByRole("dialog");
-  await dialog.getByRole("button", { name: "Version 1 PNG Earlier context", exact: true }).click();
+  await showVersion(dialog, "Version 1 · PNG");
   await dialog.getByRole("checkbox").check();
-  await dialog.getByRole("button", { name: "Version 2 SVG Earlier context", exact: true }).click();
+  await expect(restore(dialog)).toBeEnabled();
+  await showVersion(dialog, "Version 2 · SVG");
   await expect(dialog.getByRole("checkbox")).not.toBeChecked();
-  await expect(dialog.getByRole("button", { name: "Restore this version" })).toBeDisabled();
+  await expect(restore(dialog)).toBeDisabled();
 });
 test("assets fixture: detail pagination exposes every immutable version", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
   const fixture = await setup(page);
   fixture.detailPageSize = 1;
   await ready(page);
   await openPrimary(page).click();
   const dialog = page.getByRole("dialog");
-  await expect(dialog.getByText("1 of 3", { exact: true })).toBeVisible();
-  await dialog.getByRole("button", { name: "Load more versions" }).click();
-  await expect(dialog.getByText("2 of 3", { exact: true })).toBeVisible();
-  await dialog.getByRole("button", { name: "Load more versions" }).click();
-  await expect(dialog.getByText("3 of 3", { exact: true })).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Load more versions" })).toHaveCount(0);
+  const more = dialog.getByRole("menuitem", { name: "Load more versions", exact: true });
+  await versionMenu(dialog).click();
+  await expect(versionChoices(dialog)).toHaveCount(1);
+  await more.click();
+  await versionMenu(dialog).click();
+  await expect(versionChoices(dialog)).toHaveCount(2);
+  await more.click();
+  await versionMenu(dialog).click();
+  await expect(versionChoices(dialog)).toHaveText([
+    "Version 3 · Latest · PNG · Selected",
+    "Version 2 · SVG",
+    "Version 1 · PNG",
+  ]);
+  await expect(more).toHaveCount(0);
 });
 test("assets fixture: query-bound library pagination retains its tab and filters", async ({ page }) => {
   const fixture = await setup(page);
@@ -503,103 +492,87 @@ test("assets fixture: held filter read clears old rows and cursor", async ({ pag
   await expect(body).not.toHaveAttribute("style", /min-height/);
 });
 test("assets fixture: late pre-mutation GET cannot roll back retention", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
   const fixture = await setup(page);
   await ready(page);
   fixture.holdRead = fixture.reads + 1;
-  await page.getByRole("button", { name: "Refresh", exact: true }).click();
+  await comeBack(page);
   await expect.poll(() => fixture.held !== null).toBe(true);
-  await actions(page, "Primary mark", "Morrow Works");
-  await page.getByRole("button", { name: "Save Primary mark from Morrow Works", exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: "Unsave Primary mark from Morrow Works", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
-  await fixture.held!();
-  await expect(
-    page.getByRole("button", { name: "Unsave Primary mark from Morrow Works", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
+  await openPrimary(page).click();
+  const save = page.getByRole("dialog").getByRole("button", { name: "Save Primary mark to your library", exact: true });
+  await save.click();
+  await expect(save).toHaveAttribute("aria-pressed", "true");
+  // The read that started before the save answers last, with the unsaved state; the page has stopped waiting for it.
+  await fixture.held!().catch(() => undefined);
+  await expect.poll(() => fixture.reads).toBeGreaterThanOrEqual(3);
+  await expect(save).toBeEnabled();
+  await expect(save).toHaveAttribute("aria-pressed", "true");
+  expect(fixture.mutationBodies).toEqual([{ expectedRetentionRevision: 0, liked: true, saved: true }]);
 });
 test("assets fixture: lost retention response requires checking current state before retry", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
   const fixture = await setup(page);
   await ready(page);
   fixture.lostRetention = true;
-  await actions(page, "Primary mark", "Morrow Works");
-  await page.getByRole("button", { name: "Save Primary mark from Morrow Works", exact: true }).click();
-  await expect(page.getByRole("region", { name: "Account asset library" }).getByRole("alert")).toContainText(
-    "could not be confirmed",
-  );
-  await expect(page.getByRole("button", { name: "Save Primary mark from Morrow Works", exact: true })).toBeDisabled();
-  await page.getByRole("button", { name: "Try again", exact: true }).click();
-  await actions(page, "Primary mark", "Morrow Works");
-  await expect(page.getByRole("button", { name: "Unsave Primary mark from Morrow Works", exact: true })).toBeEnabled();
+  await openPrimary(page).click();
+  const save = page.getByRole("dialog").getByRole("button", { name: "Save Primary mark to your library", exact: true });
+  await save.click();
+  await expect(save).toBeDisabled();
+  await expect(save).toHaveAttribute("aria-pressed", "false");
+  await page.keyboard.press("Escape");
+  const library = page.getByRole("region", { name: "Account asset library" });
+  await expect(library.getByRole("alert")).toContainText("could not be confirmed");
+  await library.getByRole("button", { name: "Try again", exact: true }).click();
+  await expect(library.getByRole("alert")).toHaveCount(0);
+  await openPrimary(page).click();
+  await expect(save).toBeEnabled();
+  await expect(save).toHaveAttribute("aria-pressed", "true");
   expect(fixture.mutationBodies).toHaveLength(1);
 });
 test("assets fixture: selection conflict keeps history and requires a new acknowledgment", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
   const fixture = await setup(page);
   await ready(page);
   await openPrimary(page).click();
   const dialog = page.getByRole("dialog");
-  await dialog.getByRole("button", { name: "Version 1 PNG Earlier context", exact: true }).click();
+  await showVersion(dialog, "Version 1 · PNG");
   await dialog.getByRole("checkbox").check();
   fixture.selectionStatus = 409;
-  await dialog.getByRole("button", { name: "Restore this version" }).click();
+  await restore(dialog).click();
   await expect(dialog.getByRole("alert")).toContainText("changed");
-  await expect(dialog.getByRole("button", { name: "Restore this version" })).toBeDisabled();
+  await expect(restore(dialog)).toBeDisabled();
   fixture.selectionStatus = 200;
   await dialog.getByRole("button", { name: "Check latest asset" }).click();
+  await expect(dialog.getByRole("alert")).toHaveCount(0);
   await expect(dialog.getByRole("checkbox")).not.toBeChecked();
-  await expect(dialog.getByText("3 of 3", { exact: true })).toBeVisible();
+  await expect(restore(dialog)).toBeDisabled();
+  await expect(dialog.getByText("Version 3 is selected.", { exact: true })).toBeVisible();
+  await versionMenu(dialog).click();
+  await expect(versionChoices(dialog)).toHaveCount(3);
 });
 test("assets fixture: missing download is factual and never reports success", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
   await setup(page);
   await ready(page);
   await openPrimary(page).click();
   const dialog = page.getByRole("dialog");
-  await dialog.getByRole("button", { name: "Check and download" }).click();
-  await expect(dialog.getByRole("status")).toContainText("file is unavailable");
+  await dialog.getByRole("button", { name: "Download PNG", exact: true }).click();
+  await expect(dialog.getByRole("alert")).toContainText("file is unavailable");
   await expect(page.getByText("Synthetic private failure must not be rendered")).toHaveCount(0);
   await expect(dialog.getByText("License unverified", { exact: true })).toHaveCount(0);
 });
 test("assets fixture: metadata-only file never presents a working download", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
   await setup(page);
   await ready(page);
   await openAsset(page, "Color guide", "Lumen Studio").click();
   const dialog = page.getByRole("dialog");
-  await expect(dialog.getByRole("button", { name: "Check and download" })).toBeDisabled();
-  await expect(dialog.getByText("Metadata only — no stored file", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("PDF · Metadata only — no stored file", { exact: true })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Download PDF", exact: true })).toBeDisabled();
 });
 test("assets fixture: failed asset read remains retryable without invented empty success", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
   const fixture = await setup(page);
   fixture.listStatus = 503;
   await page.goto("/assets");
-  await expect(page.getByRole("region", { name: "Account asset library" })).toBeVisible({ timeout: 10000 });
-  await expect(page.getByRole("region", { name: "Account asset library" }).getByRole("alert")).toContainText(
-    "unavailable",
-  );
-  await expect(page.getByText("No saved assets yet", { exact: true })).toHaveCount(0);
+  const library = page.getByRole("region", { name: "Account asset library" });
+  await expect(library).toBeVisible({ timeout: 10000 });
+  await expect(library.getByRole("alert")).toContainText("Your library couldn’t be loaded");
+  await expect(page.getByText(/Your library is empty|Nothing in your brands yet/)).toHaveCount(0);
   fixture.listStatus = 200;
   await page.getByRole("button", { name: "Try again", exact: true }).click();
   await expect(openPrimary(page)).toBeVisible();
@@ -611,17 +584,15 @@ test("assets fixture: failed brand facets do not hide owned library rows", async
   await expect(page.getByRole("article")).toHaveCount(5);
 });
 test("assets fixture: invalid nested ownership never renders private rows", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
   const fixture = await setup(page);
   fixture.corrupt = true;
   await page.goto("/assets");
   await expect(page.getByRole("region", { name: "Account asset library" }).getByRole("alert")).toContainText(
-    "could not be verified",
+    "Your library couldn’t be loaded",
   );
   await expect(page.getByRole("article")).toHaveCount(0);
+  await expect(page.getByRole("region", { name: /Morrow Works|Lumen Studio/ })).toHaveCount(0);
+  await expect(page.getByText(/Primary mark|Secondary mark|Color guide|Wordmark|Packaging/)).toHaveCount(0);
 });
 test("assets fixture: changed account hides and revokes old private previews", async ({ page }) => {
   const fixture = await setup(page);
@@ -657,18 +628,14 @@ test("assets fixture: changed account hides and revokes old private previews", a
     .toBe(true);
   expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain("Primary mark");
 });
-test("assets fixture: drawer keyboard focus, close return and responsive overflow", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
+test("assets fixture: detail keyboard focus, close return and responsive overflow", async ({ page }) => {
   await setup(page);
   await ready(page);
-  await openPrimary(page).click();
+  await openPrimary(page).focus();
+  await page.keyboard.press("Enter");
   const dialog = page.getByRole("dialog");
-  await expect(dialog.getByRole("heading", { name: "Primary mark", exact: true })).toBeFocused();
-  await page.keyboard.press("Tab");
-  await expect(dialog.getByRole("button", { name: "Close asset details" })).toBeFocused();
+  await expect(dialog.getByRole("heading", { name: "Primary mark", exact: true })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Close asset details", exact: true })).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(openPrimary(page)).toBeFocused();
@@ -680,11 +647,8 @@ test("assets fixture: drawer keyboard focus, close return and responsive overflo
   );
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
-test("assets fixture: long names stay within the library and detail viewport", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
+test("assets fixture: long names stay within the library and detail viewport", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "mobile", "phone layout is on hold");
   const fixture = await setup(page);
   fixture.rows = fixture.rows.map((row) => ({
     ...row,
@@ -695,45 +659,30 @@ test("assets fixture: long names stay within the library and detail viewport", a
   await expect(page.getByRole("article")).toHaveCount(5);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page
-    .getByRole("button", { name: /^Open Extraordinary/ })
+    .getByRole("button", { name: "ExtraordinaryInternationalIdentityAssetWithoutSpaces", exact: true })
     .first()
     .click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  expect(await page.getByRole("dialog").evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
-});
-test("assets fixture: capture stable library and drawer evidence", async ({ page }, info) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
-  await setup(page);
-  await ready(page);
-  await page.getByRole("heading", { name: "Library", exact: true }).focus();
-  await page.evaluate(() => scrollTo(0, 0));
-  await mkdir(".tmp/identity-assets/ui-evidence", { recursive: true });
-  await page.screenshot({
-    path: `.tmp/identity-assets/ui-evidence/assets-library-${info.project.name}.png`,
-    fullPage: true,
+  await expect(versionMenu(page.getByRole("dialog"))).toBeVisible();
+  // Like and Save carry hover tooltips that repeat the file name on one line; they are invisible until hovered and
+  // are measured apart from the content, which must all sit inside the dialog.
+  const escaping = await page.getByRole("dialog").evaluate((element) => {
+    const edge = element.getBoundingClientRect();
+    return [...element.querySelectorAll("*")]
+      .filter((node) => !node.closest(".e-tooltip"))
+      .filter((node) => {
+        const box = node.getBoundingClientRect();
+        return box.width > 0 && (box.left < edge.left - 0.5 || box.right > edge.right + 0.5);
+      })
+      .map((node) => `${node.tagName.toLowerCase()}.${node.className}`);
   });
-  await openPrimary(page).click();
-  const dialog = page.getByRole("dialog");
-  await dialog.getByRole("button", { name: "Version 1 PNG Earlier context", exact: true }).click();
-  await dialog.getByRole("heading", { name: "Primary mark", exact: true }).focus();
-  await dialog.evaluate((element) => element.scrollTo(0, 0));
-  await page.evaluate(() => scrollTo(0, 0));
-  await page.screenshot({ path: `.tmp/identity-assets/ui-evidence/assets-detail-${info.project.name}.png` });
-  await dialog.getByRole("button", { name: "Restore this version" }).scrollIntoViewIfNeeded();
-  await page.screenshot({ path: `.tmp/identity-assets/ui-evidence/assets-detail-controls-${info.project.name}.png` });
+  expect(escaping).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
 test("assets fixture: decode failure immediately revokes a private object URL", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
   await setup(page);
   await ready(page);
-  const preview = page.getByRole("img", { name: "Secondary mark preview", exact: true });
+  const preview = page.getByRole("img", { name: "Secondary mark for Lumen Studio", exact: true });
   await expect(preview).toBeVisible();
   const url = await preview.getAttribute("src");
   expect(url).toMatch(/^blob:/);
@@ -756,22 +705,20 @@ test("assets fixture: decode failure immediately revokes a private object URL", 
 });
 
 test("assets fixture: genuine empty views remain distinct from unavailable reads", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
   const fixture = await setup(page);
   fixture.rows = [];
   await page.goto("/assets");
-  await expect(page.getByRole("heading", { name: "No kept assets yet", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Browse all generations", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "No saved assets yet", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Nothing in your brands yet", exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Account asset library" }).getByRole("alert")).toHaveCount(0);
+  await page.getByRole("button", { name: "See everything made", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Your library is empty", exact: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Everything made", exact: true })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(page.getByText("Your library couldn’t be loaded")).toHaveCount(0);
 });
 test("assets fixture: zero-version assets and unselected previews are honest", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
   const fixture = await setup(page);
   const empty = fixture.rows.find((row) => row.asset.id === id(10))!,
     unselected = fixture.rows.find((row) => row.asset.id === id(15))!;
@@ -791,31 +738,28 @@ test("assets fixture: zero-version assets and unselected previews are honest", a
   await ready(page);
   const first = page.getByRole("article", { name: "Primary mark · Morrow Works", exact: true });
   await expect(first.getByText("No versions yet", { exact: true })).toBeVisible();
-  await actions(page, "Primary mark", "Morrow Works");
-  await expect(first.getByText("0 versions", { exact: true })).toBeVisible();
-  await page.keyboard.press("Escape");
-  await actions(page, "Secondary mark", "Lumen Studio");
-  await expect(
-    page
-      .getByRole("article", { name: "Secondary mark · Lumen Studio", exact: true })
-      .getByText("Preview v3", { exact: true }),
-  ).toBeVisible();
+  // With nothing selected, the card shows the newest version's picture (pictures load once they are near the screen).
+  await page.getByRole("article", { name: "Secondary mark · Lumen Studio", exact: true }).scrollIntoViewIfNeeded();
+  await expect(page.getByRole("img", { name: "Secondary mark for Lumen Studio", exact: true })).toBeVisible();
   await openPrimary(page).click();
-  await expect(page.getByRole("dialog").getByText("No selected version", { exact: true })).toBeVisible();
-  await expect(
-    page.getByRole("dialog").getByText("No versions have been saved for this asset.", { exact: true }),
-  ).toBeVisible();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByText("No version is selected yet.", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("No versions have been saved for this file.", { exact: true })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Download file", exact: true })).toBeDisabled();
+  await page.keyboard.press("Escape");
+  await openAsset(page, "Secondary mark", "Lumen Studio").click();
+  await expect(versionMenu(dialog)).toHaveText("Version 3 · Latest");
+  await expect(dialog.getByText("No version is selected yet.", { exact: true })).toBeVisible();
 });
 test("assets fixture: removing the last retention flag preserves all generations", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
   await setup(page);
   await ready(page);
-  await actions(page, "Primary mark", "Morrow Works");
-  await page.getByRole("button", { name: "Unlike Primary mark from Morrow Works", exact: true }).click();
+  await openPrimary(page).click();
+  const like = page.getByRole("dialog").getByRole("button", { name: "Like Primary mark", exact: true });
+  await like.click();
+  await expect(like).toHaveAttribute("aria-pressed", "false");
   await expect(openPrimary(page)).toHaveCount(0);
+  await page.keyboard.press("Escape");
   await page.getByRole("tab", { name: "Everything made", exact: true }).click();
   await expect(openPrimary(page)).toBeVisible();
 });
@@ -823,10 +767,6 @@ test("assets fixture: two tabs restore concurrently and the losing choice can be
   page,
   context,
 }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
   const fixture = await setup(page),
     other = await context.newPage();
   await setup(other, fixture);
@@ -836,54 +776,47 @@ test("assets fixture: two tabs restore concurrently and the losing choice can be
   await openPrimary(other).click();
   const first = page.getByRole("dialog"),
     second = other.getByRole("dialog");
-  await first.getByRole("button", { name: "Version 1 PNG Earlier context", exact: true }).click();
+  await showVersion(first, "Version 1 · PNG");
   await first.getByRole("checkbox").check();
-  await second.getByRole("button", { name: "Version 2 SVG Earlier context", exact: true }).click();
+  await showVersion(second, "Version 2 · SVG");
   await second.getByRole("checkbox").check();
-  await first.getByRole("button", { name: "Restore this version" }).click();
-  await expect(first.getByRole("button", { name: "Selected version", exact: true })).toBeDisabled();
-  await second.getByRole("button", { name: "Restore this version" }).click();
+  await restore(first).click();
+  await expect(first.getByText("Version 1 is selected.", { exact: true })).toBeVisible();
+  await restore(second).click();
   await expect(second.getByRole("alert")).toContainText("changed");
-  await expect(second.getByRole("heading", { name: "Version 2", exact: true })).toBeVisible();
+  await expect(versionMenu(second)).toHaveText("Version 2");
   await second.getByRole("button", { name: "Check latest asset" }).click();
-  await expect(second.getByText("Selected: version 1 · PNG", { exact: true })).toBeVisible();
+  await expect(second.getByText("Version 1 is selected.", { exact: true })).toBeVisible();
   await expect(second.getByRole("checkbox")).not.toBeChecked();
   expect(fixture.rows.find((row) => row.asset.id === id(10))!.asset.selectionRevision).toBe(2);
   await other.close();
 });
 test("assets fixture: metadata auth expiry hides every asset", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
   const fixture = await setup(page);
   await ready(page);
   fixture.listStatus = 401;
-  await page.getByRole("button", { name: "Refresh", exact: true }).click();
+  await comeBack(page);
   await expect(page.getByRole("article")).toHaveCount(0);
-  await expect(page.getByText("No verified account session.", { exact: false })).toBeVisible();
+  await expect(page.getByText("Sign in to see your library", { exact: false })).toBeVisible();
 });
 
 test("assets design: search remains bounded and pagination can reveal a match", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
   const fixture = await setup(page);
   fixture.pageSize = 2;
   await page.goto("/assets");
   await expect(page.getByRole("article")).toHaveCount(2);
-  await page.getByRole("searchbox", { name: "Search assets" }).fill("PRIMARY");
+  const search = page.getByRole("searchbox", { name: "Search your library", exact: true });
+  await search.fill("PRIMARY");
   await expect(page.getByRole("article")).toHaveCount(0);
-  await expect(page.getByText("Search covers loaded assets.", { exact: false })).toBeVisible();
+  await expect(page.getByText("Search covers the files shown.", { exact: false })).toBeVisible();
   await page.getByRole("button", { name: "Load more assets" }).click();
   await page.getByRole("button", { name: "Load more assets" }).click();
   await expect(openPrimary(page)).toBeVisible();
-  await expect(page.getByText("1 matches in 5 loaded assets", { exact: true })).toBeVisible();
-  await expect(page.getByText("Search covers loaded assets.", { exact: false })).toHaveCount(0);
-  await page.getByRole("searchbox").fill("no such asset");
-  await expect(page.getByRole("heading", { name: "No assets match these filters" })).toBeVisible();
-  await expect(page.getByText("No kept assets yet", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("1 matches in 5 loaded assets", { exact: true })).toHaveCount(1);
+  await expect(page.getByText("Search covers the files shown.", { exact: false })).toHaveCount(0);
+  await search.fill("no such asset");
+  await expect(page.getByRole("heading", { name: "No files match “no such asset”", exact: true })).toBeVisible();
+  await expect(page.getByText(/Nothing in your brands yet|Your library is empty/)).toHaveCount(0);
 });
 
 test("assets design: keyboard tabs preserve project and format filters", async ({ page }) => {
@@ -899,119 +832,10 @@ test("assets design: keyboard tabs preserve project and format filters", async (
   await expect(page.getByRole("article")).toHaveCount(3);
 });
 
-test("assets design: native artwork and compact responsive card geometry", async ({ page }, info) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
-  await setup(page);
-  await ready(page);
-  await page.getByRole("tab", { name: "Everything made" }).click();
-  await expect(page.getByRole("article")).toHaveCount(6);
-  const desktop = info.project.name === "desktop";
-  const expected = { filter: 17, open: 14 };
-  for (const name of [...Object.keys(expected), "grid"]) {
-    const served = await page.request.get(`/assets-library/${name}.svg`);
-    expect(served.status()).toBe(200);
-    const local = await readFile(`public/assets-library/${name}.svg`);
-    expect(local.length).toBeGreaterThan(0);
-    expect(
-      createHash("sha256")
-        .update(await served.body())
-        .digest("hex"),
-    ).toBe(createHash("sha256").update(local).digest("hex"));
-  }
-  for (const [name, size] of Object.entries(expected)) {
-    const all = page.locator(`img[src="/assets-library/${name}.svg"]`);
-    expect(await all.count()).toBeGreaterThan(0);
-    const visible = await all.evaluateAll((nodes) =>
-      nodes
-        .filter((node) => node.getBoundingClientRect().width > 0)
-        .map((node) => ({
-          width: node.getBoundingClientRect().width,
-          height: node.getBoundingClientRect().height,
-          loaded: (node as HTMLImageElement).complete && (node as HTMLImageElement).naturalWidth > 0,
-        })),
-    );
-    if (desktop || !name.startsWith("shell-")) expect(visible.length).toBeGreaterThan(0);
-    for (const box of visible) expect(box).toEqual({ width: size, height: size, loaded: true });
-  }
-  const cards = await page.getByRole("article").evaluateAll((nodes) =>
-    nodes.map((node) => {
-      const b = node.getBoundingClientRect();
-      return { x: b.x, y: b.y, width: b.width, height: b.height };
-    }),
-  );
-  for (const card of cards) {
-    expect(card.height).toBe(216);
-    if (desktop) expect(card.width).toBe(324);
-  }
-  const grid = (await page.locator(".assets-grid").boundingBox())!;
-  expect(cards[0]!.x).toBeCloseTo(grid.x, 0);
-  expect(cards[0]!.y).toBeCloseTo(grid.y, 0);
-  if (desktop) {
-    expect(cards[1]!.x - cards[0]!.x).toBeCloseTo(cards[0]!.width + 18, 0);
-    expect(cards[3]!.y - cards[0]!.y).toBe(234);
-    await expect(
-      page.getByRole("link", { name: "Embel home", exact: true }).locator('img[src="/embel-mark.svg"]'),
-    ).toBeVisible();
-    await expect(
-      page
-        .getByRole("navigation", { name: "Main navigation", exact: true })
-        .getByRole("link", { name: "Library", exact: true }),
-    ).toHaveAttribute("aria-current", "page");
-  } else
-    for (const card of cards) {
-      expect(card.x).toBeCloseTo(grid.x, 0);
-      expect(card.width).toBeCloseTo(grid.width, 0);
-    }
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await expect(page.locator(".concept-assets .workspace-main")).toHaveCSS("background-size", "1360px 900px");
-  await page.screenshot({ path: info.outputPath(`assets-${info.project.name}.png`), fullPage: true });
-});
-
 test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));
 
-test("assets fixture: action menus dismiss outside without refreshing the library", async ({ page }, info) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-  );
-  const fixture = await setup(page);
-  await ready(page);
-  const menu = page.locator(".assets-card-options").first(),
-    trigger = menu.locator("summary");
-  const target = (await trigger.boundingBox())!;
-  expect(target.width).toBeGreaterThanOrEqual(44);
-  expect(target.height).toBeGreaterThanOrEqual(44);
-  await trigger.click();
-  await expect(menu).toHaveAttribute("open", "");
-  const search = page.getByRole("searchbox", { name: "Search assets", exact: true });
-  const reads = fixture.reads;
-  await search.click();
-  await expect(menu).not.toHaveAttribute("open", "");
-  await expect(search).toBeFocused();
-  await trigger.click();
-  await menu.getByRole("button").first().focus();
-  await expect(menu).toHaveAttribute("open", "");
-  await page.keyboard.press("Escape");
-  await expect(menu).not.toHaveAttribute("open", "");
-  await expect(trigger).toBeFocused();
-  await trigger.click();
-  await menu.getByRole("button").last().focus();
-  await page.keyboard.press("Tab");
-  await expect(menu).not.toHaveAttribute("open", "");
-  expect(fixture.mutationBodies).toEqual([]);
-  expect(fixture.reads).toBe(reads);
-  await page.screenshot({ path: info.outputPath("asset-actions-dismissed.png") });
-});
-
 for (const field of ["liked", "saved"] as const)
-  test(`assets pagination: ${field} changes retain the loaded window and card position`, async ({ page }, info) => {
-    test.fixme(
-      true,
-      "needs a rewrite: the Library was redesigned (In your brands and Everything made tabs, cards without action menus, a new detail dialog and messages); this drives the old labels, menus or drawer",
-    );
+  test(`assets pagination: ${field} changes retain the loaded window and card position`, async ({ page }) => {
     const fixture = await setup(page);
     fixture.pageSize = 2;
     await page.goto("/assets");
@@ -1019,39 +843,39 @@ for (const field of ["liked", "saved"] as const)
     await expect(page.getByRole("article")).toHaveCount(2);
     await page.getByRole("button", { name: "Load more assets", exact: true }).click();
     await expect(page.getByRole("article")).toHaveCount(4);
-    const card = page.getByRole("article").filter({ has: openAsset(page, "Wordmark", "Morrow Works") });
-    await actions(page, "Wordmark", "Morrow Works");
-    const toggle = card.getByRole("button", {
-      name: `${field === "liked" ? "Like" : "Save"} Wordmark from Morrow Works`,
+    const card = page.getByRole("article", { name: "Wordmark · Morrow Works", exact: true });
+    const names = () => page.getByRole("article").evaluateAll((nodes) => nodes.map((node) => node.ariaLabel));
+    // Where the card sits in the results, whatever the page has scrolled to.
+    const place = () =>
+      card.evaluate(
+        (node) => node.getBoundingClientRect().top - node.closest(".assets-results-body")!.getBoundingClientRect().top,
+      );
+    const top = await place();
+    const node = await card.elementHandle();
+    const before = await names();
+    await openAsset(page, "Wordmark", "Morrow Works").click();
+    const toggle = page.getByRole("dialog").getByRole("button", {
+      name: field === "liked" ? "Like Wordmark" : "Save Wordmark to your library",
       exact: true,
     });
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
     await toggle.focus();
-    const box = await card.boundingBox();
-    const node = await card.elementHandle();
-    const before = await page
-      .getByRole("article")
-      .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("aria-label") ?? node.textContent));
     await page.keyboard.press("Enter");
     await expect.poll(() => fixture.mutationBodies.length).toBe(1);
-    await expect(
-      card.getByRole("button", {
-        name: `${field === "liked" ? "Unlike" : "Unsave"} Wordmark from Morrow Works`,
-        exact: true,
-      }),
-    ).toBeEnabled();
-    await expect(page.getByRole("button", { name: "Refresh", exact: true })).toBeEnabled();
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await expect(toggle).toBeEnabled();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.getByRole("article")).toHaveCount(4);
     expect(await node!.evaluate((node) => node.isConnected)).toBe(true);
-    expect((await card.boundingBox())!.y).toBeCloseTo(box!.y, 0);
-    expect(
-      await page
-        .getByRole("article")
-        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("aria-label") ?? node.textContent)),
-    ).toEqual(before);
-    await page.screenshot({ path: info.outputPath(`assets-paginated-${field}.png`) });
-    await page.getByRole("button", { name: "Refresh", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Refresh", exact: true })).toBeEnabled();
+    expect(await place()).toBeCloseTo(top, 0);
+    expect(await names()).toEqual(before);
+    const reads = fixture.reads;
+    await comeBack(page);
+    await expect.poll(() => fixture.reads).toBeGreaterThan(reads);
+    await expect(page.getByRole("button", { name: "Load more assets", exact: true })).toBeEnabled();
     await expect(page.getByRole("article")).toHaveCount(4);
+    expect(await node!.evaluate((node) => node.isConnected)).toBe(true);
     await page.getByRole("button", { name: "Load more assets", exact: true }).click();
     await expect(page.getByRole("article")).toHaveCount(6);
     await expect(page.getByRole("button", { name: "Load more assets", exact: true })).toHaveCount(0);

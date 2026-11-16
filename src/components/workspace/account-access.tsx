@@ -23,7 +23,7 @@ export function useSignOutFlow(): { start: (discardUnsaved?: boolean) => Promise
       onClose={() => setConfirming(false)}
       footer={
         <>
-          <Button variant="secondary" autoFocus onClick={() => setConfirming(false)}>
+          <Button variant="secondary" data-dialog-focus onClick={() => setConfirming(false)}>
             Keep editing
           </Button>
           <Button

@@ -265,35 +265,6 @@ async function expectUnsaved(page: Page) {
   await expect(page.locator(".guided-brief-editor [role=status]")).toHaveText("Changes not saved");
 }
 
-test("account fixture: Naming entry preserves the saved-context boundary", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Review saved name link into a separate Naming page is gone; a brand whose strategy needs review now shows a notice with Continue Strategy review",
-  );
-  const project = fixtureProject();
-  const state = await accountFixtures(page, [project]);
-  await Promise.all([waitForAccountProject(page), page.goto(`/brands/account/${projectA}?view=strategy`)]);
-  await expect(page.getByRole("link", { name: "Review saved name", exact: true })).toHaveAttribute(
-    "href",
-    `/brands/account/${projectA}/naming`,
-  );
-  state.patchStatus = 503;
-  await page.getByRole("button", { name: "Edit brief", exact: true }).click();
-  const editor = page.getByRole("dialog", { name: "Edit current brief", exact: true });
-  await editor.getByRole("textbox", { name: "Project label", exact: true }).fill("Unsaved naming entry fixture");
-  await expect(editor.getByRole("status")).toHaveText("Changes not saved");
-  await editor.getByRole("button", { name: "Close", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Review saved name", exact: true })).toBeDisabled();
-  state.patchStatus = 200;
-  await page.getByRole("button", { name: "Retry save", exact: true }).first().click();
-  await expect(page.getByRole("link", { name: "Review saved name", exact: true })).toHaveAttribute(
-    "href",
-    `/brands/account/${projectA}/naming`,
-  );
-  expect(state.projects.get(projectA)?.title).toBe("Unsaved naming entry fixture");
-  expect(state.writes.every((write) => write.path === `/api/projects/${projectA}`)).toBe(true);
-});
-
 test("account fixture: a brand needs a reviewed strategy before Naming", async ({ page }) => {
   const project = fixtureProject();
   project.context.intake.audienceReviewedAt = null;
@@ -339,7 +310,8 @@ test("account fixture: explicit browser copy preserves legacy notes, audience an
     })
     .check();
   await page.getByRole("button", { name: "Save project", exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectA}(\\?view=strategy)?$`));
+  // A brand with a saved name and a Strategy still to review opens on the conversation's Strategy section.
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectA}\\?view=strategy(#journey-strategy)?$`));
   await openAccount(page);
   await expectSavedVersion(page, 1);
   const recoveredDraft = JSON.parse((await browserData(page))!).drafts[0];

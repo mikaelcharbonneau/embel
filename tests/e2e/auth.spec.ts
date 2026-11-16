@@ -245,6 +245,12 @@ async function revealAccountMenu(page: Page) {
   if (await accountMenuButton(page).count()) await openAccountMenu(page);
 }
 
+/** The sign-in page has no link of its own back to Home; the navigation's Home is the way back. */
+const homeLink = (page: Page) =>
+  page
+    .getByRole("navigation", { name: "Main navigation", exact: true })
+    .getByRole("link", { name: "Home", exact: true });
+
 async function triggerAutomaticRefresh(page: Page) {
   await page.evaluate(() => {
     window.dispatchEvent(new Event("focus"));
@@ -282,7 +288,7 @@ test("auth fixture: unconfigured sign-in stays accessible and does not accept cr
     scale: "css",
     style: "nextjs-portal { visibility: hidden; }",
   });
-  await page.getByRole("link", { name: "Return to Home", exact: true }).click();
+  await homeLink(page).click();
   await expect(page).toHaveURL(/\/$/);
   await revealAccountMenu(page);
 });
@@ -319,7 +325,9 @@ test("auth fixture: pending sign-in blocks refresh and sign-out across internal 
   const pendingPassword = form.getByLabel("Password", { exact: true });
   await expect(pendingPassword).toHaveValue(" local-fixture-only password ");
   const detachedPassword = await pendingPassword.elementHandle();
-  await page.getByRole("link", { name: "Return to Home", exact: true }).click();
+  // A press outside the open account menu only closes it, so close it before using the navigation.
+  await closeAccountMenu(page);
+  await homeLink(page).click();
   await expect(page).toHaveURL(/\/$/);
   expect(await detachedPassword?.evaluate((element) => (element as HTMLInputElement).value)).toBe("");
   await revealAccountMenu(page);
@@ -513,10 +521,6 @@ test("auth fixture: sign-out confirms unsaved edits, fences pending requests and
 });
 
 test("auth fixture: the sign-out confirmation opens with focus on Keep editing", async ({ page }) => {
-  test.fixme(
-    true,
-    "possible defect: focus lands on the dialog's Close button, not on Keep editing (its autoFocus is overridden by showModal)",
-  );
   const fixture = await fixtures(page);
   await openAccount(page);
   await rename(page, "Unsaved auth focus fixture");

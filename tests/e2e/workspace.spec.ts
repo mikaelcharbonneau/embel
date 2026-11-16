@@ -83,11 +83,7 @@ test("invalid saved data is rejected without replacing it", async ({ context, pa
     localStorage.setItem(key, "{not-valid-json");
   }, storageKey);
   await page.goto("/brands");
-  await expect(
-    page.getByText("Recovery data on this device could not be read. Your account projects remain available.", {
-      exact: true,
-    }),
-  ).toBeVisible();
+  await expect(page.getByText("Recovery data on this device couldn’t be read.", { exact: true })).toBeVisible();
   expect(await page.evaluate((key) => localStorage.getItem(key), storageKey)).toBe("{not-valid-json");
 });
 

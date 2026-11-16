@@ -1,95 +1,106 @@
+import { createHash } from "node:crypto";
+import sharp from "sharp";
 import { expectProjectCanvas } from "./project-canvas-contract";
 import { contextSnapshotSchema } from "../../src/domain/projects";
+import { initializeGuidedInterview } from "../../src/domain/guided-interview";
 import { DEFAULT_PROFILE_VALUES } from "../../src/domain/account-profile";
 import { captureUiEvidence } from "./ui-evidence";
 import { expect, test, type Page, type Route } from "@playwright/test";
 import {
   syntheticLogoBatch,
-  syntheticLogoQuote,
   syntheticLogoWorkspace,
   syntheticResolvedLogoConcept,
   logoFixtureId as id,
-  type LogoCostQuote,
-  type LogoGenerationIntent,
-  type LogoQuoteRequest,
 } from "../fixtures/logo-creation";
-import { IMAGE_MODEL } from "../../src/domain/providers";
-import type { LogoRequestState, LogoConceptBatch } from "../../src/domain/logo-jobs";
-import {
-  logoStageRevisionSchema,
-  type LogoBriefDraft,
-  type LogoWorkspaceV2,
-  type LogoStageRevision,
-} from "../../src/domain/logo-workspace";
-import { syntheticRasterRefinement } from "../fixtures/logo-refinement-history";
-import type { LogoRasterRefinement } from "../../src/domain/logo-jobs";
-import type { LogoRasterSource } from "../../src/domain/logo-workspace";
+import type { GenerationRun } from "../../src/domain/generations";
+import type { LogoConceptBatch } from "../../src/domain/logo-jobs";
+import type { LogoBriefDraft, LogoRasterSource, LogoWorkspaceV2 } from "../../src/domain/logo-workspace";
 import { DEFAULT_LOGO_CONCEPT_TYPES } from "../../src/domain/logo-saved-inputs";
+import { reviewedStrategy } from "../fixtures/reviewed-strategy";
 
+// The Logo step of the brand conversation on the generation engine: /logo/engine says whether drawing is on
+// and lists the runs, and one POST to /generations starts a run. Every /api call is answered here; nothing
+// reaches a provider, a database or storage.
 const source = syntheticResolvedLogoConcept(),
-  url = `/brands/account/${source.input.projectId}/logo`,
-  base = `/api/projects/${source.input.projectId}/logo`;
-async function setup(
-  page: Page,
-  scenario:
-    | "empty"
-    | "partial"
-    | "uncertain"
-    | "unavailable"
-    | "retry_uncertain"
-    | "uninitialized"
-    | "save_uncertain"
-    | "missing_name"
-    | "quote_failed"
-    | "quote_expired"
-    | "unknown_estimate"
-    | "inputs_failed"
-    | "name_changed"
-    | "save_unavailable" = "empty",
-  savedSelection: LogoRasterSource | null = null,
-) {
+  projectId = source.input.projectId,
+  url = `/brands/account/${projectId}?view=strategy#journey-logo`,
+  base = `/api/projects/${projectId}/logo`;
+type Scenario =
+  | "empty"
+  | "partial"
+  | "drawing"
+  | "uninitialized"
+  | "save_uncertain"
+  | "missing_name"
+  | "inputs_failed"
+  | "save_unavailable"
+  | "engine_off";
+type EngineStart = { kind: string; idempotencyKey: string; input: Record<string, unknown> };
+
+/** A project whose Strategy and Voice are finished, so the conversation opens Identity. */
+function finishedVoiceContext() {
+  const started = initializeGuidedInterview(
+      reviewedStrategy({ description: "Synthetic logo fixture. No live generation.", activity: "Tea shop" }),
+    ),
+    interview = started.intake.guidedInterview!;
+  return contextSnapshotSchema.parse({
+    ...started,
+    selectedName: "Élan & Co",
+    intake: {
+      ...started.intake,
+      guidedInterview: {
+        ...interview,
+        stage: "complete",
+        turns: [
+          ...interview.turns,
+          { id: "slogan-turn", userMessageId: null, stage: "slogan", purpose: "propose", inputRevision: 1 },
+        ],
+      },
+    },
+  });
+}
+
+async function setup(page: Page, scenario: Scenario = "empty", savedSelection: LogoRasterSource | null = null) {
   const noBrief = ["uninitialized", "save_uncertain", "missing_name", "save_unavailable"].includes(scenario);
-  const batch = syntheticLogoBatch(
-    scenario === "uninitialized"
-      ? Array.from({ length: 6 }, () => "succeeded" as const)
-      : scenario === "uncertain"
-        ? ["succeeded", "succeeded", "succeeded", "succeeded", "succeeded", "needs_reconciliation"]
-        : undefined,
+  // The app verifies every preview's bytes against its receipt, so the six concepts share one real picture.
+  const png = await sharp({ create: { width: 32, height: 32, channels: 4, background: "#444444" } })
+      .png()
+      .toBuffer(),
+    contentHash = createHash("sha256").update(png).digest("hex");
+  const batch = structuredClone(
+    syntheticLogoBatch(
+      scenario === "uninitialized"
+        ? Array.from({ length: 6 }, () => "succeeded" as const)
+        : scenario === "drawing"
+          ? Array.from({ length: 6 }, () => "running" as const)
+          : undefined,
+    ),
   );
+  for (const slot of batch.slots)
+    for (const preview of [slot.acceptedPreview, ...slot.attempts.map((attempt) => attempt.preview)]) {
+      if (!preview) continue;
+      preview.reference.contentHash = contentHash;
+      preview.verification.contentHash = contentHash;
+      preview.verification.byteLength = png.length;
+    }
   let currentBrief = source.brief;
   let selectedConcept: LogoRasterSource | null = savedSelection;
   const foundation = syntheticLogoWorkspace();
-  const batches = new Map<string, LogoConceptBatch>([[batch.id, batch]]);
-  if (scenario === "retry_uncertain") {
-    const previous = batch.slots[5]!.attempts[0]!;
-    batches.set(batch.id, {
-      ...batch,
-      slots: batch.slots.map((slot) =>
-        slot.id === previous.slotId
-          ? {
-              ...slot,
-              attempts: [
-                previous,
-                {
-                  ...previous,
-                  id: id(955),
-                  jobId: id(956),
-                  requestKey: id(957),
-                  previousAttemptId: previous.id,
-                  attemptNumber: 2,
-                  state: "needs_reconciliation",
-                  reason: "outcome_unknown",
-                  billing: { status: "unknown", confirmedMicrousd: null },
-                },
-              ],
-            }
-          : slot,
-      ),
-    });
-  }
-  const summaries = ["partial", "uncertain", "retry_uncertain"].includes(scenario)
-    ? [{ id: batch.id, requestKey: batch.requestKey, createdAt: batch.createdAt }]
-    : [];
+  const batches = new Map<string, LogoConceptBatch>(scenario === "partial" ? [[batch.id, batch]] : []);
+  // A round that is still working when the page opens: it has opened its set and drawn nothing yet.
+  const drawingRun: GenerationRun = {
+    id: id(700),
+    kind: "logo.concepts",
+    status: "running",
+    credits: 6,
+    errorCode: null,
+    cancelRequested: false,
+    createdAt: batch.createdAt,
+    finishedAt: null,
+    inputRevision: null,
+    outputs: [{ key: "batch", output: { batchId: batch.id } }],
+  };
+  if (scenario === "drawing") batches.set(batch.id, { ...batch, requestKey: drawingRun.id });
   const saved: LogoWorkspaceV2 = {
     ...foundation,
     heads: {
@@ -98,13 +109,13 @@ async function setup(
       stageRevisions: {
         ...foundation.heads.stageRevisions,
         brief_references: noBrief ? 0 : 1,
-        concepts: ["partial", "uncertain"].includes(scenario) ? 1 : 0,
+        concepts: scenario === "partial" ? 1 : 0,
       },
     },
     stages: {
       ...foundation.stages,
       brief_references: noBrief ? null : { id: source.brief.id, revision: 1, stage: "brief_references" },
-      concepts: ["partial", "uncertain"].includes(scenario) ? { id: id(901), revision: 1, stage: "concepts" } : null,
+      concepts: scenario === "partial" ? { id: id(901), revision: 1, stage: "concepts" } : null,
     },
     capabilities: {
       ...foundation.capabilities,
@@ -112,10 +123,7 @@ async function setup(
         scenario === "save_unavailable"
           ? { status: "unavailable", reason: "Synthetic saving outage" }
           : { status: "available" },
-      generate:
-        scenario === "unavailable"
-          ? { status: "unavailable", reason: "Synthetic unavailable configuration" }
-          : { status: "available" },
+      generate: { status: "available" },
     },
   };
   const preparedBrief: LogoBriefDraft = {
@@ -125,73 +133,25 @@ async function setup(
     personality: "Saved inspiration · catalog 2026-10-13.1 · selection 2: synthetic lettering guidance.",
     logoTypes: [...DEFAULT_LOGO_CONCEPT_TYPES],
   };
-  let refinementStage: LogoStageRevision<"refinements"> | null = null;
   const state = {
     owner: foundation.ownerId,
-    posts: [] as LogoGenerationIntent[],
-    quotes: [] as LogoQuoteRequest[],
-    readKeys: [] as string[],
-    lose: false,
-    refinements: [] as LogoRasterRefinement[],
+    /** Every start sent to the generation engine. */
+    starts: [] as EngineStart[],
+    runs: scenario === "drawing" ? [drawingRun] : ([] as GenerationRun[]),
     selections: [] as { requestKey: string; batchId: string; slotId: string; attemptId: string }[],
     inputReads: 0,
     saves: [] as { requestKey: string; brief: LogoBriefDraft }[],
     order: [] as string[],
-    issuedQuotes: new Map<string, LogoCostQuote>(),
-    request: { status: "not_found" } as LogoRequestState,
-    quote: null as LogoCostQuote | null,
-    quoteGate: null as Promise<void> | null,
-    failQuotes: scenario === "quote_failed",
     failInputReads: scenario === "inputs_failed",
-    batchReads: 0,
-    summaries,
-    admissionRejection: false,
+    unhandledWrites: [] as string[],
     restoreSaving() {
       saved.capabilities.save = { status: "available" };
     },
-    advanceProjectRevisionOnly() {
-      saved.heads = { ...saved.heads, projectRevision: saved.heads.projectRevision + 1 };
-    },
-    commitRefinement(record: LogoRasterRefinement) {
-      // Model the committed workspace acknowledgement, not only the polling
-      // receipt. Production cannot select a result before that stage is saved.
-      state.refinements = state.refinements.map((item) => (item.id === record.id ? record : item));
-      const revision = saved.heads.stageRevisions.refinements + 1;
-      const parentRevisionId = saved.stages.refinements?.id ?? null;
-      refinementStage = logoStageRevisionSchema.parse({
-        ...source.brief,
-        id: id(1200 + revision),
-        stage: "refinements",
-        revision,
-        parentRevisionId,
-        payload: {
-          rasterRevisionIds: state.refinements.filter((item) => item.state === "succeeded").map((item) => item.id),
-          vectorRevisionId: null,
-          approvalId: null,
-          sourceRequestKey: record.requestKey,
-        },
-      }) as LogoStageRevision<"refinements">;
-      saved.heads = {
-        ...saved.heads,
-        workspaceRevision: saved.heads.workspaceRevision + 1,
-        stageRevisions: { ...saved.heads.stageRevisions, refinements: revision },
-      };
-      saved.stages.refinements = { stage: "refinements", id: refinementStage.id, revision };
-    },
-    advanceSavedBrief() {
-      saved.heads = {
-        ...saved.heads,
-        workspaceRevision: 2,
-        stageRevisions: { ...saved.heads.stageRevisions, brief_references: 2 },
-      };
-      saved.stages.brief_references = { stage: "brief_references", id: id(990), revision: 2 };
-      currentBrief = {
-        ...source.brief,
-        id: id(990),
-        revision: 2,
-        parentRevisionId: source.brief.id,
-        payload: { ...source.brief.payload, activity: "Changed in another tab" },
-      };
+    /** The engine finishes every run that is still working; the page learns it on its next check. */
+    finishRuns() {
+      state.runs = state.runs.map((run) =>
+        run.status === "running" ? { ...run, status: "succeeded", finishedAt: new Date().toISOString() } : run,
+      );
     },
   };
   const json = (route: Route, body: unknown, status = 200) =>
@@ -201,9 +161,9 @@ async function setup(
     if (target.hostname !== "127.0.0.1") return route.abort("blockedbyclient");
     if (!target.pathname.startsWith("/api/")) return route.continue();
     const path = target.pathname,
-      request = route.request();
+      request = route.request(),
+      method = request.method();
     if (path === "/api/session") return json(route, { user: { id: state.owner } });
-    if (state.owner !== foundation.ownerId) return json(route, {}, 404);
     if (path === "/api/account/profile")
       return json(route, {
         profile: {
@@ -214,33 +174,60 @@ async function setup(
           values: DEFAULT_PROFILE_VALUES,
         },
       });
-    if (path === `/api/projects/${foundation.projectId}`)
+    if (path === "/api/credits")
+      return json(route, { credits: { planId: "free", balance: 30, periodEnd: "2026-12-01T00:00:00Z" } });
+    if (path === `/api/projects/${projectId}`)
       return json(route, {
         project: {
-          id: foundation.projectId,
+          id: projectId,
           owner_id: foundation.ownerId,
           title: "Élan & Co · local fixture",
           scope: "complete_brand",
           current_revision: 1,
           created_at: "2026-10-18T00:00:00Z",
-          context: contextSnapshotSchema.parse({ description: "Synthetic logo layout fixture. No live generation." }),
+          context: finishedVoiceContext(),
         },
       });
-    if (path === `${base}/capabilities`) {
-      const available = { status: "available", expiresAt: new Date(Date.now() + 30_000).toISOString() };
+    // Strategy is finished and nothing of it runs: the conversation only needs to know its history was read.
+    if (path === `/api/projects/${projectId}/strategy`)
       return json(route, {
-        ownerId: foundation.ownerId,
-        projectId: foundation.projectId,
-        observedAt: new Date().toISOString(),
-        operations: {
-          "identity.logo_concept": scenario === "unavailable" ? { status: "unavailable" } : available,
-          "identity.logo_refine": scenario === "unavailable" ? { status: "unavailable" } : available,
-          "identity.logo_vectorize": { status: "unavailable" },
-          "identity.logo_directions": { status: "unavailable" },
-          "identity.logo_export": { status: "unavailable" },
-        },
+        availability: { status: "unavailable", operations: [], reason: "worker_unavailable" },
+        jobs: [],
       });
+    if (path === `/api/projects/${projectId}/generations` && method === "GET") return json(route, { runs: [] });
+    if (path === `/api/projects/${projectId}/generations` && method === "POST") {
+      const body = request.postDataJSON() as EngineStart;
+      state.starts.push(body);
+      const run: GenerationRun = {
+        id: id(700 + state.starts.length),
+        kind: body.kind,
+        status: "running",
+        credits: body.kind === "logo.concepts" ? 6 : 1,
+        errorCode: null,
+        cancelRequested: false,
+        createdAt: new Date().toISOString(),
+        finishedAt: null,
+        inputRevision: null,
+        outputs: [],
+      };
+      // A first round opens its own set of concepts; a retry draws into the set it retries.
+      if (body.kind === "logo.concepts") {
+        if (body.input.operation !== "retry_failed")
+          batches.set(batch.id, {
+            ...batch,
+            requestKey: run.id,
+            createdAt: run.createdAt,
+            slots: batch.slots.map((slot) => ({
+              ...slot,
+              attempts: slot.attempts.map((attempt) => ({ ...attempt, requestKey: run.id })),
+            })),
+          });
+        run.outputs = [{ key: "batch", output: { batchId: batch.id } }];
+      }
+      state.runs.unshift(run);
+      return json(route, { run });
     }
+    if (path === `${base}/engine`) return json(route, { engine: scenario !== "engine_off", runs: state.runs });
     if (path === base) return json(route, saved);
     if (path === `${base}/saved-inputs`) {
       state.inputReads++;
@@ -248,12 +235,13 @@ async function setup(
       if (state.failInputReads) return json(route, {}, 503);
       return json(route, {
         ownerId: foundation.ownerId,
-        projectId: foundation.projectId,
+        projectId,
         projectRevision: 1,
         inspirationSelectionRevision: 2,
         inspirationCount: 2,
         references: [],
-        nameConflict: scenario === "name_changed",
+        uploadNotes: [],
+        nameConflict: false,
         draft:
           scenario === "missing_name"
             ? null
@@ -268,7 +256,7 @@ async function setup(
                 },
       });
     }
-    if ((path === `${base}/initialize` || path === `${base}/brief`) && request.method() !== "GET") {
+    if ((path === `${base}/initialize` || path === `${base}/brief`) && method !== "GET") {
       const body = request.postDataJSON() as { requestKey: string; brief: LogoBriefDraft };
       state.saves.push(body);
       state.order.push("save");
@@ -288,14 +276,13 @@ async function setup(
       if (scenario === "save_uncertain") return route.abort("failed");
       return json(route, {
         ownerId: foundation.ownerId,
-        projectId: foundation.projectId,
+        projectId,
         requestKey: body.requestKey,
         workspace: saved,
         revision: currentBrief,
       });
     }
     if (path === `${base}/stages/brief_references/revisions/${currentBrief.id}`) return json(route, currentBrief);
-    if (path === `${base}/stages/brief_references/revisions/${source.brief.id}`) return json(route, source.brief);
     if (path === `${base}/reference-snapshots/${source.referenceSnapshot.id}`)
       return json(route, source.referenceSnapshot);
     const concepts = () => ({
@@ -307,25 +294,7 @@ async function setup(
       stage: "concepts",
       payload: { batchIds: [batch.id], selected: selectedConcept },
     });
-    if (path === `${base}/rasters/selection`) {
-      const body = request.postDataJSON() as { requestKey: string; source: LogoRasterSource };
-      selectedConcept = body.source;
-      const revision = saved.heads.stageRevisions.concepts + 1;
-      saved.heads = {
-        ...saved.heads,
-        workspaceRevision: saved.heads.workspaceRevision + 1,
-        stageRevisions: { ...saved.heads.stageRevisions, concepts: revision },
-      };
-      saved.stages.concepts = { stage: "concepts", id: id(900 + revision), revision };
-      return json(route, {
-        ownerId: saved.ownerId,
-        projectId: saved.projectId,
-        requestKey: body.requestKey,
-        workspace: saved,
-        revision: concepts(),
-      });
-    }
-    if (path === `${base}/concepts/selection`) {
+    if (path === `${base}/concepts/selection` && method === "POST") {
       const body = request.postDataJSON() as { requestKey: string; batchId: string; slotId: string; attemptId: string };
       state.selections.push(body);
       selectedConcept = { kind: "concept", batchId: body.batchId, slotId: body.slotId, attemptId: body.attemptId };
@@ -344,415 +313,100 @@ async function setup(
         revision: concepts(),
       });
     }
-    if (path === `${base}/stages/concepts/revisions/${saved.stages.concepts?.id ?? id(901)}`)
+    if (saved.stages.concepts && path === `${base}/stages/concepts/revisions/${saved.stages.concepts.id}`)
       return json(route, concepts());
-    if (refinementStage && path === `${base}/stages/refinements/revisions/${refinementStage.id}`)
-      return json(route, refinementStage);
     if (path === `${base}/batches`)
       return json(route, {
         ownerId: foundation.ownerId,
-        projectId: foundation.projectId,
-        items: state.summaries,
+        projectId,
+        items: [...batches.values()].map((item) => ({
+          id: item.id,
+          requestKey: item.requestKey,
+          createdAt: item.createdAt,
+        })),
         nextCursor: null,
       });
     if (path.startsWith(`${base}/batches/`)) {
-      state.batchReads++;
       const found = batches.get(path.split("/").at(-1)!);
       return json(route, found ?? {}, found ? 200 : 404);
     }
-    if (path === `${base}/quotes`) {
-      state.order.push("quote");
-      const body = request.postDataJSON() as LogoQuoteRequest;
-      state.quotes.push(body);
-      const rawQuote: Record<string, unknown> = {
-        ...syntheticLogoQuote(),
-        id: id(1400 + state.quotes.length),
-        request: body,
-        expected: saved.heads,
-        expiresAt: new Date(Date.now() + (scenario === "quote_expired" ? 2000 : 60000)).toISOString(),
-        conceptPlan: body.operation === "refine_preview" ? null : batch.plan,
-        targetSlotIds:
-          body.operation === "retry_failed"
-            ? body.failedSlotIds
-            : body.operation === "refine_preview"
-              ? []
-              : batch.slots.map((slot) => slot.id),
-      };
-      delete rawQuote.maxCostMicrousd;
-      delete rawQuote.externalProviderCostMicrousd;
-      const quote: LogoCostQuote = {
-        ...rawQuote,
-        version: 3,
-        billingMode: "openai_api",
-        spendControl: "uncapped",
-        provider: "openai",
-        model: IMAGE_MODEL,
-        handlerVersion: "logo-image-v1",
-        estimatedCostMicrousd: scenario === "unknown_estimate" ? null : rawQuote.estimatedCostMicrousd,
-      } as unknown as LogoCostQuote;
-      state.quote = quote;
-      state.issuedQuotes.set(quote.id, quote);
-      if (state.quoteGate) await state.quoteGate;
-      return json(route, quote, state.failQuotes ? 503 : 200);
-    }
-    if (path === `${base}/requests` && request.method() === "POST") {
-      const body = request.postDataJSON() as LogoGenerationIntent;
-      state.posts.push(body);
-      const quote = state.issuedQuotes.get(body.quoteId);
-      if (state.admissionRejection)
-        return json(
-          route,
-          {
-            error: { code: "conflict", message: "This request conflicts with the current state." },
-            rejection: {
-              status: "rejected",
-              ownerId: foundation.ownerId,
-              projectId: foundation.projectId,
-              requestKey: body.requestKey,
-              quoteId: body.quoteId,
-            },
-          },
-          409,
-        );
-      if (quote?.request.operation === "refine_preview") {
-        state.refinements.unshift(
-          syntheticRasterRefinement({
-            id: id(503 + state.posts.length),
-            requestKey: body.requestKey,
-            jobId: id(600),
-            source: quote.request.source,
-            state: "queued",
-            preview: null,
-            providerResponseReceiptId: null,
-            billing: { status: "recorded", confirmedMicrousd: 0 },
-          }),
-        );
-        const receipt = {
-          ownerId: foundation.ownerId,
-          projectId: foundation.projectId,
-          requestKey: body.requestKey,
-          operation: "identity.logo_refine" as const,
-          batchId: null,
-          jobIds: [id(600)],
-          inputHash: "b".repeat(64),
-        };
-        state.request = {
-          status: "admitted",
-          requestKey: body.requestKey,
-          receipt,
-          outputs: [],
-          billing: { status: "unknown", confirmedMicrousd: null },
-          reason: null,
-        };
-        return json(route, receipt);
-      }
-      const admittedBatchId = quote?.request.operation === "more_concepts" ? id(980 + state.posts.length) : batch.id;
-      const admittedBatch = {
-        ...batch,
-        id: admittedBatchId,
-        requestKey: body.requestKey,
-        createdAt: new Date().toISOString(),
-      };
-      batches.set(admittedBatchId, admittedBatch);
-      if (!state.summaries.some((item) => item.id === admittedBatchId))
-        state.summaries.unshift({
-          id: admittedBatchId,
-          requestKey: body.requestKey,
-          createdAt: admittedBatch.createdAt,
-        });
-      const receipt = {
-        ownerId: foundation.ownerId,
-        projectId: foundation.projectId,
-        requestKey: body.requestKey,
-        operation: "identity.logo_concept" as const,
-        batchId: admittedBatchId,
-        jobIds: [id(600)],
-        inputHash: "b".repeat(64),
-      };
-      state.request = {
-        status: "admitted",
-        requestKey: body.requestKey,
-        receipt,
-        outputs: [],
-        billing: { status: "unknown", confirmedMicrousd: null },
-        reason: null,
-      };
-      if (state.lose) return route.abort("failed");
-      return json(route, receipt);
-    }
-    if (path.startsWith(`${base}/requests/`)) {
-      const key = path
-        .replace(/\/reconcile$/, "")
-        .split("/")
-        .at(-1)!;
-      state.readKeys.push(key);
-      if (scenario === "retry_uncertain" && key === id(957))
-        return json(route, {
-          status: "needs_reconciliation",
-          requestKey: key,
-          receipt: null,
-          outputs: [],
-          billing: { status: "unknown", confirmedMicrousd: null },
-          reason: "outcome_unknown",
-        });
-      return json(route, state.request);
-    }
     if (path === `${base}/raster-refinements`)
-      return json(route, {
-        ownerId: foundation.ownerId,
-        projectId: foundation.projectId,
-        items: state.refinements,
-        nextCursor: null,
-      });
-    if (path.startsWith(`${base}/raster-refinements/`))
-      return json(
-        route,
-        state.refinements.find((record) => record.id === path.split("/").at(-1)),
-      );
-    if (path.endsWith("/preview")) return json(route, {}, 503);
-    return json(route, {}, 503);
+      return json(route, { ownerId: foundation.ownerId, projectId, items: [], nextCursor: null });
+    if (/^\/api\/assets\/[^/]+\/preview$/u.test(path))
+      return route.fulfill({ status: 200, contentType: "image/png", body: png });
+    if (!["GET", "HEAD"].includes(method)) state.unhandledWrites.push(`${method} ${path}`);
+    return json(route, {}, 404);
   });
   await page.goto(url);
-  if (noBrief) {
-    await expect(page.getByRole("heading", { name: "Logo", exact: true })).toBeVisible();
-    return state;
-  }
-  // The Logo message names the saved brief's brand once it has loaded.
-  await expect(page.locator(".logo-conversation-message")).toContainText("Élan & Co");
+  await expect(page.getByRole("heading", { name: "Logo", exact: true })).toBeAttached();
   return state;
 }
 
-test("starts six concepts with one deliberate click and shows no cost", async ({ page }, info) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
-  const f = await setup(page),
-    action = page.getByRole("group", { name: "Explore six concepts", exact: true });
-  const generate = action.getByRole("button", { name: "Explore six concepts", exact: true });
-  await expect(generate).toBeEnabled();
-  await expect(action).not.toContainText(/cost|estimat|\$/i);
-  await expect(action).toContainText("Not included in this batch: Mascot");
-  await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
-  expect(f.posts).toHaveLength(0);
-  await page.screenshot({ path: info.outputPath("generation-ready.png") });
-  await generate.click();
-  await expect.poll(() => f.posts.length).toBe(1);
-  expect(f.issuedQuotes.get(f.posts[0]!.quoteId)?.request.operation).toBe("concepts");
-  expect(f.posts[0]).not.toHaveProperty("acceptedMaxCostMicrousd");
-  await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
-});
-test("a keyboard action starts one request without opening a cost dialog", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
-  const f = await setup(page),
-    trigger = page.getByRole("button", { name: "Explore six concepts", exact: true });
-  await expect(trigger).toBeEnabled();
-  expect(f.posts).toHaveLength(0);
-  await trigger.focus();
-  await page.keyboard.press("Enter");
-  await expect.poll(() => f.posts.length).toBe(1);
-  await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
-});
-test("failed saved-input loading can be refreshed in place without starting generation", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
-  const f = await setup(page, "inputs_failed"),
-    generate = page.getByRole("button", { name: "Explore six concepts", exact: true });
-  await expect(page.getByRole("button", { name: "Refresh logo inputs" })).toBeVisible();
-  await expect(generate).toBeDisabled();
-  expect(f.posts).toHaveLength(0);
-  expect(f.quotes).toHaveLength(0);
-  f.failInputReads = false;
-  await page.getByRole("button", { name: "Refresh logo inputs" }).click();
-  await expect(generate).toBeEnabled();
-  expect(f.inputReads).toBeGreaterThan(1);
-  expect(f.posts).toHaveLength(0);
-  await generate.click();
-  await expect.poll(() => f.posts.length).toBe(1);
-});
-test("a name chosen after the one first supplied is used without a confirmation step", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
-  const f = await setup(page, "name_changed");
-  await expect(page.getByRole("button", { name: "Explore six concepts", exact: true })).toBeEnabled();
-  await expect(page.getByRole("region", { name: "Confirm logo inputs" })).toHaveCount(0);
-  expect(f.posts).toHaveLength(0);
-  expect(f.saves).toHaveLength(0);
-});
-test("restored saving refreshes prepared inputs and enables a deliberate Generate click", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
-  const f = await setup(page, "save_unavailable");
-  await expect(page.getByText(/Logo saving is unavailable/)).toBeVisible();
-  expect(f.saves).toHaveLength(0);
-  expect(f.posts).toHaveLength(0);
-  f.restoreSaving();
-  await page.getByRole("button", { name: "Refresh logo inputs" }).click();
-  await expect(page.getByRole("button", { name: "Explore six concepts", exact: true })).toBeEnabled();
-  expect(f.saves).toHaveLength(1);
-  expect(f.posts).toHaveLength(0);
-});
-test("partial results retain five cards and one-click retry excludes successful concepts", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
-  const f = await setup(page, "partial");
-  await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
-  const action = page.getByRole("group", { name: "Retry 1 failed concept", exact: true });
-  await expect(action.getByRole("button", { name: "Retry 1 failed concept", exact: true })).toBeEnabled();
-  expect(f.posts).toHaveLength(0);
-  const previousReads = f.batchReads;
-  await action.getByRole("button", { name: "Retry 1 failed concept", exact: true }).click();
-  await expect.poll(() => f.posts.length).toBe(1);
-  expect(f.issuedQuotes.get(f.posts[0]!.quoteId)?.request).toMatchObject({
-    operation: "retry_failed",
-    failedSlotIds: [id(115)],
-  });
-  await expect.poll(() => f.batchReads).toBeGreaterThan(previousReads);
-  await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
-});
-test("lost admission response recovers by original key without a second generation post", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
-  const f = await setup(page);
-  f.lose = true;
-  await page.getByRole("button", { name: "Explore six concepts" }).click();
-  await expect(page.getByRole("button", { name: "Check original generation request" })).toBeVisible();
-  await page.getByRole("button", { name: "Check original generation request" }).click();
-  await expect.poll(() => f.readKeys.length).toBeGreaterThan(0);
-  expect(f.readKeys).toContain(f.posts[0]!.requestKey);
-  expect(f.posts).toHaveLength(1);
-});
-test("unavailable generation preserves saved brief and stays within mobile viewport", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
-  const f = await setup(page, "unavailable");
-  await expect(page.getByRole("button", { name: "Explore six concepts" })).toBeDisabled();
-  await expect(page.locator(".logo-conversation-message")).toContainText("Élan & Co");
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  expect(f.posts).toHaveLength(0);
-});
-
-test("an unselected first exploration survives full reload with no concept-stage pointer", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
-  const f = await setup(page);
-  await page.getByRole("button", { name: "Explore six concepts" }).click();
-
-  await expect.poll(() => f.posts.length).toBe(1);
-  await page.reload();
-  await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
-  expect(f.posts).toHaveLength(1);
-});
-
-test("a reloaded uncertain retry checks its attempt identity and keeps five successful previews", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
-  const f = await setup(page, "retry_uncertain");
-  await page.reload();
-  await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Check request", exact: true }).click();
-  await expect.poll(() => f.readKeys.filter((key) => key === id(957)).length).toBeGreaterThan(0);
-  expect(f.readKeys).not.toContain(id(61));
-  expect(f.posts).toHaveLength(0);
-  await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
-});
-
-test("a rejected request offers fresh inputs and an estimate without silently generating again", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
-  const f = await setup(page);
-  f.admissionRejection = true;
-  await page.getByRole("button", { name: "Explore six concepts", exact: true }).click();
-  await page.getByRole("button", { name: "Refresh saved inputs", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Explore six concepts", exact: true })).toBeEnabled();
-  expect(f.posts).toHaveLength(1);
-  await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
-});
-
-test("recovery refreshes a rejected request to the other tab's saved inputs", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
-  const f = await setup(page),
-    generate = page.getByRole("button", { name: "Explore six concepts", exact: true });
-  await expect(generate).toBeEnabled();
-  f.advanceSavedBrief();
-  f.admissionRejection = true;
-  await generate.click();
-  await expect(generate).toBeDisabled();
-  await page.getByRole("button", { name: "Refresh saved inputs", exact: true }).click();
-  await expect(generate).toBeEnabled();
-  expect(f.quotes.at(-1)).toMatchObject({
-    expected: { workspaceRevision: 2, stageRevisions: { brief_references: 2 } },
-    briefRevisionId: id(990),
-  });
-  expect(f.posts).toHaveLength(1);
-});
+/** Send in the conversation's reply box: its name says what it does at this step. */
+const send = (page: Page, name: string) =>
+  page.getByRole("form", { name: "Reply" }).getByRole("button", { name, exact: true });
 
 test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));
 
-test("concepts landing asks the logo-types question without inventing generated results", async ({ page }, info) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
+test("the Logo step asks which logo types to draw and Send starts six concepts once, with no cost shown", async ({
+  page,
+}, info) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   const f = await setup(page);
-  await expect(page.getByRole("heading", { name: "Logo", exact: true })).toBeAttached();
-  // Redesign (2026-11-06): Embel's message asks which logo types to explore; the
-  // project bar replaces the old back link, and no empty concept frames are shown.
-  await expect(page.getByText(/^Embel · Logo · 2 of 3$/)).toBeVisible();
+  const conversation = page.getByRole("region", { name: "Brand conversation" }),
+    draw = send(page, "Draw six concepts");
+  // Embel says what it will draw; the work area asks for the logo types and shows no invented results.
+  await expect(conversation.getByRole("article", { name: "Embel response" }).last()).toContainText(
+    "I’ll draw six concepts for Élan & Co",
+  );
   await expect(page.getByRole("group", { name: "Which logo types should I explore?" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Back to inspiration" })).toHaveCount(0);
-  await expect(page.locator("header").getByRole("combobox", { name: "Concept batch" })).toHaveCount(0);
-  await expect(page.locator("[data-concept-ordinal]")).toHaveCount(0);
-  await expect(page.getByText(/^Review concept \d/)).toHaveCount(0);
-  await expect(
-    page.getByText("More, refine and retry each require a separate cost review.", { exact: false }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Concept \d/u })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Explore six concepts", exact: true })).toHaveCount(0);
+  await expect(draw).toBeEnabled();
+  await expect(conversation).not.toContainText(/cost|estimat|\$/iu);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await expectProjectCanvas(page);
-  await expect(page.getByRole("button", { name: "Explore six concepts", exact: true })).toBeVisible();
-  expect(f.posts).toHaveLength(0);
+  expect(f.starts).toHaveLength(0);
+  await page.screenshot({ path: info.outputPath("generation-ready.png") });
+  await draw.click();
+  await expect.poll(() => f.starts.length).toBe(1);
+  expect(f.starts[0]).toMatchObject({
+    kind: "logo.concepts",
+    input: { operation: "concepts", briefRevisionId: source.brief.id },
+  });
+  expect(JSON.stringify(f.starts[0])).not.toMatch(/cost|microusd|quote/iu);
+  // While the run works the reply box offers Stop, so a second request cannot be sent.
+  await expect(page.getByRole("button", { name: "Stop drawing", exact: true })).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(conversation).not.toContainText(/cost|estimat|\$/iu);
+  expect(f.starts).toHaveLength(1);
+  expect(f.saves).toHaveLength(0);
+  expect(f.unhandledWrites).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);
-  await page.screenshot({ path: info.outputPath("concepts-layout.png") });
 });
 
-test("new logo work prepares saved inputs and cost before one explicit six-concept request", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
+test("Enter on Send starts one request", async ({ page }) => {
+  const f = await setup(page),
+    draw = send(page, "Draw six concepts");
+  await expect(draw).toBeEnabled();
+  await draw.focus();
+  await page.keyboard.press("Enter");
+  await expect.poll(() => f.starts.length).toBe(1);
+  await expect(page.getByRole("button", { name: "Stop drawing", exact: true })).toBeVisible();
+  expect(f.starts).toHaveLength(1);
+});
+
+test("new logo work saves the prepared brief before one deliberate request, and its concepts survive a reload", async ({
+  page,
+}) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   const f = await setup(page, "uninitialized");
-  const generate = page.getByRole("button", { name: "Explore six concepts", exact: true });
-  await expect(generate).toBeEnabled();
-  await expect(generate).toBeInViewport();
-  expect(f.order).toEqual(["inputs", "save", "quote"]);
+  const draw = send(page, "Draw six concepts");
+  await expect(draw).toBeEnabled();
+  expect(f.order).toEqual(["inputs", "save"]);
   expect(f.saves).toHaveLength(1);
   expect(f.saves[0]!.brief).toMatchObject({
     name: "Élan & Co",
@@ -761,319 +415,173 @@ test("new logo work prepares saved inputs and cost before one explicit six-conce
     logoTypes: DEFAULT_LOGO_CONCEPT_TYPES,
   });
   expect(f.saves[0]!.brief.personality).toContain("selection 2");
-  expect(f.posts).toHaveLength(0);
-  await expect(generate).toBeEnabled();
-  await generate.click();
-  await expect.poll(() => f.posts.length).toBe(1);
+  expect(f.starts).toHaveLength(0);
+  await draw.click();
+  await expect.poll(() => f.starts.length).toBe(1);
+  expect(f.starts[0]).toMatchObject({ kind: "logo.concepts", input: { operation: "concepts" } });
+  f.finishRuns();
   await page.reload();
-  await expect(page.getByText("6 of 6 concepts ready", { exact: true })).toBeVisible();
+  // No concept is chosen and the Logo stage has no saved revision: the set is found through its own history.
+  await expect(page.getByRole("heading", { name: "Choose the concept you like most", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Concept [1-6]$/u })).toHaveCount(6);
   expect(f.saves).toHaveLength(1);
-  expect(f.posts).toHaveLength(1);
+  expect(f.starts).toHaveLength(1);
+  expect(f.unhandledWrites).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);
 });
 
-test("an uncertain initial brief save keeps its original intent and cannot quote or generate", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
+test("failed saved-input loading can be refreshed in place without starting generation", async ({ page }) => {
+  const f = await setup(page, "inputs_failed"),
+    draw = send(page, "Draw six concepts"),
+    refresh = page.getByRole("button", { name: "Refresh logo inputs", exact: true });
+  await expect(refresh).toBeVisible();
+  await expect(draw).toBeDisabled();
+  expect(f.starts).toHaveLength(0);
+  f.failInputReads = false;
+  await refresh.click();
+  await expect(draw).toBeEnabled();
+  await expect(refresh).toHaveCount(0);
+  expect(f.inputReads).toBeGreaterThan(1);
+  expect(f.starts).toHaveLength(0);
+  await draw.click();
+  await expect.poll(() => f.starts.length).toBe(1);
+});
+
+test("restored saving refreshes the prepared inputs and enables a deliberate Send", async ({ page }) => {
+  const f = await setup(page, "save_unavailable"),
+    draw = send(page, "Draw six concepts");
+  await expect(page.getByText(/Logo saving is unavailable/u)).toBeVisible();
+  await expect(draw).toBeDisabled();
+  expect(f.saves).toHaveLength(0);
+  expect(f.starts).toHaveLength(0);
+  f.restoreSaving();
+  await page.getByRole("button", { name: "Refresh logo inputs", exact: true }).click();
+  await expect(draw).toBeEnabled();
+  expect(f.saves).toHaveLength(1);
+  expect(f.starts).toHaveLength(0);
+});
+
+test("an unconfirmed first brief save is kept for checking and nothing can be drawn", async ({ page }) => {
   const f = await setup(page, "save_uncertain");
   await expect.poll(() => f.saves.length).toBe(1);
-  await expect(page.getByText("Your logo inputs have not been confirmed as saved.", { exact: false })).toBeVisible();
-  await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
-  expect(f.posts).toHaveLength(0);
+  await expect(page.getByText("We couldn’t confirm your logo brief was saved.", { exact: false })).toBeVisible();
   // Save recovery is shown in the Logo step itself.
-  await expect(page.getByText("A previous save is awaiting confirmation.", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "Check original save", exact: true })).toBeVisible();
+  await expect(send(page, "Draw six concepts")).toBeDisabled();
   expect(f.saves).toHaveLength(1);
-  expect(f.quotes).toHaveLength(0);
+  expect(f.starts).toHaveLength(0);
 });
 
 test("a project without a saved brand name is guided back before any logo write", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
   const f = await setup(page, "missing_name");
   await expect(
     page.getByText("Choose and save a brand name in your project before generating logo concepts.", { exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Open project to choose a name" })).toHaveAttribute(
     "href",
-    `/brands/account/${source.input.projectId}?view=strategy`,
+    `/brands/account/${projectId}?view=strategy`,
   );
+  await expect(send(page, "Draw six concepts")).toBeDisabled();
   expect(f.inputReads).toBe(1);
   expect(f.saves).toHaveLength(0);
-  expect(f.posts).toHaveLength(0);
-  expect(f.quotes).toHaveLength(0);
+  expect(f.starts).toHaveLength(0);
 });
 
-test("clicking a logo selects it in place and persists without an inspection screen", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
+test("while Logo drawing is switched off Send stays off and nothing starts", async ({ page }) => {
+  const f = await setup(page, "engine_off"),
+    draw = send(page, "Draw six concepts");
+  // The saved logo types stay on screen; only drawing is held.
+  await expect(page.getByRole("group", { name: "Which logo types should I explore?" })).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: "Wordmark", exact: true })).toBeChecked();
+  await expect(draw).toBeDisabled();
+  await expect(page.getByText("Logo drawing is unavailable right now.", { exact: false }).first()).toBeVisible();
+  await draw.click({ force: true });
+  await page.getByRole("textbox", { name: "Message Embel" }).press("Enter");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(f.starts).toHaveLength(0);
+  expect(f.unhandledWrites).toEqual([]);
+});
+
+test("a set with one failed concept keeps five to choose and retries only the failed one", async ({ page }) => {
   const f = await setup(page, "partial");
-  const first = page.getByRole("button", { name: "Concept 1", exact: true });
+  await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Concept [1-5]$/u })).toHaveCount(5);
+  const retry = page.getByRole("button", { name: "Retry 1 failed concept", exact: true });
+  await expect(retry).toBeEnabled();
+  expect(f.starts).toHaveLength(0);
+  await retry.click();
+  await expect.poll(() => f.starts.length).toBe(1);
+  expect(f.starts[0]).toMatchObject({
+    kind: "logo.concepts",
+    input: { operation: "retry_failed", sourceBatchId: id(60), failedSlotIds: [id(115)] },
+  });
+  await expect(page.getByRole("button", { name: /^Concept [1-5]$/u })).toHaveCount(5);
+  expect(f.starts).toHaveLength(1);
+});
+
+test("clicking a concept chooses it in place and the choice is still there after a reload", async ({ page }) => {
+  const f = await setup(page, "partial");
+  const first = page.getByRole("button", { name: "Concept 1", exact: true }),
+    second = page.getByRole("button", { name: "Concept 2", exact: true });
   await first.click();
   await expect(first).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByText("Logo chosen. Continue, or describe a change below.", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Logo", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Refine a direction", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Your logo", exact: true })).toBeVisible();
+  // The chosen concept goes into the reply box, where Send continues to Creative direction.
+  await expect(page.getByRole("list", { name: "In your reply" })).toContainText("Logo: Concept 1");
+  await expect(send(page, "Continue to Creative direction")).toBeEnabled();
   expect(f.selections).toHaveLength(1);
-  expect(f.posts).toHaveLength(0);
-  expect(f.quotes.every((quote) => quote.operation === "more_concepts" || quote.operation === "retry_failed")).toBe(
-    true,
-  );
+  expect(f.selections[0]).toMatchObject({ batchId: id(60), slotId: id(110), attemptId: id(120) });
+  expect(f.starts).toHaveLength(0);
   await page.reload();
   await expect(first).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "Concept 2", exact: true }).focus();
+  await second.focus();
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("button", { name: "Concept 2", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(second).toHaveAttribute("aria-pressed", "true");
   await expect(first).toHaveAttribute("aria-pressed", "false");
   expect(f.selections).toHaveLength(2);
+  expect(f.starts).toHaveLength(0);
 });
 
-test("composer refines the saved selected concept in place with the entered changes", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
-  const f = await setup(page, "partial");
-  const send = page.getByRole("button", { name: "Refine", exact: true });
-  await expect(send).toBeHidden();
-  await page.getByRole("button", { name: "Concept 2", exact: true }).click();
-  await expect(page.getByText("Refinement target: Concept 2", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Refine logo", exact: true }).click();
-  await page
-    .getByRole("textbox", { name: "Describe a change to this logo" })
-    .fill("Make the monogram more rounded and increase the inner spacing.");
-  await expect(send).toBeEnabled();
-  await send.click();
-  await expect.poll(() => f.posts.length).toBe(1);
-  await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
-  expect(f.issuedQuotes.get(f.posts[0]!.quoteId)?.request).toMatchObject({
-    operation: "refine_preview",
-    source: { kind: "concept", slotId: id(111) },
-    instruction: "Make the monogram more rounded and increase the inner spacing.",
-  });
-  expect(f.posts).toHaveLength(1);
-  await expect(page.getByRole("heading", { name: "Refine a direction", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("textbox", { name: "Describe a change to this logo" })).toHaveValue(
-    "Make the monogram more rounded and increase the inner spacing.",
-  );
-  await expect(send).toBeDisabled();
-});
-
-test("a delayed estimate never generates or takes focus after the refinement editor closes", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
+test("a message in the reply box changes the chosen concept with one request", async ({ page }) => {
   const batch = syntheticLogoBatch(),
-    slot = batch.slots[0]!,
-    attempt = slot.attempts[0]!;
-  const f = await setup(page, "partial", {
+    slot = batch.slots[1]!;
+  const chosen: LogoRasterSource = {
     kind: "concept",
     batchId: batch.id,
     slotId: slot.id,
-    attemptId: attempt.id,
-  });
-  let release!: () => void;
-  f.quoteGate = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  const form = page.getByRole("form", { name: "Logo concept changes" });
-  await form.getByRole("button", { name: "Refine logo", exact: true }).click();
-  await form.getByRole("textbox", { name: "Describe a change to this logo" }).fill("Retained instruction during quote");
-  await expect.poll(() => f.quotes.some((quote) => quote.operation === "refine_preview")).toBe(true);
-  await form.getByRole("button", { name: "Close refinement", exact: true }).click();
-  release();
-  await expect(form.getByRole("textbox", { name: "Describe a change to this logo" })).toBeHidden();
-  await expect(form.getByRole("button", { name: "Refine logo", exact: true })).toBeFocused();
-  await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
-  expect(f.posts).toEqual([]);
-  expect(f.selections).toEqual([]);
-});
-
-test("refinement disclosure reserves space and preserves edits", async ({ page }, info) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
-  await page.setViewportSize(
-    info.project.name === "mobile" ? { width: 390, height: 844 } : { width: 1440, height: 900 },
-  );
-  const batch = syntheticLogoBatch(),
-    slot = batch.slots[0]!,
-    attempt = slot.attempts[0]!;
-  const f = await setup(page, "partial", {
-    kind: "concept",
-    batchId: batch.id,
-    slotId: slot.id,
-    attemptId: attempt.id,
-  });
-  const form = page.getByRole("form", { name: "Logo concept changes" });
-  const toggle = form.getByRole("button", { name: "Refine logo", exact: true });
-  const input = form.getByRole("textbox", { name: "Describe a change to this logo" });
-  await expect(toggle).toHaveAttribute("aria-expanded", "false");
-  await expect(input).toBeHidden();
-  expect(await form.evaluate((node) => getComputedStyle(node).position)).toBe("relative");
-  await toggle.click();
-  await input.fill("Retained local fixture instruction");
-  const formBox = await form.boundingBox(),
-    cardBox = await page.locator('[data-concept-ordinal="0"]').boundingBox();
-  // The refine box sits below the concepts, so opening it never pushes the cards around.
-  expect(formBox!.y).toBeGreaterThanOrEqual(cardBox!.y + cardBox!.height);
-  await form.getByRole("button", { name: "Close refinement", exact: true }).click();
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await toggle.click();
-  await expect(input).toHaveValue("Retained local fixture instruction");
-  await expect(form.getByText("Refinement target: Concept 1", { exact: true })).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.locator(`a[href$="/logo/directions"]`, { hasText: /^Continue$/ }).scrollIntoViewIfNeeded();
-  await expect(page.locator(`a[href$="/logo/directions"]`, { hasText: /^Continue$/ })).toBeInViewport();
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await form.getByRole("button", { name: "Close refinement", exact: true }).click();
-  await form.scrollIntoViewIfNeeded();
-  await captureUiEvidence(page, info);
-  expect(f.selections).toEqual([]);
-  expect(f.posts).toEqual([]);
-  expect(f.saves).toEqual([]);
-});
-
-test("a saved refinement can be selected and edited again without leaving concepts", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
-  const f = await setup(page, "partial");
-  const refinement = syntheticRasterRefinement();
-  f.refinements.push(refinement);
-  await page.reload();
-  await page.getByRole("button", { name: "Concept 1", exact: true }).click();
-  await expect(page.getByText("Refinement target: Concept 1 · Version 2", { exact: true })).toBeVisible();
-  await expect(page.locator(`a[href$="/logo/directions"]`, { hasText: /^Continue$/ })).toHaveAttribute(
-    "href",
-    /\/logo\/directions$/,
-  );
-  await page.getByRole("button", { name: "Refine logo", exact: true }).click();
-  await page
-    .getByRole("textbox", { name: "Describe a change to this logo" })
-    .fill("Make the lettering slightly wider.");
-  await page.getByRole("textbox", { name: "Describe a change to this logo" }).focus();
-  await expect(page.getByRole("button", { name: "Refine", exact: true })).toBeEnabled();
-  expect(f.posts).toHaveLength(0);
-  await page.keyboard.press("Control+Enter");
-  await expect.poll(() => f.posts.length).toBe(1);
-  expect(f.quotes.at(-1)).toMatchObject({
-    operation: "refine_preview",
-    source: { kind: "refinement", rasterRevisionId: refinement.id },
-    instruction: "Make the lettering slightly wider.",
-  });
-  expect(f.posts).toHaveLength(1);
-});
-
-test("a running chat edit becomes a selectable saved refinement without reloading", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
-  const f = await setup(page, "partial");
-  await page.getByRole("button", { name: "Concept 1", exact: true }).click();
-  await page.getByRole("button", { name: "Refine logo", exact: true }).click();
-  await page
-    .getByRole("textbox", { name: "Describe a change to this logo" })
-    .fill("Increase the letter spacing slightly.");
-  await page.getByRole("button", { name: "Refine", exact: true }).click();
-  await expect.poll(() => f.posts.length).toBe(1);
-  const result = page.getByRole("combobox", { name: "Versions for concept 1" });
-  await expect(result).toHaveCount(0);
-  const queued = f.refinements[0]!;
-  const completed = {
-    ...syntheticRasterRefinement(),
-    id: queued.id,
-    requestKey: queued.requestKey,
-    jobId: queued.jobId,
-    source: queued.source,
+    attemptId: slot.attempts[0]!.id,
   };
-  f.commitRefinement(completed);
-  if (f.request.status === "not_found") throw new Error("Synthetic admission missing");
-  f.request = { ...f.request, status: "succeeded", billing: completed.billing, outputs: [completed.preview!] };
-  await expect(result).toBeVisible();
-  await expect(page.locator("[data-concept-ordinal]")).toHaveCount(6);
-  await expect(page.getByText("Saved image refinements could not be read.", { exact: false })).toHaveCount(0);
-  expect(f.posts).toHaveLength(1);
-  await expect(page.getByText("Refinement target: Concept 1 · Version 2", { exact: true })).toBeVisible();
-  await result.selectOption({ label: "Original" });
-  await expect(page.getByText("Refinement target: Concept 1", { exact: true })).toBeVisible();
-  await page.reload();
-  await expect(result).toHaveValue(/concept/);
-  await result.selectOption({ label: "Version 2 · Latest" });
-  await expect(page.getByText("Refinement target: Concept 1 · Version 2", { exact: true })).toBeVisible();
+  const f = await setup(page, "partial", chosen);
+  await expect(page.getByRole("list", { name: "In your reply" })).toContainText("Logo: Concept 2");
+  const message = page.getByRole("textbox", { name: "Message Embel" });
+  await message.fill("Make the monogram more rounded and increase the inner spacing.");
+  await send(page, "Send prompt").click();
+  await expect.poll(() => f.starts.length).toBe(1);
+  expect(f.starts[0]).toMatchObject({
+    kind: "logo.refine",
+    input: { source: chosen, instruction: "Make the monogram more rounded and increase the inner spacing." },
+  });
+  await expect(page.getByRole("button", { name: "Stop changing the logo", exact: true })).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(f.selections).toHaveLength(0);
+  expect(f.starts).toHaveLength(1);
 });
 
-test("a failed preparation can be retried without starting generation", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
+test("six concepts being drawn show the drawing frame, with reduced motion too", async ({ page }, info) => {
+  const f = await setup(page, "drawing");
+  // Each concept being made is a drawing frame named after its concept; no shader runs.
+  const frames = page.getByRole("img", { name: /^Concept [1-6] is being drawn$/u });
+  await expect(frames).toHaveCount(6);
+  expect(await frames.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("aria-label")))).toEqual(
+    [1, 2, 3, 4, 5, 6].map((n) => `Concept ${n} is being drawn`),
   );
-  const f = await setup(page, "quote_failed");
-  const action = page.getByRole("group", { name: "Explore six concepts", exact: true });
-  await expect(action).toContainText("This request could not be prepared");
-  await expect(action.getByRole("button", { name: "Explore six concepts", exact: true })).toBeDisabled();
-  expect(f.posts).toHaveLength(0);
-  f.failQuotes = false;
-  await action.getByRole("button", { name: "Try again", exact: true }).click();
-  await expect(action.getByRole("button", { name: "Explore six concepts", exact: true })).toBeEnabled();
-  expect(f.posts).toHaveLength(0);
-  expect(f.quotes).toHaveLength(2);
-});
-
-test("an expired request is replaced quietly and never starts generation on its own", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
-  const f = await setup(page, "quote_expired");
-  const action = page.getByRole("group", { name: "Explore six concepts", exact: true });
-  const generate = action.getByRole("button", { name: "Explore six concepts", exact: true });
-  await expect(generate).toBeEnabled();
-  await expect.poll(() => f.quotes.length).toBeGreaterThan(1);
-  expect(f.posts).toHaveLength(0);
-  await expect(generate).toBeEnabled();
-  await expect(action).not.toContainText(/estimat|expired/i);
-  expect(f.posts).toHaveLength(0);
-  await generate.click();
-  await expect.poll(() => f.posts.length).toBe(1);
-});
-
-test("a cancelled request keeps partial previews and allows a later deliberate generation", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
-  const f = await setup(page);
-  await page.getByRole("button", { name: "Explore six concepts", exact: true }).click();
-  await expect.poll(() => f.posts.length).toBe(1);
-  if (f.request.status === "not_found") throw Error("Synthetic admission missing");
-  f.request = { ...f.request, status: "cancelled", billing: { status: "recorded", confirmedMicrousd: 0 }, outputs: [] };
-  await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "More concepts", exact: true })).toBeEnabled();
-  expect(f.posts).toHaveLength(1);
-});
-
-test("an uncapped generation shows no cost and starts on one click", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: the Logo step lives inside the brand conversation and draws on the generation engine (/logo/engine, /generations); this opens the old Logo page with a project that has no Strategy progress and lands on Strategy",
-  );
-  const f = await setup(page, "unknown_estimate");
-  const action = page.getByRole("group", { name: "Explore six concepts", exact: true });
-  await expect(action).not.toContainText(/cost|estimat|\$/i);
-  expect(f.posts).toHaveLength(0);
-  await action.getByRole("button", { name: "Explore six concepts", exact: true }).click();
-  await expect.poll(() => f.posts.length).toBe(1);
-  expect(f.posts[0]).not.toHaveProperty("acceptedMaxCostMicrousd");
+  await expect(page.getByRole("heading", { name: "Drawing your concepts", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Concept \d/u })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Stop drawing", exact: true })).toBeVisible();
+  await page.screenshot({ path: info.outputPath("logo-drawing-loading.png"), fullPage: true });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(page.locator(".e-media--drawing canvas")).toHaveCount(0);
+  await expect(page.locator(".e-media--drawing")).toHaveCount(6);
+  expect(f.starts).toHaveLength(0);
 });

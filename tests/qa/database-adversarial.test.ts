@@ -447,6 +447,10 @@ describe("independent database boundary attacks", () => {
       "public.billing_record_event(text, text)",
       "public.billing_apply_subscription(uuid, text, text, text, text, timestamp with time zone, timestamp with time zone, boolean, timestamp with time zone)",
       "public.billing_apply_invoice(uuid, text, text, text, timestamp with time zone, timestamp with time zone)",
+      // 20261115100000_checkout_claim: one Checkout request per account at a time (service_role only).
+      "public.billing_claim_checkout(uuid)",
+      "public.billing_release_checkout(uuid)",
+      "public.billing_live_subscription_count(uuid)",
     ]);
     // The baseline grants the worker helpers by name to production's roles, so a login
     // created afterwards executes nothing.

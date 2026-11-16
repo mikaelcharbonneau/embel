@@ -813,8 +813,14 @@ export function AccountGuidedInterview({
     focusWorkAfterReopen.current = true;
     dispatchWorkArea({ type: "reopened_step", step });
   };
-  // A link to the Logo step opens it even when the project has moved past it.
-  if (logoLinked && !workArea.linkedLogo) dispatchWorkArea({ type: "logo_link_arrived" });
+  // A link to the Logo step opens it even when the project has moved past it. Only an address that just
+  // changed counts: the address still says #journey-logo after Send on Logo, and asking again on every
+  // render would undo that Continue.
+  const [hashSeen, setHashSeen] = useState(hash);
+  if (hash !== hashSeen) {
+    setHashSeen(hash);
+    if (logoLinked) dispatchWorkArea({ type: "logo_link_arrived" });
+  }
   useConversationSteps(reached, barStep, sections);
 
   // Steps in the work area report their reply box action, result rows and folded summaries here.

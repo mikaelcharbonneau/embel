@@ -60,8 +60,16 @@ earlier one can still be paid.
 - A session turns out to be paid already (finished a moment ago in the other tab): 409
   `billing_pending`, the same notice as for a first payment still being confirmed.
 
-What is left: two requests arriving in the same instant can each find nothing open and each open a
-page. If two subscriptions ever become live for one account, credits are not added twice: the second
+**One Checkout request per account at a time** (November 15, 2026; migration
+`20261115100000_checkout_claim`). Two requests arriving in the same instant could each find nothing open
+and each open a page. Before it looks at open pages, the server now takes a short claim on the
+account's billing row (`billing_claim_checkout`) and gives it back as soon as the new page exists or
+the attempt failed (`billing_release_checkout`). The request that does not get the claim answers 409
+`checkout_opening` ("Checkout is already opening for this account. Try again in a moment."), which the
+Plans page shows with Try again. A claim that is never given back ends by itself after 30 seconds.
+
+If two subscriptions ever become live for one account anyway, the webhook logs
+`billing_second_live_subscription` (it shows in Vercel's error report), and credits are not added twice: the second
 subscription's first invoice starts a new paid period, which sets the balance back to the plan's
 allowance (150, not 150 + 150), and each later renewal does the same; both subscriptions are saved as
 Stripe reports them and the plan stays paid while either is live (database test "never adds a second

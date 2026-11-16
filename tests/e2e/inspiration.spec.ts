@@ -10,6 +10,21 @@ const ownerId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
 const base = `/api/projects/${projectId}/inspiration`,
   url = `/brands/account/${projectId}/inspiration`,
   brand = inspirationBrands[0]!;
+// Inspiration is the first Identity step of the brand conversation: it shows once Voice is finished, that is with
+// a chosen name and the slogan question answered (here: skipped).
+const when = "2026-10-13T00:00:00Z";
+const finishedVoice = contextSnapshotSchema.parse({
+  description: "Explicit local inspiration fixture",
+  selectedName: "Fixture",
+  intake: {
+    guidedInterview: {
+      version: 1,
+      stage: "complete",
+      turns: [{ id: "slogan-turn", userMessageId: null, stage: "slogan", purpose: "propose", inputRevision: 1 }],
+      answers: [{ stage: "slogan", turnId: "slogan-turn", optionIds: [], customText: null, confirmedAt: when }],
+    },
+  },
+});
 async function setup(page: Page) {
   const fixture = {
     writes: 0,
@@ -52,9 +67,18 @@ async function setup(page: Page) {
           scope: "complete_brand",
           current_revision: 1,
           created_at: "2026-10-13T00:00:00Z",
-          context: contextSnapshotSchema.parse({ description: "Explicit local inspiration fixture" }),
+          context: finishedVoice,
         },
       });
+    if (path === `/api/projects/${projectId}/strategy`)
+      return json({
+        availability: {
+          status: "available",
+          operations: [{ operation: "strategy.reformulate", maximumCostMicrousd: 100000, interviewVersion: 1 }],
+        },
+        jobs: [],
+      });
+    if (path === `/api/projects/${projectId}/generations` && request.method() === "GET") return json({ runs: [] });
     if (path === base) return json(fixture.overview);
     if (path.startsWith(`${base}/`) && request.method() === "PATCH") {
       fixture.writes++;
@@ -84,7 +108,9 @@ async function setup(page: Page) {
     }
     return json({}, 503);
   });
+  // The old standalone address hands over to the Identity part of the brand conversation.
   await page.goto(url);
+  await expect(page).toHaveURL(`/brands/account/${projectId}?view=strategy#journey-identity`);
   await expect(page.getByRole("button", { name: /^Liked · 0$/ })).toBeVisible();
   await expect(page.getByRole("button", { name: `Like the whole ${brand.brand} brand`, exact: true })).toBeEnabled();
   return fixture;
@@ -94,10 +120,6 @@ const open = (page: Page, part = "logo") =>
   card(page).getByRole("button", { name: `Open ${brand.brand}: ${part}`, exact: true });
 const overlay = (page: Page) => page.locator("dialog.inspiration-brand-overlay");
 test("brand containers, categories, search and the brand overlay", async ({ page }, info) => {
-  test.fixme(
-    true,
-    "needs a rewrite: Inspiration is now a step inside the brand conversation; this fixture opens the old standalone page, lands on Strategy and never shows the gallery",
-  );
   const fixture = await setup(page);
   await expect(page.locator(".inspiration-categories button")).toHaveText([
     "Brands",
@@ -117,8 +139,13 @@ test("brand containers, categories, search and the brand overlay", async ({ page
         .evaluate((image: HTMLImageElement) => image.naturalWidth),
     )
     .toBeGreaterThan(0);
-  const next = page.getByRole("link", { name: "Continue", exact: true });
-  await expect(next).toHaveAttribute("href", `/brands/account/${projectId}/logo`);
+  // The gallery has no Continue of its own in the conversation: Send in the reply box moves on to Logo.
+  await expect(page.getByRole("link", { name: "Continue", exact: true })).toHaveCount(0);
+  await expect(
+    page
+      .getByRole("form", { name: "Reply", exact: true })
+      .getByRole("button", { name: "Continue to Logo", exact: true }),
+  ).toBeEnabled();
   await page.screenshot({ path: info.outputPath("brands.png") });
   await page.getByRole("button", { name: "Colors", exact: true }).click();
   await expect(page.locator(".inspiration-brand")).toHaveCount(0);
@@ -132,9 +159,9 @@ test("brand containers, categories, search and the brand overlay", async ({ page
   const dialog = overlay(page);
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("heading", { name: brand.brand, exact: true })).toBeVisible();
-  await expect(dialog.locator("figcaption")).toHaveText("Typefaces · 3 of 5");
+  await expect(dialog.locator("figcaption")).toHaveText("Typefaces");
   await page.keyboard.press("ArrowRight");
-  await expect(dialog.locator("figcaption")).toHaveText("Socials · 4 of 5");
+  await expect(dialog.locator("figcaption")).toHaveText("Socials");
   await page.screenshot({ path: info.outputPath("overlay.png") });
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
@@ -143,10 +170,6 @@ test("brand containers, categories, search and the brand overlay", async ({ page
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 test("whole-brand and part likes are independent, reloadable and visible in Liked", async ({ page }, info) => {
-  test.fixme(
-    true,
-    "needs a rewrite: Inspiration is now a step inside the brand conversation; this fixture opens the old standalone page, lands on Strategy and never shows the gallery",
-  );
   const fixture = await setup(page);
   const whole = card(page).getByRole("button", { name: `Like the whole ${brand.brand} brand`, exact: true });
   await whole.click();
@@ -176,10 +199,6 @@ test("whole-brand and part likes are independent, reloadable and visible in Like
   expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain(brand.id);
 });
 test("a lost successful response is recovered by reading, without repeating the write", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: Inspiration is now a step inside the brand conversation; this fixture opens the old standalone page, lands on Strategy and never shows the gallery",
-  );
   const fixture = await setup(page);
   fixture.lost = true;
   await card(page)
@@ -195,10 +214,6 @@ test("a lost successful response is recovered by reading, without repeating the 
   expect(fixture.writes).toBe(1);
 });
 test("a failed write retains intent and requires check then explicit retry", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: Inspiration is now a step inside the brand conversation; this fixture opens the old standalone page, lands on Strategy and never shows the gallery",
-  );
   const fixture = await setup(page);
   fixture.fail = true;
   await card(page)
@@ -219,10 +234,6 @@ test("a failed write retains intent and requires check then explicit retry", asy
 });
 
 test("dialog hit testing: the brand overlay protects padding without saving choices", async ({ page }) => {
-  test.fixme(
-    true,
-    "needs a rewrite: Inspiration is now a step inside the brand conversation; this fixture opens the old standalone page, lands on Strategy and never shows the gallery",
-  );
   const fixture = await setup(page);
   await checkDialogHitTesting(page, open(page), overlay(page), "Close brand");
   expect(fixture.writes).toBe(0);

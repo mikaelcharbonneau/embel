@@ -2,16 +2,14 @@ import { expectProjectCanvas } from "./project-canvas-contract";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { accountProjectSchema } from "../../src/domain/project-api";
 import { logoWorkspaceV2Schema } from "../../src/domain/logo-workspace";
-import { INSPIRATION_CATALOG_VERSION } from "../../src/domain/inspiration";
-import { visualDirectionOverviewSchema } from "../../src/domain/visual-direction";
 import { syntheticLogoWorkspace } from "../fixtures/logo-creation";
 import { captureUiEvidence } from "./ui-evidence";
 
 const ownerId = "aaaaaaaa-1111-4111-8111-111111111111";
 const projectId = "bbbbbbbb-1111-4111-8111-111111111111";
 const privateTitle = "Synthetic private account project with a long retained title";
-const privateGuidance = "Synthetic private guidance retained in the saved account workspace.";
-const projectRoute = `/brands/account/${projectId}/logo/directions`;
+const brandName = "Kitchen";
+const projectRoute = `/brands/account/${projectId}`;
 const promptText = "A neighborhood kitchen for seasonal lunches and practical cooking classes.";
 
 function deferred() {
@@ -116,36 +114,9 @@ async function fixture(page: Page, held = false, failedProject = false) {
     scope: "complete_brand",
     current_revision: 1,
     created_at: "2026-10-15T10:00:00Z",
-    context: { description: "Synthetic saved project context", selectedName: "Kitchen" },
+    context: { description: "Synthetic saved project context", selectedName: brandName },
   });
   const workspace = logoWorkspaceV2Schema.parse({ ...syntheticLogoWorkspace(), ownerId, projectId });
-  const direction = visualDirectionOverviewSchema.parse({
-    inspiration: {
-      ownerId,
-      projectId,
-      projectTitle: privateTitle,
-      projectScope: project.scope,
-      projectRevision: 1,
-      catalogVersion: INSPIRATION_CATALOG_VERSION,
-      selectionRevision: 0,
-      choices: [],
-    },
-    current: {
-      id: "cccccccc-1111-4111-8111-111111111111",
-      ownerId,
-      projectId,
-      revision: 1,
-      projectRevision: 1,
-      selectionRevision: 0,
-      catalogVersion: INSPIRATION_CATALOG_VERSION,
-      guidance: { character: privateGuidance, colors: "", typography: "", graphics: "" },
-      references: [],
-      reviewedAt: "2026-10-15T10:00:00Z",
-    },
-    history: [],
-    hasEarlierHistory: false,
-    stale: false,
-  });
   const logo = `/api/projects/${projectId}/logo`;
   await page.route("**/*", async (route) => {
     const request = route.request(),
@@ -194,10 +165,13 @@ async function fixture(page: Page, held = false, failedProject = false) {
                 ? workspace
                 : path === `${logo}/references` || path === `${logo}/inputs/requests`
                   ? { ownerId, projectId, items: [], nextCursor: null }
-                  : path === `${logo}/fonts` || path === `${logo}/fonts/catalog`
-                    ? []
-                    : path === `/api/projects/${projectId}/visual-direction`
-                      ? direction
+                  : path === `/api/projects/${projectId}/strategy`
+                    ? {
+                        availability: { status: "unavailable", operations: [], reason: "worker_unavailable" },
+                        jobs: [],
+                      }
+                    : path === `/api/projects/${projectId}/generations`
+                      ? { runs: [] }
                       : null;
     if (body === null) state.unknownReads.push(path);
     return route.fulfill({ status: body === null ? 503 : 200, json: body ?? { error: "Unconfigured synthetic read" } });
@@ -210,43 +184,20 @@ async function captureState(page: Page, info: TestInfo, state: string) {
   await captureUiEvidence(page, { ...info, title: `${info.title} ${state}` });
 }
 
-async function frame(page: Page) {
-  const { shell } = await expectProjectCanvas(page);
-  return [{ selector: ".project-workspace", ...shell }];
-}
+// The saved brand's conversation renders only for the verified owner.
+const conversation = (page: Page) => page.getByRole("region", { name: "Brand conversation", exact: true });
+// The neutral frame a brand page shows while the account or the project is read.
+const opening = (page: Page) => page.getByRole("main").getByRole("status", { name: "Opening your brand", exact: true });
 
-function expectSameFrame(before: Awaited<ReturnType<typeof frame>>, after: Awaited<ReturnType<typeof frame>>) {
-  expect(after.map((row) => row.selector)).toEqual(before.map((row) => row.selector));
-  for (let index = 0; index < before.length; index++)
-    for (const coordinate of ["x", "y", "width", "height"] as const) {
-      expect(
-        Math.abs(before[index]![coordinate] - after[index]![coordinate]),
-        `${before[index]!.selector} ${coordinate}`,
-      ).toBeLessThanOrEqual(1);
-    }
-}
-
-async function expectNoProjectBars(page: Page) {
-  await expectProjectCanvas(page);
-  await expect(page.getByText("Unsaved project edits", { exact: true })).toHaveCount(0);
-}
-
-// The page-level account notice; the account menu repeats the same text in its own identity row.
-const accountNotice = (page: Page) => page.getByRole("main").locator(":is(.e-message, .e-empty)");
-// The saved logo and its directions render only for the verified owner.
-const ownedDirections = (page: Page) => page.getByRole("region", { name: "Chosen logo", exact: true });
-
+/** Nothing of the saved brand is on the page: not its name, its title or its conversation. */
 async function expectMasked(page: Page) {
   await expect(page.getByText(privateTitle, { exact: true })).toHaveCount(0);
-  await expect(page.locator(".project-output-page")).toHaveCount(0);
-  await expect(ownedDirections(page)).toHaveCount(0);
+  await expect(page.getByRole("banner")).not.toContainText(brandName);
+  await expect(page.getByRole("main")).not.toContainText(brandName);
+  await expect(conversation(page)).toHaveCount(0);
 }
 
 test("Home input disclosures preserve prompt and honest availability", async ({ page }, info) => {
-  test.fixme(
-    true,
-    "needs a rewrite: asserts the project frame from before the November 6 redesign (canvas offsets, account notice in the page, the retired What to create switch)",
-  );
   const state = await fixture(page);
   await page.goto("/");
   const prompt = page.getByRole("textbox", { name: "Your prompt", exact: true });
@@ -258,36 +209,15 @@ test("Home input disclosures preserve prompt and honest availability", async ({ 
   await trigger.focus();
   await trigger.press("Enter");
   await expect(files).toHaveAttribute("open", "");
-  await expect(panel.getByRole("status")).toHaveText(
-    "File attachments are currently unavailable. You can keep writing your prompt.",
-  );
+  // The panel says why files can't be added, in the service's own words, and offers no working picker.
+  await expect(panel.getByRole("status")).toHaveText("Synthetic file storage is unavailable.");
+  const fileInput = panel.locator('input[type="file"]');
+  await expect(fileInput).toBeDisabled();
+  await expect(fileInput).toBeHidden();
   const send = (await page.locator(".composer-send-icon").boundingBox())!,
     filePanel = (await panel.boundingBox())!;
   expect(filePanel.y).toBeGreaterThanOrEqual(send.y + send.height);
-  if (info.project.name === "mobile") {
-    // Phones: attach, dictate and send share a row; the scope switch takes the next row.
-    const scopeBox = (await page.getByRole("group", { name: "What to create", exact: true }).boundingBox())!;
-    expect(scopeBox.y).toBeGreaterThanOrEqual(send.y + send.height);
-    expect(filePanel.width).toBeGreaterThan(page.viewportSize()!.width * 0.8);
-  }
-  const fileInput = panel.locator('input[type="file"]');
-  await expect(fileInput).toBeDisabled();
-  await expect(fileInput).toHaveAttribute("hidden", "");
-  await expect(fileInput).toBeHidden();
-  // Availability details open as a dialog from the files panel and return focus to their trigger.
-  const availabilityTrigger = panel.getByRole("button", { name: "Availability details", exact: true });
-  const availability = page.getByRole("dialog", { name: "Availability details", exact: true });
-  await expect(availabilityTrigger).toHaveAttribute("aria-expanded", "false");
-  await expect(availability).toHaveCount(0);
-  await availabilityTrigger.focus();
-  await availabilityTrigger.press("Enter");
-  await expect(availability).toBeVisible();
-  await expect(availability.getByText("Synthetic file storage is unavailable.", { exact: true })).toBeVisible();
-  await availability.getByRole("button", { name: "Close", exact: true }).press("Enter");
-  await expect(availability).toHaveCount(0);
-  await expect(availabilityTrigger).toBeFocused();
-  await expect(files).toHaveAttribute("open", "");
-  await trigger.focus();
+  await captureState(page, info, "files-availability");
   await trigger.press("Enter");
   await expect(files).not.toHaveAttribute("open", "");
   await expect(trigger).toBeFocused();
@@ -302,19 +232,6 @@ test("Home input disclosures preserve prompt and honest availability", async ({ 
   await expect(files).not.toHaveAttribute("open", "");
   await expect(prompt).toBeFocused();
 
-  // Scope is one radio group: arrow keys move the choice, and only the three
-  // supported project scopes are offered.
-  const scope = page.getByRole("group", { name: "What to create", exact: true }),
-    options = scope.getByRole("radio");
-  await expect(options).toHaveCount(3);
-  expect(await scope.locator("label").allTextContents()).toEqual(["Complete brand", "Name only", "Visual identity"]);
-  await expect(options.nth(0)).toBeChecked();
-  await options.nth(0).focus();
-  await page.keyboard.press("ArrowRight");
-  await expect(options.nth(1)).toBeChecked();
-  await expect(options.nth(1)).toBeFocused();
-  await page.keyboard.press("ArrowLeft");
-  await expect(options.nth(0)).toBeChecked();
   const voice = page.locator(".home-voice-popover"),
     voiceTrigger = voice.locator(":scope > summary");
   await voiceTrigger.focus();
@@ -336,43 +253,35 @@ test("Home input disclosures preserve prompt and honest availability", async ({ 
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
     page.viewportSize()!.width,
   );
-  await trigger.click();
-  await availabilityTrigger.click();
-  await captureState(page, info, "files-availability");
 });
 
-test("project frame stays stable through verification and account loss", async ({ page }, info) => {
-  test.fixme(
-    true,
-    "needs a rewrite: asserts the project frame from before the November 6 redesign (canvas offsets, account notice in the page, the retired What to create switch)",
-  );
+test("a brand page stays neutral until its owner is verified and hides the brand when the account is lost", async ({
+  page,
+}, info) => {
   const state = await fixture(page, true);
+  const projectReads = () => state.requests.filter((row) => row.path === `/api/projects/${projectId}`).length;
   try {
     await page.goto(projectRoute);
     await expect.poll(() => state.requests.some((row) => row.path === "/api/session")).toBe(true);
-    await expect(accountNotice(page)).toHaveText("Checking your account…");
-    await expectNoProjectBars(page);
+    // While the account is checked, the page says it is opening; the account button names the check.
+    await expect(opening(page)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Account menu, checking your account", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /sign in/iu })).toHaveCount(0);
     await expectMasked(page);
-    expect(state.requests.some((row) => row.path === `/api/projects/${projectId}`)).toBe(false);
-    const accountChecking = await frame(page);
+    expect(projectReads()).toBe(0);
     await captureState(page, info, "account-checking");
     state.sessionGate!.release();
     state.sessionGate = null;
-    await expect.poll(() => state.requests.some((row) => row.path === `/api/projects/${projectId}`)).toBe(true);
-    await expectNoProjectBars(page);
-    const projectChecking = await frame(page);
-    expectSameFrame(accountChecking, projectChecking);
+    await expect.poll(projectReads).toBeGreaterThan(0);
+    // The same neutral frame while the brand itself is read.
+    await expect(opening(page)).toBeVisible();
+    await expectMasked(page);
     state.projectGate!.release();
     state.projectGate = null;
-    await expect(ownedDirections(page)).toBeVisible();
-    const verified = await frame(page);
-    expectSameFrame(accountChecking, verified);
-    await info.attach("project-frame-geometry", {
-      body: Buffer.from(
-        JSON.stringify({ viewport: page.viewportSize(), accountChecking, projectChecking, verified }, null, 2),
-      ),
-      contentType: "application/json",
-    });
+    await expect(conversation(page)).toBeVisible();
+    await expect(page.getByRole("heading", { name: brandName, exact: true, level: 1 })).toBeVisible();
+    await expect(opening(page)).toHaveCount(0);
+    await expectProjectCanvas(page);
     await captureState(page, info, "verified");
     // Existing production visibilitychange handling rechecks only the synthetic GET session.
     state.session = "signed_out";
@@ -387,20 +296,17 @@ test("project frame stays stable through verification and account loss", async (
     await expect
       .poll(() => state.requests.filter((row) => row.path === "/api/session").length)
       .toBeGreaterThan(previousReads);
-    // A routine tab-return check keeps the verified workspace in place until the session answers (11eae67).
-    await expect(accountNotice(page)).toHaveCount(0);
-    await expect(ownedDirections(page)).toBeVisible();
-    expectSameFrame(verified, await frame(page));
+    // A routine tab-return check keeps the verified brand in place until the session answers.
+    await expect(conversation(page)).toBeVisible();
+    await expect(opening(page)).toHaveCount(0);
     state.sessionGate.release();
     state.sessionGate = null;
     await expect(
-      accountNotice(page).getByText("No verified account session. Sign in to view your account projects.", {
-        exact: true,
-      }),
+      page.getByRole("main").getByRole("heading", { name: "Sign in to open this brand", exact: true }),
     ).toBeVisible();
-    await expectNoProjectBars(page);
     await expectMasked(page);
-    expectSameFrame(verified, await frame(page));
+    // The tab no longer names the brand either.
+    await expect(page).not.toHaveTitle(new RegExp(brandName, "u"));
     await captureState(page, info, "account-masked");
     expect(state.writes).toEqual([]);
   } finally {
@@ -432,99 +338,65 @@ test("Home disclosure dismissal preserves prompt with temporary reduced motion",
   }
 });
 
-test("failed project read keeps actionable recovery without project bars", async ({ page }, info) => {
-  test.fixme(
-    true,
-    "needs a rewrite: asserts the project frame from before the November 6 redesign (canvas offsets, account notice in the page, the retired What to create switch)",
-  );
+test("a brand whose first read fails offers one way to try again, and opens once the read works", async ({
+  page,
+}, info) => {
   const state = await fixture(page, true, true);
   try {
     await page.goto(projectRoute);
     state.sessionGate!.release();
     state.sessionGate = null;
-    const checking = await frame(page);
+    await expect(opening(page)).toBeVisible();
     state.projectGate!.release();
     state.projectGate = null;
-    const notice = page
-      .getByRole("alert")
-      .filter({ hasText: "We couldn’t check this brand’s latest save. Your work is kept." });
-    await expect(notice).toBeVisible();
-    await expect(notice.getByRole("button", { name: "Try again", exact: true })).toBeEnabled();
-    await expectNoProjectBars(page);
-    const failed = await frame(page);
-    // The explicit read-error notice occupies real content space; the shell keeps its bounds.
-    expectSameFrame(checking.slice(0, 3), failed.slice(0, 3));
-    const retry = notice.getByRole("button", { name: "Try again", exact: true });
+    const failure = page.getByRole("main").getByRole("alert");
+    await expect(failure.getByRole("heading", { name: "We couldn’t open this brand", exact: true })).toBeVisible();
+    // Said once: the page's own error stands in for the notice strip, and the app's navigation is back.
+    await expect(page.getByText("We couldn’t check this brand’s latest save. Your work is kept.")).toHaveCount(0);
+    await expect(page.getByRole("navigation", { name: "Main navigation", exact: true })).toBeVisible();
+    await expect(failure.getByRole("link", { name: "Back to Projects", exact: true })).toHaveAttribute(
+      "href",
+      "/brands",
+    );
+    await expectMasked(page);
+    const retry = failure.getByRole("button", { name: "Try again", exact: true });
+    await expect(retry).toBeEnabled();
     await retry.focus();
     await expect(retry).toBeFocused();
-    expect(state.writes).toEqual([]);
     await captureState(page, info, "project-read-failed");
+    state.failedProject = false;
+    await retry.press("Enter");
+    await expect(conversation(page)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "We couldn’t open this brand", exact: true })).toHaveCount(0);
+    expect(state.writes).toEqual([]);
   } finally {
     state.sessionGate?.release();
     state.projectGate?.release();
   }
 });
 
-test("retained project read failure keeps its actionable notice without adding project bars", async ({
+test("a brand whose re-read fails after coming back offers Try again and returns once the read works", async ({
   page,
 }, info) => {
-  test.fixme(
-    true,
-    "needs a rewrite: asserts the project frame from before the November 6 redesign (canvas offsets, account notice in the page, the retired What to create switch)",
-  );
   const state = await fixture(page);
   await page.goto(projectRoute);
-  await expect(ownedDirections(page)).toBeVisible();
-  await expectProjectCanvas(page);
+  await expect(conversation(page)).toBeVisible();
+  // Leaving and coming back inside the app reads the brand again; this time the read fails.
+  await page.getByRole("link", { name: "Embel home", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Your prompt", exact: true })).toBeVisible();
   state.failedProject = true;
-  const reviewLogo = ownedDirections(page).getByRole("link", { name: "Change logo", exact: true });
-  await reviewLogo.focus();
-  await reviewLogo.press("Enter");
-  await expect(page).toHaveURL(`/brands/account/${projectId}/logo`);
-  const notice = page
-    .getByRole("alert")
-    .filter({ hasText: "We couldn’t check this brand’s latest save. Your work is kept." });
-  await expect(notice).toBeVisible();
-  await expect(notice.getByRole("button", { name: "Try again", exact: true })).toBeEnabled();
-  await expectProjectCanvas(page);
-  expect(state.writes).toEqual([]);
+  await page.goBack();
+  const failure = page.getByRole("main").getByRole("alert");
+  await expect(failure.getByRole("heading", { name: "We couldn’t open this brand", exact: true })).toBeVisible();
+  // Said once: the page's own error stands in for the notice strip.
+  await expect(page.getByText("We couldn’t check this brand’s latest save. Your work is kept.")).toHaveCount(0);
+  const retry = failure.getByRole("button", { name: "Try again", exact: true });
+  await expect(retry).toBeEnabled();
   await captureState(page, info, "retained-project-read-error");
+  state.failedProject = false;
+  await retry.click();
+  await expect(conversation(page)).toBeVisible();
+  await expect(page.getByRole("heading", { name: brandName, exact: true, level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "We couldn’t open this brand", exact: true })).toHaveCount(0);
+  expect(state.writes).toEqual([]);
 });
-
-for (const suffix of [
-  "",
-  "/naming",
-  "/inspiration",
-  "/logo",
-  "/brand-board",
-  "/logo/directions",
-  "/identity",
-  "/logo/deliverables",
-]) {
-  test(`removed project bars reserve no space on ${suffix || "Strategy"} during account verification`, async ({
-    page,
-  }, info) => {
-    test.fixme(
-      true,
-      "needs a rewrite: asserts the project frame from before the November 6 redesign (canvas offsets, account notice in the page, the retired What to create switch)",
-    );
-    const state = await fixture(page, true);
-    try {
-      await page.goto(`/brands/account/${projectId}${suffix}`);
-      // While the account is checked, a brand page says it is opening; the account button names the check.
-      await expect(
-        page.getByRole("main").getByRole("status", { name: "Opening your brand", exact: true }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("button", { name: "Account menu, checking your account", exact: true }),
-      ).toBeVisible();
-      await expectProjectCanvas(page);
-      await expectMasked(page);
-      expect(state.requests.some((row) => row.path === `/api/projects/${projectId}`)).toBe(false);
-      if (suffix === "/logo" || suffix === "/naming") await captureState(page, info, "bars-absent-account-checking");
-    } finally {
-      state.sessionGate?.release();
-      state.projectGate?.release();
-    }
-  });
-}

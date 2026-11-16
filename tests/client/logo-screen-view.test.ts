@@ -143,6 +143,13 @@ describe("Embel's message in the chat", () => {
     expect(view(first).stateMessage).toBe(
       "Time for a logo. I’ll draw six concepts for Northwind, guided by the designs you liked.",
     );
+    // Drawing switched off before the first set: Send is held, so the message says why.
+    expect(view(first, { engine: false }).stateMessage).toBe(
+      "Logo drawing is unavailable right now. Nothing was started; come back a little later.",
+    );
+    expect(view(first, { engine: false, drawingNow: true }).stateMessage).toBe(
+      "I’m drawing six concepts for Northwind.",
+    );
     expect(view(chosen).stateMessage).toBe("Concept 2 is your logo.");
     expect(view(chosen, { canDescribeChange: false }).stateMessage).toBe("Concept 2 is your logo.");
     expect(view(concepts).stateMessage).toBe("Here are six concepts for Northwind.");

@@ -11,6 +11,10 @@ export interface BillingStore {
   eventSeen(eventId: string): Promise<boolean>;
   recordEvent(eventId: string, type: string): Promise<void>;
   applySubscription(state: SubscriptionState): Promise<{ live: boolean }>;
+  /** Takes the account's short Checkout claim. False when another request of the same account holds it. */
+  claimCheckout(ownerId: string): Promise<boolean>;
+  releaseCheckout(ownerId: string): Promise<void>;
+  liveSubscriptionCount(ownerId: string): Promise<number>;
   applyInvoice(input: {
     ownerId: string;
     invoiceId: string;
@@ -100,6 +104,20 @@ export function supabaseBillingStore(admin: SupabaseClient): BillingStore {
       });
       failure("apply_subscription", error);
       return z.object({ live: z.boolean() }).parse(data);
+    },
+    async claimCheckout(ownerId) {
+      const { data, error } = await admin.rpc("billing_claim_checkout", { p_owner: ownerId });
+      failure("claim_checkout", error);
+      return data === true;
+    },
+    async releaseCheckout(ownerId) {
+      const { error } = await admin.rpc("billing_release_checkout", { p_owner: ownerId });
+      failure("release_checkout", error);
+    },
+    async liveSubscriptionCount(ownerId) {
+      const { data, error } = await admin.rpc("billing_live_subscription_count", { p_owner: ownerId });
+      failure("live_subscription_count", error);
+      return z.number().int().parse(data);
     },
     async applyInvoice(input) {
       const { error } = await admin.rpc("billing_apply_invoice", {
