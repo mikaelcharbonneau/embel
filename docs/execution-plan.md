@@ -51,7 +51,7 @@ Status as of November 10, 2026. Waves C and D are unchanged.
 
 | Task | Model, effort | Status |
 |---|---|---|
-| C1 Payments with a merchant of record | Opus, high | live in the Stripe sandbox (#244, #245); switch to live keys at launch ([payments.md](payments.md)) |
+| C1 Payments with a merchant of record | Opus, high | live in the Stripe sandbox (#244, #245); switch to live keys at launch ([payments.md](payments.md), "Switching to live keys") |
 | C2 Plans page | Sonnet, medium | live (`/plans`), with Cancel plan (#245) |
 | C3 Staging DB | Sonnet, medium | project `embel-staging` created (Nov 11); schema and preview switch need the owner's DB password or CLI login |
 | C4 Email sender | lead guides owner | done: Resend via Supabase, branded emails (#242) |
