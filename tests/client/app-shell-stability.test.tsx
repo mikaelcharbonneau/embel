@@ -440,7 +440,7 @@ describe("persistent workspace shell", () => {
     expect(summary()?.textContent).toBe("Checking your account…");
     expect(menu().textContent).not.toContain("fixture@example.invalid");
     // The session itself is verified, so its own account rows are already offered.
-    expect(rows().map((row) => row.textContent)).toEqual(["Settings", "Plans", "Activity", "Sign out"]);
+    expect(rows().map((row) => row.textContent)).toEqual(["Settings", "Plans", "Activity", "Help", "Sign out"]);
     await act(async () => profile.resolve(new Response(null, { status: 503 })));
     await until(() => expect(button.hasAttribute("aria-busy")).toBe(false));
     expect(trigger()).toBe(button);
@@ -448,7 +448,7 @@ describe("persistent workspace shell", () => {
     // No name or email to show: the generic account icon, never a guessed identity.
     expect(button.textContent).toBe("");
     expect(button.querySelector('[data-icon="user"]')).not.toBeNull();
-    expect(rows().map((row) => row.textContent)).toEqual(["Settings", "Plans", "Activity", "Sign out"]);
+    expect(rows().map((row) => row.textContent)).toEqual(["Settings", "Plans", "Activity", "Help", "Sign out"]);
   });
 
   it.each([500, 503])(
@@ -473,6 +473,6 @@ it("reaches every destination from the pill without a separate mobile menu or To
   expect(navLinks().map((link) => link.getAttribute("href"))).toEqual(["/", "/brands", "/assets"]);
   expect(mainNav().querySelector("details")).toBeNull();
   await openMenu();
-  expect(rows().map((row) => row.getAttribute("href"))).toEqual(["/settings", "/plans", null, null]);
+  expect(rows().map((row) => row.getAttribute("href"))).toEqual(["/settings", "/plans", null, "/help", null]);
   expect(sessionCalls()).toHaveLength(1);
 });

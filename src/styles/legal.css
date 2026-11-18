@@ -1,0 +1,137 @@
+/* Terms, Privacy and Help: a reading column built from the design system's tokens. */
+.doc-page {
+  display: grid;
+  gap: var(--space-10);
+}
+.doc-page__header {
+  display: grid;
+  gap: var(--space-3);
+}
+.doc-page__title {
+  margin: 0;
+  font: var(--text-title-xl);
+  letter-spacing: var(--tracking-title-xl);
+}
+.doc-page__updated {
+  margin: 0;
+  color: var(--color-text-muted);
+  font: var(--text-small);
+}
+.doc-page__intro {
+  max-width: var(--measure);
+  font: var(--text-body-lg);
+}
+.doc-page__intro > p {
+  margin: 0;
+}
+
+.doc-page__contents {
+  padding: var(--space-card);
+  border-radius: var(--radius-card);
+  background: var(--color-bg-paper);
+  box-shadow: var(--shadow-raised);
+}
+.doc-page__contents-title {
+  margin: 0 0 var(--space-3);
+  font: var(--text-label);
+  color: var(--color-text-muted);
+}
+.doc-page__contents ol {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-2) var(--space-6);
+  margin: 0;
+  padding-left: var(--space-5);
+}
+.doc-page__contents li {
+  min-height: var(--link-target-min);
+}
+
+.doc-page__section {
+  display: grid;
+  gap: var(--space-3);
+  max-width: var(--measure);
+  /* A jump from the contents list lands below the floating navigation. */
+  scroll-margin-top: calc(var(--nav-offset) + var(--nav-height) + var(--space-4));
+}
+.doc-page__section-title {
+  margin: 0;
+  font: var(--text-title-md);
+  letter-spacing: var(--tracking-title-md);
+}
+.doc-page__section p,
+.doc-page__section ul,
+.doc-page__section ol {
+  margin: 0;
+}
+.doc-page__section ul,
+.doc-page__section ol {
+  display: grid;
+  gap: var(--space-2);
+  padding-left: var(--space-5);
+}
+.doc-page__question {
+  display: grid;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+.doc-page__question-title {
+  margin: 0;
+  font: var(--text-title-sm);
+  letter-spacing: var(--tracking-title-sm);
+}
+.doc-page__definitions {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+}
+.doc-page__definitions dt {
+  font: var(--text-label);
+}
+.doc-page__definitions dd {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+/* The quiet footer under every page except Home and an open project. */
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-6);
+  padding-block: var(--space-6) var(--space-10);
+  color: var(--color-text-muted);
+  font: var(--text-small);
+}
+.site-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.site-footer__links .e-link {
+  color: inherit;
+  font: inherit;
+}
+@media (hover: hover) and (pointer: fine) {
+  .site-footer__links .e-link:hover {
+    color: var(--color-text);
+  }
+}
+.site-footer__copyright {
+  margin: 0;
+}
+
+/* The agreement line under the Create account button. */
+.auth-card__terms {
+  margin: 0;
+  color: var(--color-text-muted);
+  font: var(--text-small);
+  text-align: center;
+}
+.auth-card__terms .e-link {
+  color: inherit;
+}

@@ -24,6 +24,7 @@ import { preparePromptForSignIn } from "./prompt-recovery";
 import { creditsLeft, nextCreditsDate, planName, useBillingSummary } from "@/components/billing/use-billing-summary";
 import { SignedOutActions } from "@/components/auth/signed-out-actions";
 import { OutOfCreditsPrompt } from "@/components/billing/out-of-credits-prompt";
+import { SiteFooter } from "./site-footer";
 
 const ACCOUNT_PAGES = ["/sign-in", "/sign-up", "/forgot-password", "/reset-password"];
 
@@ -135,6 +136,7 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
         <ProjectHeaderContext.Provider value={setProjectHeader}>
           <main id="main-content" ref={mainRef} tabIndex={-1}>
             {children}
+            {!isHome && !projectWorkspace && <SiteFooter />}
           </main>
         </ProjectHeaderContext.Provider>
         {isHome && moreBelow && <div className="home-bottom-fade" aria-hidden="true" />}
@@ -237,6 +239,7 @@ function WorkspaceAccountMenu({ pathname }: { pathname: string }) {
         { kind: "link", label: "Settings", icon: "settings", href: "/settings" },
         ...(outOfCredits ? [] : [{ kind: "link", label: "Plans", icon: "credit-card", href: "/plans" } as const]),
         { kind: "action", label: "Activity", icon: "clock", onSelect: () => setActivityOpen(true) },
+        { kind: "link", label: "Help", icon: "info", href: "/help" },
         { kind: "separator" },
         signOutRow,
       ]
