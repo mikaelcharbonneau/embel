@@ -30,6 +30,7 @@ the document.
 - [baseline-release.md](baseline-release.md): the one-time step that recorded the baseline migration.
 - [security-rate-limits.md](security-rate-limits.md): BotID and WAF rate limits on paid AI routes.
 - [auth-captcha.md](auth-captcha.md): the Turnstile CAPTCHA on sign-up, sign-in and password reset (off until keyed).
+- [dependency-audit.md](dependency-audit.md): the production dependency audit in CI and its accepted advisories.
 
 ## Accounts and data
 
