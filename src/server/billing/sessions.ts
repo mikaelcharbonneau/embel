@@ -134,11 +134,12 @@ export async function startCheckout(
 }
 
 /**
- * The Stripe customer portal: cancel at period end, switch between Pro and Studio, update the
- * payment method and see invoices (Managed Payments supports the portal; customers can also
- * manage the same subscription from Link). With `plan`, it opens straight on the confirmation
- * of that plan change. With `cancel`, it opens straight on cancelling the plan at the end of the
- * paid period: the portal home does not offer cancellation for Managed Payments subscriptions.
+ * The Stripe customer portal: cancel at period end, switch between Pro and Studio (a larger plan
+ * at once, a smaller one from the next renewal), update the payment method and see invoices
+ * (Managed Payments supports the portal; customers can also manage the same subscription from
+ * Link). With `plan`, it opens straight on the confirmation of that plan change. With `cancel`,
+ * it opens straight on cancelling the plan at the end of the paid period: the portal home does
+ * not offer cancellation for Managed Payments subscriptions.
  */
 export async function startPortal(
   deps: BillingDependencies,
@@ -158,7 +159,9 @@ export async function startPortal(
       subscription_cancel: { subscription: subscription.id },
       after_completion: { type: "redirect", redirect: { return_url: `${returnUrl}?portal=updated` } },
     };
-  } else if (plan && subscription?.live && subscription.planId !== plan) {
+  } else if (plan && subscription?.live && subscription.planId !== plan && !subscription.pendingPlanId) {
+    // With a plan change already waiting for the renewal, the portal home is where it is
+    // changed or undone: a second confirmation on top of Stripe's schedule is not offered.
     const [current, price] = await Promise.all([
       deps.stripe.subscriptions.retrieve(subscription.id),
       priceForPlan(deps.stripe, plan),

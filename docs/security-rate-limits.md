@@ -14,9 +14,19 @@ protection in front of it.
 | Route list | One list shared by browser and tests | `src/domain/bot-protected-routes.ts` |
 
 Protected routes (all `POST`): `/api/projects/{id}/generations` (Strategy, Naming, Logo and
-every other engine kind), `.../naming/feed/ensure`, `.../naming/steering`, `.../logo/requests`
-(the older Logo admission path), `.../strategy` and `.../identity/batches` (the older Strategy and
-Identity paths, which still start paid work). `logo/engine` is read-only (GET) and starts nothing. `/api/billing/checkout` (starting a paid Stripe checkout, [payments.md](payments.md)) is in the same list.
+every other engine kind), `.../naming/feed/ensure`, `.../naming/steering` and `.../identity/batches`
+(Creative directions). `logo/engine` is read-only (GET) and starts nothing. `/api/billing/checkout`
+(starting a paid Stripe checkout, [payments.md](payments.md)) is in the same list. The older
+`.../logo/requests` and `.../strategy` paths no longer accept `POST`; the firewall rule still names
+them, which is harmless.
+
+**Account forms (November 23, 2026).** `/api/auth/sign-in`, `/api/auth/sign-up`,
+`/api/auth/password-reset` and `/api/auth/resend-confirmation` are in the same list and call
+`assertNotBot()` first, before the body is read or Supabase is called. They are what a script would
+hammer to guess passwords, create accounts in bulk or send confirmation and reset emails, and until
+the Turnstile CAPTCHA is keyed ([auth-captcha.md](auth-captcha.md)) nothing else stood in front of
+them. A blocked request answers 403, and the forms already say "This request couldn't be verified.
+Refresh the page and try again." Tests: `tests/server/bot-protection-auth.test.ts`.
 
 **Fail open.** If BotID errors, is unreachable or takes longer than 3 seconds, the request goes
 through and `botid_check_failed` is logged with `logServerError`. Reason: BotID is an extra layer;
@@ -31,6 +41,10 @@ check on Pro, so enable after seeing real volume). Without BotID enabled on the 
 check returns a human verdict, so merging first is safe.
 
 ## Rate limits: dashboard or CLI only
+
+_Status, read from the project on November 23, 2026: the two "Paid AI starts" rules below are live and
+enforcing (`rate_limit`, since November 10). The two "Account forms" rules at the end of this section
+are not applied yet._
 
 Vercel WAF rate-limit rules cannot be shipped in `vercel.json` or `vercel.ts` (project routes
 there support only deny and challenge). `@vercel/firewall` `checkRateLimit()` still needs a rule ID created in the dashboard. So the
@@ -99,6 +113,39 @@ vercel firewall publish --yes
 
 The browser should show a clear message on 429; the app already handles non-2xx start responses
 with its generic retry message.
+
+### Account forms: two more rules (not applied yet)
+
+The same two windows for the four account-form routes. BotID stops scripted browsers; these stop a
+plain script that sends correct headers. Sign-in at Supabase is also limited per IP, but Supabase sees
+Vercel's addresses, not the visitor's, so its limit does not tell visitors apart.
+
+| Rule | Window / limit | Count by |
+|---|---|---|
+| `Account forms: burst per IP` | 60 seconds / 10 requests | `ip` |
+| `Account forms: hourly per IP` | 3600 seconds / 60 requests | `ip` |
+
+Conditions for both: `method` equals `POST`; `path` matches
+`^/api/auth/(sign-in|sign-up|password-reset|resend-confirmation)$`.
+
+```bash
+vercel firewall rules add "Account forms: burst per IP" \
+  --condition '{"type":"method","op":"eq","value":"POST"}' \
+  --condition '{"type":"path","op":"re","value":"^/api/auth/(sign-in|sign-up|password-reset|resend-confirmation)$"}' \
+  --action rate_limit --rate-limit-window 60 --rate-limit-requests 10 \
+  --rate-limit-keys ip --rate-limit-action rate_limit --yes
+
+vercel firewall rules add "Account forms: hourly per IP" \
+  --condition '{"type":"method","op":"eq","value":"POST"}' \
+  --condition '{"type":"path","op":"re","value":"^/api/auth/(sign-in|sign-up|password-reset|resend-confirmation)$"}' \
+  --action rate_limit --rate-limit-window 3600 --rate-limit-requests 60 \
+  --rate-limit-keys ip --rate-limit-action rate_limit --yes
+
+vercel firewall publish --yes
+```
+
+The forms already show "Too many sign-in attempts. Wait a little before trying again." on 429. The
+session that wrote this could read the firewall configuration but was not allowed to change it.
 
 ## Verification in this PR
 

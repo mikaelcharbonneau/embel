@@ -445,7 +445,7 @@ describe("independent database boundary attacks", () => {
       "public.billing_owner_for_customer(text)",
       "public.billing_event_seen(text)",
       "public.billing_record_event(text, text)",
-      "public.billing_apply_subscription(uuid, text, text, text, text, timestamp with time zone, timestamp with time zone, boolean, timestamp with time zone)",
+      "public.billing_apply_subscription(uuid, text, text, text, text, timestamp with time zone, timestamp with time zone, boolean, timestamp with time zone, text)",
       "public.billing_apply_invoice(uuid, text, text, text, timestamp with time zone, timestamp with time zone)",
       // 20261115100000_checkout_claim: one Checkout request per account at a time (service_role only).
       "public.billing_claim_checkout(uuid)",

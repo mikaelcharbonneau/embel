@@ -3,7 +3,8 @@
 //   * the products "embel_pro" and "embel_studio" with the Managed Payments tax code,
 //   * one active monthly USD price per product, found by its lookup key,
 //   * the default customer portal configuration (cancel at period end, switch between the
-//     two plans with immediate proration, payment method, invoice history).
+//     two plans: up at once with proration, down from the next renewal; payment method,
+//     invoice history).
 // Running it again changes nothing unless a value differs. A changed amount creates a new
 // price, moves the lookup key to it and archives the old one (Stripe prices are immutable).
 //
@@ -124,6 +125,9 @@ function portalFeatures(prices) {
       enabled: true,
       default_allowed_updates: ["price"],
       proration_behavior: "always_invoice",
+      // A cheaper plan starts at the next renewal. Applied at once, Stripe would give money back
+      // for the unused time while the larger plan's credits stayed (docs/payments.md).
+      schedule_at_period_end: { conditions: [{ type: "decreasing_item_amount" }] },
       products: PLANS.map((plan) => ({ product: plan.productId, prices: [prices[plan.id].id] })),
     },
   };

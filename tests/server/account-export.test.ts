@@ -5,6 +5,7 @@ vi.mock("@/server/account/export", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/server/account/export")>();
   return { ...actual, startAccountExport: mock.start };
 });
+import { existsSync, readFileSync } from "node:fs";
 import { strFromU8, unzipSync } from "fflate";
 import { POST } from "@/app/api/account/export/route";
 import { GET as cleanup } from "@/app/api/maintenance/account-cleanup/route";
@@ -193,6 +194,14 @@ describe("cleanup job", () => {
     expect(() => assertMaintenanceCaller(call(`Bearer ${secret}`), undefined)).toThrow(ApiError);
     vi.stubEnv("CRON_SECRET", secret);
     expect((await cleanup(call("Bearer wrong"))).status).toBe(401);
+  });
+
+  it("is scheduled once a day, on a route that exists", () => {
+    const { crons } = JSON.parse(readFileSync("vercel.json", "utf8")) as {
+      crons: { path: string; schedule: string }[];
+    };
+    expect(crons).toContainEqual({ path: "/api/maintenance/account-cleanup", schedule: "17 3 * * *" });
+    for (const cron of crons) expect(existsSync(`src/app${cron.path}/route.ts`), cron.path).toBe(true);
   });
 
   it("removes orphans page by page and resumes pending deletions without stopping at a failure", async () => {

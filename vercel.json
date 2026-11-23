@@ -1,5 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "node scripts/preview-preflight.mjs && npm run build",
-  "crons": [{ "path": "/api/maintenance/expire-runs", "schedule": "*/10 * * * *" }]
+  "crons": [
+    { "path": "/api/maintenance/expire-runs", "schedule": "*/10 * * * *" },
+    { "path": "/api/maintenance/account-cleanup", "schedule": "17 3 * * *" }
+  ]
 }

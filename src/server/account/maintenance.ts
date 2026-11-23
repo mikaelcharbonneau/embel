@@ -8,8 +8,8 @@ import { runAccountDeletion, supabaseDeletionStore, type AccountDeletionStore } 
 const REMOVE_BATCH = 100;
 const ORPHAN_PAGES = 20;
 
-/** The cleanup job is called with "Authorization: Bearer <CRON_SECRET>", the
- * header Vercel Cron sends, so a cron entry can be added later without changes. */
+/** The scheduled routes are called with "Authorization: Bearer <CRON_SECRET>", the
+ * header Vercel Cron sends (vercel.json). */
 export function assertMaintenanceCaller(request: Request, secret = process.env.CRON_SECRET) {
   if (!secret || secret.length < 16) throw new ApiError("integration_unavailable");
   const given = request.headers.get("authorization") ?? "";

@@ -61,6 +61,9 @@ export const billingSummarySchema = z.strictObject({
       status: z.string().min(1).max(40),
       cancelAtPeriodEnd: z.boolean(),
       currentPeriodEnd: z.string(),
+      /** The plan this subscription changes to at its next renewal (a scheduled switch to a
+       * smaller plan). Left out when nothing is scheduled. */
+      pendingPlanId: z.string().min(1).max(40).optional(),
     })
     .nullable(),
   plans: z

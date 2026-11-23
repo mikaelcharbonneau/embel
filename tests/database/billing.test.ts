@@ -42,11 +42,12 @@ function applySubscription(
     cancelAtPeriodEnd?: boolean;
     subscription?: string;
     customer?: string;
+    pendingPlan?: string | null;
   } = {},
 ) {
   synced += 1;
-  return service<{ stored: boolean; live: boolean; accountPlanId: string }>(
-    "select public.billing_apply_subscription($1, $2, $3, $4, $5, $6, $7, $8, $9) as r",
+  return service<{ stored: boolean; live: boolean; accountPlanId: string; planLowered: boolean }>(
+    "select public.billing_apply_subscription($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) as r",
     [
       owner,
       input.subscription ?? SUB_A,
@@ -57,6 +58,7 @@ function applySubscription(
       input.end ?? at(29),
       input.cancelAtPeriodEnd ?? false,
       new Date(Date.now() + synced).toISOString(),
+      input.pendingPlan ?? null,
     ],
   );
 }
@@ -85,7 +87,12 @@ async function summary(owner: string) {
             planId: string;
             balance: number;
             periodEnd: string;
-            subscription: { planId: string; status: string; cancelAtPeriodEnd: boolean } | null;
+            subscription: {
+              planId: string;
+              status: string;
+              cancelAtPeriodEnd: boolean;
+              pendingPlanId?: string;
+            } | null;
             plans: { id: string; monthlyCredits: number }[];
           };
         }>("select public.get_billing_summary() as r")
@@ -332,7 +339,93 @@ describe("paid plans", () => {
     await applySubscription(OWNER_A);
     expect(await service("select public.billing_owner_state($1) as r", [OWNER_A])).toEqual({
       customerId: CUSTOMER_A,
-      subscription: { id: SUB_A, planId: "pro", status: "active", cancelAtPeriodEnd: false, live: true },
+      subscription: {
+        id: SUB_A,
+        planId: "pro",
+        status: "active",
+        cancelAtPeriodEnd: false,
+        live: true,
+        pendingPlanId: null,
+      },
+    });
+  });
+
+  it("keeps a switch to a smaller plan for the renewal: plan, balance and credits stay until then", async () => {
+    await link(OWNER_A, CUSTOMER_A);
+    const start = at(-1),
+      end = at(29);
+    await applySubscription(OWNER_A, { plan: "studio", start, end });
+    await applyInvoice(OWNER_A, "in_Studio", "studio", start, end);
+    // Stripe schedules Pro for the renewal: the subscription stays Studio and nothing is paid back.
+    expect(await applySubscription(OWNER_A, { plan: "studio", start, end, pendingPlan: "pro" })).toMatchObject({
+      stored: true,
+      accountPlanId: "studio",
+      planLowered: false,
+    });
+    expect(await summary(OWNER_A)).toMatchObject({
+      planId: "studio",
+      balance: 500,
+      subscription: { planId: "studio", pendingPlanId: "pro" },
+    });
+    expect(
+      (
+        await service<{ subscription: { pendingPlanId: string } }>("select public.billing_owner_state($1) as r", [
+          OWNER_A,
+        ])
+      ).subscription.pendingPlanId,
+    ).toBe("pro");
+    // The renewal: the subscription is Pro, its invoice starts the period with Pro's allowance.
+    const next = at(59);
+    expect(await applySubscription(OWNER_A, { plan: "pro", start: end, end: next })).toMatchObject({
+      planLowered: false,
+    });
+    expect(await applyInvoice(OWNER_A, "in_ProRenewal", "pro", end, next)).toMatchObject({ outcome: "new_period" });
+    const after = await summary(OWNER_A);
+    expect(after).toMatchObject({ planId: "pro", balance: 150 });
+    expect(after.subscription).not.toHaveProperty("pendingPlanId");
+  });
+
+  it("leaves the summary as it was while nothing is scheduled, and drops a pending plan that is undone", async () => {
+    await link(OWNER_A, CUSTOMER_A);
+    await applySubscription(OWNER_A, { plan: "studio", pendingPlan: "pro" });
+    expect((await summary(OWNER_A)).subscription).toHaveProperty("pendingPlanId", "pro");
+    // The same plan as the current one is nothing pending.
+    await applySubscription(OWNER_A, { plan: "studio", pendingPlan: "studio" });
+    expect(Object.keys((await summary(OWNER_A)).subscription!).sort()).toEqual([
+      "cancelAtPeriodEnd",
+      "currentPeriodEnd",
+      "planId",
+      "status",
+    ]);
+    // A release that sends nine arguments still saves the subscription.
+    synced += 1;
+    expect(
+      await service(
+        `select public.billing_apply_subscription(p_owner => $1, p_subscription => $2, p_customer => $3, p_plan => 'pro',
+           p_status => 'active', p_period_start => $4, p_period_end => $5, p_cancel_at_period_end => false,
+           p_synced_at => $6) as r`,
+        [OWNER_A, SUB_A, CUSTOMER_A, at(-1), at(29), new Date(Date.now() + synced + 1000).toISOString()],
+      ),
+    ).toMatchObject({ stored: true });
+    for (const bad of ["free", "gold"]) {
+      expect((await failure(() => applySubscription(OWNER_A, { pendingPlan: bad }))).message).toContain(
+        "invalid_input",
+      );
+    }
+  });
+
+  it("reports a plan that dropped inside one paid period, and not a renewal on a smaller plan or an upgrade", async () => {
+    await link(OWNER_A, CUSTOMER_A);
+    const start = at(-1),
+      end = at(29);
+    expect(await applySubscription(OWNER_A, { plan: "pro", start, end })).toMatchObject({ planLowered: false });
+    expect(await applySubscription(OWNER_A, { plan: "studio", start, end })).toMatchObject({ planLowered: false });
+    expect(await applySubscription(OWNER_A, { plan: "pro", start, end })).toMatchObject({ planLowered: true });
+    // The same state read again is not a second drop.
+    expect(await applySubscription(OWNER_A, { plan: "pro", start, end })).toMatchObject({ planLowered: false });
+    await applySubscription(OWNER_A, { plan: "studio", start, end });
+    expect(await applySubscription(OWNER_A, { plan: "pro", start: end, end: at(59) })).toMatchObject({
+      planLowered: false,
     });
   });
 });
@@ -345,7 +438,7 @@ describe("privileges", () => {
     ["public.billing_event_seen('evt_X')", []],
     ["public.billing_record_event('evt_X', 'x')", []],
     [
-      "public.billing_apply_subscription($1, 'sub_X', 'cus_X', 'pro', 'active', now(), now() + interval '1 day', false, now())",
+      "public.billing_apply_subscription($1, 'sub_X', 'cus_X', 'pro', 'active', now(), now() + interval '1 day', false, now(), null)",
       [OWNER_A],
     ],
     ["public.billing_apply_invoice($1, 'in_X', 'sub_X', 'pro', now(), now() + interval '1 day')", [OWNER_A]],

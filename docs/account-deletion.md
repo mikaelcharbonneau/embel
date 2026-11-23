@@ -121,7 +121,9 @@ function instances.
 ## Cleanup job
 
 `GET /api/maintenance/account-cleanup` with `Authorization: Bearer <CRON_SECRET>` (the header Vercel
-Cron sends). It is not scheduled yet. It:
+Cron sends). Vercel Cron calls it once a day at 03:17 UTC (`vercel.json`, since November 23, 2026), on
+the production deployment only. It logs `account_cleanup_done` with its counts when it did something
+and `account_cleanup_deletions_failed` when a deletion could not be finished. It:
 
 - finishes deletions left pending for more than 15 minutes (the person already confirmed them);
 - deletes Storage objects older than a day whose account no longer exists, or whose project row no

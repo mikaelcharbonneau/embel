@@ -31,14 +31,16 @@ beforeEach(async () => {
   await db.exec(
     "truncate fluid_private.deleted_account_usage, fluid_private.account_deletion_receipts, fluid_private.account_export_requests, public.credit_entries, public.credit_accounts cascade",
   );
-  await db.exec("update fluid_private.engine_settings set paused = false, global_daily_cost_cap_microusd = 50000000");
+  await db.exec(
+    "update fluid_private.engine_settings set paused = false, global_daily_cost_cap_microusd = 50000000, free_daily_cost_cap_microusd = 25000000",
+  );
   await db.exec("delete from fluid_private.generation_kinds where kind like 'test.%'");
   // Free plan: 30 credits a month.
   await db.exec(`insert into fluid_private.generation_kinds (kind, credits, enabled, max_per_day) values
     ('test.seven', 7, true, 50), ('test.twice', 0, true, 2), ('test.loop', 7, true, 3), ('test.free', 0, true, 50)`);
 });
 
-type Failure = { message: string; code?: string };
+type Failure = { message: string; code?: string; detail?: string };
 async function failure(run: () => Promise<unknown>): Promise<Failure> {
   try {
     await run();
@@ -242,6 +244,78 @@ describe("a script with its own login cannot spend beyond its credits and limits
     await engineSpend((await start(OWNER_B, theirs!, "test.seven")).id, 1500);
     expect((await failure(() => start(OWNER_A, mine!, "test.seven"))).message).toBe("generation_paused");
     expect(await ledger(OWNER_A)).toMatchObject({ charges: 0 });
+  });
+
+  // supabase/migrations/20261123110000_free_plan_daily_cost_cap.sql: a stopped run gives its credits
+  // back while its AI calls stay paid for, so Free accounts could use up the one shared cap and
+  // stop everyone. They now have their own, smaller cap.
+  describe("the daily cost cap of accounts without a paid plan", () => {
+    /** A live Pro subscription with its first invoice paid, through the billing functions. */
+    async function subscribe(owner: string, tag: string) {
+      await asRole(db, "service_role", null, async () => {
+        await db.query("select public.billing_link_customer($1, $2)", [owner, `cus_${tag}`]);
+        await db.query(
+          `select public.billing_apply_subscription($1, $2, $3, 'pro', 'active', now() - interval '1 day',
+             now() + interval '29 days', false, now())`,
+          [owner, `sub_${tag}`, `cus_${tag}`],
+        );
+        await db.query(
+          "select public.billing_apply_invoice($1, $2, $3, 'pro', now() - interval '1 day', now() + interval '29 days')",
+          [owner, `in_${tag}`, `sub_${tag}`],
+        );
+      });
+    }
+    const capFree = () => db.exec("update fluid_private.engine_settings set free_daily_cost_cap_microusd = 1000");
+
+    it("holds Free accounts at their own cap and leaves a paid plan running", async () => {
+      await capFree();
+      await subscribe(OWNER_B, "PaidB");
+      const [mine] = await projects(OWNER_A, 1),
+        [theirs] = await projects(OWNER_B, 1);
+      await engineSpend((await start(OWNER_A, mine!, "test.seven")).id, 1500);
+      // Free A reached the Free cap: refused like a pause, nothing charged, and the refusal says which cap.
+      const before = await ledger(OWNER_A);
+      const refused = await failure(() => start(OWNER_A, mine!, "test.seven"));
+      expect(refused).toMatchObject({ message: "generation_paused", code: "55000", detail: "free_cost_cap" });
+      expect(await ledger(OWNER_A)).toEqual(before);
+      // Even a step that costs no credits is refused.
+      expect((await failure(() => start(OWNER_A, mine!, "test.free"))).detail).toBe("free_cost_cap");
+      // Paid B is not held by it.
+      expect((await start(OWNER_B, theirs!, "test.seven")).status).toBe("queued");
+    });
+
+    it("does not count a paid plan's spend toward the Free cap", async () => {
+      await capFree();
+      await subscribe(OWNER_B, "PaidB");
+      const [mine] = await projects(OWNER_A, 1),
+        [theirs] = await projects(OWNER_B, 1);
+      await engineSpend((await start(OWNER_B, theirs!, "test.seven")).id, 1500);
+      expect((await start(OWNER_A, mine!, "test.seven")).status).toBe("queued");
+    });
+
+    it("counts what a deleted account spent, so signing up again never resets it", async () => {
+      await capFree();
+      const [theirs] = await projects(OWNER_B, 1),
+        [mine] = await projects(OWNER_A, 1);
+      await engineSpend((await start(OWNER_B, theirs!, "test.seven")).id, 1500);
+      await asRole(db, "service_role", null, async () => {
+        await db.query("select public.account_deletion_begin($1)", [OWNER_B]);
+        await db.query("select public.account_deletion_purge($1)", [OWNER_B]);
+      });
+      expect((await failure(() => start(OWNER_A, mine!, "test.seven"))).detail).toBe("free_cost_cap");
+    });
+
+    it("still holds everyone at the global cap, and says so", async () => {
+      await db.exec("update fluid_private.engine_settings set global_daily_cost_cap_microusd = 1000");
+      await subscribe(OWNER_B, "PaidB");
+      const [mine] = await projects(OWNER_A, 1),
+        [theirs] = await projects(OWNER_B, 1);
+      await engineSpend((await start(OWNER_A, mine!, "test.seven")).id, 1500);
+      expect(await failure(() => start(OWNER_B, theirs!, "test.seven"))).toMatchObject({
+        message: "generation_paused",
+        detail: "cost_cap",
+      });
+    });
   });
 
   // The hole this test found (supabase/migrations/20261110210000_global_cap_counts_deleted_accounts.sql):

@@ -317,6 +317,25 @@ describe("portal", () => {
     });
   });
 
+  it("opens the portal home when a plan change already waits for the renewal", async () => {
+    store = fakeStore({
+      customerId: "cus_Existing",
+      subscription: {
+        id: "sub_1",
+        planId: "studio",
+        status: "active",
+        cancelAtPeriodEnd: false,
+        live: true,
+        pendingPlanId: "pro",
+      },
+    });
+    expect((await portal(request("portal", { plan: "pro" }))).status).toBe(200);
+    expect(stripe.billingPortal.sessions.create.mock.calls[0]![0]).toEqual({
+      customer: "cus_Existing",
+      return_url: `${ORIGIN}/plans`,
+    });
+  });
+
   it("opens straight on cancelling the plan at the period end", async () => {
     store = fakeStore({
       customerId: "cus_Existing",

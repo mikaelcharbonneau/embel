@@ -109,6 +109,11 @@ describe("scripts/stripe/ensure-products.mjs", () => {
     }
     assert.equal(stripe.portals[0].features.subscription_cancel.mode, "at_period_end");
     assert.equal(stripe.portals[0].features.subscription_update.proration_behavior, "always_invoice");
+    // A cheaper plan waits for the renewal: applied at once, the unused time would be paid back
+    // while the larger plan's credits stayed.
+    assert.deepEqual(stripe.portals[0].features.subscription_update.schedule_at_period_end, {
+      conditions: [{ type: "decreasing_item_amount" }],
+    });
     stripe.calls.length = 0;
     const second = await ensureStripeCatalog(stripe, () => undefined);
     assert.deepEqual(second.prices, first.prices);
