@@ -22,7 +22,7 @@ import {
   parseIdentityDirectionsRun,
 } from "../engine/identity";
 import { IDENTITY_DIRECTIONS_KIND } from "../engine/identity-input";
-import { runAwaitsWorkflow } from "../engine/runs";
+import { logCostCapRefusal, runAwaitsWorkflow } from "../engine/runs";
 import { startAdmittedRun } from "../engine/start";
 
 export class IdentityAdmissionUncertainError extends ApiError {
@@ -103,6 +103,7 @@ async function engineRpc(auth: AuthenticatedContext, name: string, args: Record<
     throw new ApiError("integration_unavailable");
   }
   if (!result.error) return result.data;
+  logCostCapRefusal(result.error);
   const message =
     typeof result.error === "object" &&
     result.error !== null &&

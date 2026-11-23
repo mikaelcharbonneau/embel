@@ -51,5 +51,20 @@ starts work.
 ## Money backstop
 
 In the OpenAI dashboard, set a monthly budget and email alerts for the project that holds the
-production key. It caps spending even if nobody runs the stop above. The engine also has a global
-daily cost cap inside `start_generation`.
+production key. It caps spending even if nobody runs the stop above.
+
+The engine also has two daily cost caps inside `start_generation`, both counted over the past 24 hours:
+
+- `global_daily_cost_cap_microusd` ($50): everyone's spend. When it is reached, every account is refused.
+- `free_daily_cost_cap_microusd` ($25): the spend of accounts without a paid plan (and of deleted
+  accounts). When it is reached, only those accounts are refused; paid plans keep working.
+
+People see the step as unavailable, exactly as during a pause. To tell the two apart, look in Vercel's
+logs for `generation_cost_cap_reached`: it names the cap (`cost_cap` or `free_cost_cap`). To change a cap
+(values are millionths of a dollar; keep the Free cap below the global one and raise them together):
+
+```sql
+select global_daily_cost_cap_microusd, free_daily_cost_cap_microusd from fluid_private.engine_settings;
+update fluid_private.engine_settings
+   set global_daily_cost_cap_microusd = 100000000, free_daily_cost_cap_microusd = 50000000;
+```

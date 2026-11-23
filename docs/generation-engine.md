@@ -50,7 +50,8 @@ generation_runs(id, owner_id, project_id, kind, status queued|running|succeeded|
                 created_at, started_at, finished_at; unique(owner_id, idempotency_key))
 generation_outputs(id, run_id, output_key, output jsonb, provider_response_id, cost_microusd, created_at;
                    unique(run_id, output_key))
-fluid_private.engine_settings(id bool pk default true, paused bool, global_daily_cost_cap_microusd bigint)
+fluid_private.engine_settings(id bool pk default true, paused bool, global_daily_cost_cap_microusd bigint,
+                              free_daily_cost_cap_microusd bigint)
 ```
 
 **Who can do what:**
@@ -66,7 +67,11 @@ fluid_private.engine_settings(id bool pk default true, paused bool, global_daily
   3. checks there's no active run for the same project and kind;
   4. checks the owner's daily limit and the global cost cap (provider cost of the past day's
      outputs, plus the cost kept for accounts deleted since: `fluid_private.deleted_account_usage`,
-     migration `20261110210000`);
+     migration `20261110210000`). An account without a paid plan is also held by a second, smaller
+     cap that only such accounts count toward (`engine_settings.free_daily_cost_cap_microusd`, $25 a
+     day; migration `20261123110000`), so Free accounts cannot use up the budget of paid plans. Either
+     cap refuses with `generation_paused` and a detail (`cost_cap` or `free_cost_cap`) that the server
+     logs as `generation_cost_cap_reached`;
   5. grants the monthly allowance lazily when a new period starts;
   6. checks the balance is at least the kind's credits;
   7. inserts the run and the charge.

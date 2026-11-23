@@ -22,7 +22,8 @@ runtimes.
 1. The person clicks once. The browser calls an authenticated API route. Routes that start paid work
    are protected by BotID.
 2. The route calls the SQL function `start_generation` with the person's own login. It checks
-   ownership, credits, daily limits, that the kind is enabled and that nothing else is running for
+   ownership, credits, daily limits, the two daily cost caps (everyone's, and a smaller one for
+   accounts without a paid plan), that the kind is enabled and that nothing else is running for
    that project and kind. It also refuses everything while `engine_settings.paused` is set.
 3. The route starts the workflow. The workflow calls OpenAI, retries temporary failures a few times,
    and can be cancelled between steps.

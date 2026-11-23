@@ -3,7 +3,7 @@ import { z } from "zod";
 import { generationRunStatusSchema } from "@/domain/generation-run";
 import { creditSummarySchema, type GenerationRun } from "@/domain/generations";
 import type { AuthenticatedContext } from "../auth/context";
-import { ApiError } from "../http/errors";
+import { ApiError, logServerError } from "../http/errors";
 
 export const generationKindSchema = z
   .string()
@@ -82,8 +82,22 @@ const failures: Record<string, ApiError["code"]> = {
   generation_paused: "generation_unavailable",
 };
 
+/**
+ * A start refused because a daily cost cap is reached: the global one, or the one for accounts
+ * without a paid plan (start_generation says which in the error's detail). People see the step
+ * as unavailable, exactly as when the engine is paused, so this log line is how the operator
+ * learns that the refusal was the cap (docs/emergency-stop.md).
+ */
+export function logCostCapRefusal(error: unknown): void {
+  if (typeof error !== "object" || error === null || !("details" in error)) return;
+  const cap = error.details;
+  if (cap !== "cost_cap" && cap !== "free_cost_cap") return;
+  logServerError("generation_cost_cap_reached", new Error("cost_cap_reached"), { cap });
+}
+
 function databaseFailure(error: { message?: unknown; code?: unknown } | null): void {
   if (!error) return;
+  logCostCapRefusal(error);
   const message = typeof error.message === "string" ? error.message : "";
   const mapped = failures[message];
   if (mapped) throw new ApiError(mapped);
