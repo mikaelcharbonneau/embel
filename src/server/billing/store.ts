@@ -10,7 +10,8 @@ export interface BillingStore {
   ownerForCustomer(customerId: string): Promise<string | null>;
   eventSeen(eventId: string): Promise<boolean>;
   recordEvent(eventId: string, type: string): Promise<void>;
-  applySubscription(state: SubscriptionState): Promise<{ live: boolean }>;
+  /** `planLowered`: the plan of a live subscription dropped inside one paid period. */
+  applySubscription(state: SubscriptionState): Promise<{ live: boolean; planLowered: boolean }>;
   /** Takes the account's short Checkout claim. False when another request of the same account holds it. */
   claimCheckout(ownerId: string): Promise<boolean>;
   releaseCheckout(ownerId: string): Promise<void>;
@@ -34,6 +35,8 @@ export type SubscriptionState = {
   periodStart: Date;
   periodEnd: Date;
   cancelAtPeriodEnd: boolean;
+  /** The plan Stripe has scheduled for the next renewal, when it differs from `planId`. */
+  pendingPlanId: PaidPlanId | null;
   syncedAt: Date;
 };
 
@@ -46,6 +49,7 @@ const ownerStateSchema = z.object({
       status: z.string(),
       cancelAtPeriodEnd: z.boolean(),
       live: z.boolean(),
+      pendingPlanId: z.string().nullable().optional(),
     })
     .nullable()
     .optional(),
@@ -101,9 +105,11 @@ export function supabaseBillingStore(admin: SupabaseClient): BillingStore {
         p_period_end: state.periodEnd.toISOString(),
         p_cancel_at_period_end: state.cancelAtPeriodEnd,
         p_synced_at: state.syncedAt.toISOString(),
+        p_pending_plan: state.pendingPlanId,
       });
       failure("apply_subscription", error);
-      return z.object({ live: z.boolean() }).parse(data);
+      const applied = z.object({ live: z.boolean(), planLowered: z.boolean().optional() }).parse(data);
+      return { live: applied.live, planLowered: applied.planLowered === true };
     },
     async claimCheckout(ownerId) {
       const { data, error } = await admin.rpc("billing_claim_checkout", { p_owner: ownerId });

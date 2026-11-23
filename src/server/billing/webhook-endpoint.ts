@@ -28,7 +28,11 @@ export async function handleStripeWebhook(
     const body = await readBoundedBytes(request, MAX_EVENT_BYTES);
     try {
       event = await Stripe.webhooks.constructEventAsync(body, signature, secret);
-    } catch {
+    } catch (error) {
+      // A signed delivery that does not verify is either a forgery or a wrong signing secret here.
+      // With a wrong secret every event is refused and paid plans never arrive, so it is logged
+      // although the answer is a 400. An unsigned request is refused above without a log.
+      logServerError("stripe_webhook_signature_rejected", error);
       throw new ApiError("invalid_signature");
     }
   } catch (error) {

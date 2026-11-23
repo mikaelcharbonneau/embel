@@ -139,6 +139,36 @@ describe("Plans page", () => {
     expect(JSON.parse(String(portal.init.body))).toEqual({});
   });
 
+  it("shows a switch to a smaller plan that waits for the renewal, and offers no second switch", async () => {
+    summary = {
+      planId: "studio",
+      balance: 420,
+      periodEnd: "2026-12-05T00:00:00Z",
+      subscription: {
+        planId: "studio",
+        status: "active",
+        cancelAtPeriodEnd: false,
+        currentPeriodEnd: "2026-12-05T00:00:00Z",
+        pendingPlanId: "pro",
+      },
+      plans,
+    };
+    await render("portal_updated");
+    expect(host.textContent).toContain("Your plan change is saved. Pro starts on December 5.");
+    expect(host.textContent).toContain("Your plan changes to Pro on December 5, with 150 new credits.");
+    expect(host.textContent).not.toContain("renews");
+    expect(host.textContent).toContain("Starts on December 5. To keep Studio, use Manage plan.");
+    expect(buttons()).toEqual(["Manage plan", "Cancel plan"]);
+  });
+
+  it("says after a plan change that a larger plan's credits follow the payment and a smaller plan the renewal", async () => {
+    summary = proSummary;
+    await render("portal_updated");
+    expect(host.textContent).toContain(
+      "Your plan change is saved. A larger plan’s credits appear here once the payment is confirmed; a smaller plan starts at your next renewal.",
+    );
+  });
+
   it("opens the cancellation of the current plan with one click", async () => {
     summary = proSummary;
     await render();

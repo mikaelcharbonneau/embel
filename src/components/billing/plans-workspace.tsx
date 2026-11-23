@@ -345,6 +345,19 @@ function outOfCreditsText(monthly: number, date: string | null) {
   return `You’ve used this month’s ${credits(monthly)} credits.${date ? ` New credits arrive on ${date}.` : ""} Your work is saved.`;
 }
 
+/** A switch to a smaller plan that waits for the renewal: the plan's name and the day it starts. */
+function pendingPlan(summary: BillingSummary | null) {
+  const subscription = summary?.subscription;
+  const id = subscription?.pendingPlanId;
+  if (!subscription || !id || subscription.cancelAtPeriodEnd || !Object.hasOwn(PLAN_CATALOG, id)) return null;
+  return {
+    id: id as PlanId,
+    name: PLAN_CATALOG[id as PlanId].name,
+    date: renewalDate(subscription.currentPeriodEnd),
+    monthly: monthlyCredits(summary, id as PlanId),
+  };
+}
+
 /** The next plan up and how to reach it: Checkout from Free, the portal from a paid plan. */
 function upgradeFrom(plan: PlanId, subscribed: boolean) {
   if (plan === "studio") return null;
@@ -369,10 +382,19 @@ function ReturnNotice({
   if (!returnState) return null;
   if (returnState === "checkout_cancelled")
     return <InlineMessage>Checkout was cancelled. Nothing was charged.</InlineMessage>;
-  if (returnState === "portal_updated")
+  if (returnState === "portal_updated") {
+    const next = pendingPlan(summary);
+    if (next)
+      return (
+        <InlineMessage>{`Your plan change is saved. ${next.name} starts${next.date ? ` on ${next.date}` : " at your next renewal"}.`}</InlineMessage>
+      );
     return (
-      <InlineMessage>Your plan change is saved. New credits appear here once the payment is confirmed.</InlineMessage>
+      <InlineMessage>
+        Your plan change is saved. A larger plan’s credits appear here once the payment is confirmed; a smaller plan
+        starts at your next renewal.
+      </InlineMessage>
     );
+  }
   // Only the billing summary says a plan is active. Until it does, nothing here claims the payment went through.
   const active = summary?.subscription ? PLAN_CATALOG[summary.subscription.planId as PlanId] : null;
   if (active) return <InlineMessage tone="positive">{`Thank you. Your ${active.name} plan is active.`}</InlineMessage>;
@@ -401,10 +423,13 @@ function ReturnNotice({
 function CurrentPlan({ summary, plan, monthly }: { summary: BillingSummary; plan: PlanId; monthly: number }) {
   const subscription = summary.subscription;
   const date = renewalDate(subscription?.currentPeriodEnd ?? summary.periodEnd);
+  const next = pendingPlan(summary);
   let detail: string | null;
   if (subscription?.status === "past_due") detail = null;
   else if (subscription?.cancelAtPeriodEnd)
     detail = `Your plan ends${date ? ` on ${date}` : ""}. You’ll return to Free after that.`;
+  else if (next)
+    detail = `Your plan changes to ${next.name}${date ? ` on ${date}` : " at your next renewal"}, with ${credits(next.monthly)} new credits.`;
   else if (subscription) detail = `Your plan renews${date ? ` on ${date}` : ""} with ${credits(monthly)} new credits.`;
   else detail = date ? `New credits arrive on ${date}.` : "New credits arrive next month.";
   return (
@@ -524,6 +549,13 @@ function PlanAction({ id, view }: { id: PlanId; view: GridView }) {
         {action("portal", "Manage plan", "secondary")}
         {!subscription.cancelAtPeriodEnd && action("cancel", "Cancel plan", "quiet")}
       </div>
+    );
+  const next = pendingPlan(summary);
+  if (next?.id === id)
+    return (
+      <p className="plans-card__note">
+        {`Starts${next.date ? ` on ${next.date}` : " at your next renewal"}. To keep ${PLAN_CATALOG[plan].name}, use Manage plan.`}
+      </p>
     );
   if (subscription)
     return <div className="plans-card__actions">{action("portal", `Switch to ${name}`, "secondary")}</div>;

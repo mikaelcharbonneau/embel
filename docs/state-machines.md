@@ -108,7 +108,10 @@ Opening Checkout first expires the account's earlier open Checkout pages
 and the other answers `checkout_opening` (409, Try again); the claim is given back as soon as the page
 exists. If two subscriptions ever become live anyway (a page paid outside the app), credits are not
 doubled, the person is charged twice, and the webhook logs `billing_second_live_subscription`. Nothing
-is cancelled or refunded automatically.
+is cancelled or refunded automatically. A switch to a smaller plan is not a new state of the
+subscription: Stripe holds it in a schedule until the renewal, and the row carries it as
+`pending_plan_id` (November 23; [payments.md](payments.md)). A plan that drops inside a paid period is
+logged as `billing_plan_lowered_mid_period`.
 
 ### Journey and workspace
 

@@ -16,6 +16,11 @@ export const HANDLED_STRIPE_EVENTS = [
   "customer.subscription.resumed",
   "invoice.paid",
   "invoice.payment_failed",
+  // A switch to a smaller plan waits for the renewal in a subscription schedule.
+  "subscription_schedule.created",
+  "subscription_schedule.updated",
+  "subscription_schedule.released",
+  "subscription_schedule.canceled",
 ] as const;
 
 const STATUSES = new Set([
@@ -28,6 +33,9 @@ const STATUSES = new Set([
   "unpaid",
   "paused",
 ]);
+
+/** The statuses of a subscription that still pays for its plan (billing_subscription_live). */
+const LIVE_STATUSES = new Set(["active", "trialing", "past_due"]);
 
 /** A retryable failure: the endpoint answers 500 and Stripe sends the event again later. */
 export class RetryableBillingError extends Error {
@@ -79,7 +87,8 @@ export async function syncSubscription(
   // The customer portal may cancel at the period end with cancel_at instead of the flag.
   const cancelAtPeriodEnd =
     subscription.cancel_at_period_end || (subscription.cancel_at !== null && subscription.cancel_at <= periodEnd);
-  const { live } = await store.applySubscription({
+  const pendingPlanId = await scheduledPlan(stripe, subscription, planId, periodEnd);
+  const { live, planLowered } = await store.applySubscription({
     ownerId,
     subscriptionId: subscription.id,
     customerId,
@@ -88,10 +97,43 @@ export async function syncSubscription(
     periodStart: fromSeconds(item.current_period_start),
     periodEnd: fromSeconds(periodEnd),
     cancelAtPeriodEnd,
+    pendingPlanId,
     syncedAt,
   });
+  if (planLowered) {
+    // The portal schedules a switch to a smaller plan for the renewal (scripts/stripe/ensure-products.mjs).
+    // One applied at once means Stripe gave money back for the unused time while the larger plan's
+    // credits stayed: the portal configuration is not the one this app sets up, or someone changed
+    // the subscription by hand.
+    logServerError("billing_plan_lowered_mid_period", new Error("plan_lowered_mid_period"), {
+      subscription: subscription.id,
+    });
+  }
   if (live) await flagSecondLiveSubscription(store, ownerId, subscription.id);
   return { ownerId, subscription, planId, live };
+}
+
+/**
+ * The plan the subscription changes to at its next renewal, or null. The customer portal holds
+ * a scheduled switch to a smaller plan in a subscription schedule: the phase that starts when
+ * the paid period ends carries the next price. A schedule this app does not understand (several
+ * items, an unknown price) reads as nothing scheduled; a failed read is retried with the event.
+ */
+async function scheduledPlan(
+  stripe: StripeClient,
+  subscription: Stripe.Subscription,
+  planId: PaidPlanId,
+  periodEnd: number,
+): Promise<PaidPlanId | null> {
+  const scheduleId = idOf(subscription.schedule);
+  if (!scheduleId || !LIVE_STATUSES.has(subscription.status)) return null;
+  const schedule = await stripe.subscriptionSchedules.retrieve(scheduleId, { expand: ["phases.items.price"] });
+  if (schedule.status !== "active" && schedule.status !== "not_started") return null;
+  const next = schedule.phases.find((phase) => phase.start_date >= periodEnd);
+  if (!next || next.items.length !== 1) return null;
+  const price = next.items[0]!.price;
+  const pending = typeof price === "string" ? null : planForLookupKey("lookup_key" in price ? price.lookup_key : null);
+  return pending && pending !== planId ? pending : null;
 }
 
 /** One account, one paid plan. Two live subscriptions mean the person pays twice (credits are
@@ -141,6 +183,15 @@ export async function processStripeEvent(
     case "customer.subscription.paused":
     case "customer.subscription.resumed":
       return (await syncSubscription(stripe, store, event.data.object.id, deps.now)) ? "applied" : "ignored";
+    case "subscription_schedule.created":
+    case "subscription_schedule.updated":
+    case "subscription_schedule.released":
+    case "subscription_schedule.canceled": {
+      const schedule = event.data.object;
+      const subscriptionId = idOf(schedule.subscription) ?? idOf(schedule.released_subscription);
+      if (!subscriptionId) return "ignored";
+      return (await syncSubscription(stripe, store, subscriptionId, deps.now)) ? "applied" : "ignored";
+    }
     case "invoice.payment_failed": {
       const invoice = await stripe.invoices.retrieve(event.data.object.id!);
       const subscriptionId = idOf(invoice.parent?.subscription_details?.subscription);

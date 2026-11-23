@@ -102,6 +102,7 @@ afterEach(() => {
 
 describe("signature", () => {
   it("rejects a missing, wrong or tampered signature before reading anything", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
     const payload = event("invoice.paid", { id: "in_1" });
     expect((await deliver(payload, null)).status).toBe(400);
     expect((await deliver(payload, "t=1,v1=deadbeef")).status).toBe(400);
@@ -111,6 +112,17 @@ describe("signature", () => {
     expect((await deliver(payload.replace("in_1", "in_2"), signed)).status).toBe(400);
     expect(store.eventSeen).not.toHaveBeenCalled();
     expect(stripe.invoices.retrieve).not.toHaveBeenCalled();
+  });
+
+  it("logs a signed delivery that does not verify (a wrong signing secret), and not an unsigned request", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const payload = event("invoice.paid", { id: "in_1" });
+    expect((await deliver(payload, null)).status).toBe(400);
+    expect(logged).not.toHaveBeenCalled();
+    const otherSecret = await Stripe.webhooks.generateTestHeaderStringAsync({ payload, secret: "whsec_SomeoneElse" });
+    expect((await deliver(payload, otherSecret)).status).toBe(400);
+    expect(JSON.stringify(logged.mock.calls)).toContain("stripe_webhook_signature_rejected");
+    expect(JSON.stringify(logged.mock.calls)).not.toContain("whsec_");
   });
 
   it("answers 503 (Stripe retries) while the signing secret is not configured", async () => {
@@ -157,6 +169,110 @@ describe("two live subscriptions on one account", () => {
     } finally {
       logged.mockRestore();
     }
+  });
+});
+
+describe("a switch to a smaller plan that waits for the renewal", () => {
+  const sync = () => syncSubscription(stripe as unknown as StripeClient, store as unknown as BillingStore, "sub_A");
+  const studio = () =>
+    subscription({
+      schedule: "sub_sched_A",
+      items: {
+        data: [
+          {
+            id: "si_A",
+            current_period_start: START,
+            current_period_end: END,
+            price: { id: "price_studio", lookup_key: "embel_studio_monthly" },
+          },
+        ],
+      },
+    });
+  const schedule = (overrides: Record<string, unknown> = {}) => ({
+    id: "sub_sched_A",
+    status: "active",
+    phases: [
+      {
+        start_date: START,
+        end_date: END,
+        items: [{ price: { id: "price_studio", lookup_key: "embel_studio_monthly" } }],
+      },
+      {
+        start_date: END,
+        end_date: END + 30 * 24 * 3600,
+        items: [{ price: { id: "price_pro", lookup_key: "embel_pro_monthly" } }],
+      },
+    ],
+    ...overrides,
+  });
+  function withSchedule(value: ReturnType<typeof schedule>) {
+    const retrieve = vi.fn(async () => value);
+    stripe = Object.assign(fakeStripe(studio()), { subscriptionSchedules: { retrieve } });
+    return retrieve;
+  }
+
+  it("saves the plan of the phase that starts when the paid period ends", async () => {
+    const retrieve = withSchedule(schedule());
+    await sync();
+    expect(retrieve).toHaveBeenCalledWith("sub_sched_A", { expand: ["phases.items.price"] });
+    expect(store.applySubscription).toHaveBeenLastCalledWith(
+      expect.objectContaining({ planId: "studio", pendingPlanId: "pro" }),
+    );
+  });
+
+  it("saves nothing pending without a schedule, for the same plan, or for a schedule it cannot read as one plan", async () => {
+    await sync();
+    expect(store.applySubscription).toHaveBeenLastCalledWith(expect.objectContaining({ pendingPlanId: null }));
+    const same = schedule();
+    same.phases[1]!.items = [{ price: { id: "price_studio", lookup_key: "embel_studio_monthly" } }];
+    withSchedule(same);
+    await sync();
+    expect(store.applySubscription).toHaveBeenLastCalledWith(expect.objectContaining({ pendingPlanId: null }));
+    for (const odd of [
+      schedule({ status: "released" }),
+      schedule({ phases: [schedule().phases[0]] }),
+      schedule({ phases: [schedule().phases[0], { start_date: END, items: [{ price: "price_pro" }] }] }),
+      schedule({ phases: [schedule().phases[0], { start_date: END, items: [{ price: { lookup_key: "other" } }] }] }),
+    ]) {
+      withSchedule(odd as ReturnType<typeof schedule>);
+      await sync();
+      expect(store.applySubscription).toHaveBeenLastCalledWith(expect.objectContaining({ pendingPlanId: null }));
+    }
+  });
+
+  it("follows a schedule event to its subscription", async () => {
+    withSchedule(schedule());
+    const payload = event("subscription_schedule.updated", { id: "sub_sched_A", subscription: "sub_A" });
+    expect((await deliver(payload)).status).toBe(200);
+    expect(stripe.subscriptions.retrieve).toHaveBeenCalledWith("sub_A");
+    expect(store.applySubscription).toHaveBeenLastCalledWith(expect.objectContaining({ pendingPlanId: "pro" }));
+    const released = event(
+      "subscription_schedule.released",
+      { id: "sub_sched_A", subscription: null, released_subscription: "sub_A" },
+      "evt_Released",
+    );
+    stripe = fakeStripe();
+    expect((await deliver(released)).status).toBe(200);
+    expect(store.applySubscription).toHaveBeenLastCalledWith(
+      expect.objectContaining({ planId: "pro", pendingPlanId: null }),
+    );
+  });
+
+  it("answers 500 when the schedule cannot be read, so Stripe sends the event again", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    withSchedule(schedule()).mockRejectedValueOnce(new Error("stripe"));
+    expect((await deliver(event("customer.subscription.updated", { id: "sub_A" }))).status).toBe(500);
+    expect(store.applySubscription).not.toHaveBeenCalled();
+    expect(store.recordEvent).not.toHaveBeenCalled();
+  });
+
+  it("logs a plan that dropped inside a paid period, and saves it all the same", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    await sync();
+    expect(logged).not.toHaveBeenCalled();
+    store.applySubscription.mockResolvedValueOnce({ live: true, planLowered: true });
+    expect(await sync()).toMatchObject({ live: true, planId: "pro" });
+    expect(JSON.stringify(logged.mock.calls)).toContain("billing_plan_lowered_mid_period");
   });
 });
 

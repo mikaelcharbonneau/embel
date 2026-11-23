@@ -35,12 +35,17 @@ at checkout; cost estimates for generations still appear nowhere.
    amounts, prices and ids are never trusted) and calls the database functions with the service-role key.
    The event id is recorded only after everything applied; any failure answers 500 and Stripe retries.
    Events used: `checkout.session.completed`, `customer.subscription.created|updated|deleted|paused|resumed`,
-   `invoice.paid`, `invoice.payment_failed`. Everything else is acknowledged and ignored.
+   `invoice.paid`, `invoice.payment_failed` and `subscription_schedule.created|updated|released|canceled`
+   (a switch to a smaller plan waiting for its renewal). Everything else is acknowledged and ignored.
+   A signed delivery that does not verify answers 400 and logs `stripe_webhook_signature_rejected`: with
+   a wrong `STRIPE_WEBHOOK_SECRET` every event is refused and paid plans never arrive, so look for that
+   line when a payment does not show up.
 4. **Manage** (`POST /api/billing/portal`): the Stripe customer portal, which Managed Payments supports, for
    cancelling (at the period end), switching between Pro and Studio, the payment method and invoices.
    **Switch to …** opens the portal straight on the confirmation of that change
-   (`flow_data.type = subscription_update_confirm`). Customers can also manage the same subscription from
-   Link (link.com); both paths end in the same webhooks.
+   (`flow_data.type = subscription_update_confirm`). A switch to the larger plan applies at once; a switch
+   to the smaller plan starts at the next renewal (see "A smaller plan starts at the renewal" below).
+   Customers can also manage the same subscription from Link (link.com); both paths end in the same webhooks.
 
 _November 14, 2026: checkout is refused with `billing_pending` (409, "A plan payment is still being
 confirmed. Check again in a few minutes.") while an earlier subscription is still `incomplete`; the
@@ -87,8 +92,9 @@ and no exception for it).
 - **Upgrade** (Pro → Studio) is billed immediately with proration (portal setting `always_invoice`). When
   that invoice is paid, the account gets only the difference between Studio's allowance and the largest
   allowance already granted in the period (500 − 150 = 350), and moves to Studio for the rest of the period.
-- **Downgrade** (Studio → Pro) keeps the current balance until the next period, which starts with Pro's 150.
-  Switching down and back up in one period grants nothing extra.
+- **Downgrade** (Studio → Pro) starts at the next renewal: until then the plan, the balance and the
+  credits stay Studio's, and the renewal invoice starts the period with Pro's 150. Nothing is paid back
+  mid-period. Switching down and back up in one period grants nothing extra.
 - **Cancellation** keeps the plan until the end of the paid period. When Stripe ends the subscription
   (`customer.subscription.deleted`), the account returns to Free and gets the Free allowance for the current
   calendar month. If that final event were missed, `ensure_credit_period` does the same once the period is over.
@@ -121,6 +127,37 @@ If most buyers turn out to be individuals, `txcd_10105001` (Personal Use) is the
 Prices use `tax_behavior: exclusive`, the Managed Payments default: tax is added on top of $7.99 / $27.99
 where it applies. The Plans page says so.
 
+## A smaller plan starts at the renewal (November 23, 2026)
+
+**The hole.** The portal applied every plan change at once with proration. Pro → Studio granted the 350
+extra credits on a small prorated invoice; switching straight back made Stripe credit the unused Studio
+time while the credits stayed. At each renewal the granted allowance went back to 150, so the round trip
+worked again every month: Studio's 500 credits for about the Pro price.
+
+**The fix.** `scripts/stripe/ensure-products.mjs` sets the portal's
+`subscription_update.schedule_at_period_end` to `decreasing_item_amount`: Stripe holds a switch to a
+cheaper plan in a subscription schedule and applies it when the paid period ends, so no money comes back.
+An upgrade is unchanged (at once, prorated, +350 on the paid invoice).
+
+- The webhook reads the schedule (`scheduledPlan` in `src/server/billing/webhook.ts`): the phase that
+  starts when the period ends carries the next price. It is saved as
+  `billing_subscriptions.pending_plan_id` (migration `20261123100000_billing_pending_plan`).
+- The Plans page says "Your plan changes to Pro on …, with 150 new credits", marks the Pro card "Starts on
+  …" and offers no second switch; **Manage plan** opens the portal home, where the change can be undone.
+- If a plan ever drops inside a paid period anyway (the portal configuration was not updated, or someone
+  changed the subscription by hand in the dashboard), the webhook logs `billing_plan_lowered_mid_period`.
+  Nothing is taken back automatically.
+
+**To release it:** apply the migration, deploy, then run `ensure-products.mjs` again against the sandbox
+(and later with `--live`), and add the four `subscription_schedule.*` events to the webhook endpoint.
+Until the script has run, the portal still applies a downgrade at once.
+
+**Not tried against Stripe** (no key in the session that wrote this): that the portal schedules the
+downgrade for a Managed Payments subscription, that the deep link to the confirmation works for a
+scheduled change, and the exact shape of the schedule's phases. Check in the sandbox: Studio → Switch to
+Pro should show "changes to Pro on …" on `/plans`, the subscription should stay Studio in the dashboard
+with a schedule attached, and no credit note should appear.
+
 ## Environment variables
 
 | Variable | Use |
@@ -147,7 +184,9 @@ Pinned versions: `stripe` 23.0.1 (released October 22, 2026), API version `2026-
    `https://www.embel.xyz/api/billing/stripe-webhook`, API version `2026-09-30.endive`, events
    `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`,
    `customer.subscription.deleted`, `customer.subscription.paused`, `customer.subscription.resumed`,
-   `invoice.paid`, `invoice.payment_failed`. Copy its signing secret.
+   `invoice.paid`, `invoice.payment_failed`, `subscription_schedule.created`,
+   `subscription_schedule.updated`, `subscription_schedule.released`, `subscription_schedule.canceled`.
+   Copy its signing secret.
 4. **Vercel:** add `STRIPE_WEBHOOK_SECRET` (Production, secret). `STRIPE_SECRET_KEY` is already there.
 5. **Database:** merge, then run the Release database workflow (dry run, then apply) for
    `20261111100000_stripe_billing` ([database-release.md](database-release.md)).
@@ -160,8 +199,9 @@ Pinned versions: `stripe` 23.0.1 (released October 22, 2026), API version `2026-
   confirms within seconds: plan Pro, 150 credits. `3D Secure`: `4000 0025 0000 3155`; declined:
   `4000 0000 0000 0341` (attaches, then fails on renewal).
 - Try different billing countries at Checkout to see Managed Payments add tax.
-- Manage → Switch to Studio: +350 credits on the paid proration invoice. Switch back to Pro: no change until
-  renewal. Cancel: the plan shows "ends on …" and stays until the period end.
+- Manage → Switch to Studio: +350 credits on the paid proration invoice. Switch back to Pro: the page says
+  the plan changes to Pro at the renewal; plan and credits stay until then, and Stripe pays nothing back.
+  Cancel: the plan shows "ends on …" and stays until the period end.
 - **Renewals and cancellation endings with test clocks:** Dashboard → Billing → Test clocks → create a clock,
   create a customer on it with `metadata.embel_owner_id` set to a test account's id and record it with
   `billing_link_customer`, create the subscription for that customer, then advance the clock past the period
