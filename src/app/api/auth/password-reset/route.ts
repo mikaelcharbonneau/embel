@@ -3,6 +3,7 @@ import { captchaOptions, captchaTokenField } from "@/server/auth/captcha";
 import { createAuthTransitionClient } from "@/server/auth/client";
 import { passwordResetFailure } from "@/server/auth/failure";
 import { getApplicationOrigin } from "@/server/config";
+import { assertNotBot } from "@/server/http/bot-protection";
 import { ApiError, errorResponse, privateJson } from "@/server/http/errors";
 import { assertMutationOrigin, readJson } from "@/server/http/request";
 
@@ -16,6 +17,7 @@ const requested = { requested: true } as const;
 /** Sends a reset link to the shared callback. Whether the address has an account is never disclosed. */
 export async function POST(request: Request) {
   try {
+    await assertNotBot();
     const origin = getApplicationOrigin();
     assertMutationOrigin(request, origin);
     const { email, captchaToken } = await readJson(request, emailSchema, 4096);

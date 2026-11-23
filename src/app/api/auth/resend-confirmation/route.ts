@@ -3,6 +3,7 @@ import { captchaOptions, captchaTokenField } from "@/server/auth/captcha";
 import { createAuthTransitionClient } from "@/server/auth/client";
 import { signUpFailure } from "@/server/auth/failure";
 import { getApplicationOrigin } from "@/server/config";
+import { assertNotBot } from "@/server/http/bot-protection";
 import { ApiError, errorResponse, privateJson } from "@/server/http/errors";
 import { assertMutationOrigin, readJson } from "@/server/http/request";
 
@@ -14,6 +15,7 @@ const emailSchema = z.strictObject({
 
 export async function POST(request: Request) {
   try {
+    await assertNotBot();
     const origin = getApplicationOrigin();
     assertMutationOrigin(request, origin);
     const { email, captchaToken } = await readJson(request, emailSchema, 4096);

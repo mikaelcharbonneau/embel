@@ -4,6 +4,7 @@ import { createAuthTransitionClient } from "@/server/auth/client";
 import { isConfirmedAuthResult } from "@/server/auth/confirmation";
 import { signUpFailure } from "@/server/auth/failure";
 import { getApplicationOrigin } from "@/server/config";
+import { assertNotBot } from "@/server/http/bot-protection";
 import { ApiError, errorResponse, privateJson } from "@/server/http/errors";
 import { assertMutationOrigin, readJson } from "@/server/http/request";
 
@@ -17,6 +18,7 @@ const confirmation = { authenticated: false, confirmationRequired: true } as con
 
 export async function POST(request: Request) {
   try {
+    await assertNotBot();
     const origin = getApplicationOrigin();
     assertMutationOrigin(request, origin);
     const { captchaToken, ...credentials } = await readJson(request, credentialsSchema, 8192);

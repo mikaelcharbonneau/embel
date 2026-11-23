@@ -3,6 +3,7 @@ import { createAuthTransitionClient } from "@/server/auth/client";
 import { isConfirmedAuthResult } from "@/server/auth/confirmation";
 import { captchaOptions, captchaTokenField } from "@/server/auth/captcha";
 import { authFailure } from "@/server/auth/failure";
+import { assertNotBot } from "@/server/http/bot-protection";
 import { ApiError, errorResponse, privateJson } from "@/server/http/errors";
 import { assertMutationOrigin, readJson } from "@/server/http/request";
 
@@ -16,6 +17,7 @@ const credentialsSchema = z.strictObject({
 /** Existing accounts only. No signup, account enumeration or credential persistence. */
 export async function POST(request: Request) {
   try {
+    await assertNotBot();
     assertMutationOrigin(request);
     const { captchaToken, ...credentials } = await readJson(request, credentialsSchema, 8192);
     const { client, commitCookies } = await createAuthTransitionClient(request.signal);
