@@ -30,7 +30,7 @@ Status as of November 10, 2026. Waves C and D are unchanged.
 | A1 Logo release | lead | done |
 | A2 Creative directions | Opus, high | done (#228) |
 | A3 DB hardening | Sonnet, high | done (#225) |
-| A4 Rate limits and BotID | Sonnet, medium | done (#224); the two paid-AI WAF rules are live (since Nov 10); two account-form rules pending owner ([security-rate-limits.md](security-rate-limits.md)) |
+| A4 Rate limits and BotID | Sonnet, medium | done (#224); the two paid-AI WAF rules are live (since Nov 10) and the two account-form rules since Nov 23 ([security-rate-limits.md](security-rate-limits.md)) |
 | A5 CAPTCHA | Sonnet, medium | done (#226), off |
 | A6 Journey e2e in CI | Opus, medium | done |
 | A7 Old-worker map | Haiku | done |
