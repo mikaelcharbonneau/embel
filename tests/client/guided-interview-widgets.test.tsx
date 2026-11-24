@@ -195,10 +195,14 @@ describe("guided interview choice controls", () => {
     expect(host.querySelector(".e-choice__mark")?.textContent).toBe("");
   });
 
-  it("shows audience needs as chips, then personality traits and a tone example, without section labels", async () => {
+  it("lists audience needs one per line, then shows personality traits and a tone example, without section labels", async () => {
     await render(choices(audience));
-    expect(host.textContent).toContain("Affordable essentials");
-    expect(host.textContent).toContain("Pieces that last");
+    // Needs are sentences: a list that wraps inside the card, never one-line tags that run past its edge.
+    expect([...host.querySelectorAll(".guided-option__need")].map((need) => need.textContent)).toEqual([
+      "Affordable essentials",
+      "Pieces that last",
+    ]);
+    expect(host.querySelector(".guided-option__needs .e-badge")).toBeNull();
     expect(host.textContent).not.toContain(audience.payload.reason);
     await render(choices(personality));
     expect(host.textContent).toContain(personality.payload.toneExample);
