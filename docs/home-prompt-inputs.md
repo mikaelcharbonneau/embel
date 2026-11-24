@@ -20,6 +20,10 @@ _November 24, 2026._ The Home prompt box has two buttons beside Send. Each acts 
   (the modes: idle, starting, listening, stopping, error) and `home-voice-control.tsx` (the button).
   `next.config.ts` allows the microphone for this site only.
 
+- **Also in the side chat.** The reply box inside a brand (`WorkspaceReplyBox`) has the same button,
+  just before Send; it is off while a message is being saved or Embel works. Attaching files there is
+  not possible yet: files can only be saved when a brand is created.
+
 ## Attach (plus button)
 
 - One press opens the device's file chooser. Chosen files show as chips inside the box and can be removed.
