@@ -40,10 +40,24 @@ function Tags({ items }: { items: readonly string[] }) {
   );
 }
 
+/** What an audience needs, one per line. Needs are whole sentences, so they read as a list that wraps inside the
+ * card, not as tags. */
+function Needs({ items }: { items: readonly string[] }) {
+  return (
+    <span className="guided-option__needs">
+      {items.map((item, index) => (
+        <span key={`${item}-${index}`} className="guided-option__need">
+          {item}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 /** What a card shows beyond its title and description. Phrasing content only: it sits inside the card's label. */
 function OptionDetails({ option }: { option: GuidedOption }) {
   if (option.stage === "audience")
-    return option.payload.needs.length > 0 ? <Tags items={option.payload.needs} /> : null;
+    return option.payload.needs.length > 0 ? <Needs items={option.payload.needs} /> : null;
   if (option.stage === "positioning") return <Tags items={option.payload.leads} />;
   if (option.stage === "personality")
     return (

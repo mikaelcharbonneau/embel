@@ -925,6 +925,7 @@
 }
 .guided-choices .e-choice__more {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
   justify-items: start;
   margin-top: var(--space-1);
@@ -933,6 +934,35 @@
 }
 .guided-option__tags {
   gap: var(--space-1);
+}
+/* a long tag wraps inside its card instead of running past the edge */
+.guided-option__tags .e-badge {
+  max-width: 100%;
+  padding-block: var(--space-0-5);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+/* an audience's needs: one sentence per line, each behind a small dot */
+.guided-option__needs {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.guided-option__need {
+  position: relative;
+  padding-left: var(--space-4);
+  overflow-wrap: anywhere;
+}
+.guided-option__need::before {
+  content: "";
+  position: absolute;
+  top: 0.5lh;
+  left: var(--space-1);
+  width: var(--space-1);
+  height: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--color-text-muted);
+  translate: 0 -50%;
 }
 .guided-option__tone {
   font-style: normal;
