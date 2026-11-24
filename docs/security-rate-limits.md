@@ -42,9 +42,9 @@ check returns a human verdict, so merging first is safe.
 
 ## Rate limits: dashboard or CLI only
 
-_Status, read from the project on November 23, 2026: the two "Paid AI starts" rules below are live and
-enforcing (`rate_limit`, since November 10). The two "Account forms" rules at the end of this section
-are not applied yet._
+_Status, read from the project on November 23, 2026: all four rules below are live and enforcing
+(`rate_limit`): the two "Paid AI starts" rules since November 10, the two "Account forms" rules since
+November 23._
 
 Vercel WAF rate-limit rules cannot be shipped in `vercel.json` or `vercel.ts` (project routes
 there support only deny and challenge). `@vercel/firewall` `checkRateLimit()` still needs a rule ID created in the dashboard. So the
@@ -114,7 +114,7 @@ vercel firewall publish --yes
 The browser should show a clear message on 429; the app already handles non-2xx start responses
 with its generic retry message.
 
-### Account forms: two more rules (not applied yet)
+### Account forms: two more rules (live since November 23, 2026)
 
 The same two windows for the four account-form routes. BotID stops scripted browsers; these stop a
 plain script that sends correct headers. Sign-in at Supabase is also limited per IP, but Supabase sees
@@ -144,8 +144,10 @@ vercel firewall rules add "Account forms: hourly per IP" \
 vercel firewall publish --yes
 ```
 
-The forms already show "Too many sign-in attempts. Wait a little before trying again." on 429. The
-session that wrote this could read the firewall configuration but was not allowed to change it.
+The forms already show "Too many sign-in attempts. Wait a little before trying again." on 429. Both
+rules were added through the Vercel API (`PATCH /v1/security/firewall/config`, action `rules.insert`)
+with a Vercel access token; the Vercel connector can read the firewall but not change it. Rollback:
+`vercel firewall rules disable "<name>"`, then `vercel firewall publish --yes`.
 
 ## Verification in this PR
 
