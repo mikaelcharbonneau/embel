@@ -1,5 +1,7 @@
 "use client";
 
+import { HomeVoiceControl } from "@/features/home-inputs/home-voice-control";
+import { useBrowserVoice } from "@/features/home-inputs/use-browser-voice";
 import {
   createContext,
   useCallback,
@@ -152,7 +154,7 @@ export function useReplyRegistry() {
 export const WorkspaceReplyRegistry = ReplyRegistryContext;
 
 /**
- * The reply box in the Workspace: chips for what is chosen, the text area, and one button. Send is the one primary
+ * The reply box in the Workspace: chips for what is chosen, the text area, a dictation button and one send button. Send is the one primary
  * icon button; it is disabled only when there is nothing to send. While Embel works it becomes Stop in the same place.
  */
 export function WorkspaceReplyBox({
@@ -190,6 +192,7 @@ export function WorkspaceReplyBox({
   const canSendEmpty = Boolean(!typed && action?.onSend);
   const blocked = Boolean(!typed && action?.blockedReason);
   const sendLabel = typed ? "Send prompt" : (action?.label ?? "Send prompt");
+  const voice = useBrowserVoice();
   const current = useRef({ value, onChange });
   useEffect(() => {
     current.current = { value, onChange };
@@ -254,6 +257,18 @@ export function WorkspaceReplyBox({
       <div className="e-composer__actions">
         <span className="e-grow workspace-reply__notice" id={`${id}-notice`}>
           {blocked ? action?.blockedReason : notice}
+        </span>
+        {/* Dictation: one press and the spoken words join the reply; it never sends. Off while a message is
+            being saved or Embel works. */}
+        <span className="home-input-controls">
+          <HomeVoiceControl
+            value={value}
+            onChange={onChange}
+            language={voice.language}
+            sessionFence="workspace-reply"
+            adapter={voice.adapter}
+            disabled={readOnly || Boolean(working)}
+          />
         </span>
         {working ? (
           <IconButton

@@ -79,9 +79,11 @@ export function useHomeVoice({
   }, [adapter, language, sessionFence]);
   async function start() {
     if (!alive.current || operation.current) return;
-    if (availability?.status !== "available") {
-      // Asked before the browser answered, or in a browser without speech recognition: say so.
-      if (availability) setView({ fence: sessionFence, state: "error", transcript: "", error: "unsupported" });
+    // A press that beats the availability check asks for it itself, so no press is ever swallowed.
+    const mode = availability ?? (await adapter.availability(language, new AbortController().signal).catch(() => null));
+    if (!alive.current || operation.current) return;
+    if (mode?.status !== "available") {
+      setView({ fence: sessionFence, state: "error", transcript: "", error: "unsupported" });
       return;
     }
     const current: Capture = {

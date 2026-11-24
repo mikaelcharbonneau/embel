@@ -339,5 +339,18 @@ test("a dictated prompt with an attached file starts competitor research without
     // Competitor research costs its usual 2 credits; reading the file adds nothing.
     expect(creditsBefore - (await creditBalance(page))).toBe(2);
   });
+
+  await test.step("the side chat's reply box dictates too", async () => {
+    const reply = replyBox(page),
+      dictate = reply.getByRole("button", { name: "Dictate your prompt", exact: true });
+    await reply.getByRole("textbox").fill("Also look at");
+    await dictate.click();
+    await expect(dictate).toHaveAttribute("aria-pressed", "true");
+    await expect(reply.getByRole("textbox")).toHaveValue("Also look at delivered by cargo bike");
+    await dictate.click();
+    await expect(dictate).toHaveAttribute("aria-pressed", "false");
+    // Dictating sent nothing: the words are still in the box.
+    await expect(reply.getByRole("textbox")).toHaveValue("Also look at delivered by cargo bike");
+  });
   expect(pageErrors).toEqual([]);
 });

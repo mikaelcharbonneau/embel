@@ -1132,3 +1132,15 @@
   color: var(--color-text-muted);
   overflow-wrap: anywhere;
 }
+
+/* The side chat's reply box: the dictation button sits just before Send; its status takes a row below. */
+.workspace-reply .e-composer__actions {
+  flex-wrap: wrap;
+}
+.workspace-reply .home-input-controls > .home-voice-button {
+  order: 0;
+  margin-left: 0;
+}
+.workspace-reply .home-input-controls > p {
+  padding-inline: 0;
+}

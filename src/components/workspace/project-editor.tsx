@@ -41,8 +41,7 @@ import { createAccountLifecycleClient } from "./account-lifecycle-client";
 import { homeStartFormReducer, initialHomeStartForm } from "./home-start-form-state";
 import { homeStartView, type HomeStartSituation } from "./home-start-permissions";
 import { HomeAttachmentChips, HomeInputControls } from "@/features/home-inputs/home-input-controls";
-import { createBrowserVoiceAdapter } from "@/features/home-inputs/browser-voice-adapter";
-import { unavailableHomeVoiceAdapter, type BrowserSpeechEnvironment } from "@/features/home-inputs/voice-contract";
+import { useBrowserVoice } from "@/features/home-inputs/use-browser-voice";
 import { saveAttachedHomeDraft } from "@/features/home-inputs/home-input-session";
 import type { AttachmentPolicy } from "@/domain/attachments";
 import { NameOrigin } from "./name-origin";
@@ -230,15 +229,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
     [account, isCurrent, expire],
   );
   const sessionFence = `${account?.userId ?? "unverified"}:${session.generation}`;
-  const voice = useMemo(
-    () =>
-      typeof window === "undefined"
-        ? unavailableHomeVoiceAdapter
-        : createBrowserVoiceAdapter(window as unknown as BrowserSpeechEnvironment),
-    [],
-  );
-  // Dictation follows the browser's language, as its own dictation does.
-  const voiceLanguage = useMemo(() => (typeof navigator === "undefined" ? "" : navigator.language) || "en-US", []);
+  const { adapter: voice, language: voiceLanguage } = useBrowserVoice();
   const readHome = useCallback(() => (account ? homeInputSession.get(account) : null), [account, homeInputSession]);
   const inputIntent = useSyncExternalStore(homeInputSession.subscribe, readHome, () => null);
   const selectingFiles = useSyncExternalStore(homeInputSession.subscribe, homeInputSession.isSelecting, () => false);
