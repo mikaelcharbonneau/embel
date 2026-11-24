@@ -212,16 +212,85 @@ Pinned versions: `stripe` 23.0.1 (released October 22, 2026), API version `2026-
   using the secret it prints as `STRIPE_WEBHOOK_SECRET`.
 - In the sandbox, receipt emails are not sent automatically (send them from the payment's page).
 
-## Switching to live keys later
+## Switching to live keys
 
-1. Activate Managed Payments in live mode and save the live customer portal settings.
-2. `STRIPE_SECRET_KEY=sk_live_… node scripts/stripe/ensure-products.mjs --live`.
-3. Create the live webhook endpoint (same URL and events) and set the live `STRIPE_WEBHOOK_SECRET` and
-   `STRIPE_SECRET_KEY` in Vercel Production only (previews keep test keys; the app refuses a live key outside
-   production). Redeploy.
-4. Test-mode customers and subscriptions do not exist in live mode. Test accounts that hold a sandbox
-   customer link should start fresh: delete their rows in `fluid_private.billing_customers` and
-   `fluid_private.billing_subscriptions` (disposable test data), or use new accounts.
+_Checked November 18, 2026 (read only): Vercel project `embel`, the live Stripe account and the
+production database._
+
+**What the check found**
+
+- **No sandbox payment has completed yet.** The production database has no billing customers,
+  subscriptions, invoice grants or webhook events. The sandbox end-to-end test ("Testing in the sandbox"
+  above) comes first; going live before it would make the first real customer the first test.
+- **Nothing to clean up in the database.** With no billing rows, no account holds a sandbox customer or
+  subscription, so step 4 of the old list (deleting test rows) is not needed today. If sandbox tests run
+  before the switch, see "Database" below.
+- **The Stripe keys come from the Vercel Stripe integration** (a sandbox store) and apply to Production,
+  Preview and Development at once. Production needs its own live key while previews keep the sandbox one,
+  so the integration's variables must stop covering Production first (Vercel does not allow two values of
+  one variable for the same environment). `STRIPE_WEBHOOK_SECRET` is already Production only.
+- **The live Stripe account has nothing for Embel yet:** no Embel products or prices, no customer portal
+  configuration, no active subscriptions. It has two other live webhook endpoints: "Grok automations"
+  (leave it) and `https://tryfluid.app/api/stripe/webhook`, an endpoint from the app's earlier name. That
+  old endpoint would also receive every Embel event; disable it unless something still uses it.
+- **No code change is needed.** The app already refuses a live key outside Vercel production, sends no
+  browser key, reads prices by lookup key (so live price ids need no configuration) and verifies each
+  webhook with its own secret, so sandbox events can never be applied in live mode.
+
+**Steps (in order)**
+
+1. **Sandbox test first.** Complete the sandbox steps under "Release steps" and "Testing in the sandbox":
+   a Pro checkout, a switch to Studio, a cancel. Confirm in Stripe (sandbox → Webhooks → event
+   deliveries) that every delivery answered 200.
+2. **Stripe live account, Dashboard (owner):**
+   - Finish account activation (business details, bank account for payouts, identity), if not done.
+   - Settings → Managed Payments: activate it in live mode (eligibility review; this can take time).
+   - Settings → Public details: statement descriptor and support email/URL that say Embel.
+   - Settings → Checkout: terms of service and privacy policy links. Embel has no Terms or Privacy
+     page yet; Stripe's review and Managed Payments may ask for them.
+   - Settings → Billing → Customer portal: save the settings once so a default configuration exists.
+   - Developers → Webhooks: disable `https://tryfluid.app/api/stripe/webhook` unless still used.
+3. **Live products and prices:** with a live secret key in the shell only (never pasted into files or
+   chat): `STRIPE_SECRET_KEY=sk_live_… node scripts/stripe/ensure-products.mjs --live`. Run it again
+   until it reports nothing but "portal configuration … updated (default)".
+4. **Live webhook endpoint:** Developers → Webhooks → Add endpoint, in live mode:
+   `https://www.embel.xyz/api/billing/stripe-webhook`, API version `2026-09-30.endive`, the same eight
+   events as the sandbox endpoint (step 3 of "Release steps"). Copy its signing secret (`whsec_…`).
+5. **Live key for the app:** create a restricted key (`rk_live_…`, Developers → API keys → Create
+   restricted key) rather than using the full secret key. It needs write access to Customers, Checkout
+   Sessions, Subscriptions and Customer portal, and read access to Prices and Invoices. If a call is
+   refused, Vercel's logs show `integration_unavailable`; widen that one permission.
+6. **Vercel (owner), project `embel` → Settings → Environment Variables:**
+   - Stop the Stripe integration's sandbox variables from covering Production: Storage → the Stripe
+     store → Projects → `embel` → environments: Preview and Development only. Check afterwards that
+     `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` and
+     `STRIPE_MCP_KEY` no longer list Production.
+   - Add `STRIPE_SECRET_KEY` = the live restricted key, Production only, Sensitive.
+   - Edit `STRIPE_WEBHOOK_SECRET` (Production) = the live endpoint's signing secret.
+   - The publishable keys are not read by the app; no live publishable key is needed.
+7. **Redeploy production** (release lead, from a clean clone of `main`:
+   `vercel deploy --prod --scope embel`). Environment variables apply only to new deployments.
+8. **First live check:** buy Pro with a real card on a test account, confirm `/plans` shows Pro and 150
+   credits and the live endpoint's delivery answered 200, then cancel and refund it in the Stripe
+   Dashboard (Payments → the payment → Refund). The refund is a real one and Stripe keeps the record.
+9. **Disable the sandbox webhook endpoint** that points at `www.embel.xyz`: after the switch it can only
+   fail signature checks and retry.
+
+**Database.** If sandbox purchases were made on production accounts before the switch, those accounts
+hold sandbox customer and subscription ids that do not exist in live mode (checkout would fail with
+"No such customer"). They are disposable test data; at the switch, delete them:
+
+```sql
+delete from fluid_private.billing_subscriptions;
+delete from fluid_private.billing_customers;
+```
+
+Paid plans then return to Free by themselves (`ensure_credit_period` sees no live subscription).
+`billing_invoice_grants` and `billing_events` can stay; their ids never repeat in live mode.
+
+**Rollback.** Put the sandbox key back on Production (or remove the live variable and re-include
+Production in the integration store), restore the sandbox `STRIPE_WEBHOOK_SECRET`, and redeploy. Live
+subscriptions already sold keep billing in Stripe; cancel or honor them by hand.
 
 ## Not verified here
 
