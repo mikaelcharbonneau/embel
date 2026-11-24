@@ -56,8 +56,9 @@
 .concept-home .home-composer.conversation-composer:has(textarea:focus-visible) {
   border-color: var(--color-border-selected);
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
-  outline-offset: var(--focus-ring-offset);
-  box-shadow: var(--focus-ring-shadow), var(--shadow-raised);
+  /* On the border itself, as every bordered box of the system: one line, never a second one outside it. */
+  outline-offset: calc(var(--focus-ring-width) / -2);
+  box-shadow: var(--shadow-raised);
 }
 .concept-home .home-composer.conversation-composer.has-error {
   border-color: var(--color-border-danger);

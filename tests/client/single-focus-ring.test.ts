@@ -33,3 +33,24 @@ it("no page stylesheet adds a blanket ring on top of the design system's", () =>
     expect(css, file).not.toMatch(/:is\(button, a, summary, input, textarea, select\):focus-visible/u);
   }
 });
+
+it("a bordered box shows focus as one line on its border, with no gap and no halo", () => {
+  // The owner's second report: the ring floating outside a box's own border read as two borders.
+  const flush = system.match(/\/\* -+ Focus on a bordered box: one line -+ \*\/[\s\S]*$/u)?.[0] ?? "";
+  for (const box of [
+    ".e-input:has(:is(input, textarea, select):focus-visible)",
+    ".e-composer:has(textarea:focus-visible)",
+    ".e-choice:has(:is(input, .e-choice__hit):focus-visible)",
+    ".e-name-card:has(input:focus-visible)",
+    ".e-card--interactive:has(.e-card__link:focus-visible)",
+    ".e-chip:focus-visible",
+    ".e-button--secondary:focus-visible",
+    ".e-icon-button--outlined:focus-visible",
+  ])
+    expect(flush, box).toContain(box);
+  expect(flush).toContain("{ outline-offset: calc(var(--focus-ring-width) / -2); box-shadow: none; }");
+  const home = readFileSync("src/styles/home-concept.css", "utf8");
+  expect(home).toMatch(
+    /\.home-composer\.conversation-composer:has\(textarea:focus-visible\) \{[^}]*outline-offset: calc\(var\(--focus-ring-width\) \/ -2\);[^}]*box-shadow: var\(--shadow-raised\);/u,
+  );
+});
