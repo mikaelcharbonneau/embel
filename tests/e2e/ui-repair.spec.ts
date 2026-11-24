@@ -104,11 +104,11 @@ test("sign-in recovery restores the prompt from one retained browser copy", asyn
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("fluid.local-drafts.v1")!).drafts.length)).toBe(1);
 });
 
-test("320px layout keeps Home input disclosures and navigation reachable", async ({ page }) => {
+test("320px layout keeps the Home attach note and navigation reachable", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 740 });
   await page.goto("/");
   // The Tools menu (Trademarks and the other standalone tools) was removed with the standalone tools.
-  await page.locator(".home-files-popover summary").click();
+  await page.locator(".home-composer").getByRole("button", { name: "Add files or images", exact: true }).click();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
   await expect(page.getByRole("button", { name: "Send prompt", exact: true })).toBeVisible();
 });

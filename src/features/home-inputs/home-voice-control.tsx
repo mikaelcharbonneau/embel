@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { IconButton } from "@/components/ui/button";
 import type { HomeVoiceAdapter, VoiceErrorCode } from "./voice-contract";
 import { useHomeVoice } from "./use-home-voice";
 type HomeVoiceControlProps = {
@@ -10,20 +11,26 @@ type HomeVoiceControlProps = {
   adapter: HomeVoiceAdapter;
   disabled: boolean;
 };
-export function appendReviewedTranscript(value: string, transcript: string): string | null {
-  const reviewed = transcript.trim();
-  const result = reviewed ? `${value}${value ? "\n" : ""}${reviewed}` : value;
+/** The prompt with dictated words added at its end, or null when they would not fit. */
+export function appendDictation(value: string, text: string): string | null {
+  const added = text.trim();
+  if (!added) return value;
+  const result = `${value}${value && !/\s$/u.test(value) ? " " : ""}${added}`;
   return result.length <= 12_000 ? result : null;
 }
 const errors: Record<VoiceErrorCode, string> = {
-  permission_denied: "Microphone access was denied. Your typed prompt is unchanged.",
-  unsupported: "On-device voice is unavailable. Your typed prompt is unchanged.",
-  no_speech: "No speech was detected. You can try again or keep typing.",
-  cancelled: "Voice capture cancelled.",
-  transport: "Voice could not finish. Your typed prompt is unchanged.",
-  start_timeout: "Microphone start was not confirmed. Voice capture was cancelled.",
-  stop_unconfirmed: "Voice stop could not be confirmed. Capture was cancelled and no text was added.",
+  permission_denied:
+    "Microphone access is blocked. Allow the microphone for this site in your browser, then try again.",
+  unsupported: "Dictation isn’t supported in this browser. You can still type your prompt.",
+  no_speech: "Nothing was heard. Try again, or keep typing.",
+  cancelled: "",
+  transport: "Dictation stopped unexpectedly. What was added to your prompt is kept.",
+  start_timeout: "The microphone didn’t start. Try again.",
+  stop_unconfirmed: "Dictation was stopped.",
+  too_long: "Your prompt has reached 12,000 characters, so dictation stopped.",
 };
+/** The microphone button of the prompt box. One press starts dictation and the words appear in the prompt
+ * as they are spoken; a second press stops it. */
 export function HomeVoiceControl({
   value,
   onChange,
@@ -32,110 +39,69 @@ export function HomeVoiceControl({
   adapter,
   disabled,
 }: HomeVoiceControlProps) {
-  const voice = useHomeVoice({ adapter, language, sessionFence }),
-    id = useId(),
-    startButton = useRef<HTMLButtonElement>(null);
-  const [appendError, setAppendError] = useState(false),
-    returnFocus = useRef(false);
+  const latest = useRef(value);
   useEffect(() => {
-    if (voice.state === "idle" && returnFocus.current) {
-      returnFocus.current = false;
-      startButton.current?.focus();
-    }
-  }, [voice.state]);
-  const capturing = ["starting", "listening", "stopping"].includes(voice.state);
-  function cancel() {
-    returnFocus.current = true;
-    voice.discard();
-    setAppendError(false);
-  }
-  function useTranscript() {
-    if (disabled || voice.state !== "review") return;
-    const result = appendReviewedTranscript(value, voice.transcript);
-    if (result === null) {
-      setAppendError(true);
-      return;
-    }
-    onChange(result);
-    returnFocus.current = true;
-    voice.discard();
-    setAppendError(false);
-  }
+    latest.current = value;
+  });
+  const voice = useHomeVoice({
+    adapter,
+    language,
+    sessionFence,
+    onText(text) {
+      const next = appendDictation(latest.current, text);
+      if (next === null) return false;
+      latest.current = next;
+      onChange(next);
+      return true;
+    },
+  });
+  const capturing = voice.state === "starting" || voice.state === "listening" || voice.state === "stopping";
+  const { discard } = voice;
+  useEffect(() => {
+    // A held prompt (a send under way, another account's text) takes no more dictated words.
+    if (disabled && capturing) discard();
+  }, [disabled, capturing, discard]);
+  const message = voice.error
+    ? voice.error === "unsupported" && voice.availability?.status === "unavailable"
+      ? voice.availability.reason
+      : errors[voice.error]
+    : "";
   return (
-    <section
-      aria-label="On-device voice input"
-      onKeyDown={(event) => {
-        if (event.key === "Escape" && (capturing || voice.state === "review")) {
-          event.preventDefault();
-          event.stopPropagation();
-          cancel();
-        }
-      }}
-    >
-      <button
-        ref={startButton}
-        className="button secondary small"
-        type="button"
-        disabled={disabled || voice.availability?.status !== "available" || capturing || voice.state === "review"}
+    <>
+      <IconButton
+        className="home-voice-button"
+        icon={capturing ? "square" : "mic"}
+        label="Dictate your prompt"
+        pressed={capturing}
+        tooltip={false}
+        title={capturing ? "Stop dictation" : "Dictate your prompt"}
+        disabled={disabled || voice.state === "stopping"}
         onClick={() => {
-          setAppendError(false);
-          void voice.start();
+          if (voice.state === "listening") void voice.stop();
+          else if (voice.state === "starting") discard();
+          else void voice.start();
         }}
-      >
-        Start voice input
-      </button>
-      {voice.availability?.status === "unavailable" && <p className="field-hint">{voice.availability.reason}</p>}
-      {voice.availability?.status === "available" && <p className="field-hint">{voice.availability.disclosure}</p>}
-      {voice.state === "starting" && <p role="status">Waiting for microphone start…</p>}
-      {voice.state === "listening" && (
-        <>
-          <p role="status">Listening on this device…</p>
-          <button className="button secondary small" type="button" onClick={() => void voice.stop()}>
-            Stop voice input
-          </button>
-        </>
-      )}
-      {voice.state === "stopping" && <p role="status">Waiting for recording to end…</p>}
+      />
       {capturing && (
-        <>
-          <p aria-live="polite">{voice.transcript}</p>
-          <button type="button" className="text-link" onClick={cancel}>
-            Cancel voice input
-          </button>
-        </>
-      )}
-      {voice.state === "review" && (
-        <>
-          <label htmlFor={id}>Review transcript</label>
-          <textarea
-            id={id}
-            value={voice.transcript}
-            maxLength={12000}
-            onChange={(event) => voice.editTranscript(event.target.value)}
-          />
-          <button
-            type="button"
-            className="button secondary small"
-            disabled={disabled || !voice.transcript.trim()}
-            onClick={useTranscript}
-          >
-            Use transcript
-          </button>
-          <button type="button" className="text-link" onClick={cancel}>
-            Discard transcript
-          </button>
-        </>
-      )}
-      {voice.error && (
-        <p className="form-error" role="alert">
-          {errors[voice.error]}
+        <p className="home-input-note home-voice-status" role="status">
+          <span className="home-voice-dot" aria-hidden="true" />
+          {voice.state === "starting" ? (
+            "Waiting for your microphone…"
+          ) : (
+            <>
+              Listening… <span className="home-voice-interim">{voice.transcript}</span>
+              {voice.availability?.status === "available" && (
+                <span className="home-voice-disclosure">{voice.availability.disclosure}</span>
+              )}
+            </>
+          )}
         </p>
       )}
-      {appendError && (
-        <p className="form-error" role="alert">
-          Adding this transcript would exceed 12,000 characters. Shorten the prompt or transcript; neither was changed.
+      {message && (
+        <p className="home-input-note form-error" role="alert">
+          {message}
         </p>
       )}
-    </section>
+    </>
   );
 }

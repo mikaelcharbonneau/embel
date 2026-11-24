@@ -766,11 +766,6 @@
     flex-wrap: wrap;
     align-items: center;
   }
-  .conversation-composer.is-initial .home-input-controls {
-    flex: 1 1 100%;
-    width: 100%;
-    min-width: 0;
-  }
   .conversation-composer.is-initial .conversation-composer-footer > .button {
     max-width: 100%;
     white-space: normal;
@@ -779,18 +774,8 @@
   .conversation-composer.is-initial .conversation-composer-footer > .button:not(.composer-send-icon) {
     width: 100%;
   }
-  .home-input-controls .home-input-popover[open] {
-    flex-basis: 100%;
-    order: 2;
-    min-width: 0;
-  }
-  .home-input-controls .home-input-popover .home-input-popover-panel {
-    position: static;
-    width: 100%;
-    max-width: 100%;
-    margin-top: var(--space-2);
-    padding: var(--space-4);
-    overflow-wrap: anywhere;
+  .conversation-composer.is-initial .conversation-composer-footer:has(.home-input-controls) > .composer-send-icon {
+    margin-left: 0;
   }
 }
 

@@ -82,9 +82,10 @@
 .concept-home .home-composer.conversation-composer .conversation-composer-footer {
   display: flex;
   flex-direction: row;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-1-5);
+  row-gap: var(--space-2);
   padding: 0 var(--space-3) var(--space-3);
 }
 .concept-home .home-composer .conversation-composer-footer > .sr-only {
@@ -113,36 +114,15 @@
 .concept-home .home-composer > .form-error {
   margin: 0 var(--space-5) var(--space-5);
 }
-.concept-home .home-composer.conversation-composer .home-input-controls--compact {
-  display: flex;
-  flex: 1 1 auto;
-  width: auto;
-  min-width: 0;
-  gap: var(--space-1-5);
-  align-items: center;
-}
-.concept-home .home-input-controls--compact .home-files-popover {
-  order: 0;
-  margin: 0;
-}
-.concept-home .home-input-controls--compact .home-files-popover > summary,
-.concept-home .home-input-controls--compact .home-voice-popover > summary {
-  width: 44px;
-  height: 44px;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
+.concept-home .home-composer .home-input-controls > .e-icon-button {
   color: var(--color-text);
-  padding: 0;
 }
-.concept-home .home-input-controls--compact .home-voice-popover {
-  order: 2;
-  margin-left: auto;
+.concept-home .home-composer .home-input-controls > .e-icon-button[aria-pressed="true"] {
+  color: var(--color-on-accent);
 }
-.concept-home .home-input-popover-panel {
-  z-index: var(--z-popover);
+.concept-home .home-composer .home-input-controls > .e-icon-button:disabled {
+  background: transparent;
+  color: var(--color-text-disabled);
 }
 .concept-home .home-examples {
   margin-top: var(--space-6);
@@ -179,36 +159,6 @@
     font-size: var(--font-size-5);
     line-height: 28px;
   }
-  .concept-home .home-input-controls--compact {
-    flex: 1 1 auto;
-    width: auto;
-  }
-  .concept-home .home-composer.conversation-composer .conversation-composer-footer:has(.home-input-popover[open]) {
-    flex-wrap: wrap;
-  }
-  .concept-home
-    .home-composer.conversation-composer
-    .conversation-composer-footer:has(.home-input-popover[open])
-    .home-input-controls--compact {
-    display: contents;
-  }
-  .concept-home
-    .home-composer.conversation-composer
-    .conversation-composer-footer:has(.home-input-popover[open])
-    .home-input-popover[open] {
-    flex: 1 0 100%;
-    order: 3;
-    margin: 0;
-  }
-  .concept-home
-    .home-composer.conversation-composer
-    .conversation-composer-footer:has(.home-input-popover[open])
-    .composer-send-icon {
-    order: 2;
-  }
-  .concept-home .home-input-popover-panel {
-    max-width: calc(100vw - 48px);
-  }
 }
 @media (max-width: 540px) {
   .concept-home .home-page {
@@ -233,52 +183,11 @@
     padding: 0 var(--space-3) var(--space-3);
     gap: var(--space-1);
   }
-  .concept-home .home-composer.conversation-composer .home-input-controls--compact {
-    gap: var(--space-1);
-  }
-  .concept-home .home-input-controls--compact .home-files-popover > summary,
-  .concept-home .home-input-controls--compact .home-voice-popover > summary {
-    width: 32px;
-  }
   .concept-home .home-bottom-fade {
     height: 64px;
   }
 }
 
-/* Scope switch inside the Home box: one segmented pill of native radios. */
-.concept-home .home-files-popover > summary {
-  border-radius: 50%;
-  color: var(--color-text);
-}
-/* Phones: attach, dictate and send share the first row; the scope switch
-   takes the full second row. */
-@media (max-width: 640px) {
-  .concept-home .home-composer.conversation-composer .conversation-composer-footer {
-    flex-wrap: wrap;
-    row-gap: var(--space-2);
-  }
-  .concept-home .home-composer.conversation-composer .home-input-controls--compact {
-    display: contents;
-  }
-  .concept-home .home-input-controls--compact .home-files-popover {
-    order: 0;
-  }
-  .concept-home .home-input-controls--compact .home-voice-popover {
-    order: 1;
-    margin-left: auto;
-  }
-  .concept-home .home-composer.conversation-composer .conversation-composer-footer > .composer-send-icon {
-    order: 2;
-    margin-left: 0;
-  }
-  .concept-home .home-composer .conversation-composer-footer .home-input-popover[open] {
-    order: 4;
-  }
-  .concept-home .home-input-controls--compact > [role="status"] {
-    order: 5;
-    flex-basis: 100%;
-  }
-}
 /* Very narrow phones: three equal options whose labels may wrap, never clipped. */
 /* Secondary Home actions follow the rounder pill buttons. */
 .concept-home .home-draft-actions .button {

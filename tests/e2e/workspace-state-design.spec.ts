@@ -197,50 +197,36 @@ async function expectMasked(page: Page) {
   await expect(conversation(page)).toHaveCount(0);
 }
 
-test("Home input disclosures preserve prompt and honest availability", async ({ page }, info) => {
+test("Home attach and dictate buttons preserve the prompt and say honestly when files can't be added", async ({
+  page,
+}, info) => {
   const state = await fixture(page);
   await page.goto("/");
   const prompt = page.getByRole("textbox", { name: "Your prompt", exact: true });
   await expect(prompt).toBeEditable();
   await prompt.fill(promptText);
-  const files = page.locator(".home-files-popover"),
-    trigger = files.locator(":scope > summary");
-  const panel = files.getByRole("region", { name: "Add files or images", exact: true });
-  await trigger.focus();
-  await trigger.press("Enter");
-  await expect(files).toHaveAttribute("open", "");
-  // The panel says why files can't be added, in the service's own words, and offers no working picker.
-  await expect(panel.getByRole("status")).toHaveText("Synthetic file storage is unavailable.");
-  const fileInput = panel.locator('input[type="file"]');
+  const composer = page.locator(".home-composer"),
+    attach = composer.getByRole("button", { name: "Add files or images", exact: true });
+  // The raw file field is never shown; with no storage it is disabled and the button gives the reason,
+  // in the service's own words, below the buttons and inside the box.
+  const fileInput = composer.locator('input[type="file"]');
   await expect(fileInput).toBeDisabled();
   await expect(fileInput).toBeHidden();
+  await attach.focus();
+  await attach.press("Enter");
+  const note = composer.getByRole("status");
+  await expect(note).toHaveText("Synthetic file storage is unavailable.");
   const send = (await page.locator(".composer-send-icon").boundingBox())!,
-    filePanel = (await panel.boundingBox())!;
-  expect(filePanel.y).toBeGreaterThanOrEqual(send.y + send.height);
+    noteBox = (await note.boundingBox())!;
+  expect(noteBox.y).toBeGreaterThanOrEqual(send.y + send.height);
   await captureState(page, info, "files-availability");
-  await trigger.press("Enter");
-  await expect(files).not.toHaveAttribute("open", "");
-  await expect(trigger).toBeFocused();
-  await trigger.press("Enter");
-  await prompt.focus();
-  await page.keyboard.press("Escape");
-  await expect(files).not.toHaveAttribute("open", "");
-  await expect(trigger).toBeFocused();
+  await expect(attach).toBeFocused();
   await expect(prompt).toHaveValue(promptText);
-  await trigger.press("Enter");
-  await prompt.click();
-  await expect(files).not.toHaveAttribute("open", "");
-  await expect(prompt).toBeFocused();
 
-  const voice = page.locator(".home-voice-popover"),
-    voiceTrigger = voice.locator(":scope > summary");
-  await voiceTrigger.focus();
-  await voiceTrigger.press("Enter");
-  await expect(voice.getByRole("button", { name: "Start voice input", exact: true })).toBeDisabled();
-  await prompt.focus();
-  await page.keyboard.press("Escape");
-  await expect(voice).not.toHaveAttribute("open", "");
-  await expect(voiceTrigger).toBeFocused();
+  // Dictation is one press away; it is not started here (the fixture has no microphone).
+  await expect(composer.getByRole("button", { name: "Dictate your prompt", exact: true })).toBeEnabled();
+  await prompt.click();
+  await expect(prompt).toBeFocused();
   await expect(prompt).toHaveValue(promptText);
   expect(state.writes).toEqual([]);
   expect(
@@ -315,7 +301,7 @@ test("a brand page stays neutral until its owner is verified and hides the brand
   }
 });
 
-test("Home disclosure dismissal preserves prompt with temporary reduced motion", async ({ page }) => {
+test("the Home attach note keeps the prompt with reduced motion", async ({ page }) => {
   await fixture(page);
   await page.emulateMedia({ reducedMotion: "reduce" });
   try {
@@ -323,15 +309,11 @@ test("Home disclosure dismissal preserves prompt with temporary reduced motion",
     expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(true);
     const prompt = page.getByRole("textbox", { name: "Your prompt", exact: true });
     await prompt.fill(promptText);
-    const files = page.locator(".home-files-popover"),
-      trigger = files.locator(":scope > summary");
-    await trigger.focus();
-    await trigger.press("Enter");
-    await expect(files).toHaveAttribute("open", "");
-    await prompt.focus();
-    await page.keyboard.press("Escape");
-    await expect(files).not.toHaveAttribute("open", "");
-    await expect(trigger).toBeFocused();
+    const attach = page.locator(".home-composer").getByRole("button", { name: "Add files or images", exact: true });
+    await attach.focus();
+    await attach.press("Enter");
+    await expect(page.locator(".home-composer").getByRole("status")).toBeVisible();
+    await expect(attach).toBeFocused();
     await expect(prompt).toHaveValue(promptText);
   } finally {
     await page.emulateMedia({ reducedMotion: null });

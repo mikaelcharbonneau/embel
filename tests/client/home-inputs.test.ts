@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createOnDeviceVoiceAdapter } from "@/features/home-inputs/on-device-voice-adapter";
+import { createBrowserVoiceAdapter } from "@/features/home-inputs/browser-voice-adapter";
 import type {
-  OnDeviceSpeechEnvironment,
-  OnDeviceSpeechRecognition,
-  OnDeviceSpeechEventMap,
+  BrowserSpeechEnvironment,
+  BrowserSpeechRecognition,
+  BrowserSpeechEventMap,
 } from "@/features/home-inputs/voice-contract";
 import { validateAttachmentSelection } from "@/features/home-inputs/attachment-draft";
 import { PROPOSED_HOME_ATTACHMENT_POLICY } from "@/domain/attachments";
-class NativeVoice implements OnDeviceSpeechRecognition {
+class NativeVoice implements BrowserSpeechRecognition {
   static last: NativeVoice;
   static available = vi.fn(async () => "available" as const);
   static install = vi.fn();
@@ -23,45 +23,76 @@ class NativeVoice implements OnDeviceSpeechRecognition {
   constructor() {
     NativeVoice.last = this;
   }
-  addEventListener<K extends keyof OnDeviceSpeechEventMap>(
+  addEventListener<K extends keyof BrowserSpeechEventMap>(
     type: K,
-    listener: (event: OnDeviceSpeechEventMap[K]) => void,
+    listener: (event: BrowserSpeechEventMap[K]) => void,
   ) {
     const group = this.listeners.get(type) ?? new Set();
     group.add(listener as (event: never) => void);
     this.listeners.set(type, group);
   }
-  removeEventListener<K extends keyof OnDeviceSpeechEventMap>(
+  removeEventListener<K extends keyof BrowserSpeechEventMap>(
     type: K,
-    listener: (event: OnDeviceSpeechEventMap[K]) => void,
+    listener: (event: BrowserSpeechEventMap[K]) => void,
   ) {
     this.listeners.get(type)?.delete(listener as (event: never) => void);
   }
-  emit<K extends keyof OnDeviceSpeechEventMap>(type: K, event: OnDeviceSpeechEventMap[K]) {
+  emit<K extends keyof BrowserSpeechEventMap>(type: K, event: BrowserSpeechEventMap[K]) {
     this.listeners.get(type)?.forEach((listener) => listener(event as never));
   }
 }
-const env = () => ({ isSecureContext: true, SpeechRecognition: NativeVoice }) as OnDeviceSpeechEnvironment;
+const env = () => ({ isSecureContext: true, SpeechRecognition: NativeVoice }) as BrowserSpeechEnvironment;
 const file = (size: number, type = "text/plain", name = "notes.txt") => ({ size, type, name }) as File;
-describe("explicit on-device voice", () => {
+/** A browser without the on-device probe: Safari, and Chromium before it shipped. */
+class PrefixedVoice extends NativeVoice {
+  static override available = undefined as never;
+}
+const signal = () => new AbortController().signal;
+describe("dictation through the browser's speech recognition", () => {
   afterEach(() => {
     vi.useRealTimers();
     NativeVoice.available.mockReset().mockResolvedValue("available");
     NativeVoice.install.mockClear();
   });
-  it("on-device voice refuses downloadable packs and never invokes install or cloud fallback", async () => {
-    const adapter = createOnDeviceVoiceAdapter(env());
-    NativeVoice.available.mockResolvedValueOnce("downloadable" as never);
-    expect((await adapter.availability("en-US", new AbortController().signal)).status).toBe("unavailable");
-    expect(NativeVoice.install).not.toHaveBeenCalled();
-    expect(NativeVoice.last.start).not.toHaveBeenCalled();
+  it("is unavailable only where the browser has no speech recognition or the page is not secure", async () => {
+    expect((await createBrowserVoiceAdapter({ isSecureContext: true }).availability("en", signal())).status).toBe(
+      "unavailable",
+    );
     expect(
-      (await createOnDeviceVoiceAdapter({ isSecureContext: false }).availability("en", new AbortController().signal))
-        .status,
+      (await createBrowserVoiceAdapter({ ...env(), isSecureContext: false }).availability("en", signal())).status,
     ).toBe("unavailable");
   });
-  it("on-device voice waits for start and end events and deduplicates result indexes", async () => {
-    const adapter = createOnDeviceVoiceAdapter(env()),
+  it("uses the device when the browser can, and says so", async () => {
+    const mode = await createBrowserVoiceAdapter(env()).availability("en-US", signal());
+    expect(mode).toMatchObject({ status: "available", onDevice: true, transportId: "native-on-device" });
+    expect(mode.status === "available" && mode.disclosure).toMatch(/on this device/u);
+  });
+  it("falls back to the browser's speech service, says so, and never installs a language pack", async () => {
+    NativeVoice.available.mockResolvedValue("downloadable" as never);
+    const adapter = createBrowserVoiceAdapter(env());
+    const mode = await adapter.availability("en-US", signal());
+    expect(mode).toMatchObject({ status: "available", onDevice: false, transportId: "browser-speech" });
+    expect(mode.status === "available" && mode.disclosure).toMatch(/speech service/u);
+    expect(NativeVoice.install).not.toHaveBeenCalled();
+    const starting = adapter.start({
+      language: "en-US",
+      signal: signal(),
+      onTranscript: vi.fn(),
+      onError: vi.fn(),
+      onEnd: vi.fn(),
+    });
+    await vi.waitFor(() => expect(NativeVoice.last.start).toHaveBeenCalledOnce());
+    // Nothing claims on-device processing that the browser did not confirm.
+    expect(NativeVoice.last.processLocally).toBe(false);
+    NativeVoice.last.emit("start", new Event("start"));
+    await starting;
+  });
+  it("works with the prefixed recognition of Safari and older Chromium", async () => {
+    const adapter = createBrowserVoiceAdapter({ isSecureContext: true, webkitSpeechRecognition: PrefixedVoice });
+    expect(await adapter.availability("fr-CA", signal())).toMatchObject({ status: "available", onDevice: false });
+  });
+  it("keeps listening across pauses, waits for start and end, and separates settled words from guesses", async () => {
+    const adapter = createBrowserVoiceAdapter(env()),
       transcript = vi.fn(),
       ended = vi.fn(),
       errors = vi.fn();
@@ -69,7 +100,7 @@ describe("explicit on-device voice", () => {
     const starting = adapter
       .start({
         language: "fr-FR",
-        signal: new AbortController().signal,
+        signal: signal(),
         onTranscript: transcript,
         onError: errors,
         onEnd: ended,
@@ -83,17 +114,26 @@ describe("explicit on-device voice", () => {
     expect(NativeVoice.last).toMatchObject({
       processLocally: true,
       lang: "fr-FR",
-      continuous: false,
+      continuous: true,
       interimResults: true,
     });
     NativeVoice.last.emit("start", new Event("start"));
     const handle = await starting;
     NativeVoice.last.emit("result", { resultIndex: 0, results: [{ isFinal: false, 0: { transcript: "Bonjour" } }] });
+    expect(transcript.mock.calls.at(-1)?.[0]).toEqual({ finalText: "", interimText: "Bonjour" });
     NativeVoice.last.emit("result", {
       resultIndex: 0,
       results: [{ isFinal: true, 0: { transcript: "Bonjour monde" } }],
     });
-    expect(transcript.mock.calls.at(-1)?.[0]).toEqual({ text: "Bonjour monde", final: true });
+    expect(transcript.mock.calls.at(-1)?.[0]).toEqual({ finalText: "Bonjour monde", interimText: "" });
+    NativeVoice.last.emit("result", {
+      resultIndex: 1,
+      results: [
+        { isFinal: true, 0: { transcript: "Bonjour monde" } },
+        { isFinal: false, 0: { transcript: " et merci" } },
+      ],
+    });
+    expect(transcript.mock.calls.at(-1)?.[0]).toEqual({ finalText: "Bonjour monde", interimText: "et merci" });
     let stopped = false;
     const stopping = handle.stop().then(() => {
       stopped = true;
@@ -105,14 +145,14 @@ describe("explicit on-device voice", () => {
     expect(ended).toHaveBeenCalledOnce();
     expect(errors).not.toHaveBeenCalled();
   });
-  it("on-device voice aborts hung permission and stop without applying late text", async () => {
+  it("aborts a hung microphone start without applying late text", async () => {
     vi.useFakeTimers();
     const transcript = vi.fn(),
       errors = vi.fn(),
-      adapter = createOnDeviceVoiceAdapter(env());
+      adapter = createBrowserVoiceAdapter(env());
     const starting = adapter.start({
       language: "en",
-      signal: new AbortController().signal,
+      signal: signal(),
       onTranscript: transcript,
       onError: errors,
       onEnd: vi.fn(),
@@ -157,31 +197,36 @@ describe("bounded attachment preflight", () => {
 
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { HomeVoiceControl, appendReviewedTranscript } from "@/features/home-inputs/home-voice-control";
+import { HomeVoiceControl, appendDictation } from "@/features/home-inputs/home-voice-control";
 import type { HomeVoiceAdapter } from "@/features/home-inputs/voice-contract";
-async function voiceFixture() {
+async function voiceFixture(available = true) {
   vi.useFakeTimers();
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   const host = document.createElement("div");
   document.body.append(host);
   const root = createRoot(host);
   let callbacks: Parameters<HomeVoiceAdapter["start"]>[0] | null = null;
+  const stop = vi.fn(async () => callbacks?.onEnd());
   const start = vi.fn(async (input: Parameters<HomeVoiceAdapter["start"]>[0]) => {
     callbacks = input;
-    return { stop: vi.fn(async () => callbacks?.onEnd()) };
+    return { stop };
   });
   const adapter: HomeVoiceAdapter = {
-    availability: async (language) => ({
-      status: "available",
-      language,
-      transportId: "synthetic-local-fixture",
-      disclosure: "Local fixture",
-    }),
+    availability: async (language) =>
+      available
+        ? {
+            status: "available",
+            language,
+            onDevice: false,
+            transportId: "synthetic-fixture",
+            disclosure: "Fixture disclosure",
+          }
+        : { status: "unavailable", reason: "No dictation in this fixture browser." },
     start,
   };
   const change = vi.fn(),
     submit = vi.fn();
-  async function render(value = "Existing typed brief", sessionFence = "owner:1") {
+  async function render(value = "Existing typed brief", sessionFence = "owner:1", disabled = false) {
     await act(async () =>
       root.render(
         createElement(
@@ -193,7 +238,7 @@ async function voiceFixture() {
             language: "en-US",
             sessionFence,
             adapter,
-            disabled: false,
+            disabled,
           }),
         ),
       ),
@@ -203,14 +248,11 @@ async function voiceFixture() {
     });
   }
   await render();
-  const click = async (text: string) => {
-    const button = [...host.querySelectorAll("button")].find((button) => button.textContent === text);
-    if (!button) throw new Error(`Missing ${text}`);
-    await act(async () => button.click());
-  };
-  return { host, root, start, change, submit, render, click, callbacks: () => callbacks! };
+  const mic = () => host.querySelector<HTMLButtonElement>("button.home-voice-button")!;
+  const press = () => act(async () => mic().click());
+  return { host, root, start, stop, change, submit, render, mic, press, callbacks: () => callbacks! };
 }
-describe("mounted Home voice preserves explicit intent", () => {
+describe("the prompt box's dictation button", () => {
   let root: Root | null = null;
   afterEach(async () => {
     if (root) await act(async () => root!.unmount());
@@ -218,69 +260,118 @@ describe("mounted Home voice preserves explicit intent", () => {
     document.body.replaceChildren();
     vi.useRealTimers();
   });
-  it("voice denial and stale events preserve the typed prompt", async () => {
+  it("starts with one press, adds settled words to the latest prompt and stops with a second press", async () => {
     const f = await voiceFixture();
     root = f.root;
+    expect(f.mic().getAttribute("aria-label")).toBe("Dictate your prompt");
+    expect(f.mic().getAttribute("aria-pressed")).toBe("false");
     expect(f.start).not.toHaveBeenCalled();
-    const button = [...f.host.querySelectorAll("button")].find((button) => button.textContent === "Start voice input")!;
+    await f.press();
+    expect(f.start).toHaveBeenCalledTimes(1);
+    expect(f.mic().getAttribute("aria-pressed")).toBe("true");
+    expect(f.host.querySelector('[role="status"]')?.textContent).toContain("Listening");
+    expect(f.host.querySelector('[role="status"]')?.textContent).toContain("Fixture disclosure");
+    // A guess is shown, not written.
+    await act(async () => f.callbacks().onTranscript({ finalText: "", interimText: "delivered by" }));
+    expect(f.host.querySelector(".home-voice-interim")?.textContent).toBe("delivered by");
+    expect(f.change).not.toHaveBeenCalled();
+    // The person kept typing meanwhile; settled words join what is there now.
+    await f.render("Newer manual edit");
+    await act(async () => f.callbacks().onTranscript({ finalText: "delivered by bike", interimText: "" }));
+    expect(f.change).toHaveBeenLastCalledWith("Newer manual edit delivered by bike");
+    // Only the words added since are written the next time.
+    await f.render("Newer manual edit delivered by bike");
+    await act(async () => f.callbacks().onTranscript({ finalText: "delivered by bike every Monday", interimText: "" }));
+    expect(f.change).toHaveBeenLastCalledWith("Newer manual edit delivered by bike every Monday");
+    expect(f.change).toHaveBeenCalledTimes(2);
+    await f.press();
+    expect(f.stop).toHaveBeenCalledOnce();
+    expect(f.mic().getAttribute("aria-pressed")).toBe("false");
+    expect(f.host.querySelector('[role="status"]')).toBeNull();
+    // Dictating never sends the prompt.
+    expect(f.submit).not.toHaveBeenCalled();
+  });
+  it("a refused microphone and late events leave the typed prompt alone", async () => {
+    const f = await voiceFixture();
+    root = f.root;
     await act(async () => {
-      button.click();
-      button.click();
+      f.mic().click();
+      f.mic().click();
     });
     expect(f.start).toHaveBeenCalledTimes(1);
     const old = f.callbacks();
     await act(async () => old.onError("permission_denied"));
-    expect(f.change).not.toHaveBeenCalled();
-    await f.render("Newer manual edit");
+    expect(f.host.querySelector('[role="alert"]')?.textContent).toContain("Microphone access is blocked");
+    expect(f.mic().getAttribute("aria-pressed")).toBe("false");
     await act(async () => {
-      old.onTranscript({ text: "Late private voice", final: true });
+      old.onTranscript({ finalText: "Late private voice", interimText: "" });
       old.onEnd();
     });
     expect(f.host.textContent).not.toContain("Late private voice");
     expect(f.change).not.toHaveBeenCalled();
     expect(f.submit).not.toHaveBeenCalled();
   });
-  it("using a transcript never sends the conversation and appends to the latest typed text", async () => {
-    const f = await voiceFixture();
+  it("says so when the browser cannot dictate, instead of doing nothing", async () => {
+    const f = await voiceFixture(false);
     root = f.root;
-    await f.click("Start voice input");
-    await act(async () => f.callbacks().onTranscript({ text: "Reviewed transcript", final: false }));
+    expect(f.mic().disabled).toBe(false);
+    await f.press();
+    expect(f.start).not.toHaveBeenCalled();
+    expect(f.host.querySelector('[role="alert"]')?.textContent).toBe("No dictation in this fixture browser.");
     expect(f.change).not.toHaveBeenCalled();
-    await f.render("Newer manual edit");
-    await act(async () => f.callbacks().onEnd());
-    await f.click("Use transcript");
-    expect(f.change).toHaveBeenCalledExactlyOnceWith("Newer manual edit\nReviewed transcript");
-    expect(f.submit).not.toHaveBeenCalled();
   });
-  it("owner generation change cancels capture and late events cannot expose the prior transcript", async () => {
+  it("a pause after spoken words ends dictation quietly", async () => {
     const f = await voiceFixture();
     root = f.root;
-    await f.click("Start voice input");
+    await f.press();
+    await act(async () => f.callbacks().onTranscript({ finalText: "A bakery", interimText: "" }));
+    await act(async () => f.callbacks().onError("no_speech"));
+    expect(f.host.querySelector('[role="alert"]')).toBeNull();
+    expect(f.mic().getAttribute("aria-pressed")).toBe("false");
+    expect(f.change).toHaveBeenCalledExactlyOnceWith("Existing typed brief A bakery");
+  });
+  it("stops when the prompt is full, without cutting words", async () => {
+    const f = await voiceFixture();
+    root = f.root;
+    await f.render("a".repeat(11_995));
+    await f.press();
+    const capture = f.callbacks();
+    await act(async () => capture.onTranscript({ finalText: "too many words", interimText: "" }));
+    expect(f.change).not.toHaveBeenCalled();
+    expect(capture.signal.aborted).toBe(true);
+    expect(f.host.querySelector('[role="alert"]')?.textContent).toContain("12,000 characters");
+  });
+  it("an account change cancels dictation and late words cannot reach the next prompt", async () => {
+    const f = await voiceFixture();
+    root = f.root;
+    await f.press();
     const old = f.callbacks();
     await f.render("Another owner prompt", "owner:2");
     expect(old.signal.aborted).toBe(true);
     await act(async () => {
-      old.onTranscript({ text: "Hidden old phrase", final: true });
+      old.onTranscript({ finalText: "Hidden old phrase", interimText: "more" });
       old.onEnd();
     });
-    expect(f.host.textContent).not.toContain("Hidden old phrase");
+    expect(f.host.textContent).not.toContain("more");
     expect(f.change).not.toHaveBeenCalled();
   });
-  it("cancel returns keyboard focus to Start after the listening controls close", async () => {
+  it("a held prompt takes no more dictated words", async () => {
     const f = await voiceFixture();
     root = f.root;
-    await f.click("Start voice input");
-    const cancel = [...f.host.querySelectorAll("button")].find(
-      (button) => button.textContent === "Cancel voice input",
-    )!;
-    cancel.focus();
-    await act(async () => cancel.click());
-    expect(document.activeElement?.textContent).toBe("Start voice input");
+    await f.press();
+    const capture = f.callbacks();
+    await f.render("Existing typed brief", "owner:1", true);
+    expect(capture.signal.aborted).toBe(true);
+    await act(async () => capture.onTranscript({ finalText: "after the send", interimText: "" }));
     expect(f.change).not.toHaveBeenCalled();
+    expect(f.mic().disabled).toBe(true);
   });
-  it("refuses transcript overflow without truncating either input", () => {
-    expect(appendReviewedTranscript("a".repeat(11999), "b")).toBeNull();
-    expect(appendReviewedTranscript("", " exact phrase ")).toBe("exact phrase");
+  it("joins dictated words with one space and refuses overflow without truncating", () => {
+    expect(appendDictation("a".repeat(11999), "bb")).toBeNull();
+    expect(appendDictation("", " exact phrase ")).toBe("exact phrase");
+    expect(appendDictation("Typed,", "then spoken")).toBe("Typed, then spoken");
+    expect(appendDictation("Typed\n", "then spoken")).toBe("Typed\nthen spoken");
+    expect(appendDictation("Typed", "  ")).toBe("Typed");
   });
 });
 

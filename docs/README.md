@@ -32,6 +32,10 @@ the document.
 - [auth-captcha.md](auth-captcha.md): the Turnstile CAPTCHA on sign-up, sign-in and password reset (off until keyed).
 - [dependency-audit.md](dependency-audit.md): the production dependency audit in CI and its accepted advisories.
 
+## Screens
+
+- [home-prompt-inputs.md](home-prompt-inputs.md): the Home prompt's attach and dictate buttons, and their limits.
+
 ## Accounts and data
 
 - [account-creation.md](account-creation.md): sign-up, email confirmation and the callback.

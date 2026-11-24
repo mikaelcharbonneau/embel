@@ -1,12 +1,12 @@
 import {
   HomeVoiceError,
   type HomeVoiceAdapter,
-  type OnDeviceSpeechEnvironment,
-  type OnDeviceSpeechEventMap,
+  type BrowserSpeechEnvironment,
+  type BrowserSpeechEventMap,
   type VoiceAvailability,
   type VoiceErrorCode,
 } from "./voice-contract";
-const DISCLOSURE = "Voice is transcribed on this device.";
+const UNSUPPORTED = "Dictation isn’t supported in this browser. You can still type your prompt.";
 function deadline<T>(operation: Promise<T>, signal: AbortSignal, ms: number): Promise<T> {
   return new Promise((resolve, reject) => {
     if (signal.aborted) {
@@ -30,53 +30,64 @@ function deadline<T>(operation: Promise<T>, signal: AbortSignal, ms: number): Pr
     );
   });
 }
-/** Native local-only path. No prefixed recognition, provider, recording upload or install fallback. */
-export function createOnDeviceVoiceAdapter(browser: OnDeviceSpeechEnvironment): HomeVoiceAdapter {
+/** Dictation through the browser's own speech recognition (`SpeechRecognition`, or Safari's and older
+ * Chromium's `webkitSpeechRecognition`). Speech is turned into text on the device when the browser says it
+ * can do that for the language; otherwise the browser uses its own speech service, as its built-in
+ * dictation does. Embel never records, uploads or stores audio, and no AI provider is called. */
+export function createBrowserVoiceAdapter(browser: BrowserSpeechEnvironment): HomeVoiceAdapter {
+  const Recognition = browser.SpeechRecognition ?? browser.webkitSpeechRecognition;
   async function availability(language: string, signal: AbortSignal): Promise<VoiceAvailability> {
-    const unavailable = (reason: string): VoiceAvailability => ({ status: "unavailable", reason });
-    if (
-      !browser.isSecureContext ||
-      !browser.SpeechRecognition?.available ||
-      !language.trim() ||
-      language.length > 64 ||
-      signal.aborted
-    )
-      return unavailable("On-device voice is unavailable in this browser. Typing is still available.");
+    if (!browser.isSecureContext || !Recognition || !language.trim() || language.length > 64 || signal.aborted)
+      return { status: "unavailable", reason: UNSUPPORTED };
+    let onDevice = false;
     try {
-      const probe = new browser.SpeechRecognition();
-      if (!("processLocally" in probe)) return unavailable("This browser cannot guarantee on-device transcription.");
-      const status = await deadline(
-        browser.SpeechRecognition.available({ langs: [language], processLocally: true }),
-        signal,
-        15_000,
-      );
-      if (status !== "available")
-        return unavailable(
-          "An installed on-device language pack is required. No download or cloud transcription will start.",
-        );
-      return { status: "available", language, transportId: "native-on-device", disclosure: DISCLOSURE };
+      if (Recognition.available && "processLocally" in new Recognition())
+        onDevice =
+          (await deadline(Recognition.available({ langs: [language], processLocally: true }), signal, 3_000)) ===
+          "available";
     } catch {
-      return unavailable("On-device speech availability could not be verified. Typing is still available.");
+      // The browser could not say; its ordinary recognition is used.
     }
+    if (signal.aborted) return { status: "unavailable", reason: UNSUPPORTED };
+    return onDevice
+      ? {
+          status: "available",
+          language,
+          onDevice,
+          transportId: "native-on-device",
+          disclosure: "Your speech is turned into text on this device.",
+        }
+      : {
+          status: "available",
+          language,
+          onDevice,
+          transportId: "browser-speech",
+          disclosure: "Your browser turns your speech into text and may send the audio to its speech service.",
+        };
   }
   return {
     availability,
     async start(input) {
-      if ((await availability(input.language, input.signal)).status !== "available") {
+      const mode = await availability(input.language, input.signal);
+      if (mode.status !== "available" || !Recognition) {
         const code = input.signal.aborted ? "cancelled" : "unsupported";
         input.onError(code);
         throw new HomeVoiceError(code);
       }
       if (input.signal.aborted) throw new HomeVoiceError("cancelled");
-      const recognition = new browser.SpeechRecognition!();
-      recognition.processLocally = true;
-      if (recognition.processLocally !== true) {
-        input.onError("unsupported");
-        throw new HomeVoiceError("unsupported");
+      const recognition = new Recognition();
+      if (mode.onDevice) {
+        recognition.processLocally = true;
+        // The person was told the audio stays on the device; never fall back silently.
+        if (recognition.processLocally !== true) {
+          input.onError("unsupported");
+          throw new HomeVoiceError("unsupported");
+        }
       }
       recognition.lang = input.language;
       recognition.interimResults = true;
-      recognition.continuous = false;
+      // Keeps listening across pauses until the person stops it.
+      recognition.continuous = true;
       return new Promise<{ stop(): Promise<void> }>((resolve, reject) => {
         let active = true,
           started = false,
@@ -147,7 +158,7 @@ export function createOnDeviceVoiceAdapter(browser: OnDeviceSpeechEnvironment): 
           stopResolve?.();
           input.onEnd();
         }
-        function onError(event: OnDeviceSpeechEventMap["error"]) {
+        function onError(event: BrowserSpeechEventMap["error"]) {
           fail(
             event.error === "not-allowed" || event.error === "service-not-allowed"
               ? "permission_denied"
@@ -160,7 +171,7 @@ export function createOnDeviceVoiceAdapter(browser: OnDeviceSpeechEnvironment): 
                     : "transport",
           );
         }
-        function onResult(event: OnDeviceSpeechEventMap["result"]) {
+        function onResult(event: BrowserSpeechEventMap["result"]) {
           if (!active || !started || input.signal.aborted) return;
           if (!Number.isInteger(event.resultIndex) || event.resultIndex < 0 || event.results.length > 256) {
             fail("transport");
@@ -176,16 +187,22 @@ export function createOnDeviceVoiceAdapter(browser: OnDeviceSpeechEnvironment): 
             segments.set(index, { text, final: result.isFinal });
           }
           for (const index of segments.keys()) if (index >= event.results.length) segments.delete(index);
-          const values = [...segments].sort(([a], [b]) => a - b).map(([, value]) => value),
-            text = values
+          const values = [...segments].sort(([a], [b]) => a - b).map(([, value]) => value);
+          // Settled words are the leading run of final segments; everything after may still change.
+          const settled = values.findIndex((value) => !value.final),
+            split = settled === -1 ? values.length : settled;
+          const join = (part: typeof values) =>
+            part
               .map((value) => value.text.trim())
-              .join(" ")
-              .trim();
-          if (text.length > 12_000) {
+              .filter(Boolean)
+              .join(" ");
+          const finalText = join(values.slice(0, split)),
+            interimText = join(values.slice(split));
+          if (finalText.length + interimText.length > 12_000) {
             fail("transport");
             return;
           }
-          input.onTranscript({ text, final: values.every((value) => value.final) });
+          input.onTranscript({ finalText, interimText });
         }
         const startTimer = setTimeout(() => fail("start_timeout"), 15_000);
         recognition.addEventListener("start", onStart);

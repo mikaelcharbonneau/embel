@@ -125,7 +125,7 @@ logged as `billing_plan_lowered_mid_period`.
 | J6 | Session | **Declared** | `sessionView` and `sessionModeReducer` in `src/components/workspace/session-view.ts` |
 | J7 | Home prompt start | **Declared** | `homeStartView` (`home-start-permissions.ts`: one rule each for the field, the controls and Send), `homeStartFormReducer`, `homeStartOpeningReducer` |
 | J8 | Strategy job polling | **Declared** | `strategyJobsReport` in `src/components/workspace/strategy-jobs-view.ts`, built on `stepView` |
-| J9 | Project delete and restore dialog, profile save, home voice, auth forms | Explicit | `project-deletion-client.ts`, `account-profile-editor.tsx`, `use-home-voice.ts` |
+| J9 | Project delete and restore dialog, profile save, home dictation, auth forms | Explicit | `project-deletion-client.ts`, `account-profile-editor.tsx`, `use-home-voice.ts` |
 
 Defects below are reported, not yet reproduced, unless marked fixed.
 

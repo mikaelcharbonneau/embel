@@ -1,5 +1,6 @@
 "use client";
-import { useId, useState } from "react";
+import { useRef, useState } from "react";
+import { IconButton } from "@/components/ui/button";
 import type { AttachmentPolicy, DraftAttachment } from "@/domain/attachments";
 import { validateAttachmentSelection, type HomeAttachmentAvailability } from "./attachment-draft";
 type AttachmentPickerProps = {
@@ -8,29 +9,29 @@ type AttachmentPickerProps = {
   availability: HomeAttachmentAvailability;
   busy: boolean;
   onAdd(files: readonly File[]): Promise<void>;
-  onRemove(localId: string): void;
+  /** Shown with the reason when files need an account. */
+  onSignIn?: () => void;
 };
-const labels = {
-  local: "In this tab",
-  uploading: "Upload in progress",
-  uploaded: "Verified upload",
-  uncertain: "Outcome unconfirmed",
-  error: "Upload failed",
+const kinds = {
+  "text/plain": "plain text",
+  "application/pdf": "PDF",
+  "image/png": "PNG",
+  "image/jpeg": "JPEG",
 } as const;
-export function AttachmentPicker({ files, policy, availability, busy, onAdd, onRemove }: AttachmentPickerProps) {
-  const id = useId(),
+const megabytes = (bytes: number) => `${Math.floor(bytes / 1_048_576)} MB`;
+/** The attach button of the prompt box: one press opens the device's file chooser. Chosen files show as
+ * chips in the box (`HomeAttachmentChips`). */
+export function AttachmentPicker({ files, policy, availability, busy, onAdd, onSignIn }: AttachmentPickerProps) {
+  const input = useRef<HTMLInputElement>(null),
     [errors, setErrors] = useState<string[]>([]),
-    [reading, setReading] = useState(false);
+    [reading, setReading] = useState(false),
+    [explain, setExplain] = useState(false);
   const available = availability.status === "available" && policy !== null;
   return (
-    <section aria-label="Brief attachments">
-      <h3>Files and images</h3>
-      <label htmlFor={id} className="sr-only">
-        Add input files
-      </label>
+    <>
       <input
-        id={id}
-        hidden={!available}
+        ref={input}
+        hidden
         type="file"
         multiple
         accept={policy?.allowedMimeTypes.join(",")}
@@ -43,7 +44,15 @@ export function AttachmentPicker({ files, policy, availability, busy, onAdd, onR
           setErrors(
             result.errors.map(
               (error) =>
-                `${error.name}: ${error.code === "count" ? "too many files" : error.code === "mime" ? "unsupported file type" : error.code === "total_bytes" ? "combined file size limit exceeded" : "empty or oversized file"}.`,
+                `${error.name}: ${
+                  error.code === "count"
+                    ? `you can add up to ${policy.maxFiles} files`
+                    : error.code === "mime"
+                      ? `this kind of file isn’t supported (use ${policy.allowedMimeTypes.map((type) => kinds[type]).join(", ")})`
+                      : error.code === "total_bytes"
+                        ? `together the files are over ${megabytes(policy.maxTotalBytes)}`
+                        : `the file is empty or over ${megabytes(policy.maxFileBytes)}`
+                }.`,
             ),
           );
           if (!result.accepted.length) return;
@@ -53,40 +62,43 @@ export function AttachmentPicker({ files, policy, availability, busy, onAdd, onR
           } catch {
             setErrors((previous) => [
               ...previous,
-              "Some files could not be read. Existing files and prompt are retained.",
+              "Some files could not be read. Your prompt and other files are kept.",
             ]);
           } finally {
             setReading(false);
           }
         }}
       />
-      {!available && (
-        <p className="field-hint" role="status">
-          {availability.status === "unavailable" ? availability.reason : "File attachments are unavailable."}
+      <IconButton
+        className="home-attach-button"
+        icon="plus"
+        label="Add files or images"
+        tooltip={false}
+        title="Add files or images"
+        disabled={available && (busy || reading)}
+        onClick={() => {
+          if (available) input.current?.click();
+          else setExplain(true);
+        }}
+      />
+      {explain && !available && (
+        <p className="home-input-note" role="status">
+          {availability.status === "unavailable" ? availability.reason : "Files can’t be added right now."}
+          {onSignIn && (
+            <>
+              {" "}
+              <button className="text-link" type="button" onClick={onSignIn}>
+                Sign in
+              </button>
+            </>
+          )}
         </p>
       )}
-      {!!files.length && (
-        <ul>
-          {files.map((file) => (
-            <li key={file.localId}>
-              {file.name} · {file.byteLength.toLocaleString()} bytes · {labels[file.state]}{" "}
-              <button
-                className="text-link"
-                type="button"
-                disabled={busy || reading || file.state === "uploading" || file.state === "uncertain"}
-                onClick={() => onRemove(file.localId)}
-              >
-                Remove {file.name}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
       {errors.map((error, index) => (
-        <p className="form-error" role="alert" key={`${index}:${error}`}>
+        <p className="home-input-note form-error" role="alert" key={`${index}:${error}`}>
           {error}
         </p>
       ))}
-    </section>
+    </>
   );
 }

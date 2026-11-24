@@ -18,6 +18,8 @@ type ConversationComposerProps = {
   home?: boolean;
   project?: boolean;
   inputControls?: React.ReactNode;
+  /** Shown inside the box between the text and its buttons: the files attached to the prompt. */
+  attachments?: React.ReactNode;
   sendLabel?: string;
 };
 
@@ -35,6 +37,7 @@ export function ConversationComposer({
   home = false,
   project = false,
   inputControls,
+  attachments,
   sendLabel = "Send prompt",
 }: ConversationComposerProps) {
   const id = useId();
@@ -107,6 +110,7 @@ export function ConversationComposer({
           }
         }}
       />
+      {attachments}
       <div className="conversation-composer-footer">
         {inputControls}
         {hint !== null && (

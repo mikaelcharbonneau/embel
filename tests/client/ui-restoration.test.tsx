@@ -61,17 +61,19 @@ describe("original Embel composer presentation", () => {
 });
 
 describe("Home composer narrow-layout source contract (not rendered geometry)", () => {
-  it("keeps status messages in normal flow after the file and voice controls", () => {
+  it("keeps notes and statuses in normal flow on their own row after the attach and dictate buttons", () => {
     const css = readFileSync("src/styles/globals.css", "utf8");
+    const footer = css.match(/\.conversation-composer-footer:has\(\.home-input-controls\) \{([^}]+)\}/)?.[1];
     const controls = css.match(/\.home-input-controls \{([^}]+)\}/)?.[1];
-    const status = css.match(/\.home-input-controls > \[role=status\] \{([^}]+)\}/)?.[1];
-    expect(controls).toContain("flex-wrap: wrap");
-    expect(status).toContain("position: static");
-    expect(status).toContain("flex-basis: 100%");
-    expect(status).toContain("order: 3");
-    expect(css).not.toContain(".home-input-controls:has(> [role=status]) { margin-bottom: 60px; }");
+    const notes = css.match(/\.home-input-controls > p,\s*\.home-input-controls > div \{([^}]+)\}/)?.[1];
+    expect(footer).toContain("flex-wrap: wrap");
+    // The buttons join the footer's own row, so Send stays beside them.
+    expect(controls).toContain("display: contents");
+    expect(notes).toContain("flex: 1 0 100%");
+    expect(notes).toContain("order: 3");
+    expect(notes).not.toContain("position: absolute");
   });
-  it("reflows full recovery actions and disclosure panels inside the narrow composer", () => {
+  it("reflows full recovery actions inside the narrow composer", () => {
     const css = readFileSync("src/styles/conversation.css", "utf8");
     const narrow = css.slice(css.indexOf("/* Home input recovery at narrow widths"));
     expect(narrow).toContain("@media (max-width: 760px)");
@@ -79,12 +81,8 @@ describe("Home composer narrow-layout source contract (not rendered geometry)", 
     expect(narrow).toMatch(
       /\.conversation-composer\.is-initial \.conversation-composer-footer > \.button \{[^}]*max-width: 100%[^}]*white-space: normal/,
     );
-    expect(narrow).toMatch(
-      /\.home-input-controls \.home-input-popover \.home-input-popover-panel \{[^}]*position: static[^}]*width: 100%[^}]*max-width: 100%/,
-    );
-    expect(narrow).toMatch(/\.home-input-controls \.home-input-popover\[open\] \{[^}]*flex-basis: 100%/);
   });
-  it.each(["Send prompt", "Open saved brand", "Check and retry attached brief"])(
+  it.each(["Send prompt", "Open saved brand", "Check and retry save"])(
     "preserves the %s action beside mounted controls",
     async (sendLabel) => {
       const host = document.createElement("div");
@@ -125,17 +123,12 @@ describe("Home composer narrow-layout source contract (not rendered geometry)", 
 });
 
 describe("Home composer mobile-shell breakpoint coverage (source only)", () => {
-  it.each([320, 375, 540, 541, 600, 670, 760])(
-    "includes the %i px viewport in the in-flow disclosure rules",
-    (width) => {
-      const css = readFileSync("src/styles/conversation.css", "utf8");
-      const narrow = css.slice(css.indexOf("/* Home input recovery at narrow widths"));
-      const maximumWidth = Number(narrow.match(/@media \(max-width: (\d+)px\)/)?.[1]);
-      expect(maximumWidth).toBe(760);
-      expect(width).toBeLessThanOrEqual(maximumWidth);
-      expect(narrow).toMatch(
-        /\.home-input-controls \.home-input-popover \.home-input-popover-panel \{[^}]*position: static/,
-      );
-    },
-  );
+  it.each([320, 375, 540, 541, 600, 670, 760])("includes the %i px viewport in the wrapping footer rules", (width) => {
+    const css = readFileSync("src/styles/conversation.css", "utf8");
+    const narrow = css.slice(css.indexOf("/* Home input recovery at narrow widths"));
+    const maximumWidth = Number(narrow.match(/@media \(max-width: (\d+)px\)/)?.[1]);
+    expect(maximumWidth).toBe(760);
+    expect(width).toBeLessThanOrEqual(maximumWidth);
+    expect(narrow).toMatch(/\.conversation-composer\.is-initial \.conversation-composer-footer \{[^}]*flex-wrap: wrap/);
+  });
 });

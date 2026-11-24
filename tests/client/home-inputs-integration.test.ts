@@ -6,7 +6,8 @@ import { createAccountDraftMemory } from "@/components/workspace/account-draft-m
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { webcrypto } from "node:crypto";
 import { File as NodeFile } from "node:buffer";
-import { contextSnapshotSchema } from "@/domain/projects";
+import { contextSnapshotSchema, type ContextSnapshot } from "@/domain/projects";
+import { initialGuidedContext } from "@/components/workspace/guided-interview-client";
 import { accountProjectDraft, createAccountInput } from "@/components/workspace/project-draft-adapter";
 import {
   createHomeInputSession,
@@ -25,6 +26,7 @@ const mock = vi.hoisted(() => ({
   get: vi.fn(),
   push: vi.fn(),
   strategy: vi.fn(),
+  firstTurn: vi.fn(),
   save: vi.fn(),
   current: vi.fn(),
   expire: vi.fn(),
@@ -44,6 +46,7 @@ vi.mock("@/components/workspace/account-session", () => ({
 vi.mock("@/components/workspace/account-strategy-start", () => ({
   useAccountStrategyStart: (options?: { beforeSignIn?: () => boolean }) => ({
     start: mock.strategy,
+    firstTurnContext: mock.firstTurn,
     save: mock.save,
     pending: false,
     notice: createElement(
@@ -130,6 +133,7 @@ beforeEach(() => {
   mock.get.mockReset().mockImplementation((id: string) => (id === projectId ? draft : undefined));
   mock.push.mockReset();
   mock.strategy.mockReset().mockResolvedValue(false);
+  mock.firstTurn.mockReset().mockImplementation(async (context: unknown) => context);
   mock.save.mockReset().mockResolvedValue(true);
   forgetReceipt({ ownerId: owner, draftId: projectId, projectId: null });
   host = document.createElement("div");
@@ -192,7 +196,7 @@ describe("mounted Home attached brief integration", () => {
       });
       vi.stubGlobal("fetch", fetcher);
       await render();
-      await click("Save brief with files");
+      await click("Send prompt");
       expect(saveSignal).toBeDefined();
       expect(saveSignal.aborted).toBe(false);
       const originalRequest = mock.memory!.get(account)!.saveIntent!;
@@ -224,7 +228,7 @@ describe("mounted Home attached brief integration", () => {
     },
   );
 
-  it("lost Home save response reuses the original browser draft and never starts Strategy", async () => {
+  it("lost Home save response reuses the original browser draft and never starts a separate Strategy request", async () => {
     selectFiles();
     let saved: unknown;
     const bodies: string[] = [];
@@ -253,13 +257,13 @@ describe("mounted Home attached brief integration", () => {
       }),
     );
     await render();
-    expect(host.textContent).toContain("does not start AI processing");
-    await click("Save brief with files");
+    expect(host.textContent).toContain("Research works from your written prompt");
+    await click("Send prompt");
     expect(host.textContent).toContain("could not be confirmed");
     expect(mock.create).toHaveBeenCalledTimes(1);
     expect(mock.strategy).not.toHaveBeenCalled();
     expect(mock.push).not.toHaveBeenCalled();
-    await click("Check and retry attached brief");
+    await click("Check and retry save");
     expect(mock.create).toHaveBeenCalledTimes(1);
     expect(bodies).toHaveLength(1);
     expect(mock.strategy).not.toHaveBeenCalled();
@@ -276,7 +280,7 @@ describe("mounted Home attached brief integration", () => {
     });
     await render();
     expect(host.textContent).not.toContain(file.name);
-    expect(host.textContent).toContain("Verify the same account");
+    expect(host.textContent).toContain("Sign in to the same account");
     const send = [...host.querySelectorAll("button")].find((button) =>
       (button.getAttribute("aria-label") ?? button.textContent)?.includes("Send prompt"),
     )!;
@@ -485,7 +489,7 @@ describe("mounted Home attached brief integration", () => {
     );
     await render();
     const originalPrompt = host.querySelector("textarea")!.value;
-    await click("Save brief with files");
+    await click("Send prompt");
     const textarea = host.querySelector("textarea")!;
     expect(textarea.readOnly || textarea.disabled).toBe(true);
     expect(
@@ -543,7 +547,7 @@ describe("mounted Home attached brief integration", () => {
       }),
     );
     await render();
-    await click("Save brief with files");
+    await click("Send prompt");
     expect(mock.memory!.get(account)?.saveIntent?.project.scope).toBe("complete_brand");
     await act(async () => root!.unmount());
     root = createRoot(host);
@@ -592,6 +596,45 @@ describe("mounted Home attached brief integration", () => {
     await act(async () => finish(false));
     expect(mock.push).not.toHaveBeenCalled();
   });
+  it("saves the first research turn with a prompt that has files, once, so its project starts research like any other", async () => {
+    selectFiles();
+    mock.firstTurn.mockImplementation(async (context: ContextSnapshot) => initialGuidedContext(context, 1));
+    const bodies: { project: { context: ContextSnapshot } }[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (path: string, options: RequestInit) => {
+        if (path.endsWith("/capability")) return capability();
+        if (options.method === "POST") {
+          const input = JSON.parse(String(options.body));
+          bodies.push(input);
+          return Response.json({
+            ownerId: owner,
+            requestKey: input.requestKey,
+            project: {
+              ...input.project,
+              id: projectId,
+              owner_id: owner,
+              current_revision: 1,
+              created_at: "2026-10-07T00:00:00Z",
+            },
+            attachments: [{ ...ref, projectId, projectRevision: 1, state: "linked" }],
+          });
+        }
+        return Response.json({ status: "not_found" });
+      }),
+    );
+    await render();
+    await click("Send prompt");
+    expect(mock.firstTurn).toHaveBeenCalledOnce();
+    expect(bodies).toHaveLength(1);
+    const interview = bodies[0]!.project.context.intake.guidedInterview;
+    expect(interview?.turns).toHaveLength(1);
+    expect(interview?.turns[0]).toMatchObject({ stage: "competitors", inputRevision: 1 });
+    // The Home start itself is not used for a prompt with files; the saved turn is what starts research.
+    expect(mock.strategy).not.toHaveBeenCalled();
+    expect(mock.push).toHaveBeenCalledOnce();
+    expect(String(mock.push.mock.calls[0]![0])).toContain(`/brands/account/${projectId}`);
+  });
   it("sends attached files as one brief", async () => {
     selectFiles();
     vi.stubGlobal(
@@ -600,7 +643,7 @@ describe("mounted Home attached brief integration", () => {
     );
     await render();
     expect(host.querySelector<HTMLButtonElement>('button[type="submit"]')!.getAttribute("aria-label")).toBe(
-      "Save brief with files",
+      "Send prompt",
     );
   });
 
@@ -653,7 +696,7 @@ describe("mounted Home attached brief integration", () => {
     const fetcher = vi.fn(async () => capability());
     vi.stubGlobal("fetch", fetcher);
     await render();
-    await click("Save brief with files");
+    await click("Send prompt");
     expect(host.textContent).toContain("another save to check");
     expect(fetcher.mock.calls).toHaveLength(1);
     expect(mock.push).not.toHaveBeenCalled();
@@ -670,7 +713,7 @@ describe("mounted Home attached brief integration", () => {
       }),
     );
     await render();
-    await click("Save brief with files");
+    await click("Send prompt");
     expect(readReceipt(owner, projectId)).toEqual({
       ownerId: owner,
       draftId: projectId,
@@ -696,7 +739,7 @@ describe("mounted Home attached brief integration", () => {
       return originalSet.call(this, key, value);
     });
     try {
-      await click("Save brief with files");
+      await click("Send prompt");
       expect(fetcher.mock.calls).toHaveLength(1);
       expect(mock.push).not.toHaveBeenCalled();
       expect(host.textContent).toContain("No project request was sent");

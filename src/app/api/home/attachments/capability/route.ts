@@ -9,7 +9,7 @@ export async function GET() {
     return privateJson({
       ownerId: auth.userId.toLowerCase(),
       policy,
-      reason: policy ? null : "Private input-file storage is not configured. Your typed prompt remains available.",
+      reason: policy ? null : "Files can’t be added right now. Your prompt is kept.",
     });
   } catch (error) {
     return errorResponse(error);
