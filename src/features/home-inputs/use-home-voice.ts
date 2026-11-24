@@ -8,7 +8,7 @@ type Capture = {
   /** The settled words already handed to `onText`. */
   delivered: string;
   ended: boolean;
-  handle: { stop(): Promise<void> } | null;
+  handle: { stop(): Promise<void>; disclosure: string } | null;
 };
 /** Live dictation. Settled words are handed to `onText` as they arrive, so the prompt stays an ordinary
  * editable text the whole time; the words still being guessed are only shown (`transcript`). `onText`
@@ -30,6 +30,8 @@ export function useHomeVoice({
     state: HomeVoiceState;
     transcript: string;
     error: VoiceErrorCode | null;
+    /** Where the speech is turned into text, once listening. */
+    disclosure?: string;
   }>({ fence: sessionFence, state: "idle", transcript: "", error: null });
   const operation = useRef<Capture | null>(null),
     alive = useRef(false),
@@ -136,7 +138,7 @@ export function useHomeVoice({
         return;
       }
       current.handle = handle;
-      if (!current.ended) setView((previous) => ({ ...previous, state: "listening" }));
+      if (!current.ended) setView((previous) => ({ ...previous, state: "listening", disclosure: handle.disclosure }));
     } catch (error) {
       if (!live()) return;
       operation.current = null;
@@ -168,7 +170,8 @@ export function useHomeVoice({
       }
     }
   }
-  const visible = view.fence === sessionFence ? view : { state: "idle" as const, transcript: "", error: null };
+  const visible =
+    view.fence === sessionFence ? view : { state: "idle" as const, transcript: "", error: null, disclosure: undefined };
   return {
     availability,
     ...visible,

@@ -13,6 +13,8 @@ _November 24, 2026._ The Home prompt box has two buttons beside Send. Each acts 
   Otherwise the browser uses its own speech service (as its built-in dictation does) and the status line
   says the audio may be sent there. Before November 24 only the on-device path was allowed, which made
   the button unavailable in almost every browser.
+- Nothing of the browser's speech system is touched before the button is pressed. Asking about
+  on-device speech at page load crashed the headless Chromium that CI uses.
 - A browser without speech recognition (Firefox today) gets a plain message on press; typing still works.
 - Code: `src/features/home-inputs/browser-voice-adapter.ts` (the browser API), `use-home-voice.ts`
   (the modes: idle, starting, listening, stopping, error) and `home-voice-control.tsx` (the button).

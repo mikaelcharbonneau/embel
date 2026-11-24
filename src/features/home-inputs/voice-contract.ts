@@ -1,6 +1,4 @@
-export type VoiceAvailability =
-  | { status: "unavailable"; reason: string }
-  | { status: "available"; transportId: string; language: string; onDevice: boolean; disclosure: string };
+export type VoiceAvailability = { status: "unavailable"; reason: string } | { status: "available"; language: string };
 export type VoiceErrorCode =
   | "permission_denied"
   | "unsupported"
@@ -11,6 +9,8 @@ export type VoiceErrorCode =
   | "stop_unconfirmed"
   | "too_long";
 export interface HomeVoiceAdapter {
+  /** Whether dictation can be offered at all. It must not start, probe or construct anything in the
+   * browser's speech system: that waits for the person's press (`start`). */
   availability(language: string, signal: AbortSignal): Promise<VoiceAvailability>;
   start(input: {
     language: string;
@@ -20,7 +20,8 @@ export interface HomeVoiceAdapter {
     onTranscript(event: { finalText: string; interimText: string }): void;
     onError(code: VoiceErrorCode): void;
     onEnd(): void;
-  }): Promise<{ stop(): Promise<void> }>;
+    /** `disclosure` says where the speech is turned into text (this device, or the browser's service). */
+  }): Promise<{ stop(): Promise<void>; disclosure: string }>;
 }
 export type BrowserSpeechEventMap = {
   start: Event;

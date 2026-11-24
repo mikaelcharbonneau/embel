@@ -62,34 +62,51 @@ describe("dictation through the browser's speech recognition", () => {
       (await createBrowserVoiceAdapter({ ...env(), isSecureContext: false }).availability("en", signal())).status,
     ).toBe("unavailable");
   });
-  it("uses the device when the browser can, and says so", async () => {
-    const mode = await createBrowserVoiceAdapter(env()).availability("en-US", signal());
-    expect(mode).toMatchObject({ status: "available", onDevice: true, transportId: "native-on-device" });
-    expect(mode.status === "available" && mode.disclosure).toMatch(/on this device/u);
+  it("touches nothing of the browser's speech system before the person presses the button", async () => {
+    const constructed = vi.fn();
+    class Watched extends NativeVoice {
+      constructor() {
+        super();
+        constructed();
+      }
+    }
+    const adapter = createBrowserVoiceAdapter({ isSecureContext: true, SpeechRecognition: Watched });
+    expect(await adapter.availability("en-US", signal())).toEqual({ status: "available", language: "en-US" });
+    // Asking about on-device speech at page load crashed the headless Chromium CI uses.
+    expect(NativeVoice.available).not.toHaveBeenCalled();
+    expect(constructed).not.toHaveBeenCalled();
   });
-  it("falls back to the browser's speech service, says so, and never installs a language pack", async () => {
-    NativeVoice.available.mockResolvedValue("downloadable" as never);
-    const adapter = createBrowserVoiceAdapter(env());
-    const mode = await adapter.availability("en-US", signal());
-    expect(mode).toMatchObject({ status: "available", onDevice: false, transportId: "browser-speech" });
-    expect(mode.status === "available" && mode.disclosure).toMatch(/speech service/u);
-    expect(NativeVoice.install).not.toHaveBeenCalled();
+  const begin = async (adapter: ReturnType<typeof createBrowserVoiceAdapter>, language = "en-US") => {
     const starting = adapter.start({
-      language: "en-US",
+      language,
       signal: signal(),
       onTranscript: vi.fn(),
       onError: vi.fn(),
       onEnd: vi.fn(),
     });
     await vi.waitFor(() => expect(NativeVoice.last.start).toHaveBeenCalledOnce());
+    NativeVoice.last.emit("start", new Event("start"));
+    return starting;
+  };
+  it("uses the device when the browser can, and says so", async () => {
+    const handle = await begin(createBrowserVoiceAdapter(env()));
+    expect(NativeVoice.last.processLocally).toBe(true);
+    expect(handle.disclosure).toMatch(/on this device/u);
+  });
+  it("falls back to the browser's speech service, says so, and never installs a language pack", async () => {
+    NativeVoice.available.mockResolvedValue("downloadable" as never);
+    const handle = await begin(createBrowserVoiceAdapter(env()));
     // Nothing claims on-device processing that the browser did not confirm.
     expect(NativeVoice.last.processLocally).toBe(false);
-    NativeVoice.last.emit("start", new Event("start"));
-    await starting;
+    expect(handle.disclosure).toMatch(/speech service/u);
+    expect(NativeVoice.install).not.toHaveBeenCalled();
   });
   it("works with the prefixed recognition of Safari and older Chromium", async () => {
     const adapter = createBrowserVoiceAdapter({ isSecureContext: true, webkitSpeechRecognition: PrefixedVoice });
-    expect(await adapter.availability("fr-CA", signal())).toMatchObject({ status: "available", onDevice: false });
+    expect(await adapter.availability("fr-CA", signal())).toEqual({ status: "available", language: "fr-CA" });
+    const handle = await begin(adapter, "fr-CA");
+    expect(NativeVoice.last.lang).toBe("fr-CA");
+    expect(handle.disclosure).toMatch(/speech service/u);
   });
   it("keeps listening across pauses, waits for start and end, and separates settled words from guesses", async () => {
     const adapter = createBrowserVoiceAdapter(env()),
@@ -209,18 +226,12 @@ async function voiceFixture(available = true) {
   const stop = vi.fn(async () => callbacks?.onEnd());
   const start = vi.fn(async (input: Parameters<HomeVoiceAdapter["start"]>[0]) => {
     callbacks = input;
-    return { stop };
+    return { stop, disclosure: "Fixture disclosure" };
   });
   const adapter: HomeVoiceAdapter = {
     availability: async (language) =>
       available
-        ? {
-            status: "available",
-            language,
-            onDevice: false,
-            transportId: "synthetic-fixture",
-            disclosure: "Fixture disclosure",
-          }
+        ? { status: "available", language }
         : { status: "unavailable", reason: "No dictation in this fixture browser." },
     start,
   };

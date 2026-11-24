@@ -36,47 +36,45 @@ function deadline<T>(operation: Promise<T>, signal: AbortSignal, ms: number): Pr
  * dictation does. Embel never records, uploads or stores audio, and no AI provider is called. */
 export function createBrowserVoiceAdapter(browser: BrowserSpeechEnvironment): HomeVoiceAdapter {
   const Recognition = browser.SpeechRecognition ?? browser.webkitSpeechRecognition;
+  const supported = (language: string) =>
+    Boolean(browser.isSecureContext && Recognition && language.trim() && language.length <= 64);
+  /** Only whether the browser has speech recognition. Nothing of it is touched before the person presses
+   * the button: asking a browser about on-device speech at page load is not free (it crashed the
+   * headless Chromium that CI uses). */
   async function availability(language: string, signal: AbortSignal): Promise<VoiceAvailability> {
-    if (!browser.isSecureContext || !Recognition || !language.trim() || language.length > 64 || signal.aborted)
-      return { status: "unavailable", reason: UNSUPPORTED };
-    let onDevice = false;
+    return supported(language) && !signal.aborted
+      ? { status: "available", language }
+      : { status: "unavailable", reason: UNSUPPORTED };
+  }
+  /** At the press: can this browser turn this language into text on the device itself? */
+  async function onDeviceMode(language: string, signal: AbortSignal): Promise<boolean> {
     try {
-      if (Recognition.available && "processLocally" in new Recognition())
-        onDevice =
-          (await deadline(Recognition.available({ langs: [language], processLocally: true }), signal, 3_000)) ===
-          "available";
+      return Boolean(
+        Recognition?.available &&
+        "processLocally" in new Recognition() &&
+        (await deadline(Recognition.available({ langs: [language], processLocally: true }), signal, 3_000)) ===
+          "available",
+      );
     } catch {
       // The browser could not say; its ordinary recognition is used.
+      return false;
     }
-    if (signal.aborted) return { status: "unavailable", reason: UNSUPPORTED };
-    return onDevice
-      ? {
-          status: "available",
-          language,
-          onDevice,
-          transportId: "native-on-device",
-          disclosure: "Your speech is turned into text on this device.",
-        }
-      : {
-          status: "available",
-          language,
-          onDevice,
-          transportId: "browser-speech",
-          disclosure: "Your browser turns your speech into text and may send the audio to its speech service.",
-        };
   }
   return {
     availability,
     async start(input) {
-      const mode = await availability(input.language, input.signal);
-      if (mode.status !== "available" || !Recognition) {
+      if (!supported(input.language) || !Recognition || input.signal.aborted) {
         const code = input.signal.aborted ? "cancelled" : "unsupported";
         input.onError(code);
         throw new HomeVoiceError(code);
       }
+      const onDevice = await onDeviceMode(input.language, input.signal);
       if (input.signal.aborted) throw new HomeVoiceError("cancelled");
+      const disclosure = onDevice
+        ? "Your speech is turned into text on this device."
+        : "Your browser turns your speech into text and may send the audio to its speech service.";
       const recognition = new Recognition();
-      if (mode.onDevice) {
+      if (onDevice) {
         recognition.processLocally = true;
         // The person was told the audio stays on the device; never fall back silently.
         if (recognition.processLocally !== true) {
@@ -88,7 +86,7 @@ export function createBrowserVoiceAdapter(browser: BrowserSpeechEnvironment): Ho
       recognition.interimResults = true;
       // Keeps listening across pauses until the person stops it.
       recognition.continuous = true;
-      return new Promise<{ stop(): Promise<void> }>((resolve, reject) => {
+      return new Promise<{ stop(): Promise<void>; disclosure: string }>((resolve, reject) => {
         let active = true,
           started = false,
           ended = false,
@@ -128,6 +126,7 @@ export function createBrowserVoiceAdapter(browser: BrowserSpeechEnvironment): Ho
           started = true;
           clearTimeout(startTimer);
           resolve({
+            disclosure,
             stop() {
               if (ended) return Promise.resolve();
               if (stopping) return stopping;

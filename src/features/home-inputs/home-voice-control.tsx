@@ -90,9 +90,7 @@ export function HomeVoiceControl({
           ) : (
             <>
               Listening… <span className="home-voice-interim">{voice.transcript}</span>
-              {voice.availability?.status === "available" && (
-                <span className="home-voice-disclosure">{voice.availability.disclosure}</span>
-              )}
+              {voice.disclosure && <span className="home-voice-disclosure">{voice.disclosure}</span>}
             </>
           )}
         </p>
