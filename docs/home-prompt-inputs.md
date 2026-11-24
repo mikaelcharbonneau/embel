@@ -21,8 +21,7 @@ _November 24, 2026._ The Home prompt box has two buttons beside Send. Each acts 
   `next.config.ts` allows the microphone for this site only.
 
 - **Also in the side chat.** The reply box inside a brand (`WorkspaceReplyBox`) has the same button,
-  just before Send; it is off while a message is being saved or Embel works. Attaching files there is
-  not possible yet: files can only be saved when a brand is created.
+  just before Send; it is off while a message is being saved or Embel works.
 
 ## Attach (plus button)
 
@@ -38,6 +37,25 @@ _November 24, 2026._ The Home prompt box has two buttons beside Send. Each acts 
   still opens, ready to start.
 - Code: `attachment-picker.tsx` (button and checks), `home-input-controls.tsx` (`HomeAttachmentChips`,
   `HomeInputControls`), server side unchanged (`src/server/home-attachments`, `/api/home/attachments`).
+
+## Attach in the side chat
+
+The reply box inside a brand has the same plus button and chips (November 24).
+
+- On Send the chosen files are uploaded and verified (the same upload as on Home), added to the brand
+  (`public.attach_home_files_to_project`, `POST /api/projects/[id]/brief-files`), and read by Embel
+  (kind `brief.read_files`, no credits, started through `/generations`). Then the typed message, if
+  any, goes out as usual. Files alone never move a step forward.
+- A brand holds at most 5 files and 25 MiB in all, counting those added on Home; the database function
+  enforces it and the button says so when the brand is full.
+- The reading reads all the brand's files again (so the newest reading always covers every file) and
+  is saved as that run's `files` output. If it fails, is stopped or takes over 200 seconds, the
+  message still goes out; the files stay with the brand and the next Strategy step reads them.
+- Limits: files added during Logo or Creative direction are read and listed, but those steps do not
+  use them yet. Files cannot be removed from a brand.
+- Code: `use-chat-attachments.ts` (the flow), `WorkspaceReplyBox` (`attach`), `brief-files.ts`
+  (`attachFilesToProject`, `buildBriefFilesRunInput`, `knownBriefFileNotes`),
+  `src/workflows/brief-files.ts`, migration `20261124100000_attach_files_to_brand.sql`.
 
 ## What Embel does with attached files
 
@@ -66,14 +84,13 @@ files is free (Embel absorbs the cost).
   as untrusted task data, like the rest of the brief.
 
 Not done yet: images are not passed to Logo or Creative direction as references, an existing logo is
-not offered at the Logo step, a reading cannot be corrected or removed by the person, and files
-cannot be added after the brand is created.
+not offered at the Logo step, and a reading cannot be corrected or removed by the person.
 
 Code: `src/domain/brief-files.ts` (shapes), `src/server/engine/brief-files.ts` (owner-side lookups),
 `src/server/engine/brief-files-run.ts` and `src/workflows/brief-files-steps.ts` (the reading),
 `src/workflows/strategy.ts` (`readAttachedFiles`), `withAttachedFiles` in `strategy-run.ts`,
 `attachedFiles` in `naming.ts` and `naming-prompt.ts`, `GET /api/projects/[id]/brief-files` and
-`src/features/home-inputs/brief-files.tsx` (the list in the conversation). No migration.
+`src/features/home-inputs/brief-files.tsx` (the list in the conversation).
 
 ## Tests
 

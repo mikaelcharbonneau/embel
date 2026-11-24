@@ -58,17 +58,16 @@ const chipStatus = {
   uncertain: "Checking…",
   error: "Couldn’t upload",
 };
-/** The attached files, shown inside the prompt box above its buttons. */
-export function HomeAttachmentChips({
-  account,
-  memory,
-  disabled,
+/** Files waiting in a prompt or reply box, as removable chips. */
+export function AttachmentChips({
+  files,
+  busy,
+  onRemove,
 }: {
-  account: VerifiedAccount | null;
-  memory: HomeInputSession;
-  disabled: boolean;
+  files: readonly DraftAttachment[];
+  busy: boolean;
+  onRemove(localId: string): void;
 }) {
-  const { files, busy } = useHomeFiles(memory, account, disabled);
   if (!files.length) return null;
   return (
     <ul className="home-attachment-chips" aria-label="Attached files">
@@ -84,13 +83,7 @@ export function HomeAttachmentChips({
             title={`Remove ${file.name}`}
             disabled={busy}
             onClick={() => {
-              if (!account || busy) return;
-              const current = memory.get(account);
-              if (current)
-                memory.set(account, {
-                  ...current,
-                  files: current.files.filter((item) => item.localId !== file.localId),
-                });
+              if (!busy) onRemove(file.localId);
             }}
           >
             <Icon name="x" size="sm" />
@@ -98,6 +91,30 @@ export function HomeAttachmentChips({
         </li>
       ))}
     </ul>
+  );
+}
+/** The attached files, shown inside the Home prompt box above its buttons. */
+export function HomeAttachmentChips({
+  account,
+  memory,
+  disabled,
+}: {
+  account: VerifiedAccount | null;
+  memory: HomeInputSession;
+  disabled: boolean;
+}) {
+  const { files, busy } = useHomeFiles(memory, account, disabled);
+  return (
+    <AttachmentChips
+      files={files}
+      busy={busy}
+      onRemove={(localId) => {
+        if (!account) return;
+        const current = memory.get(account);
+        if (current)
+          memory.set(account, { ...current, files: current.files.filter((item) => item.localId !== localId) });
+      }}
+    />
   );
 }
 export function HomeInputControls({

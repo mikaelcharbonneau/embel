@@ -1,6 +1,9 @@
 "use client";
 
+import { AttachmentPicker } from "@/features/home-inputs/attachment-picker";
+import { AttachmentChips } from "@/features/home-inputs/home-input-controls";
 import { HomeVoiceControl } from "@/features/home-inputs/home-voice-control";
+import type { ChatAttachments } from "@/features/home-inputs/use-chat-attachments";
 import { useBrowserVoice } from "@/features/home-inputs/use-browser-voice";
 import {
   createContext,
@@ -167,6 +170,7 @@ export function WorkspaceReplyBox({
   readOnly = false,
   textDisabled = false,
   notice,
+  attach,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -181,6 +185,9 @@ export function WorkspaceReplyBox({
   textDisabled?: boolean;
   /** A short line under the reply box (save status). */
   notice?: ReactNode;
+  /** Files can be added to the brand from here. On Send they are added and read first; then the typed
+   * text, if any, goes out as usual. Files alone never move a step forward. */
+  attach?: ChatAttachments;
 }) {
   const id = useId();
   const form = useRef<HTMLFormElement>(null);
@@ -191,7 +198,9 @@ export function WorkspaceReplyBox({
   const canSendText = Boolean(typed && sendText && !textDisabled);
   const canSendEmpty = Boolean(!typed && action?.onSend);
   const blocked = Boolean(!typed && action?.blockedReason);
-  const sendLabel = typed ? "Send prompt" : (action?.label ?? "Send prompt");
+  const attached = attach?.files.length ?? 0;
+  const held = Boolean(attach?.busy);
+  const sendLabel = typed || attached ? "Send prompt" : (action?.label ?? "Send prompt");
   const voice = useBrowserVoice();
   const current = useRef({ value, onChange });
   useEffect(() => {
@@ -200,13 +209,20 @@ export function WorkspaceReplyBox({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (working) return;
-    if (canSendText) {
+    if (working || held) return;
+    const sendTyped = () => {
       const sent = value;
       void Promise.resolve(sendText?.(sent)).then((taken) => {
         if (taken === true && current.current.value === sent) current.current.onChange("");
       });
-    } else if (canSendEmpty && !blocked) action?.onSend?.();
+    };
+    if (attach && attached) {
+      // The files join the brand and are read before the message that refers to them is sent.
+      void attach.flush().then((added) => {
+        if (added && canSendText) sendTyped();
+      });
+    } else if (canSendText) sendTyped();
+    else if (canSendEmpty && !blocked) action?.onSend?.();
   }
 
   return (
@@ -232,6 +248,7 @@ export function WorkspaceReplyBox({
           ))}
         </ul>
       )}
+      {attach && <AttachmentChips files={attach.files} busy={held} onRemove={attach.remove} />}
       <label className="e-sr" htmlFor={id}>
         {label}
       </label>
@@ -240,12 +257,12 @@ export function WorkspaceReplyBox({
         name="message"
         autoComplete="off"
         value={value}
-        readOnly={readOnly}
+        readOnly={readOnly || held}
         maxLength={12000}
         rows={2}
         placeholder={action?.placeholder ?? placeholder}
         onChange={(event) => {
-          if (!readOnly) onChange(event.target.value);
+          if (!readOnly && !held) onChange(event.target.value);
         }}
         onKeyDown={(event) => {
           if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.keyCode !== 229) {
@@ -256,18 +273,32 @@ export function WorkspaceReplyBox({
       />
       <div className="e-composer__actions">
         <span className="e-grow workspace-reply__notice" id={`${id}-notice`}>
-          {blocked ? action?.blockedReason : notice}
+          {attach?.status ? <span role="status">{attach.status}</span> : blocked ? action?.blockedReason : notice}
         </span>
         {/* Dictation: one press and the spoken words join the reply; it never sends. Off while a message is
             being saved or Embel works. */}
         <span className="home-input-controls">
+          {attach && (
+            <AttachmentPicker
+              files={attach.files}
+              policy={attach.policy}
+              availability={attach.availability}
+              busy={held || readOnly || Boolean(working)}
+              onAdd={attach.add}
+            />
+          )}
+          {attach?.error && (
+            <p className="home-input-note form-error" role="alert">
+              {attach.error}
+            </p>
+          )}
           <HomeVoiceControl
             value={value}
             onChange={onChange}
             language={voice.language}
             sessionFence="workspace-reply"
             adapter={voice.adapter}
-            disabled={readOnly || Boolean(working)}
+            disabled={readOnly || held || Boolean(working)}
           />
         </span>
         {working ? (
@@ -288,8 +319,8 @@ export function WorkspaceReplyBox({
             icon="arrow-up"
             label={sendLabel}
             variant="primary"
-            disabled={!canSendText && !canSendEmpty}
-            aria-disabled={blocked || undefined}
+            disabled={held || (!canSendText && !canSendEmpty && !attached)}
+            aria-disabled={(blocked && !attached) || undefined}
             aria-describedby={blocked ? `${id}-notice` : undefined}
           />
         )}

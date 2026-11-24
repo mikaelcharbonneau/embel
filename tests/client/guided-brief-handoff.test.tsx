@@ -9,7 +9,10 @@ import { accountProjectDraft } from "@/components/workspace/project-draft-adapte
 import { initialGuidedContext } from "@/components/workspace/guided-interview-client";
 const tracker = vi.hoisted(() => ({ mounts: 0, unmounts: 0 }));
 vi.mock("@/domain/project-handoff", () => ({ getProjectHandoff: () => ({ next: { stage: "naming" } }) }));
-vi.mock("@/domain/project-naming", () => ({ getNamingReadiness: () => ({ ready: true }) }));
+vi.mock("@/domain/project-naming", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/domain/project-naming")>()),
+  getNamingReadiness: () => ({ ready: true }),
+}));
 vi.mock("@/components/inspiration/inspiration-workspace", () => ({ InspirationWorkspace: () => null }));
 vi.mock("@/components/inspiration/inspiration-like-count", () => ({ InspirationLikeCount: () => null }));
 vi.mock("@/components/logo-creation/logo-creation-workspace", () => ({ LogoCreationWorkspace: () => null }));

@@ -352,5 +352,34 @@ test("a dictated prompt with an attached file starts competitor research without
     // Dictating sent nothing: the words are still in the box.
     await expect(reply.getByRole("textbox")).toHaveValue("Also look at delivered by cargo bike");
   });
+
+  await test.step("a file attached in the side chat joins the brand and is read before the message goes out", async () => {
+    const reply = replyBox(page);
+    await expect(reply.locator('input[type="file"]')).toBeEnabled();
+    const [chooser] = await Promise.all([
+      page.waitForEvent("filechooser"),
+      reply.getByRole("button", { name: "Add files or images", exact: true }).click(),
+    ]);
+    await chooser.setFiles({
+      name: "more.txt",
+      mimeType: "text/plain",
+      buffer: Buffer.from("We deliver on Mondays.\n"),
+    });
+    await expect(reply.getByRole("list", { name: "Attached files", exact: true }).getByRole("listitem")).toHaveText([
+      "more.txt",
+    ]);
+    await reply.getByRole("button", { name: "Send prompt", exact: true }).click();
+    // Both files are now listed under the first prompt with what Embel read in them.
+    const files = page.locator(".brief-files").getByRole("listitem");
+    await expect(files).toHaveCount(2, { timeout: GENERATION });
+    await expect(files.filter({ hasText: "more.txt" })).toContainText("Baking starts at 4am", { timeout: GENERATION });
+    await expect(files.filter({ hasText: "notes.txt" })).toContainText("Baking starts at 4am");
+    // The chip left the reply box, and the typed message was sent after the reading.
+    await expect(reply.getByRole("list", { name: "Attached files", exact: true })).toHaveCount(0);
+    await expect(reply.getByRole("textbox")).toHaveValue("", { timeout: GENERATION });
+    const { responses } = await (await page.request.get(`${journeyStack().fakeProviderOrigin}/__stats`)).json();
+    // One reading on the first research run, one for the file added here.
+    expect(responses["brief.files"]).toBe(2);
+  });
   expect(pageErrors).toEqual([]);
 });

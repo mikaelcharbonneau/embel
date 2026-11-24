@@ -501,6 +501,10 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
   );
 }
 
+/** For a part that works without an account session (it then offers less): null outside a provider. */
+export function useOptionalAccountSession() {
+  return useContext(SessionContext);
+}
 export function useAccountSession() {
   const account = useContext(SessionContext);
   if (!account) throw new Error("Account session provider is required.");
