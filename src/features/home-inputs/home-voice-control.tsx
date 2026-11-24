@@ -10,6 +10,8 @@ type HomeVoiceControlProps = {
   sessionFence: string;
   adapter: HomeVoiceAdapter;
   disabled: boolean;
+  /** The small button, for a compact box such as the side chat's reply box. */
+  size?: "md" | "sm";
 };
 /** The prompt with dictated words added at its end, or null when they would not fit. */
 export function appendDictation(value: string, text: string): string | null {
@@ -38,6 +40,7 @@ export function HomeVoiceControl({
   sessionFence,
   adapter,
   disabled,
+  size,
 }: HomeVoiceControlProps) {
   const latest = useRef(value);
   useEffect(() => {
@@ -70,6 +73,7 @@ export function HomeVoiceControl({
     <>
       <IconButton
         className="home-voice-button"
+        size={size}
         icon={capturing ? "square" : "mic"}
         label="Dictate your prompt"
         pressed={capturing}

@@ -11,6 +11,8 @@ type AttachmentPickerProps = {
   onAdd(files: readonly File[]): Promise<void>;
   /** Shown with the reason when files need an account. */
   onSignIn?: () => void;
+  /** The small button, for a compact box such as the side chat's reply box. */
+  size?: "md" | "sm";
 };
 const kinds = {
   "text/plain": "plain text",
@@ -21,7 +23,7 @@ const kinds = {
 const megabytes = (bytes: number) => `${Math.floor(bytes / 1_048_576)} MB`;
 /** The attach button of the prompt box: one press opens the device's file chooser. Chosen files show as
  * chips in the box (`HomeAttachmentChips`). */
-export function AttachmentPicker({ files, policy, availability, busy, onAdd, onSignIn }: AttachmentPickerProps) {
+export function AttachmentPicker({ files, policy, availability, busy, onAdd, onSignIn, size }: AttachmentPickerProps) {
   const input = useRef<HTMLInputElement>(null),
     [errors, setErrors] = useState<string[]>([]),
     [reading, setReading] = useState(false),
@@ -71,6 +73,7 @@ export function AttachmentPicker({ files, policy, availability, busy, onAdd, onS
       />
       <IconButton
         className="home-attach-button"
+        size={size}
         icon="plus"
         label="Add files or images"
         tooltip={false}

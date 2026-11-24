@@ -285,6 +285,7 @@ export function WorkspaceReplyBox({
               availability={attach.availability}
               busy={held || readOnly || Boolean(working)}
               onAdd={attach.add}
+              size="sm"
             />
           )}
           {attach?.error && (
@@ -299,11 +300,13 @@ export function WorkspaceReplyBox({
             sessionFence="workspace-reply"
             adapter={voice.adapter}
             disabled={readOnly || held || Boolean(working)}
+            size="sm"
           />
         </span>
         {working ? (
           <IconButton
             key="stop"
+            size="sm"
             icon="square"
             label={working.stopping ? "Stopping…" : working.label}
             variant="primary"
@@ -315,6 +318,7 @@ export function WorkspaceReplyBox({
         ) : (
           <IconButton
             key="send"
+            size="sm"
             type="submit"
             icon="arrow-up"
             label={sendLabel}
