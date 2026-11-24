@@ -413,6 +413,19 @@ export function SignInForm({
                   {signingUp ? "Create account" : "Sign in"}
                 </Button>
               </fieldset>
+              {signingUp && (
+                <p className="auth-card__terms">
+                  By creating an account, you agree to the{" "}
+                  <Link className="e-link" href="/terms" target="_blank">
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link className="e-link" href="/privacy" target="_blank">
+                    Privacy Policy
+                  </Link>
+                  .
+                </p>
+              )}
               {checking && configured && !submitting && (
                 <p className="auth-card__note" role="status">
                   Checking your account…

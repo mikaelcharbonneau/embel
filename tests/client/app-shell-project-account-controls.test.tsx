@@ -174,64 +174,69 @@ describe("project account and activity controls", () => {
     `/brands/account/${project}/logo`,
     `/brands/account/${project}/logo/directions`,
     `/brands/account/${project}/logo/deliverables`,
-  ])("keeps one keyboard-usable account menu with settings, plans, activity and sign-out on %s", async (pathname) => {
-    route.pathname = pathname;
-    await render();
-    expect(host.querySelector(".concept-project-workspace")).not.toBeNull();
-    expect(host.querySelectorAll("[data-account-menu-trigger]")).toHaveLength(1);
-    const button = trigger();
-    expect(button.tagName).toBe("BUTTON");
-    expect(button.classList).toContain("e-avatar");
-    expect(button.getAttribute("aria-label")).toBe("Account menu");
-    expect(button.hasAttribute("aria-busy")).toBe(false);
-    expect(button.getAttribute("aria-haspopup")).toBe("menu");
-    expect(button.getAttribute("aria-expanded")).toBe("false");
-    // The verified owner's initials, never the name itself.
-    expect(button.textContent).toBe("PA");
-    // Closed, the menu is hidden and holds no rows.
-    expect(menu().getAttribute("role")).toBe("menu");
-    expect(menu().hidden).toBe(true);
-    expect(menu().childElementCount).toBe(0);
-    expect(calls("/api/jobs")).toHaveLength(0);
+  ])(
+    "keeps one keyboard-usable account menu with settings, plans, activity, help and sign-out on %s",
+    async (pathname) => {
+      route.pathname = pathname;
+      await render();
+      expect(host.querySelector(".concept-project-workspace")).not.toBeNull();
+      expect(host.querySelectorAll("[data-account-menu-trigger]")).toHaveLength(1);
+      const button = trigger();
+      expect(button.tagName).toBe("BUTTON");
+      expect(button.classList).toContain("e-avatar");
+      expect(button.getAttribute("aria-label")).toBe("Account menu");
+      expect(button.hasAttribute("aria-busy")).toBe(false);
+      expect(button.getAttribute("aria-haspopup")).toBe("menu");
+      expect(button.getAttribute("aria-expanded")).toBe("false");
+      // The verified owner's initials, never the name itself.
+      expect(button.textContent).toBe("PA");
+      // Closed, the menu is hidden and holds no rows.
+      expect(menu().getAttribute("role")).toBe("menu");
+      expect(menu().hidden).toBe(true);
+      expect(menu().childElementCount).toBe(0);
+      expect(calls("/api/jobs")).toHaveLength(0);
 
-    await act(async () => button.click());
-    expect(isOpen()).toBe(true);
-    expect(menu().hidden).toBe(false);
-    expect(summary()?.textContent).toContain(emailOf(owner));
-    expect(summary()?.textContent).toContain("Pro");
-    expect(summary()?.textContent).toContain("112 credits left this month");
-    expect(summary()?.textContent).not.toContain("New credits arrive");
-    expect(rowLabels()).toEqual(["Settings", "Plans", "Activity", "Sign out"]);
-    expect(row("Settings")!.getAttribute("href")).toBe("/settings");
-    expect(row("Plans")!.getAttribute("href")).toBe("/plans");
-    expect(row("Activity")!.tagName).toBe("BUTTON");
-    expect(row("Sign out")!.tagName).toBe("BUTTON");
-    // A verified owner has no manual connection check; routine checks run on their own.
-    expect(menu().textContent).not.toMatch(/Refresh connection|Check account|Sign in/);
-    // Opening never reads activity; only the Activity dialog does.
-    expect(calls("/api/jobs")).toHaveLength(0);
+      await act(async () => button.click());
+      expect(isOpen()).toBe(true);
+      expect(menu().hidden).toBe(false);
+      expect(summary()?.textContent).toContain(emailOf(owner));
+      expect(summary()?.textContent).toContain("Pro");
+      expect(summary()?.textContent).toContain("112 credits left this month");
+      expect(summary()?.textContent).not.toContain("New credits arrive");
+      expect(rowLabels()).toEqual(["Settings", "Plans", "Activity", "Help", "Sign out"]);
+      expect(row("Settings")!.getAttribute("href")).toBe("/settings");
+      expect(row("Plans")!.getAttribute("href")).toBe("/plans");
+      expect(row("Activity")!.tagName).toBe("BUTTON");
+      expect(row("Help")!.getAttribute("href")).toBe("/help");
+      expect(row("Sign out")!.tagName).toBe("BUTTON");
+      // A verified owner has no manual connection check; routine checks run on their own.
+      expect(menu().textContent).not.toMatch(/Refresh connection|Check account|Sign in/);
+      // Opening never reads activity; only the Activity dialog does.
+      expect(calls("/api/jobs")).toHaveLength(0);
 
-    // Focus moves into the menu; the arrow keys wrap, Home and End jump to the ends.
-    expect(document.activeElement).toBe(row("Settings"));
-    for (const [key, label] of [
-      ["ArrowDown", "Plans"],
-      ["ArrowDown", "Activity"],
-      ["ArrowDown", "Sign out"],
-      ["ArrowDown", "Settings"],
-      ["ArrowUp", "Sign out"],
-      ["Home", "Settings"],
-      ["End", "Sign out"],
-    ] as const) {
-      expect((await press(key)).defaultPrevented).toBe(true);
-      expect(document.activeElement).toBe(row(label));
-    }
-    // Escape closes it and returns focus to the button.
-    expect((await press("Escape")).defaultPrevented).toBe(true);
-    expect(isOpen()).toBe(false);
-    expect(menu().hidden).toBe(true);
-    expect(rows()).toHaveLength(0);
-    expect(document.activeElement).toBe(button);
-  });
+      // Focus moves into the menu; the arrow keys wrap, Home and End jump to the ends.
+      expect(document.activeElement).toBe(row("Settings"));
+      for (const [key, label] of [
+        ["ArrowDown", "Plans"],
+        ["ArrowDown", "Activity"],
+        ["ArrowDown", "Help"],
+        ["ArrowDown", "Sign out"],
+        ["ArrowDown", "Settings"],
+        ["ArrowUp", "Sign out"],
+        ["Home", "Settings"],
+        ["End", "Sign out"],
+      ] as const) {
+        expect((await press(key)).defaultPrevented).toBe(true);
+        expect(document.activeElement).toBe(row(label));
+      }
+      // Escape closes it and returns focus to the button.
+      expect((await press("Escape")).defaultPrevented).toBe(true);
+      expect(isOpen()).toBe(false);
+      expect(menu().hidden).toBe(true);
+      expect(rows()).toHaveLength(0);
+      expect(document.activeElement).toBe(button);
+    },
+  );
 
   it("keeps the same menu button and panel across pages but closes the menu on each page change", async () => {
     route.pathname = "/";
@@ -246,7 +251,7 @@ describe("project account and activity controls", () => {
       "/",
     ]) {
       await openMenu();
-      expect(rowLabels()).toEqual(["Settings", "Plans", "Activity", "Sign out"]);
+      expect(rowLabels()).toEqual(["Settings", "Plans", "Activity", "Help", "Sign out"]);
       route.pathname = pathname;
       await render();
       expect(trigger()).toBe(button);
@@ -266,7 +271,7 @@ describe("project account and activity controls", () => {
     await openMenu();
     expect(summary()?.textContent).toContain("0 credits left this month");
     expect(summary()?.textContent).toContain("New credits arrive on December 1");
-    expect(rowLabels()).toEqual(["See plans", "Settings", "Activity", "Sign out"]);
+    expect(rowLabels()).toEqual(["See plans", "Settings", "Activity", "Help", "Sign out"]);
     expect(row("See plans")!.getAttribute("href")).toBe("/plans");
     expect(document.activeElement).toBe(row("See plans"));
     // Credits only: no money anywhere in the menu.
@@ -280,7 +285,7 @@ describe("project account and activity controls", () => {
     expect(summary()?.textContent).toContain(emailOf(owner));
     expect(summary()?.textContent).toContain("Your plan can’t be shown right now.");
     expect(summary()?.textContent).not.toMatch(/credits left|Pro|Free/);
-    expect(rowLabels()).toEqual(["Settings", "Plans", "Activity", "Sign out"]);
+    expect(rowLabels()).toEqual(["Settings", "Plans", "Activity", "Help", "Sign out"]);
   });
 
   it.each([500, 503])("offers honest account controls after a %s session response", async (status) => {
@@ -329,7 +334,7 @@ describe("project account and activity controls", () => {
       await vi.advanceTimersByTimeAsync(2);
     });
     expect(trigger().textContent).toBe("PA");
-    expect(rowLabels()).toEqual(["Settings", "Plans", "Activity", "Sign out"]);
+    expect(rowLabels()).toEqual(["Settings", "Plans", "Activity", "Help", "Sign out"]);
     expect(summary()?.textContent).toContain(emailOf(owner));
   });
 

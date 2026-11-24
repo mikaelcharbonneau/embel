@@ -21,6 +21,7 @@ import "@/styles/project-workspace.css";
 import "@/styles/guided-interview.css";
 import "@/styles/guided-conversation.css";
 import "@/styles/journey-conversation.css";
+import "@/styles/legal.css";
 
 // Icons and the social preview image come from the file conventions beside this
 // layout: icon.svg, apple-icon.tsx and opengraph-image.tsx.
