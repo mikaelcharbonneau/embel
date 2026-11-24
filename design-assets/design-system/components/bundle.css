@@ -90,7 +90,7 @@ button, input, select, textarea { font: inherit; color: inherit; letter-spacing:
 .e-name-card { position: relative; display: flex; align-items: center; gap: var(--space-1); min-width: 0; min-height: calc(var(--target-min) + var(--space-2)); padding: 0 var(--space-1) 0 var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-bg-paper); }
 /* no visible radio (owner decision, November 13): the whole name is the choice, the border alone shows the chosen one; the radio stays for keyboards and screen readers */
 .e-name-card[data-selected], .e-name-card:has(input:checked) { border-color: var(--color-border-selected); box-shadow: inset 0 0 0 1px var(--color-border-selected); }
-.e-name-card:has(:focus-visible) { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: var(--focus-ring-offset); }
+.e-name-card:has(input:focus-visible) { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: var(--focus-ring-offset); }
 .e-name-card .e-box { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
 .e-name-card > .e-check { cursor: pointer; }
 .e-name-card > .e-check { flex: 1 1 auto; min-width: 0; align-items: center; }
@@ -186,7 +186,7 @@ button, input, select, textarea { font: inherit; color: inherit; letter-spacing:
 .e-input > input::placeholder, .e-input > textarea::placeholder, .e-composer textarea::placeholder { color: var(--color-text-placeholder); opacity: 1; }
 .e-input > .e-icon { color: var(--color-icon-muted); }
 .e-input > .e-icon-button { margin-right: calc(var(--space-2) * -1); }@media (hover: hover) and (pointer: fine) { .e-input:hover { border-color: var(--color-border-selected); } }
-.e-input[data-force~="hover"] { border-color: var(--color-border-selected); }.e-input:has(:focus-visible), .e-input[data-force~="focus"] { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: var(--focus-ring-offset); box-shadow: var(--focus-ring-shadow); border-color: var(--color-border-selected); }
+.e-input[data-force~="hover"] { border-color: var(--color-border-selected); }.e-input:has(:is(input, textarea, select):focus-visible), .e-input[data-force~="focus"] { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: var(--focus-ring-offset); box-shadow: var(--focus-ring-shadow); border-color: var(--color-border-selected); }
 .e-input--error, .e-input:has([aria-invalid="true"]) { border-color: var(--color-border-danger); }
 .e-input--readonly, .e-input:has(> [readonly]) { background: var(--color-bg-sunken); border-color: var(--color-border); cursor: default; }
 .e-input--disabled, .e-input:has(> :disabled) { background: var(--color-bg-disabled); border-color: var(--color-border); color: var(--color-text-disabled); cursor: not-allowed; }
@@ -204,7 +204,7 @@ button, input, select, textarea { font: inherit; color: inherit; letter-spacing:
 .e-composer textarea { display: block; width: 100%; margin: 0; padding: 0; border: 0; background: transparent; resize: none; outline: none; box-shadow: none; font: var(--text-body); min-height: var(--space-6); max-height: calc(var(--space-6) * 8); field-sizing: content; }
 .e-composer--lead textarea { font: var(--text-body-lg); min-height: calc(var(--space-6) * 2 + var(--space-2)); }
 .e-composer__actions { display: flex; align-items: center; gap: var(--space-2); }@media (hover: hover) and (pointer: fine) { .e-composer:hover { border-color: var(--color-border-selected); } }
-.e-composer[data-force~="hover"] { border-color: var(--color-border-selected); }.e-composer:has(:focus-visible), .e-composer[data-force~="focus"] { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: var(--focus-ring-offset); box-shadow: var(--focus-ring-shadow); border-color: var(--color-border-selected); }.e-composer--floating:has(:focus-visible), .e-composer--floating[data-force~="focus"] { box-shadow: var(--focus-ring-shadow), var(--shadow-raised); }
+.e-composer[data-force~="hover"] { border-color: var(--color-border-selected); }.e-composer:has(textarea:focus-visible), .e-composer[data-force~="focus"] { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: var(--focus-ring-offset); box-shadow: var(--focus-ring-shadow); border-color: var(--color-border-selected); }.e-composer--floating:has(textarea:focus-visible), .e-composer--floating[data-force~="focus"] { box-shadow: var(--focus-ring-shadow), var(--shadow-raised); }
 .e-composer--error { border-color: var(--color-border-danger); }
 .e-composer--disabled, .e-composer:has(textarea:disabled) { background: var(--color-bg-disabled); border-color: var(--color-border); color: var(--color-text-disabled); cursor: not-allowed; }
 .e-composer-dock { position: sticky; bottom: var(--space-4); z-index: var(--z-sticky); margin-top: var(--space-8); }
@@ -240,7 +240,7 @@ button, input, select, textarea { font: inherit; color: inherit; letter-spacing:
 .e-choice__mark { position: absolute; top: var(--space-3); right: var(--space-3); z-index: var(--z-raised); display: grid; place-items: center; width: var(--badge-height); height: var(--badge-height); border: 1px solid var(--color-border-control); border-radius: var(--radius-pill); background: var(--color-bg-paper); color: var(--color-on-accent); transition: background-color var(--duration-press) var(--ease-out), border-color var(--duration-press) var(--ease-out); }
 .e-choice--multiple .e-choice__mark { border-radius: var(--radius-inset); }
 .e-choice__mark::after { content: ""; width: var(--icon-sm); height: var(--icon-sm); background: currentColor; -webkit-mask: var(--icon-check-bold) center / contain no-repeat; mask: var(--icon-check-bold) center / contain no-repeat; opacity: 0; }@media (hover: hover) and (pointer: fine) { .e-choice:hover { border-color: var(--color-border-strong); } }
-.e-choice[data-force~="hover"] { border-color: var(--color-border-strong); }.e-choice:active, .e-choice[data-force~="active"] { transform: scale(var(--press-scale)); }.e-choice:has(:focus-visible), .e-choice[data-force~="focus"] { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: var(--focus-ring-offset); box-shadow: var(--focus-ring-shadow); }
+.e-choice[data-force~="hover"] { border-color: var(--color-border-strong); }.e-choice:active, .e-choice[data-force~="active"] { transform: scale(var(--press-scale)); }.e-choice:has(:is(input, .e-choice__hit):focus-visible), .e-choice[data-force~="focus"] { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: var(--focus-ring-offset); box-shadow: var(--focus-ring-shadow); }
 .e-choice:has(> input:checked), .e-choice[data-selected], .e-card[data-selected] { border-color: var(--color-border-selected); }
 /* the selected ring: 2px in total, drawn above the artwork so nothing covers it */
 .e-choice:has(> input:checked)::before, .e-choice[data-selected]::before, .e-card[data-selected]::before { content: ""; position: absolute; inset: 0; z-index: var(--z-raised); border: 1px solid var(--color-border-selected); border-radius: calc(var(--radius-card) - 1px); pointer-events: none; }
@@ -260,7 +260,8 @@ button, input, select, textarea { font: inherit; color: inherit; letter-spacing:
 /* artwork-only choice (logo concepts in the side chat, owner decision November 13): no label row; the whole picture is a button that chooses it.
    e-choice__hit covers the tile; Enlarge sits above it. The concept's name is the button's accessible name. */
 .e-choice__hit { position: absolute; inset: 0; z-index: var(--z-base); display: block; width: 100%; padding: 0; border: 0; border-radius: inherit; background: transparent; cursor: pointer; }
-.e-choice__hit:focus-visible { outline: none; }
+/* One ring per focus: the box around a field or choice draws it, never the control inside as well; a button inside such a box keeps its own ring and the box stays quiet. */
+.e-choice__hit:focus-visible, .e-choice input:focus-visible { outline: none; box-shadow: none; }
 .e-choice--image:has(> .e-choice__hit) { cursor: pointer; }
 /* No mark on any choice card (owner decision, November 13): the 2px ring alone shows the choice, on text cards as on results and names.
    The mark element stays in the markup only to hold the spinner while a choice is being saved. */
