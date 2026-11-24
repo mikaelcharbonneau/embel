@@ -893,7 +893,7 @@ test("guided interview: Home opens the conversation and keeps the prompt and thi
     "href",
     "https://table.example/",
   );
-  await expect(references.getByRole("link", { name: /Synthetic source: Table Next Door/ })).toHaveAttribute(
+  await expect(references.getByRole("link", { name: /sources\.example/ })).toHaveAttribute(
     "href",
     "https://sources.example/table-profile",
   );
@@ -1045,7 +1045,7 @@ test("competitor cards keep their selection, descriptions and sources across sug
     previousCard.getByText("A close comparison for seasonal lunches and neighborhood familiarity."),
   ).toBeVisible();
   await expect(previousCard.getByText("Recommended", { exact: true })).toBeVisible();
-  await expect(previousCard.getByRole("link", { name: /Synthetic source/ })).toBeVisible();
+  await expect(previousCard.getByRole("link", { name: /sources\.example/ })).toBeVisible();
   const manualCard = group
     .locator(".guided-option")
     .filter({ has: page.getByRole("checkbox", { name: "Coursera", exact: true }) });

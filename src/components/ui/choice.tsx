@@ -55,6 +55,7 @@ export function ChoiceCard({
   title,
   description,
   leading,
+  badge,
   children,
   checked,
   multiple = false,
@@ -69,6 +70,8 @@ export function ChoiceCard({
   description?: ReactNode;
   /** A small picture before the text (a competitor's site icon). */
   leading?: ReactNode;
+  /** A short mark beside the title ("Recommended"). It describes the choice; the title alone names it. */
+  badge?: ReactNode;
   /** More about the option under its description; phrasing content only, since it sits inside the label. */
   children?: ReactNode;
   checked: boolean;
@@ -88,7 +91,14 @@ export function ChoiceCard({
   ]
     .filter(Boolean)
     .join(" ");
-  const described = [description ? `${id}-desc` : null, children ? `${id}-more` : null].filter(Boolean).join(" ");
+  const described = [badge ? `${id}-badge` : null, description ? `${id}-desc` : null, children ? `${id}-more` : null]
+    .filter(Boolean)
+    .join(" ");
+  const heading = (
+    <span className="e-choice__title" id={`${id}-title`}>
+      {title}
+    </span>
+  );
   return (
     <label className={classes} aria-busy={busy || undefined}>
       <input
@@ -105,9 +115,14 @@ export function ChoiceCard({
         {busy ? <Spinner /> : null}
       </span>
       {leading ? <span className="e-choice__leading">{leading}</span> : null}
-      <span className="e-choice__title" id={`${id}-title`}>
-        {title}
-      </span>
+      {badge ? (
+        <span className="e-choice__heading">
+          {heading}
+          <span id={`${id}-badge`}>{badge}</span>
+        </span>
+      ) : (
+        heading
+      )}
       {description ? (
         <span className="e-choice__desc" id={`${id}-desc`}>
           {description}

@@ -24,7 +24,7 @@ export function CompetitorWidgetControls({
   const [adding, setAdding] = useState(false);
   return (
     <div className="e-stack e-stack--md competitor-widget-controls">
-      <div className="e-cluster">
+      <div className="e-cluster" hidden={adding}>
         <Button
           icon="plus"
           aria-expanded={adding}
@@ -38,7 +38,7 @@ export function CompetitorWidgetControls({
           {generating ? "Finding more…" : "Suggest more"}
         </Button>
       </div>
-      <div id={`${id}-add`} hidden={!adding} className="e-card e-stack e-stack--md competitor-add-form">
+      <div id={`${id}-add`} hidden={!adding} className="e-card e-card--pad e-stack e-stack--lg competitor-add-form">
         <div className="e-grid-fields">
           <TextField
             label="Competitor name"
