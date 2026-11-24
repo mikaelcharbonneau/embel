@@ -15,7 +15,7 @@ import type { AuthenticatedContext } from "../auth/context";
 import { OPENAI_NAMING_MODEL } from "../ai/config";
 import { getProject } from "../data/projects";
 import { ApiError } from "../http/errors";
-import { briefFilesForRun } from "./brief-files";
+import { knownBriefFileNotes } from "./brief-files";
 import { enabledGenerationKinds } from "./runs";
 
 // Naming on the generation engine (docs/generation-engine.md, step 3). One kind runs every
@@ -243,7 +243,7 @@ export async function buildNamingRunInput(
   // Oldest first, so a request's exclusion hint keeps the newest names.
   let exclusions = [...new Set(recentRows.map((row) => row.identity_key).filter((key) => key.length > 0))].reverse();
   // Naming only uses a reading that already exists (Strategy makes it); it never reads files itself.
-  const attachedFiles = briefFilesForPrompt((await briefFilesForRun(auth, projectId))?.notes);
+  const attachedFiles = briefFilesForPrompt(await knownBriefFileNotes(auth, projectId));
   const build = () =>
     namingRunInputSchema.safeParse({
       version: 1,

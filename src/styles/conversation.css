@@ -1144,3 +1144,10 @@
 .workspace-reply .home-input-controls > p {
   padding-inline: 0;
 }
+/* Attaching in the side chat: the plus button leads the row, chosen files sit above the text. */
+.workspace-reply .home-input-controls > .home-attach-button {
+  order: -1;
+}
+.workspace-reply .home-attachment-chips {
+  padding: 0;
+}

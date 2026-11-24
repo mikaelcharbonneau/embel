@@ -46,6 +46,9 @@ export const reviewedLogoAndHomeFunctions = [
   // linking; byte upload/verification helpers receive no authenticated EXECUTE.
   "public.read_home_attachment_request(uuid)",
   "public.save_attached_home_project(jsonb, text)",
+  // 20261124100000_attach_files_to_brand: the owner adds their own uploaded, verified files to
+  // their own brand (auth.uid(); five files and 25 MiB per brand).
+  "public.attach_home_files_to_project(jsonb)",
   "public.read_attached_home_project_request(uuid)",
   // 20261007016000: server/data/existing-brand-logo.ts initializes only an owned
   // existing brand's brief under the exact initial-head/rejection-key fence.

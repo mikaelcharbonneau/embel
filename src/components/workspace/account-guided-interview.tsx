@@ -16,6 +16,7 @@ import {
 import { useRouter } from "next/navigation";
 import { AccountBriefEditor } from "./account-brief-editor";
 import { BriefFiles } from "@/features/home-inputs/brief-files";
+import { useChatAttachments } from "@/features/home-inputs/use-chat-attachments";
 import { ProjectNamingWorkspace } from "@/components/naming/project-naming-workspace";
 import { InspirationWorkspace } from "@/components/inspiration/inspiration-workspace";
 import { InspirationLikeCount } from "@/components/inspiration/inspiration-like-count";
@@ -196,6 +197,7 @@ export function AccountGuidedInterview({
   const allowance = operation ? guidedAllowance(availability, operation) : null;
   const runningJob = bound && strategyJobActive(bound.job) ? bound.job : null;
   // "Is a request running?" under each name the page asks it (docs/state-machines.md, J5).
+  const chatFiles = useChatAttachments(saved.id);
   const { pending, blocked, turnStarting, embelWorking, researching } = guidedActivity({
     busy,
     working,
@@ -1379,7 +1381,11 @@ export function AccountGuidedInterview({
         : saved.scope !== "complete_brand"
           ? userMessage(saved.context.description, "description", briefEditor)
           : briefEditor}
-      <BriefFiles projectId={saved.id} working={Boolean(embelWorking)} />
+      <BriefFiles
+        projectId={saved.id}
+        working={Boolean(embelWorking) || chatFiles.reading}
+        refreshKey={chatFiles.revision}
+      />
       {briefNotice}
       {legacyReplies}
       <section
@@ -1619,6 +1625,7 @@ export function AccountGuidedInterview({
         readOnly={namingText || pending}
         textDisabled={namingOpen ? namingText : Boolean(blocked)}
         notice={busy ? <span role="status">{storage.saveLabel}</span> : undefined}
+        attach={chatFiles}
       />
     </section>
   );

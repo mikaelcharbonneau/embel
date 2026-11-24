@@ -1,6 +1,7 @@
 import "server-only";
 import type { z } from "zod";
 import { start } from "workflow/api";
+import { briefFilesGeneration } from "@/workflows/brief-files";
 import { identityDirectionsGeneration } from "@/workflows/identity";
 import { logoImagesGeneration, logoStyleNoteGeneration } from "@/workflows/logo";
 import { namingGeneration } from "@/workflows/naming";
@@ -8,6 +9,7 @@ import { probeGeneration } from "@/workflows/probe";
 import { strategyGeneration } from "@/workflows/strategy";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
+import { BRIEF_FILES_KIND, buildBriefFilesRunInput } from "./brief-files";
 import { IDENTITY_DIRECTIONS_KIND } from "./identity-input";
 import { buildLogoConceptsRunInput, buildLogoRefineRunInput, buildLogoStyleNoteRunInput } from "./logo";
 import { LOGO_CONCEPTS_KIND, LOGO_REFINE_KIND, LOGO_STYLE_NOTE_KIND } from "./logo-input";
@@ -33,6 +35,7 @@ const workflows: Readonly<Record<string, (runId: string) => Promise<unknown>>> =
   [LOGO_REFINE_KIND]: logoImagesGeneration,
   [LOGO_STYLE_NOTE_KIND]: logoStyleNoteGeneration,
   [IDENTITY_DIRECTIONS_KIND]: identityDirectionsGeneration,
+  [BRIEF_FILES_KIND]: briefFilesGeneration,
 };
 /** Kinds admitted only through their own step's route, which freezes their input in
  * the same database transaction as their records (Creative directions: /identity/batches). */
@@ -54,6 +57,8 @@ const inputs: Readonly<Record<string, InputBuilder>> = {
   [LOGO_CONCEPTS_KIND]: buildLogoConceptsRunInput,
   [LOGO_REFINE_KIND]: buildLogoRefineRunInput,
   [LOGO_STYLE_NOTE_KIND]: buildLogoStyleNoteRunInput,
+  // The browser names nothing: the brand's own files are what is read.
+  [BRIEF_FILES_KIND]: (auth, projectId) => buildBriefFilesRunInput(auth, projectId),
 };
 
 /** The run was admitted (and charged) but its workflow didn't start. Repeating the same

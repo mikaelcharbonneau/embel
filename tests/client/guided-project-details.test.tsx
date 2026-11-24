@@ -20,6 +20,8 @@ const mock = vi.hoisted(() => ({
 const overview = { availability: { status: "unavailable", reason: "worker_unavailable", operations: [] }, jobs: [] };
 vi.mock("@/components/workspace/account-session", () => ({
   AccountStatus: () => null,
+  // The side chat's attach button needs no session in these tests.
+  useOptionalAccountSession: () => null,
   useAccountSession: () =>
     sessionStandIn({
       session: mock.account,

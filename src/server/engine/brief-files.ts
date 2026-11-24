@@ -10,10 +10,13 @@ import {
   type BriefFileView,
 } from "@/domain/brief-files";
 import type { AuthenticatedContext } from "../auth/context";
+import { ApiError } from "../http/errors";
 
 // The brand's attached files and their saved reading, read with the person's own login
 // (row-level security limits both tables to their owner). Nothing here starts or changes anything.
 
+/** The kind that reads a brand's files outside a Strategy run (files added in the side chat). Free. */
+export const BRIEF_FILES_KIND = "brief.read_files";
 /** The output key a run saves the reading under (`generation_outputs`). */
 export const BRIEF_FILES_OUTPUT_KEY = "files";
 
@@ -42,19 +45,20 @@ async function projectBriefFileRefs(auth: AuthenticatedContext, projectId: strin
   });
 }
 
-/** The newest saved reading that covers exactly these files, from any Strategy run of the brand
- * (a run that later failed or was stopped still keeps a reading it finished). */
+/** The newest saved reading of this brand's files, from any Strategy run or file-reading run (a run
+ * that later failed or was stopped still keeps a reading it finished). Files are only ever added to a
+ * brand, so an older reading covers some of today's files: `complete` says whether it covers them all. */
 async function savedBriefFileNotes(
   auth: AuthenticatedContext,
   projectId: string,
   refs: readonly BriefFileRef[],
-): Promise<BriefFileNotes | null> {
+): Promise<{ notes: BriefFileNotes; complete: boolean } | null> {
   const runs = await auth.client
     .from("generation_runs")
     .select("id")
     .eq("owner_id", auth.userId)
     .eq("project_id", projectId)
-    .like("kind", "strategy.%")
+    .or(`kind.like.strategy.%,kind.eq.${BRIEF_FILES_KIND}`)
     .order("created_at", { ascending: false })
     .limit(50);
   if (runs.error) throw new Error("brief_files_unavailable");
@@ -72,11 +76,11 @@ async function savedBriefFileNotes(
     .order("created_at", { ascending: false })
     .limit(5);
   if (outputs.error) throw new Error("brief_files_unavailable");
-  const wanted = refs.map((ref) => ref.id).sort();
+  const wanted = new Set(refs.map((ref) => ref.id));
   for (const row of outputs.data ?? []) {
     const notes = briefFileNotesSchema.safeParse(row.output);
-    if (notes.success && JSON.stringify(notes.data.files.map((file) => file.id).sort()) === JSON.stringify(wanted))
-      return notes.data;
+    if (notes.success && notes.data.files.every((file) => wanted.has(file.id)))
+      return { notes: notes.data, complete: notes.data.files.length === wanted.size };
   }
   return null;
 }
@@ -90,7 +94,9 @@ export async function briefFilesForRun(auth: AuthenticatedContext, projectId: st
   try {
     const refs = await projectBriefFileRefs(auth, projectId);
     if (!refs.length) return null;
-    return { refs, notes: await savedBriefFileNotes(auth, projectId, refs) };
+    const saved = await savedBriefFileNotes(auth, projectId, refs);
+    // A reading that misses a newer file is not passed on as the reading: the run reads them all again.
+    return { refs, notes: saved?.complete ? saved.notes : null };
   } catch {
     return null;
   }
@@ -100,9 +106,9 @@ export async function briefFilesForRun(auth: AuthenticatedContext, projectId: st
 export async function projectBriefFileViews(auth: AuthenticatedContext, projectId: string): Promise<BriefFileView[]> {
   const refs = await projectBriefFileRefs(auth, projectId);
   if (!refs.length) return [];
-  const notes = await savedBriefFileNotes(auth, projectId, refs);
+  const saved = await savedBriefFileNotes(auth, projectId, refs);
   return refs.map((ref) => {
-    const note = notes?.files.find((file) => file.id === ref.id);
+    const note = saved?.notes.files.find((file) => file.id === ref.id);
     return {
       id: ref.id,
       name: ref.name,
@@ -112,4 +118,55 @@ export async function projectBriefFileViews(auth: AuthenticatedContext, projectI
       summary: note?.status === "read" ? note.summary : null,
     };
   });
+}
+
+/** The reading a prompt outside Strategy is given (naming): whatever was read so far, even when a
+ * newer file is still unread. Never a reason to fail the request. */
+export async function knownBriefFileNotes(
+  auth: AuthenticatedContext,
+  projectId: string,
+): Promise<BriefFileNotes | null> {
+  try {
+    const refs = await projectBriefFileRefs(auth, projectId);
+    return refs.length ? ((await savedBriefFileNotes(auth, projectId, refs))?.notes ?? null) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Freezes the input of a file-reading run: every file of the brand, to be read afresh. Refused when
+ * the brand has no files or they are all read already (nothing to do is not worth a run). */
+export async function buildBriefFilesRunInput(
+  auth: AuthenticatedContext,
+  projectId: string,
+): Promise<{ briefFiles: BriefFilesInput }> {
+  let refs: BriefFileRef[], saved: Awaited<ReturnType<typeof savedBriefFileNotes>>;
+  try {
+    refs = await projectBriefFileRefs(auth, projectId);
+    saved = refs.length ? await savedBriefFileNotes(auth, projectId, refs) : null;
+  } catch {
+    throw new ApiError("integration_unavailable");
+  }
+  if (!refs.length || saved?.complete) throw new ApiError("conflict");
+  return { briefFiles: { refs, notes: null } };
+}
+
+/** Links files the person already uploaded to one of their own brands (at most five per brand; the
+ * database function checks ownership, verification and the limits). Repeating the call is harmless. */
+export async function attachFilesToProject(
+  auth: AuthenticatedContext,
+  projectId: string,
+  attachmentIds: readonly string[],
+): Promise<void> {
+  const { error } = await auth.client.rpc("attach_home_files_to_project", {
+    p_input: { projectId, attachmentIds },
+  });
+  if (!error) return;
+  const text = `${error.code ?? ""} ${error.message ?? ""}`;
+  if (/home_aggregate_limit/u.test(text)) throw new ApiError("body_too_large");
+  if (/not_found|P0002/u.test(text)) throw new ApiError("not_found");
+  if (/home_attachment_conflict|PT409/u.test(text)) throw new ApiError("conflict");
+  if (/invalid_home_ids|duplicate_home_ids|22023/u.test(text)) throw new ApiError("invalid_input");
+  if (/unauthenticated|42501/u.test(text)) throw new ApiError("unauthenticated");
+  throw new ApiError("integration_unavailable");
 }

@@ -10,10 +10,22 @@ const RECHECK_MS = 4_000;
 /** The files attached to a brand's first prompt, under that prompt in the conversation, each with what
  * Embel read in it. They are read when research starts; until then the list says so. Nothing is shown
  * for a brand without files, or when the list cannot be loaded (the brand works without it). */
-export function BriefFiles({ projectId, working }: { projectId: string; working: boolean }) {
-  const [loaded, setLoaded] = useState<{ projectId: string; files: BriefFileView[] } | null>(null);
-  const files = loaded?.projectId === projectId ? loaded.files : null;
-  const unread = files === null || files.some((file) => file.status === "waiting");
+export function BriefFiles({
+  projectId,
+  working,
+  refreshKey = 0,
+}: {
+  projectId: string;
+  working: boolean;
+  /** Changes when files were added to the brand, so the list is read again. */
+  refreshKey?: number;
+}) {
+  const [loaded, setLoaded] = useState<{ key: string; files: BriefFileView[] } | null>(null);
+  const key = `${projectId}:${refreshKey}`;
+  // The list of an earlier refresh stays on screen while the new one loads.
+  const files = loaded?.key.startsWith(`${projectId}:`) ? loaded.files : null;
+  const fresh = loaded?.key === key;
+  const unread = !fresh || files === null || files.some((file) => file.status === "waiting");
   useEffect(() => {
     // Read once, again whenever Embel starts or finishes working, and while it works on unread files.
     if (!unread) return;
@@ -23,7 +35,7 @@ export function BriefFiles({ projectId, working }: { projectId: string; working:
         signal: controller.signal,
       })
         .then((result) => {
-          if (!controller.signal.aborted) setLoaded({ projectId, files: result.files });
+          if (!controller.signal.aborted) setLoaded({ key, files: result.files });
         })
         .catch(() => undefined);
     read();
@@ -32,7 +44,7 @@ export function BriefFiles({ projectId, working }: { projectId: string; working:
       controller.abort();
       if (timer) clearInterval(timer);
     };
-  }, [projectId, working, unread]);
+  }, [projectId, key, working, unread]);
   if (!files?.length) return null;
   return (
     <ul className="brief-files" aria-label="Attached files">
@@ -53,7 +65,7 @@ export function BriefFiles({ projectId, working }: { projectId: string; working:
                   ? "Embel couldn’t read this file, so it isn’t used."
                   : working
                     ? "Reading…"
-                    : "Embel reads this when research starts."}
+                    : "Not read yet. Embel reads it with your next Strategy step."}
             </p>
           </div>
         </li>
