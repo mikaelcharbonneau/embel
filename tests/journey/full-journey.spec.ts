@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { expect, test, type Download, type Page } from "@playwright/test";
 import { unzipSync } from "fflate";
+import { journeyStack } from "./stack.mjs";
 
 // The whole brand journey in a real browser: the real app, this checkout's local Supabase and
 // the generation engine, with a stand-in OpenAI provider (tests/journey/fake-openai.mjs).
@@ -285,6 +286,7 @@ test("a dictated prompt with an attached file starts competitor research without
   await form.getByLabel("Password", { exact: true }).fill(password);
   await form.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).not.toHaveURL(/sign-in/u);
+  const creditsBefore = await creditBalance(page);
   await page.goto("/");
   const composer = page.locator(".home-composer"),
     prompt = page.getByRole("textbox", { name: "Your prompt", exact: true });
@@ -322,6 +324,20 @@ test("a dictated prompt with an attached file starts competitor research without
     await expect(question(page, "Which competitors should we keep in mind?")).toBeVisible({ timeout: GENERATION });
     await expect(page.getByRole("button", { name: "Start competitor research" })).toHaveCount(0);
     await expectNoCostEstimate(page);
+  });
+
+  await test.step("Embel read the file, shows what it found, and research was given it at no extra credit", async () => {
+    const file = page.getByRole("list", { name: "Attached files", exact: true }).getByRole("listitem");
+    await expect(file).toHaveCount(1);
+    await expect(file).toContainText("notes.txt");
+    await expect(file).toContainText("Notes");
+    await expect(file).toContainText("Baking starts at 4am; the tone is warm with dry humour.");
+    // The stand-in provider counts what it was sent: one reading, and research that carried it.
+    const { responses } = await (await page.request.get(`${journeyStack().fakeProviderOrigin}/__stats`)).json();
+    expect(responses["brief.files"]).toBe(1);
+    expect(responses["strategy.competitors+attachedFiles"]).toBe(1);
+    // Competitor research costs its usual 2 credits; reading the file adds nothing.
+    expect(creditsBefore - (await creditBalance(page))).toBe(2);
   });
   expect(pageErrors).toEqual([]);
 });

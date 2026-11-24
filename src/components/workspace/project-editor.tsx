@@ -635,9 +635,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
       />
       {(!home || !!displayedPrompt.trim() || strategy.locked || hiddenFiles) && (
         <div className="conversation-start-notice">
-          {hasFiles
-            ? "Your files are saved with this brand for reference. Research works from your written prompt."
-            : strategy.notice}
+          {hasFiles ? "Embel reads your files when research starts and uses what it finds." : strategy.notice}
         </div>
       )}
       {account && strategy.locked && !hasFiles && !hiddenFiles && !hiddenPrompt && (

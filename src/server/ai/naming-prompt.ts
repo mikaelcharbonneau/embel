@@ -70,8 +70,10 @@ export function namingPrompt(options: {
   brief: NamingBrief;
   excluded: readonly string[];
   limit: number;
+  /** What Embel read in the files attached to the brand's first prompt. */
+  attachedFiles?: readonly { name: string; kind: string; summary: string }[];
 }): string {
-  const { candidateTarget, slots, brief, excluded, limit } = options,
+  const { candidateTarget, slots, brief, excluded, limit, attachedFiles = [] } = options,
     strategy = brief.strategyBasis;
   const approachPlan = slots.map((row) => {
     const { label, description } = NAMING_APPROACHES.find((approach) => approach.id === row.approach)!;
@@ -105,6 +107,8 @@ export function namingPrompt(options: {
       likes: brief.likedExamples.map((row) => row.value),
       recentNamesToAvoid: brief.recentExamples.map((row) => row.value),
       excludedIdentities: limit ? excluded.slice(-limit) : [],
+      // Part of the brief: files the person attached, each with its kind and a summary of what it holds.
+      ...(attachedFiles.length ? { attachedFiles } : {}),
     }),
   ].join("\n\n");
 }

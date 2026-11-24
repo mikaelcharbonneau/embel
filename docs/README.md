@@ -34,7 +34,7 @@ the document.
 
 ## Screens
 
-- [home-prompt-inputs.md](home-prompt-inputs.md): the Home prompt's attach and dictate buttons, and their limits.
+- [home-prompt-inputs.md](home-prompt-inputs.md): the Home prompt's attach and dictate buttons, and how Embel reads and uses attached files.
 
 ## Accounts and data
 

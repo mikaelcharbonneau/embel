@@ -105,6 +105,9 @@ function harness(
     },
   };
   const storage: EngineStorage = {
+    async getHomeAttachment() {
+      throw new EngineStorageError("storage_not_found");
+    },
     async put(owner, target) {
       const error = puts.shift();
       if (error) throw error;

@@ -47,6 +47,17 @@ function assertOwnedPath(run: { ownerId: string; projectId: string }, path: stri
   ownedAssetPath(run, { ownerId: parts[0]!, projectId: parts[1]!, assetId: parts[2]!, versionId: parts[3]! });
 }
 
+/** A file attached to the first prompt, as verified at upload (`public.home_attachments`). */
+export type HomeAttachmentObject = { id: string; blobVersionId: string; contentHash: string };
+/** Its object path: {owner}/home/{attachment}/{version}, as `fluid_private.home_attachment_reservation`
+ * builds it. The owner is the run's; every part is a lowercase uuid. */
+export function homeAttachmentPath(run: { ownerId: string }, file: HomeAttachmentObject): string {
+  const ids = [run.ownerId, file.id, file.blobVersionId];
+  if (!ids.every((id) => typeof id === "string" && uuid.safeParse(id).success && id === id.toLowerCase()))
+    throw new EngineStorageError("storage_path_refused");
+  return `${run.ownerId}/home/${file.id}/${file.blobVersionId}`;
+}
+
 export interface EngineStorage {
   /** Stores new bytes once. A path that already holds these exact bytes is fine. */
   put(
@@ -59,6 +70,11 @@ export interface EngineStorage {
   get(
     run: { ownerId: string; projectId: string },
     asset: OwnedAsset & { contentHash: string },
+  ): Promise<{ bytes: Uint8Array; mimeType: string }>;
+  /** Reads one file attached to the run owner's first prompt and checks its hash. */
+  getHomeAttachment(
+    run: { ownerId: string },
+    file: HomeAttachmentObject,
   ): Promise<{ bytes: Uint8Array; mimeType: string }>;
 }
 
@@ -147,6 +163,13 @@ export function createEngineStorage(options: { url: string; secretKey: string; f
       if (!/^[0-9a-f]{64}$/u.test(asset.contentHash)) throw new EngineStorageError("storage_mismatch");
       const stored = await read(path);
       if (sha256(stored.bytes) !== asset.contentHash) throw new EngineStorageError("storage_mismatch");
+      return stored;
+    },
+    async getHomeAttachment(run, file) {
+      const path = homeAttachmentPath(run, file);
+      if (!/^[0-9a-f]{64}$/u.test(file.contentHash)) throw new EngineStorageError("storage_mismatch");
+      const stored = await read(path);
+      if (sha256(stored.bytes) !== file.contentHash) throw new EngineStorageError("storage_mismatch");
       return stored;
     },
   };

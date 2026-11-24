@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import { briefFilesInputSchema } from "@/domain/brief-files";
 import { guidedOpenTurn, guidedTurnOperation } from "@/domain/guided-interview";
 import {
   STRATEGY_ASSISTANT_HISTORY_MAX_BYTES,
@@ -16,6 +17,7 @@ import {
 import type { AuthenticatedContext } from "../auth/context";
 import { guidedStrategyPolicy, OPENAI_STRATEGY_MODEL } from "../ai/config";
 import { getProject } from "../data/projects";
+import { briefFilesForRun } from "./brief-files";
 import { ApiError } from "../http/errors";
 import { enabledGenerationKinds } from "./runs";
 
@@ -41,6 +43,9 @@ export const strategyRunInputSchema = z
   .strictObject({
     revision: z.number().int().positive(),
     request: strategyJobInputSchema,
+    /** The files attached to the brand's first prompt, and their reading once a run has made one.
+     * Absent for a brand without files. */
+    briefFiles: briefFilesInputSchema.optional(),
   })
   .refine((value) => value.request.version === 3, {
     message: "Engine Strategy runs use the uncapped guided contract",
@@ -320,9 +325,14 @@ export async function buildStrategyRunInput(
     ...(await legacyReplies(auth, projectId, revision)),
     ...(await engineReplies(auth, projectId, revision)),
   ];
+  const briefFiles = await briefFilesForRun(auth, projectId);
   const input = strategyRunInputSchema.safeParse({
     revision,
-    request: { ...base, assistantHistory: selectAssistantHistory(candidates, base) },
+    request: {
+      ...base,
+      assistantHistory: selectAssistantHistory(candidates, briefFiles ? { ...base, briefFiles } : base),
+    },
+    ...(briefFiles ? { briefFiles } : {}),
   });
   if (!input.success) throw new ApiError("invalid_input");
   return input.data;

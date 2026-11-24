@@ -257,7 +257,7 @@ describe("mounted Home attached brief integration", () => {
       }),
     );
     await render();
-    expect(host.textContent).toContain("Research works from your written prompt");
+    expect(host.textContent).toContain("Embel reads your files when research starts");
     await click("Send prompt");
     expect(host.textContent).toContain("could not be confirmed");
     expect(mock.create).toHaveBeenCalledTimes(1);
