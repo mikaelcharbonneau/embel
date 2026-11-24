@@ -301,10 +301,6 @@
   aspect-ratio: 16 / 9;
   background: var(--color-bg-sunken);
 }
-.project-workspace :is(button, a, summary, input, textarea, select):focus-visible {
-  outline: 2px solid var(--color-text);
-  outline-offset: 3px;
-}
 @media (max-width: 1023px) {
   .project-strategy-workspace .conversation-scroll-area,
   .project-strategy-workspace .conversation-compose-area {

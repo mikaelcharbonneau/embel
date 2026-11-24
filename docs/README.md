@@ -34,6 +34,7 @@ the document.
 
 ## Screens
 
+- [focus-rings.md](focus-rings.md): one focus ring per focused control, and where it is drawn.
 - [home-prompt-inputs.md](home-prompt-inputs.md): the Home prompt's attach and dictate buttons, and how Embel reads and uses attached files.
 
 ## Accounts and data
