@@ -766,11 +766,6 @@
     flex-wrap: wrap;
     align-items: center;
   }
-  .conversation-composer.is-initial .home-input-controls {
-    flex: 1 1 100%;
-    width: 100%;
-    min-width: 0;
-  }
   .conversation-composer.is-initial .conversation-composer-footer > .button {
     max-width: 100%;
     white-space: normal;
@@ -779,18 +774,8 @@
   .conversation-composer.is-initial .conversation-composer-footer > .button:not(.composer-send-icon) {
     width: 100%;
   }
-  .home-input-controls .home-input-popover[open] {
-    flex-basis: 100%;
-    order: 2;
-    min-width: 0;
-  }
-  .home-input-controls .home-input-popover .home-input-popover-panel {
-    position: static;
-    width: 100%;
-    max-width: 100%;
-    margin-top: var(--space-2);
-    padding: var(--space-4);
-    overflow-wrap: anywhere;
+  .conversation-composer.is-initial .conversation-composer-footer:has(.home-input-controls) > .composer-send-icon {
+    margin-left: 0;
   }
 }
 
@@ -1104,4 +1089,46 @@
 }
 .workspace-reply__remove {
   margin-right: calc(var(--space-2) * -1);
+}
+
+/* Files attached to the first prompt, under it in the conversation, with what Embel read in each. */
+.brief-files {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.brief-files > li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-bg-paper);
+}
+.brief-files > li > .e-icon {
+  margin-top: 2px;
+  color: var(--color-icon);
+}
+.brief-file-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  font: var(--text-label);
+  overflow-wrap: anywhere;
+}
+.brief-file-kind {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+.brief-file-note {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-2);
+  line-height: 20px;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
 }

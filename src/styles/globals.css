@@ -179,24 +179,35 @@ h3 { font-size: 15px; line-height: 1.4; font-weight: 500; letter-spacing: -.2px;
 
 /* Original Pen geometry, with responsive space for the live controls. */
 .conversation-composer-footer .composer-send-icon { width: 46px; min-width: 46px; height: 44px; padding: 0; border-radius: var(--radius-control); }
-.home-input-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); flex: 1; min-width: 0; }
-.home-input-popover { position: relative; color: var(--color-text-muted); }
-.home-input-popover > summary { display: flex; align-items: center; gap: var(--space-3); min-height: 44px; font-size: var(--font-size-2); cursor: pointer; list-style: none; }
-.home-input-popover > summary::-webkit-details-marker { display: none; }
-.home-files-popover { order: -1; margin-right: auto; }
-.home-voice-popover > summary { width: 44px; justify-content: center; }
-.home-input-popover-panel { position: absolute; top: calc(100% + 10px); left: 0; z-index: var(--z-popover); width: min(380px, calc(100vw - 80px)); padding: var(--space-5); color: var(--color-text); background: var(--color-bg-paper); border: 1px solid var(--color-border); border-radius: var(--radius-small); box-shadow: var(--shadow-overlay); font-size: var(--font-size-2); }
-.home-input-popover-panel input[type=file] { display: block; width: 100%; margin: var(--space-3) 0; font-size: var(--font-size-2); }
-.home-input-popover-panel input[type=file][hidden] { display: none; }
-.home-input-popover-panel h3 { font-size: var(--font-size-3); line-height: 22px; font-weight: 500; }
-.home-input-controls summary:focus-visible { outline: 2px solid var(--color-text); outline-offset: 3px; }
-.home-input-popover-panel input[type=file]::file-selector-button { border: 1px solid var(--color-border); background: var(--color-bg-sunken); border-radius: var(--radius-small); padding: var(--space-2) var(--space-3); margin-right: var(--space-2); font: inherit; }
-.home-voice-popover .home-input-popover-panel { left: auto; right: 0; }
-.home-input-popover-panel .field-hint { font-size: var(--font-size-2); margin-top: var(--space-3); }
-.home-input-controls > [role=status] { position: static; flex-basis: 100%; order: 3; min-width: 0; margin: 0; font-size: var(--font-size-2); background: var(--color-bg-paper); padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-small); overflow-wrap: anywhere; }
+/* The prompt box's attach and dictate buttons share its last row with Send; notes and statuses take a full row below. */
+.conversation-composer-footer:has(.home-input-controls) { flex-wrap: wrap; row-gap: var(--space-2); }
+.home-input-controls { display: contents; }
+.home-input-controls > .home-attach-button { order: 0; }
+.home-input-controls > .home-voice-button { order: 1; margin-left: auto; }
+.conversation-composer-footer:has(.home-input-controls) > .composer-send-icon, .conversation-composer-footer:has(.home-input-controls) > .button { order: 2; }
+.home-input-controls > p, .home-input-controls > div { order: 3; flex: 1 0 100%; min-width: 0; margin: 0; padding: 0 var(--space-2); font-size: var(--font-size-2); line-height: 20px; color: var(--color-text-muted); overflow-wrap: anywhere; }
+.home-input-controls > .form-error { padding: var(--space-2) var(--space-3); color: var(--color-text-danger); }
+.home-input-controls .text-link { font-size: inherit; }
+.home-voice-status { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--space-2); }
+.home-voice-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--color-text); animation: home-voice-pulse 1.2s ease-in-out infinite; }
+.home-voice-interim { color: var(--color-text); }
+.home-voice-disclosure { flex-basis: 100%; }
+@keyframes home-voice-pulse { 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .home-voice-dot { animation: none; } }
+/* Files attached to the prompt, inside the box above its buttons. */
+.home-attachment-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: var(--space-1) var(--space-4) var(--space-3); list-style: none; }
+.home-attachment-chips > li { display: inline-flex; align-items: center; gap: var(--space-1-5); max-width: 100%; min-height: var(--chip-height); padding: 0 var(--space-1) 0 var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-pill); background: var(--color-bg-paper); color: var(--color-text); font: var(--text-label); }
+.home-attachment-chips > li[data-state="error"] { border-color: var(--color-border-danger); }
+.home-attachment-name { min-width: 0; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-attachment-status { color: var(--color-text-muted); white-space: nowrap; }
+.home-attachment-remove { position: relative; display: inline-grid; place-items: center; flex: none; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--color-icon); cursor: pointer; }
+.home-attachment-remove::after { content: ""; position: absolute; inset: -8px; }
+.home-attachment-remove:focus-visible { outline: 2px solid var(--color-text); outline-offset: 1px; }
+.home-attachment-remove:disabled { color: var(--color-text-disabled); cursor: not-allowed; }
+@media (hover: hover) and (pointer: fine) { .home-attachment-remove:not(:disabled):hover { background: var(--color-bg-hover); } }
 @media (max-width: 1023px) { .home-page .home-intake { margin-inline: var(--space-5) 0; } }
 @media (max-width: 760px) { .home-page .home-intake { margin-inline: 0; } }
-@media (max-width: 540px) { .home-files-popover > summary { gap: var(--space-1-5); font-size: var(--font-size-2); } .home-input-controls { gap: var(--space-1); } .conversation-composer-footer .composer-send-icon { min-width: 44px; width: 44px; } }
+@media (max-width: 540px) { .conversation-composer-footer .composer-send-icon { min-width: 44px; width: 44px; } }
 .account-notice[aria-label="Brand context and continuation"] { padding: var(--space-6); border: 1px solid var(--color-border); border-radius: var(--radius-small); background: var(--color-bg-paper); }
 .account-notice[aria-label="Brand context and continuation"] h2 { font-size: var(--font-size-5); margin-top: var(--space-5); }
 .account-notice[aria-label="Brand context and continuation"] ul { list-style: none; padding: 0; }

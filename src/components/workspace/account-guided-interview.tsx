@@ -15,6 +15,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { AccountBriefEditor } from "./account-brief-editor";
+import { BriefFiles } from "@/features/home-inputs/brief-files";
 import { ProjectNamingWorkspace } from "@/components/naming/project-naming-workspace";
 import { InspirationWorkspace } from "@/components/inspiration/inspiration-workspace";
 import { InspirationLikeCount } from "@/components/inspiration/inspiration-like-count";
@@ -1378,6 +1379,7 @@ export function AccountGuidedInterview({
         : saved.scope !== "complete_brand"
           ? userMessage(saved.context.description, "description", briefEditor)
           : briefEditor}
+      <BriefFiles projectId={saved.id} working={Boolean(embelWorking)} />
       {briefNotice}
       {legacyReplies}
       <section

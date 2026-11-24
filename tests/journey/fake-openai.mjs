@@ -219,10 +219,29 @@ function identityReply(request) {
   };
 }
 
+/** One reading per file the request lists ("File N: …"): text files as notes, images as visual references. */
+function briefFilesReply(request) {
+  const parts = request.input?.[0]?.content ?? [];
+  const files = [];
+  for (const part of parts) {
+    const match = part.type === "input_text" ? /^File (\d): .*\((plain text|image)/u.exec(part.text) : null;
+    if (!match) continue;
+    files.push(
+      match[2] === "image"
+        ? { file: Number(match[1]), kind: "visual_reference", summary: "A warm orange colour field with no lettering." }
+        : { file: Number(match[1]), kind: "notes", summary: "Baking starts at 4am; the tone is warm with dry humour." },
+    );
+  }
+  return { files };
+}
+/** Later requests that were given the reading (it arrives as a last message listing attachedFiles). */
+const sawAttachedFiles = (request) => JSON.stringify(request.input ?? "").includes("attachedFiles");
+
 // Responses ---------------------------------------------------------------------------
 function classify(request) {
   const format = request.text?.format;
   if (format?.type === "json_schema" && format.name === "naming_generation_v2") return "naming";
+  if (format?.type === "json_schema" && format.name === "brief_files") return "brief.files";
   if (format?.type === "json_schema" && String(format.name).startsWith("strategy_"))
     return format.name.replace("_", ".");
   if (format?.type === "json_object" && String(request.input?.[0]?.content ?? "").includes("supportedTypography"))
@@ -238,7 +257,9 @@ function completedBody(entry) {
         ? identityReply(request)
         : kind.startsWith("strategy.")
           ? strategyReply(request)
-          : { note: "Clean geometric line work." };
+          : kind === "brief.files"
+            ? briefFilesReply(request)
+            : { note: "Clean geometric line work." };
   const output = [];
   if (kind === "strategy.competitors") {
     output.push({
@@ -358,6 +379,7 @@ const server = createServer(async (req, res) => {
       };
       responses.set(entry.id, entry);
       count(entry.kind);
+      if (entry.kind !== "brief.files" && sawAttachedFiles(request)) count(`${entry.kind}+attachedFiles`);
       return json(res, 200, envelope(entry, "queued"));
     }
     const match = /^\/v1\/responses\/(resp_[A-Za-z0-9_-]+)(\/cancel)?$/u.exec(path);

@@ -15,6 +15,7 @@ import { boundedAccountRequest } from "./bounded-account-request";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { createAccountInput } from "./project-draft-adapter";
 import type { LocalDraft } from "./local-drafts";
+import type { ContextSnapshot } from "@/domain/projects";
 import {
   StartReceiptRecoveryError,
   readReceipt,
@@ -376,6 +377,23 @@ export function useAccountStrategyStart({
     }
   }
 
+  /** For a project saved outside this hook (a prompt with files): the context `start` would save, with the
+   * first research turn when competitor research is available, so the project page begins it the same
+   * way. Without that availability the context is returned as it is and the project opens ready to start. */
+  async function firstTurnContext(context: ContextSnapshot): Promise<ContextSnapshot> {
+    if (session.status !== "ready" || !isCurrent(session)) return context;
+    let availability = currentRuntime?.availability ?? null;
+    if (!availability) {
+      const controller = new AbortController();
+      try {
+        availability = await readReadiness(session, controller);
+      } catch {
+        /* Research then waits for a click on the project page. */
+      }
+    }
+    return guidedAllowance(availability, "strategy.competitors") ? initialGuidedContext(context, 1) : context;
+  }
+
   async function save(draft: LocalDraft): Promise<boolean> {
     if (
       request.current ||
@@ -505,6 +523,7 @@ export function useAccountStrategyStart({
     startMessage: message,
     openingHref: openingDestination?.identity === identity ? openingDestination.href : null,
     start: startGuided,
+    firstTurnContext,
     save,
     detachPrompt,
     locked,

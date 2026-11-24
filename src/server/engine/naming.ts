@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { BRIEF_FILE_MAX, BRIEF_FILE_SUMMARY_MAX, briefFileKindSchema, briefFilesForPrompt } from "@/domain/brief-files";
 import { getNamingPreferencesReadiness, namingPreferencesV2Schema } from "@/domain/naming-brain-preferences";
 import {
   namingBriefSchema,
@@ -14,6 +15,7 @@ import type { AuthenticatedContext } from "../auth/context";
 import { OPENAI_NAMING_MODEL } from "../ai/config";
 import { getProject } from "../data/projects";
 import { ApiError } from "../http/errors";
+import { briefFilesForRun } from "./brief-files";
 import { enabledGenerationKinds } from "./runs";
 
 // Naming on the generation engine (docs/generation-engine.md, step 3). One kind runs every
@@ -77,6 +79,18 @@ export const namingRunInputSchema = z
     policy: namingGenerationPolicySchema,
     brief: namingBriefSchema,
     exclusions: z.array(z.string().min(1).max(320)).max(NAMING_FROZEN_EXCLUSIONS),
+    /** What Embel read in the files attached to the brand's first prompt. Absent without a reading. */
+    attachedFiles: z
+      .array(
+        z.strictObject({
+          name: z.string().min(1).max(255),
+          kind: briefFileKindSchema,
+          summary: z.string().min(1).max(BRIEF_FILE_SUMMARY_MAX),
+        }),
+      )
+      .min(1)
+      .max(BRIEF_FILE_MAX)
+      .optional(),
   })
   .refine((value) => value.brief.contextRevision === value.revision, {
     message: "The brief answers the run's revision",
@@ -228,6 +242,8 @@ export async function buildNamingRunInput(
   if (!brief.success) throw new ApiError("invalid_naming_request");
   // Oldest first, so a request's exclusion hint keeps the newest names.
   let exclusions = [...new Set(recentRows.map((row) => row.identity_key).filter((key) => key.length > 0))].reverse();
+  // Naming only uses a reading that already exists (Strategy makes it); it never reads files itself.
+  const attachedFiles = briefFilesForPrompt((await briefFilesForRun(auth, projectId))?.notes);
   const build = () =>
     namingRunInputSchema.safeParse({
       version: 1,
@@ -236,6 +252,7 @@ export async function buildNamingRunInput(
       policy: namingEnginePolicy(),
       brief: brief.data,
       exclusions,
+      ...(attachedFiles.length ? { attachedFiles } : {}),
     });
   let input = build();
   while (input.success && bytes(input.data) > INPUT_BUDGET_BYTES && exclusions.length) {

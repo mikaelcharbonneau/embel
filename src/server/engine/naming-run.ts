@@ -192,6 +192,7 @@ export function namingResponseRequest(
         brief: input.brief,
         excluded,
         limit,
+        attachedFiles: input.attachedFiles,
       }),
       text: { verbosity: "low", format: { type: "json_schema", name: NAMING_GENERATION_FORMAT, strict: true, schema } },
       metadata: { embel_generation_profile: NAMING_GENERATION_PROFILE, embel_run_id: runId, embel_request: plan.key },

@@ -40,9 +40,9 @@ import {
 import { createAccountLifecycleClient } from "./account-lifecycle-client";
 import { homeStartFormReducer, initialHomeStartForm } from "./home-start-form-state";
 import { homeStartView, type HomeStartSituation } from "./home-start-permissions";
-import { HomeInputControls } from "@/features/home-inputs/home-input-controls";
-import { createOnDeviceVoiceAdapter } from "@/features/home-inputs/on-device-voice-adapter";
-import { unavailableHomeVoiceAdapter, type OnDeviceSpeechEnvironment } from "@/features/home-inputs/voice-contract";
+import { HomeAttachmentChips, HomeInputControls } from "@/features/home-inputs/home-input-controls";
+import { createBrowserVoiceAdapter } from "@/features/home-inputs/browser-voice-adapter";
+import { unavailableHomeVoiceAdapter, type BrowserSpeechEnvironment } from "@/features/home-inputs/voice-contract";
 import { saveAttachedHomeDraft } from "@/features/home-inputs/home-input-session";
 import type { AttachmentPolicy } from "@/domain/attachments";
 import { NameOrigin } from "./name-origin";
@@ -234,9 +234,11 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
     () =>
       typeof window === "undefined"
         ? unavailableHomeVoiceAdapter
-        : createOnDeviceVoiceAdapter(window as unknown as OnDeviceSpeechEnvironment),
+        : createBrowserVoiceAdapter(window as unknown as BrowserSpeechEnvironment),
     [],
   );
+  // Dictation follows the browser's language, as its own dictation does.
+  const voiceLanguage = useMemo(() => (typeof navigator === "undefined" ? "" : navigator.language) || "en-US", []);
   const readHome = useCallback(() => (account ? homeInputSession.get(account) : null), [account, homeInputSession]);
   const inputIntent = useSyncExternalStore(homeInputSession.subscribe, readHome, () => null);
   const selectingFiles = useSyncExternalStore(homeInputSession.subscribe, homeInputSession.isSelecting, () => false);
@@ -261,7 +263,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
             setCapability({
               fence: sessionFence,
               policy: null,
-              reason: "Verified file storage is unavailable. Your typed prompt stays available.",
+              reason: "Files can’t be added right now. Your prompt is kept.",
             });
         });
     return () => {
@@ -385,7 +387,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
     }
     const original = account ? homeInputSession.get(account) : null;
     if (mode === "draft" && (original?.files.length || original?.saveIntent)) {
-      setError("Use Save brief with files to keep the attached brief together.");
+      setError("Send your prompt to keep it together with its files.");
       return;
     }
     if (!original?.saveIntent && !prompt.trim()) {
@@ -443,6 +445,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
               memory: homeInputSession,
               client,
               signal: controller.signal,
+              firstTurn: strategy.firstTurnContext,
               beforeSave: (input) => {
                 const existing = readReceipt(account.userId, id);
                 if (
@@ -478,12 +481,12 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
               clearPromptRecovery(account.userId);
             } else if (!controller.signal.aborted && isCurrent(account))
               setError(
-                "The attached brief is not confirmed yet. Its original prompt, files and request are retained for checking.",
+                "Your prompt and files are not confirmed as saved yet. They are kept here; send again to check the same save.",
               );
           },
           true,
         );
-        return; // Files never fall through to implicit Strategy processing.
+        return; // The saved project carries its own first research turn; nothing else is started from here.
       }
       const id = keepTextDraft(strategy.locked);
       if (!id) {
@@ -504,7 +507,7 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
             ? cause.message
             : cause instanceof Error
               ? hasFiles
-                ? "The attached brief could not be confirmed. Your typed text, confirmed files and original request remain in this tab. Check and retry the same request."
+                ? "Your prompt and files could not be confirmed as saved. They are kept in this tab; send again to check the same save."
                 : cause.message
               : "This prompt could not be kept. Please try again.",
         );
@@ -568,15 +571,10 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
       )}
       {hiddenFiles && (
         <p role="status">
-          An attached brief is retained in this tab. Verify the same account before sending so its files stay with it.
+          A prompt with files is kept in this tab. Sign in to the same account before sending so its files stay with it.
         </p>
       )}
-      {frozenBrief && (
-        <p role="status">
-          Your prompt and example selection are locked to the original attached brief while its save is confirmed or
-          recovered.
-        </p>
-      )}
+      {frozenBrief && <p role="status">Your prompt and files are locked while their save is being confirmed.</p>}
       <ConversationComposer
         home
         value={displayedPrompt}
@@ -592,12 +590,10 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
           inputIntent?.receipt
             ? "Open saved brand"
             : frozenBrief
-              ? "Check and retry attached brief"
-              : hasFiles
-                ? "Save brief with files"
-                : strategy.recoveryProjectId
-                  ? "Open saved account project"
-                  : "Send prompt"
+              ? "Check and retry save"
+              : strategy.recoveryProjectId
+                ? "Open saved account project"
+                : "Send prompt"
         }
         hint={
           displayedExample ? (
@@ -609,15 +605,15 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
             "An idea, a product, a place. Start in your own words."
           )
         }
+        attachments={<HomeAttachmentChips account={account} memory={homeInputSession} disabled={inputControlsHeld} />}
         inputControls={
           <HomeInputControls
-            compact
             account={account}
             sessionFence={sessionFence}
             memory={homeInputSession}
             value={displayedPrompt}
             onChange={editPrompt}
-            language="en-US"
+            language={voiceLanguage}
             voiceAdapter={voice}
             policy={currentCapability?.policy ?? null}
             availability={
@@ -627,18 +623,19 @@ export function NewProjectForm({ exampleId, home = false }: { exampleId?: string
                     status: "unavailable",
                     reason:
                       currentCapability?.reason ??
-                      (account ? "Checking verified file storage…" : "Sign in to add files."),
+                      (account ? "Checking whether files can be added…" : "Sign in to add files."),
                   }
             }
             disabled={inputControlsHeld}
+            onSignIn={() => {
+              if (beforeSignIn(strategy.locked)) router.push("/sign-in");
+            }}
           />
         }
       />
       {(!home || !!displayedPrompt.trim() || strategy.locked || hiddenFiles) && (
         <div className="conversation-start-notice">
-          {hasFiles
-            ? "Files are saved as input material with your brief. This action does not start AI processing."
-            : strategy.notice}
+          {hasFiles ? "Embel reads your files when research starts and uses what it finds." : strategy.notice}
         </div>
       )}
       {account && strategy.locked && !hasFiles && !hiddenFiles && !hiddenPrompt && (

@@ -113,7 +113,7 @@ const nextConfig: NextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Frame-Options", value: "DENY" },
-          // Same-origin capability only. Voice still requires explicit Start and the browser permission prompt.
+          // Same-origin capability only. Dictation still needs a press of its button and the browser permission prompt.
           {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(self), on-device-speech-recognition=(self), geolocation=()",

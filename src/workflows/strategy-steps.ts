@@ -1,4 +1,5 @@
 import { FatalError, getStepMetadata, RetryableError } from "workflow";
+import type { BriefFileNotes } from "@/domain/brief-files";
 import type { ClaimedRun } from "./engine-steps";
 import type {
   AttemptResult,
@@ -65,15 +66,16 @@ async function deps(): Promise<StrategyRunDeps> {
   };
 }
 
-/** Validates the frozen input and builds the exact request every attempt sends. */
-export async function prepareStrategy(run: ClaimedRun): Promise<PreparedStrategy> {
+/** Validates the frozen input and builds the exact request every attempt sends, with what was read
+ * in the brand's attached files when there is a reading. */
+export async function prepareStrategy(run: ClaimedRun, fileNotes: BriefFileNotes | null): Promise<PreparedStrategy> {
   "use step";
   const [{ prepareStrategyAttempt }, { engineOpenAI }] = await Promise.all([
     import("@/server/engine/strategy-run"),
     import("@/server/engine/openai"),
   ]);
   try {
-    return await prepareStrategyAttempt(run, engineOpenAI());
+    return await prepareStrategyAttempt(run, engineOpenAI(), fileNotes);
   } catch (error) {
     throw stepFailure(error);
   }

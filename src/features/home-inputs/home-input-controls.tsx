@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import { Icon } from "@/components/ui/icon";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 import { attachmentMimeTypeSchema, type AttachmentPolicy, type DraftAttachment } from "@/domain/attachments";
@@ -19,28 +19,14 @@ type HomeInputControlsProps = {
   policy: AttachmentPolicy | null;
   availability: HomeAttachmentAvailability;
   disabled: boolean;
-  compact?: boolean;
+  /** Offered when someone signed out asks to add files. */
+  onSignIn?: () => void;
 };
 const empty = () => null;
-export function HomeInputControls({
-  account,
-  sessionFence,
-  memory,
-  value,
-  onChange,
-  language,
-  voiceAdapter,
-  policy,
-  availability,
-  disabled,
-  compact = false,
-}: HomeInputControlsProps) {
-  const [pickerRevision, setPickerRevision] = useState(0);
-  const [voiceActivatedFor, setVoiceActivatedFor] = useState<string | null>(null);
+/** The files attached to the prompt in this tab, and whether they may change right now. */
+function useHomeFiles(memory: HomeInputSession, account: VerifiedAccount | null, disabled: boolean) {
   const read = useCallback(() => (account ? memory.get(account) : null), [memory, account]);
   const intent = useSyncExternalStore(memory.subscribe, read, empty);
-  const readSelection = useCallback(() => (account ? memory.getSelection(account) : null), [memory, account]);
-  const selection = useSyncExternalStore(memory.subscribe, readSelection, empty);
   const files: DraftAttachment[] =
     intent?.files.map((file) => ({
       localId: file.localId,
@@ -63,6 +49,74 @@ export function HomeInputControls({
     disabled ||
     !!intent?.saveIntent ||
     files.some((file) => file.state === "uploading" || file.state === "uncertain");
+  return { intent, files, busy };
+}
+const chipStatus = {
+  local: "",
+  uploading: "Uploading…",
+  uploaded: "",
+  uncertain: "Checking…",
+  error: "Couldn’t upload",
+};
+/** The attached files, shown inside the prompt box above its buttons. */
+export function HomeAttachmentChips({
+  account,
+  memory,
+  disabled,
+}: {
+  account: VerifiedAccount | null;
+  memory: HomeInputSession;
+  disabled: boolean;
+}) {
+  const { files, busy } = useHomeFiles(memory, account, disabled);
+  if (!files.length) return null;
+  return (
+    <ul className="home-attachment-chips" aria-label="Attached files">
+      {files.map((file) => (
+        <li key={file.localId} data-state={file.state}>
+          <Icon name={file.mimeType.startsWith("image/") ? "image" : "file-text"} size="sm" />
+          <span className="home-attachment-name">{file.name}</span>
+          {chipStatus[file.state] && <span className="home-attachment-status">{chipStatus[file.state]}</span>}
+          <button
+            type="button"
+            className="home-attachment-remove"
+            aria-label={`Remove ${file.name}`}
+            title={`Remove ${file.name}`}
+            disabled={busy}
+            onClick={() => {
+              if (!account || busy) return;
+              const current = memory.get(account);
+              if (current)
+                memory.set(account, {
+                  ...current,
+                  files: current.files.filter((item) => item.localId !== file.localId),
+                });
+            }}
+          >
+            <Icon name="x" size="sm" />
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+export function HomeInputControls({
+  account,
+  sessionFence,
+  memory,
+  value,
+  onChange,
+  language,
+  voiceAdapter,
+  policy,
+  availability,
+  disabled,
+  onSignIn,
+}: HomeInputControlsProps) {
+  const [pickerRevision, setPickerRevision] = useState(0);
+  const { intent, files, busy } = useHomeFiles(memory, account, disabled);
+  const readSelection = useCallback(() => (account ? memory.getSelection(account) : null), [memory, account]);
+  const selection = useSyncExternalStore(memory.subscribe, readSelection, empty);
   async function add(selected: readonly File[]) {
     if (!account || !memory.isCurrent(account) || !policy || availability.status !== "available" || busy) return;
     const old = memory.get(account) ?? emptyHomeInputIntent();
@@ -95,58 +149,27 @@ export function HomeInputControls({
     }
   }
   return (
-    <div className={`home-input-controls ${compact ? "home-input-controls--compact" : ""}`}>
-      <HomeInputPopover
-        className="home-files-popover"
-        label="Add files or images"
-        trigger={
-          <>
-            <Icon name="plus" size={compact ? 22 : 20} />
-            <span className={compact ? "sr-only" : undefined}>Add files or images</span>
-          </>
+    <div className="home-input-controls">
+      <AttachmentPicker
+        key={`${sessionFence}:${pickerRevision}`}
+        files={files}
+        policy={policy}
+        availability={
+          account ? availability : { status: "unavailable", reason: "Files can be added once you’re signed in." }
         }
-      >
-        <AttachmentPicker
-          key={`${sessionFence}:${pickerRevision}`}
-          files={files}
-          policy={policy}
-          availability={
-            account
-              ? availability
-              : {
-                  status: "unavailable",
-                  reason: "Sign in to add files.",
-                }
-          }
-          busy={busy}
-          onAdd={add}
-          onRemove={(localId) => {
-            if (!account || busy) return;
-            const current = memory.get(account);
-            if (current)
-              memory.set(account, { ...current, files: current.files.filter((file) => file.localId !== localId) });
-          }}
-        />
-      </HomeInputPopover>
-      <HomeInputPopover
+        busy={busy}
+        onAdd={add}
+        onSignIn={account ? undefined : onSignIn}
+      />
+      <HomeVoiceControl
         key={sessionFence}
-        onOpen={() => setVoiceActivatedFor(sessionFence)}
-        className="home-voice-popover"
-        label="Voice input"
-        trigger={<Icon name="mic" size={compact ? 22 : 20} />}
-      >
-        {voiceActivatedFor === sessionFence && (
-          <HomeVoiceControl
-            key={sessionFence}
-            value={value}
-            onChange={onChange}
-            language={language}
-            sessionFence={sessionFence}
-            adapter={voiceAdapter}
-            disabled={disabled || !!intent?.saveIntent}
-          />
-        )}
-      </HomeInputPopover>
+        value={value}
+        onChange={onChange}
+        language={language}
+        sessionFence={sessionFence}
+        adapter={voiceAdapter}
+        disabled={disabled || !!intent?.saveIntent}
+      />
       {intent?.saveOutcome === "confirmed" && (
         <p role="status">
           These files were saved with your brand.{" "}
@@ -158,7 +181,7 @@ export function HomeInputControls({
               if (account) memory.set(account, emptyHomeInputIntent());
             }}
           >
-            Start a new attached brief
+            Start a new prompt with files
           </button>
         </p>
       )}
@@ -182,66 +205,5 @@ export function HomeInputControls({
         </div>
       )}
     </div>
-  );
-}
-
-/** Voice initializes only on explicit activation, then stays mounted on dismissal. */
-function HomeInputPopover({
-  className,
-  label,
-  trigger,
-  children,
-  onOpen,
-}: {
-  className: string;
-  label: string;
-  trigger: ReactNode;
-  children: ReactNode;
-  onOpen?: () => void;
-}) {
-  const root = useRef<HTMLDetailsElement>(null),
-    summary = useRef<HTMLElement>(null),
-    id = useId();
-  useEffect(() => {
-    const outside = (event: PointerEvent) => {
-      if (root.current?.open && !root.current.contains(event.target as Node)) root.current.open = false;
-    };
-    const escape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || event.defaultPrevented || !root.current?.open) return;
-      event.preventDefault();
-      root.current.open = false;
-      summary.current?.focus();
-    };
-    document.addEventListener("pointerdown", outside);
-    document.addEventListener("keydown", escape);
-    return () => {
-      document.removeEventListener("pointerdown", outside);
-      document.removeEventListener("keydown", escape);
-    };
-  }, []);
-  return (
-    <details ref={root} className={`home-input-popover ${className}`}>
-      <summary
-        ref={summary}
-        id={id}
-        aria-label={label}
-        title={label}
-        onClick={() => {
-          if (!root.current?.open) onOpen?.();
-          if (!root.current?.open)
-            root.current
-              ?.closest(".home-input-controls")
-              ?.querySelectorAll<HTMLDetailsElement>(".home-input-popover")
-              .forEach((popover) => {
-                if (popover !== root.current) popover.open = false;
-              });
-        }}
-      >
-        {trigger}
-      </summary>
-      <div className="home-input-popover-panel" role="region" aria-labelledby={id}>
-        {children}
-      </div>
-    </details>
   );
 }

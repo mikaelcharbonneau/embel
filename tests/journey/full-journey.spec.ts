@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { expect, test, type Download, type Page } from "@playwright/test";
 import { unzipSync } from "fflate";
+import { journeyStack } from "./stack.mjs";
 
 // The whole brand journey in a real browser: the real app, this checkout's local Supabase and
 // the generation engine, with a stand-in OpenAI provider (tests/journey/fake-openai.mjs).
@@ -239,6 +240,104 @@ test("a new brand goes from the first prompt to downloadable assets", async ({ p
 
   await test.step("credits were charged for the work", async () => {
     expect(startingCredits - (await creditBalance(page))).toBe(EXPECTED_CHARGE);
+  });
+  expect(pageErrors).toEqual([]);
+});
+
+// The prompt box's attach and dictate buttons. Runs after the journey above (one worker, in file order), on
+// the same account. The browser's speech recognition is replaced by a stand-in: no microphone is used.
+test("a dictated prompt with an attached file starts competitor research without another click", async ({ page }) => {
+  const email = process.env.EMBEL_JOURNEY_EMAIL,
+    password = process.env.EMBEL_JOURNEY_PASSWORD;
+  if (!email || !password)
+    throw new Error("Run with playwright.journey.config.ts: its global setup creates the test account.");
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.addInitScript(() => {
+    type Segment = { isFinal: boolean; 0: { transcript: string } };
+    class StandInRecognition extends EventTarget {
+      lang = "";
+      continuous = false;
+      interimResults = false;
+      private say(results: Segment[], resultIndex: number) {
+        this.dispatchEvent(Object.assign(new Event("result"), { resultIndex, results }));
+      }
+      start() {
+        setTimeout(() => {
+          this.dispatchEvent(new Event("start"));
+          this.say([{ isFinal: false, 0: { transcript: "delivered by" } }], 0);
+          this.say([{ isFinal: true, 0: { transcript: "delivered by cargo bike" } }], 0);
+        }, 50);
+      }
+      stop() {
+        setTimeout(() => this.dispatchEvent(new Event("end")), 20);
+      }
+      abort() {
+        this.dispatchEvent(new Event("end"));
+      }
+    }
+    Object.defineProperty(window, "SpeechRecognition", { configurable: true, value: StandInRecognition });
+    Object.defineProperty(window, "webkitSpeechRecognition", { configurable: true, value: StandInRecognition });
+  });
+
+  await page.goto("/sign-in");
+  const form = page.getByRole("form", { name: "Sign in", exact: true });
+  await form.getByRole("textbox", { name: "Email" }).fill(email);
+  await form.getByLabel("Password", { exact: true }).fill(password);
+  await form.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page).not.toHaveURL(/sign-in/u);
+  const creditsBefore = await creditBalance(page);
+  await page.goto("/");
+  const composer = page.locator(".home-composer"),
+    prompt = page.getByRole("textbox", { name: "Your prompt", exact: true });
+  await prompt.fill("A sourdough subscription for small offices in Montreal,");
+
+  await test.step("dictation adds the spoken words to the prompt", async () => {
+    const dictate = composer.getByRole("button", { name: "Dictate your prompt", exact: true });
+    await dictate.click();
+    await expect(dictate).toHaveAttribute("aria-pressed", "true");
+    await expect(prompt).toHaveValue("A sourdough subscription for small offices in Montreal, delivered by cargo bike");
+    await dictate.click();
+    await expect(dictate).toHaveAttribute("aria-pressed", "false");
+  });
+
+  await test.step("an attached file shows in the prompt box", async () => {
+    // Enabled once the account's file storage has answered.
+    await expect(composer.locator('input[type="file"]')).toBeEnabled();
+    const [chooser] = await Promise.all([
+      page.waitForEvent("filechooser"),
+      composer.getByRole("button", { name: "Add files or images", exact: true }).click(),
+    ]);
+    await chooser.setFiles({
+      name: "notes.txt",
+      mimeType: "text/plain",
+      buffer: Buffer.from("We bake at 4am. Tone: warm, dry humour.\n"),
+    });
+    const attached = composer.getByRole("list", { name: "Attached files", exact: true });
+    await expect(attached.getByRole("listitem")).toHaveText(["notes.txt"]);
+    await expect(attached.getByRole("button", { name: "Remove notes.txt", exact: true })).toBeEnabled();
+  });
+
+  await test.step("one Send saves the brand with its file and research starts by itself", async () => {
+    await composer.getByRole("button", { name: "Send prompt", exact: true }).click();
+    await expect(page).toHaveURL(/\/brands\/account\//u, { timeout: GENERATION });
+    await expect(question(page, "Which competitors should we keep in mind?")).toBeVisible({ timeout: GENERATION });
+    await expect(page.getByRole("button", { name: "Start competitor research" })).toHaveCount(0);
+    await expectNoCostEstimate(page);
+  });
+
+  await test.step("Embel read the file, shows what it found, and research was given it at no extra credit", async () => {
+    const file = page.getByRole("list", { name: "Attached files", exact: true }).getByRole("listitem");
+    await expect(file).toHaveCount(1);
+    await expect(file).toContainText("notes.txt");
+    await expect(file).toContainText("Notes");
+    await expect(file).toContainText("Baking starts at 4am; the tone is warm with dry humour.");
+    // The stand-in provider counts what it was sent: one reading, and research that carried it.
+    const { responses } = await (await page.request.get(`${journeyStack().fakeProviderOrigin}/__stats`)).json();
+    expect(responses["brief.files"]).toBe(1);
+    expect(responses["strategy.competitors+attachedFiles"]).toBe(1);
+    // Competitor research costs its usual 2 credits; reading the file adds nothing.
+    expect(creditsBefore - (await creditBalance(page))).toBe(2);
   });
   expect(pageErrors).toEqual([]);
 });

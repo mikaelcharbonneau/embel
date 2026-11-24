@@ -43,17 +43,11 @@ await runWalk("shell", [
       );
       await t.evalNote("prompt after chip", () => document.querySelector("textarea")?.value.slice(0, 80));
       await t.burst(
-        "open-add-files-popover",
-        () =>
-          page
-            .getByText("Add files or images")
-            .first()
-            .click({ force: true })
-            .catch(() => page.locator("summary").first().click()),
+        "press-add-files",
+        () => page.getByRole("button", { name: "Add files or images", exact: true }).click({ force: true }),
         [0, 120, 400],
       );
-      await page.keyboard.press("Escape");
-      await t.evalNote("popover open after Escape", () => [...document.querySelectorAll("details[open]")].length);
+      await t.evalNote("attach note", () => document.querySelector(".home-input-controls [role=status]")?.textContent);
     },
   },
   {

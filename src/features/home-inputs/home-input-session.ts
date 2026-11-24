@@ -14,6 +14,7 @@ import {
   type StageHomeAttachmentInput,
 } from "@/domain/attachments";
 import { freezeLogoRecord } from "@/domain/logo-vector";
+import type { ContextSnapshot } from "@/domain/projects";
 export type HomeInputIntent = {
   browserDraftId: string | null;
   files: {
@@ -218,7 +219,9 @@ export function createHomeInputSession() {
   };
 }
 export type HomeInputSession = ReturnType<typeof createHomeInputSession>;
-/** Explicit user Send only: stages inputs, then commits one exact-key project, never Strategy/AI. */
+/** Explicit user Send only: stages inputs, then commits one exact-key project. It starts no AI work itself.
+ * `firstTurn` may add the first research turn to the context that is saved (as a prompt without files
+ * saves it), so the project page begins competitor research; it runs once, before the request is frozen. */
 export async function saveAttachedHomeDraft({
   account,
   draft,
@@ -226,6 +229,7 @@ export async function saveAttachedHomeDraft({
   client,
   signal,
   beforeSave,
+  firstTurn,
 }: {
   account: VerifiedAccount;
   draft: LocalDraft | null;
@@ -233,6 +237,7 @@ export async function saveAttachedHomeDraft({
   client: AccountLifecycleClient;
   signal: AbortSignal;
   beforeSave?: (request: AttachedProjectDraftInput) => void;
+  firstTurn?: (context: ContextSnapshot) => Promise<ContextSnapshot>;
 }): Promise<AttachedProjectDraftReceipt | null> {
   const release = memory.acquire(account);
   if (!release) return null;
@@ -254,11 +259,18 @@ export async function saveAttachedHomeDraft({
     if (state.receipt) return state.receipt;
     if (!state.saveIntent) {
       if (!draft) throw new AccountRequestError(422);
+      const project = createAccountInput(draft);
+      if (firstTurn) {
+        project.context = await firstTurn(project.context);
+        if (!current()) return null;
+        state = memory.get(account);
+        if (!state || !state.files.length || state.saveIntent) return null;
+      }
       if (
         !put({
           ...state,
           browserDraftId: state.browserDraftId ?? draft.id,
-          saveIntent: { requestKey: crypto.randomUUID(), project: createAccountInput(draft), attachmentIds: [] },
+          saveIntent: { requestKey: crypto.randomUUID(), project, attachmentIds: [] },
         })
       )
         return null;
