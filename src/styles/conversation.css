@@ -937,22 +937,16 @@
 .guided-option__tone {
   font-style: normal;
 }
-.guided-option__recommended {
-  justify-self: start;
-}
-.guided-option__references {
-  gap: var(--space-1) var(--space-4);
-  padding-inline: var(--space-4);
-  font: var(--text-small);
-}
-.guided-option__sources {
-  display: inline-flex;
+/* a mark beside the title ("Recommended") */
+.e-choice__heading {
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-1) var(--space-2);
+  min-width: 0;
 }
-.guided-option__sources .e-cluster {
-  gap: var(--space-1) var(--space-3);
+.e-choice__heading > :last-child {
+  display: inline-flex;
 }
 .e-choice--leading {
   grid-template-columns: auto minmax(0, 1fr);
@@ -965,6 +959,79 @@
 .e-choice--leading > .e-choice__leading {
   grid-row: 1 / span 3;
   align-self: start;
+}
+/* A list step (competitors) reads as one centred column under the project bar, not edge to edge. */
+.conversation-step--list {
+  width: 100%;
+  max-width: var(--container-reading);
+  margin-inline: auto;
+}
+/* A competitor is one card: the choice, then its links. The links sit outside the label (a link inside a label
+   would be a control inside a control), so the wrapper draws the card and the label inside it has no frame. */
+.guided-option {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-bg-paper);
+  transition: border-color var(--duration-fast) ease;
+}
+.guided-option > .e-choice,
+.guided-option > .e-choice:has(> input:checked),
+.guided-option > .e-choice:has(:is(input, .e-choice__hit):focus-visible) {
+  border-color: transparent;
+  background: transparent;
+  outline: none;
+  box-shadow: none;
+  transform: none;
+}
+.guided-option > .e-choice:has(> input:checked)::before {
+  content: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .guided-option:has(> .e-choice:hover) {
+    border-color: var(--color-border-strong);
+  }
+}
+.guided-option:has(> .e-choice > input:checked) {
+  border-color: var(--color-border-selected);
+}
+.guided-option:has(> .e-choice > input:checked)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-raised);
+  border: 1px solid var(--color-border-selected);
+  border-radius: calc(var(--radius-card) - 1px);
+  pointer-events: none;
+}
+.guided-option:has(> .e-choice > input:focus-visible) {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: calc(var(--focus-ring-width) / -2);
+}
+.guided-option:has(> .e-choice > input:disabled) {
+  background: var(--color-bg-disabled);
+}
+.guided-option > .e-choice--leading {
+  column-gap: var(--space-3);
+}
+.guided-option:has(> .guided-option__references) > .e-choice {
+  padding-bottom: var(--space-2);
+}
+/* the links line up under the name, past the logo */
+.guided-option__references {
+  gap: var(--space-1) var(--space-4);
+  padding: 0 var(--space-4) var(--space-4) calc(var(--space-4) + 40px + var(--space-3));
+  font: var(--text-small);
+}
+.guided-option__sources {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+.guided-option__sources .e-cluster {
+  gap: var(--space-1) var(--space-3);
 }
 .guided-option--skeleton {
   cursor: default;
@@ -988,7 +1055,8 @@
 .guided-slogan__line[data-empty] {
   color: var(--color-text-placeholder);
 }
-.competitor-add-form[hidden] {
+.competitor-add-form[hidden],
+.competitor-widget-controls > [hidden] {
   display: none;
 }
 

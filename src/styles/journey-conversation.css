@@ -113,10 +113,11 @@
   font-weight: 500;
   line-height: 1;
 }
-/* The icon fills the tile edge to edge (a wide mark is never cropped); the tile's
-   rounded corners clip it. The single grid cell is exactly the tile's inside. */
+/* The icon sits whole inside the tile with a little room around it, so the tile's rounded corners never cut
+   into a mark that reaches its own edges. The single grid cell is exactly the tile's inside. */
 .competitor-logo:has(> img) {
   grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  padding: var(--space-1);
 }
 .competitor-logo > img {
   display: block;
@@ -133,6 +134,7 @@
 }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-answer li .competitor-logo {
   border-radius: 50%;
+  padding: 0;
   font-size: var(--font-size-1);
 }
 

@@ -41,37 +41,40 @@ function Tags({ items }: { items: readonly string[] }) {
 }
 
 /** What a card shows beyond its title and description. Phrasing content only: it sits inside the card's label. */
-function OptionDetails({ option, recommended }: { option: GuidedOption; recommended: boolean }) {
-  const badge = recommended ? <span className="e-badge guided-option__recommended">Recommended</span> : null;
+function OptionDetails({ option }: { option: GuidedOption }) {
   if (option.stage === "audience")
-    return (
-      <>
-        {badge}
-        {option.payload.needs.length > 0 && <Tags items={option.payload.needs} />}
-      </>
-    );
-  if (option.stage === "positioning")
-    return (
-      <>
-        {badge}
-        <Tags items={option.payload.leads} />
-      </>
-    );
+    return option.payload.needs.length > 0 ? <Tags items={option.payload.needs} /> : null;
+  if (option.stage === "positioning") return <Tags items={option.payload.leads} />;
   if (option.stage === "personality")
     return (
       <>
-        {badge}
         {option.payload.traits.length > 0 && <Tags items={option.payload.traits} />}
         <span className="guided-option__tone">“{option.payload.toneExample}”</span>
       </>
     );
-  return badge;
+  return null;
+}
+
+/** A source's site, as people say it: "looka.com", not "www.looka.com" or a page title. */
+function siteName(url: string) {
+  return new URL(url).hostname.replace(/^www\./u, "");
+}
+
+/** Where a competitor was found: one link per site, named by the site, so a site never shows twice. */
+function sourceSites(sources: readonly { url: string; title: string }[]) {
+  const sites = new Map<string, { url: string; title: string }>();
+  for (const source of sources) {
+    if (!competitorWebsiteSchema.safeParse(source.url).success) continue;
+    const site = siteName(source.url);
+    if (!sites.has(site)) sites.set(site, source);
+  }
+  return [...sites].map(([site, source]) => ({ site, ...source }));
 }
 
 function OptionReferences({ option }: { option: GuidedOption }) {
   if (option.stage !== "competitors") return null;
   const website = competitorWebsiteSchema.safeParse(option.payload.url);
-  const sources = option.payload.sources.filter((source) => competitorWebsiteSchema.safeParse(source.url).success);
+  const sources = sourceSites(option.payload.sources);
   if (!website.success && !sources.length) return null;
   return (
     <div className="e-cluster guided-option__references" role="group" aria-label={`References for ${option.label}`}>
@@ -86,10 +89,10 @@ function OptionReferences({ option }: { option: GuidedOption }) {
         <span className="guided-option__sources">
           <span className="e-muted">Found on</span>
           <ul className="e-cluster">
-            {sources.map((source, index) => (
-              <li key={`${source.url}-${index}`}>
-                <a className="e-link" href={source.url} target="_blank" rel="noopener noreferrer">
-                  {source.title}
+            {sources.map((source) => (
+              <li key={source.site}>
+                <a className="e-link" href={source.url} title={source.title} target="_blank" rel="noopener noreferrer">
+                  {source.site}
                   <span className="e-sr"> (opens in a new tab)</span>
                 </a>
               </li>
@@ -156,7 +159,10 @@ export function GuidedChoices({
   }
 
   return (
-    <section className="e-stack e-stack--lg conversation-step" aria-labelledby={`${id}-title`}>
+    <section
+      className={`e-stack e-stack--lg conversation-step${competitors ? " conversation-step--list" : ""}`}
+      aria-labelledby={`${id}-title`}
+    >
       <StepHeading title={reply.question} />
       <span id={`${id}-title`} hidden>
         {reply.question}
@@ -188,6 +194,11 @@ export function GuidedChoices({
                   ) : undefined
                 }
                 title={option.label}
+                badge={
+                  option.recommended && markRecommended ? (
+                    <span className="e-badge guided-option__recommended">Recommended</span>
+                  ) : undefined
+                }
                 description={
                   option.stage === "positioning"
                     ? option.payload.statement
@@ -197,11 +208,11 @@ export function GuidedChoices({
                 }
                 onChange={(checked) => select(option.id, checked)}
               >
-                <OptionDetails option={option} recommended={Boolean(option.recommended && markRecommended)} />
+                <OptionDetails option={option} />
               </ChoiceCard>
             );
             return competitors ? (
-              <div key={option.id} className="e-stack e-stack--xs guided-option">
+              <div key={option.id} className="guided-option">
                 {card}
                 <OptionReferences option={option} />
               </div>
@@ -237,7 +248,10 @@ export function selectedOptions(
 export function GuidedChoicesLoading({ stage, title }: { stage: GuidedStage; title?: string }) {
   const rows = stage === "competitors";
   return (
-    <section className="e-stack e-stack--lg conversation-step" aria-label={title ?? stageQuestions[stage]}>
+    <section
+      className={`e-stack e-stack--lg conversation-step${rows ? " conversation-step--list" : ""}`}
+      aria-label={title ?? stageQuestions[stage]}
+    >
       <StepHeading title={title ?? stageQuestions[stage]} />
       <LoadingRegion label={rows ? "Researching competitors" : "Writing options"}>
         <div className={rows ? "e-stack e-stack--md" : "e-grid-choices"}>
@@ -266,7 +280,10 @@ export function GuidedChoicesEmpty({
   research?: boolean;
 }) {
   return (
-    <section className="e-stack e-stack--lg conversation-step" aria-label={title ?? stageQuestions[stage]}>
+    <section
+      className={`e-stack e-stack--lg conversation-step${stage === "competitors" ? " conversation-step--list" : ""}`}
+      aria-label={title ?? stageQuestions[stage]}
+    >
       <StepHeading title={title ?? stageQuestions[stage]} />
       <EmptyState
         variant="results"
