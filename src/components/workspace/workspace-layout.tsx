@@ -122,6 +122,7 @@ export function Workspace({
   work,
   workLabel = "Work",
   rows,
+  fill = false,
   logKey,
   overlayHost,
   label = "Brand conversation",
@@ -135,6 +136,8 @@ export function Workspace({
   workLabel?: string;
   /** Steps whose results must all be in view: one row (direction boards) or two (logo concepts). */
   rows?: 1 | 2;
+  /** A gallery that uses the work area's full width (Inspiration) instead of the page-width column. */
+  fill?: boolean;
   /** Changes when a message arrives; while the chat is hidden, Show chat then carries a counter. */
   logKey?: string;
   /** Receives the element that work-area dialogs (name details) render their `e-workspace__overlay` into. */
@@ -234,7 +237,7 @@ export function Workspace({
   };
 
   const state: WorkspaceState = { wide, chatWidth: width, chatHidden: hidden, workWidth };
-  const rowsClass = rows ? ` e-workspace__main--rows-${rows}` : "";
+  const rowsClass = (rows ? ` e-workspace__main--rows-${rows}` : "") + (fill ? " e-workspace__main--fill" : "");
   return (
     <WorkspaceContext.Provider value={state}>
       <div

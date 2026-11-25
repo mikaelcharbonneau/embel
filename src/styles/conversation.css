@@ -1249,3 +1249,7 @@
 .workspace-reply .home-attachment-chips {
   padding: 0;
 }
+/* a gallery (Inspiration) fills the work area's full width instead of the page-width column */
+.e-workspace__main--fill {
+  grid-template-columns: minmax(0, 1fr);
+}

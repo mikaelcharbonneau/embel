@@ -20,7 +20,14 @@ import {
 import { AccountStatus, useAccountSession } from "@/components/workspace/account-session";
 import { publishInspirationLikes } from "@/components/workspace/inspiration-likes-signal";
 import { Icon } from "@/components/ui/icon";
-import { bentoLayout, brandRows, cardShape, type BentoBox } from "@/domain/inspiration-layout";
+import {
+  bentoLayout,
+  brandRows,
+  cardShape,
+  masonryColumns,
+  masonryPlace,
+  type BentoBox,
+} from "@/domain/inspiration-layout";
 import { useInspiration, type InspirationController } from "./use-inspiration";
 import { BrandCard, BrandOverlay, PartCard, type BrandLikes } from "./inspiration-brands";
 import { useYourReferences, type YourReferences } from "./your-references";
@@ -28,8 +35,8 @@ import "./inspiration.css";
 
 const noChoice: InspirationPreferences = { ensemble: false, elements: [] };
 const catalogPendingNote = "You can browse this brand now. Liking it will be available soon.";
-// Brands and part images shown at first, and added by each "Show more".
-const PAGE = { brands: 8, parts: 18 } as const;
+// Brands and part images shown at first, and added each time the end of the gallery comes near.
+const PAGE = { brands: 8, parts: 24 } as const;
 // Each brand's image rows and card shape depend only on its images.
 const brandLayouts = new Map(
   inspirationBrands.map((brand) => {
@@ -117,7 +124,8 @@ function BrandBento({
     </div>
   );
 }
-/** Keep image/focus identity while preserving the approved round-robin masonry. */
+/** Pinterest-style masonry: as many columns as fit the width, each card at the top of the shortest column. Cards
+ * keep their DOM identity (images and focus) while they move. */
 function InspirationGrid({ children }: { children: ReactNode }) {
   const grid = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -127,18 +135,19 @@ function InspirationGrid({ children }: { children: ReactNode }) {
     const layout = () => {
       const width = node.getBoundingClientRect().width;
       if (!width) return;
-      const columns = width >= 1200 ? 5 : width >= 900 ? 4 : width >= 620 ? 3 : width >= 350 ? 2 : 1;
-      const cardWidth = (width - (columns - 1) * 16) / columns;
-      node.style.setProperty("--inspiration-card-width", `${cardWidth}px`);
+      const columns = masonryColumns(width);
+      node.style.setProperty("--inspiration-card-width", `${columns.width}px`);
       node.dataset.positioned = "true";
-      const heights = Array<number>(columns).fill(0);
+      // Heights are read once the cards have their column width, then every card is placed.
+      const placed = masonryPlace(
+        cards.map((card) => card.getBoundingClientRect().height),
+        columns,
+      );
       cards.forEach((card, index) => {
-        const column = index % columns;
-        card.style.left = `${column * (cardWidth + 16)}px`;
-        card.style.top = `${heights[column]}px`;
-        heights[column]! += card.getBoundingClientRect().height + 20;
+        card.style.left = `${placed.boxes[index]!.x}px`;
+        card.style.top = `${placed.boxes[index]!.y}px`;
       });
-      node.style.height = `${Math.max(0, ...heights) - (cards.length ? 20 : 0)}px`;
+      node.style.height = `${placed.height}px`;
     };
     layout();
     const observer = new ResizeObserver(layout);
@@ -151,6 +160,37 @@ function InspirationGrid({ children }: { children: ReactNode }) {
       {children}
     </div>
   );
+}
+/** The nearest ancestor that scrolls (the work area in the workspace), or null for the window. */
+function scrollParent(node: HTMLElement): HTMLElement | null {
+  for (let parent = node.parentElement; parent; parent = parent.parentElement) {
+    const { overflowY } = getComputedStyle(parent);
+    if (overflowY === "auto" || overflowY === "scroll") return parent;
+  }
+  return null;
+}
+/** Loads more as the end of the gallery comes near: a marker after the last card calls onMore when it is within
+ * about a screen of view. The observer is renewed whenever `key` changes, so a gallery that still does not fill
+ * the screen keeps loading. Without IntersectionObserver nothing more loads on its own. */
+function useLoadMore(active: boolean, onMore: () => void, key: string) {
+  const marker = useRef<HTMLDivElement>(null),
+    more = useRef(onMore);
+  useEffect(() => {
+    more.current = onMore;
+  });
+  useEffect(() => {
+    const node = marker.current;
+    if (!active || !node || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) more.current();
+      },
+      { root: scrollParent(node), rootMargin: "0px 0px 1200px 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [active, key]);
+  return marker;
 }
 /** "page" is the standalone Inspiration page; "conversation" is the same step
  * shown as one Embel message inside the project conversation. */
@@ -346,6 +386,11 @@ export function InspirationView({
           (item) => !liked || partLiked(displayed.get(item.brand.id), category),
         );
   const total = category === "brands" ? brands.length : parts.length;
+  const moreMarker = useLoadMore(
+    total > limit,
+    () => setLimit((value) => value + page),
+    [category, query, liked, limit].join(":"),
+  );
   const noun = inspirationCategories.find((item) => item.value === category)!.label.toLowerCase();
   const message = workspace ? (
     <h2 className="e-section__title inspiration-question">What do you like?</h2>
@@ -468,11 +513,7 @@ export function InspirationView({
               ))}
             </InspirationGrid>
           )}
-          {total > limit && (
-            <button type="button" className="inspiration-more" onClick={() => setLimit((value) => value + page)}>
-              Show more {noun}
-            </button>
-          )}
+          {total > limit && <div ref={moreMarker} className="inspiration-more" aria-hidden="true" />}
           {yours && <div className="inspiration-yours-slot">{yours}</div>}
           <footer className="inspiration-footer">
             {references ? (

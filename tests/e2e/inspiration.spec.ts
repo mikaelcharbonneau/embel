@@ -129,7 +129,10 @@ test("brand containers, categories, search and the brand overlay", async ({ page
     "Socials",
     "Visuals",
   ]);
-  await expect(page.locator(".inspiration-brand")).toHaveCount(Math.min(8, inspirationBrands.length));
+  // The first brands show at once; more load on their own as the end of the gallery comes near.
+  expect(await page.locator(".inspiration-brand").count()).toBeGreaterThanOrEqual(
+    Math.min(8, inspirationBrands.length),
+  );
   await expect(card(page).locator(".inspiration-brand-tile")).toHaveCount(5);
   await expect
     .poll(() =>
@@ -149,8 +152,17 @@ test("brand containers, categories, search and the brand overlay", async ({ page
   await page.screenshot({ path: info.outputPath("brands.png") });
   await page.getByRole("button", { name: "Colors", exact: true }).click();
   await expect(page.locator(".inspiration-brand")).toHaveCount(0);
-  await expect(page.locator(".inspiration-card")).toHaveCount(Math.min(18, inspirationBrands.length));
+  const cards = page.locator(".inspiration-card");
+  await expect(cards.first()).toBeVisible();
+  const first = await cards.count();
+  expect(first).toBeGreaterThanOrEqual(Math.min(24, inspirationBrands.length));
   await page.screenshot({ path: info.outputPath("colors.png") });
+  // No Show more button: scrolling to the last card loads the next ones.
+  await expect(page.getByRole("button", { name: /^Show more/ })).toHaveCount(0);
+  if (inspirationBrands.length > first) {
+    await cards.last().scrollIntoViewIfNeeded();
+    await expect.poll(() => cards.count()).toBeGreaterThan(first);
+  }
   await page.getByRole("searchbox").fill("nothing matches this");
   await expect(page.getByRole("heading", { name: "No colors match this search" })).toBeVisible();
   await page.getByRole("button", { name: "Browse all colors" }).click();
