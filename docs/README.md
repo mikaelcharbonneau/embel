@@ -40,6 +40,7 @@ the document.
 ## Accounts and data
 
 - [account-creation.md](account-creation.md): sign-up, email confirmation and the callback.
+- [provider-sign-in.md](provider-sign-in.md): Continue with Google, Apple or ChatGPT, and the setup each needs.
 - [account-profile-settings.md](account-profile-settings.md): name, time zone and date format.
 - [account-deletion.md](account-deletion.md): deleting an account and exporting its data.
 - [payments.md](payments.md): paid plans with Stripe Managed Payments, the Plans page and the release steps.

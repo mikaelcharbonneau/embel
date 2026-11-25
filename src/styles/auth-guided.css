@@ -74,6 +74,65 @@
   margin-block: calc((var(--link-target-min) - 1lh) / -2);
 }
 
+/* "Continue with Google / Apple / ChatGPT": outlined buttons side by side, one column each, then a divider
+   before the email form. Drawn only for providers the server reports as enabled. */
+.auth-providers {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  container-type: inline-size;
+}
+.auth-providers__list {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+}
+.auth-providers__item {
+  display: grid;
+  min-width: 0;
+}
+.e-button.auth-provider {
+  min-width: 0;
+  padding: 0 var(--space-2);
+}
+.e-button.auth-provider:not(:disabled) {
+  border-color: var(--color-border-control);
+}
+@media (hover: hover) and (pointer: fine) {
+  .e-button.auth-provider:not(:disabled, [aria-busy="true"]):hover {
+    border-color: var(--color-border-selected);
+    background: var(--color-bg-canvas);
+  }
+}
+.auth-provider__mark {
+  flex: none;
+}
+.auth-provider:disabled > .auth-provider__mark {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+.auth-providers__divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font: var(--text-small);
+  color: var(--color-text-muted);
+}
+.auth-providers__divider::before,
+.auth-providers__divider::after {
+  content: "";
+  flex: 1 1 0;
+  height: 1px;
+  background: var(--color-border);
+}
+/* Three names don't fit side by side on the narrowest phones: there the buttons stack, full width. */
+@container (max-width: 303px) {
+  .auth-providers__list:has(> :nth-child(3)) {
+    grid-auto-flow: row;
+  }
+}
+
 /* Cloudflare Turnstile (shown only when a site key is configured). */
 .auth-captcha {
   min-height: calc(var(--space-16) + var(--space-0-5));
@@ -93,7 +152,7 @@
 }
 .auth-overlay__main {
   display: flex;
-  flex: 1 1 0;
+  flex: 0 1 auto;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
@@ -149,6 +208,9 @@
   .e-dialog.auth-overlay {
     --dialog-width: var(--auth-overlay-width);
     flex-direction: row;
+  }
+  .auth-overlay__main {
+    flex: 1 1 0;
   }
   .auth-overlay__main > .auth-card {
     min-height: var(--auth-overlay-form-height);

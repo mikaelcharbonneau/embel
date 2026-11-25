@@ -13,6 +13,8 @@ import { hasPromptRecovery } from "@/components/workspace/prompt-recovery";
 import { readCaptcha, TurnstileWidget, type TurnstileHandle } from "./turnstile-widget";
 import { AuthCard } from "./auth-card";
 import { AuthField, fieldDescription } from "./auth-field";
+import { ProviderButtons } from "./provider-buttons";
+import { authProviders, type AuthProvider } from "@/domain/auth-providers";
 
 /** Messages shown under their own field; `form` is for answers that belong to no single field. */
 type FormErrors = {
@@ -39,11 +41,17 @@ export function SignInForm({
   overlay = false,
   mode = "sign-in",
   confirmation,
+  providers = [],
+  providerFailed = false,
 }: {
   configured: boolean;
   overlay?: boolean;
   mode?: "sign-in" | "sign-up";
   confirmation?: "complete" | "failed";
+  /** The sign-in providers really enabled for this app, as the server reports them. None: email only. */
+  providers?: readonly AuthProvider[];
+  /** The person came back from a provider without being signed in (`/sign-in?provider=failed`). */
+  providerFailed?: boolean;
 }) {
   const router = useRouter();
   const idPrefix = overlay ? "auth-overlay" : "auth-page";
@@ -94,6 +102,9 @@ export function SignInForm({
   const disabled = !configured || submitting || checking;
   // Fields stay enabled while a request runs (focus stays put); they are read-only until it answers.
   const unavailable = !configured || checking;
+  // The provider row is drawn (ProviderButtons draws only the providers it knows).
+  const providerRow =
+    configured && !confirming && !resend && authProviders.some((provider) => providers.includes(provider));
 
   const clearPasswords = useCallback(() => {
     credentialGeneration.current++;
@@ -285,6 +296,11 @@ export function SignInForm({
         </InlineMessage>
       )}
       {confirmation === "complete" && <InlineMessage tone="positive">Email confirmed.</InlineMessage>}
+      {providerFailed && !signedIn && (
+        <InlineMessage tone="warning">
+          We couldn&rsquo;t sign you in with that provider. Try again, or use your email and password.
+        </InlineMessage>
+      )}
       {signedIn ? (
         <ButtonLink variant="primary" block arrow href={hasPrompt ? "/" : "/brands"}>
           {hasPrompt ? "Continue your prompt" : "Go to Projects"}
@@ -296,6 +312,14 @@ export function SignInForm({
               {signingUp ? "Account creation" : "Sign-in"} is unavailable right now. Your prompt is kept; please try
               again shortly.
             </InlineMessage>
+          )}
+          {providerRow && (
+            <ProviderButtons
+              providers={providers}
+              next={hasPrompt ? "/" : "/brands"}
+              disabled={disabled}
+              onLeave={clearPasswords}
+            />
           )}
           {confirming ? (
             <InlineMessage>
@@ -418,6 +442,20 @@ export function SignInForm({
               {signingUp && (
                 <p className="auth-card__terms">
                   By creating an account, you agree to the{" "}
+                  <Link className="e-link" href="/terms" target="_blank">
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link className="e-link" href="/privacy" target="_blank">
+                    Privacy Policy
+                  </Link>
+                  .
+                </p>
+              )}
+              {!signingUp && providerRow && (
+                // A first-time person who continues with a provider here creates an account.
+                <p className="auth-card__terms">
+                  By continuing with a provider, you agree to the{" "}
                   <Link className="e-link" href="/terms" target="_blank">
                     Terms of Service
                   </Link>{" "}

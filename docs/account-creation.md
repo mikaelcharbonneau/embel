@@ -1,5 +1,7 @@
 # Account creation and email confirmation
 
+_November 25, 2026: `/auth/callback` now also finishes provider sign-ins and, for those only, lands on `/` or `/brands` as stored in a cookie by the start route (never from the address); see [provider-sign-in.md](provider-sign-in.md). Email links behave as described below._
+
 The user requested working Embel account creation on 2026-10-13. This expands the earlier existing-account-only overlay while retaining its approved card, direct-page fallback, native modal, browser drafts and prompt recovery.
 
 ## Implemented behavior
