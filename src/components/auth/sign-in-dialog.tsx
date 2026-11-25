@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { IconButton } from "@/components/ui/button";
 import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
+import { AuthWall } from "./auth-wall";
 
 export function SignInDialog({
   children,
@@ -52,7 +53,7 @@ export function SignInDialog({
   return (
     <dialog
       ref={dialog}
-      className="e-dialog e-dialog--sm auth-overlay"
+      className="e-dialog auth-overlay"
       aria-labelledby="auth-overlay-title"
       onKeyDown={(event) => {
         if (event.key !== "Tab") return;
@@ -86,7 +87,8 @@ export function SignInDialog({
         tooltip={false}
         onClick={() => router.back()}
       />
-      {children}
+      <div className="auth-overlay__main">{children}</div>
+      <AuthWall />
     </dialog>
   );
 }

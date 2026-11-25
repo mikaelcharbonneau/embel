@@ -262,7 +262,9 @@ export function SignInForm({
       ? "Check your email"
       : signingUp
         ? "Create your Embel account"
-        : "Sign in to Embel";
+        : overlay
+          ? "Welcome back"
+          : "Sign in to Embel";
   const formMessage = errors.form ? (
     <InlineMessage id={ids.error} tone="danger">
       {errors.form}
@@ -498,6 +500,7 @@ export function SignInForm({
             </form>
           )}
           <p className="auth-card__switch">
+            {signingUp ? "Already have an account?" : "New to Embel?"}{" "}
             {submitting ? (
               <button type="button" className="e-link" disabled>
                 {signingUp ? "Sign in" : "Create account"}
