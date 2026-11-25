@@ -3,8 +3,11 @@ import { referenceReactionSchema, setReferenceReactionSchema, type ReferenceElem
 import { projectScopeSchema } from "./projects";
 import catalogData from "./inspiration-catalog.json" with { type: "json" };
 import brandData from "./inspiration-brands.json" with { type: "json" };
+import logoData from "./inspiration-logos.json" with { type: "json" };
 
 export const INSPIRATION_CATALOG_VERSION = "2026-10-13.1";
+/** Most catalog references (and saved choices) one overview may list. */
+export const INSPIRATION_REFERENCE_LIMIT = 3000;
 /** The five images every brand has, in display order. */
 export type InspirationPart = "logo" | "colors" | "typefaces" | "socials" | "visuals";
 export type InspirationPartImage = {
@@ -40,11 +43,62 @@ export type InspirationBrand = InspirationDesign & { parts: InspirationPartImage
 /** Brands shown in the gallery: one saved choice per brand, where liking the
  * whole brand is the choice's ensemble flag and liking a part is its element. */
 export const inspirationBrands: readonly InspirationBrand[] = brandData as InspirationBrand[];
+/** A logo library entry as stored in inspiration-logos.json (written by
+ * scripts/build-inspiration-logos.mjs, which writes the same descriptor to the
+ * database catalog). */
+type LibraryLogoEntry = {
+  id: string;
+  slug: string;
+  brand: string;
+  width: number;
+  height: number;
+  contentHash: string;
+  fill?: string;
+};
+export const LOGO_LIBRARY_SINCE = "2026-11-24.1";
+function expandInspirationLogo(logo: LibraryLogoEntry): InspirationBrand {
+  const image = `/inspiration/logos/${logo.slug}.webp`,
+    description = `${logo.brand} logo`;
+  return {
+    id: logo.id,
+    slug: logo.slug,
+    brand: logo.brand,
+    kind: "logo",
+    description,
+    image,
+    width: logo.width,
+    height: logo.height,
+    contentHash: logo.contentHash,
+    elements: ["logo"],
+    tags: [],
+    availableSince: LOGO_LIBRARY_SINCE,
+    parts: [
+      {
+        part: "logo",
+        image,
+        thumbnail: `/inspiration/logos/${logo.slug}-small.webp`,
+        width: logo.width,
+        height: logo.height,
+        contentHash: logo.contentHash,
+        ...(logo.fill ? { fill: logo.fill } : {}),
+        description,
+      },
+    ],
+  };
+}
+/** The logo library: single real-world logos shown only in the Logos tab, after
+ * the brand boards' logos. Each can be liked as a logo; it is shown for
+ * inspiration only and does not guide generation (no style notes). */
+export const inspirationLogoLibrary: readonly InspirationBrand[] = (logoData as LibraryLogoEntry[]).map(
+  expandInspirationLogo,
+);
+/** Everything the gallery shows: the brand boards, then the logo library. */
+export const inspirationGallery: readonly InspirationBrand[] = [...inspirationBrands, ...inspirationLogoLibrary];
 /** Every catalog reference a saved choice may name. The earlier single-image
  * designs are no longer shown; they stay so older saved records still read. */
 export const inspirationCatalog: readonly InspirationDesign[] = [
   ...(catalogData as InspirationDesign[]),
-  ...inspirationBrands,
+  ...inspirationGallery,
 ];
 export const inspirationParts: readonly InspirationPart[] = ["logo", "colors", "typefaces", "socials", "visuals"];
 export const inspirationPartElements: Record<InspirationPart, ReferenceElement> = {
@@ -73,6 +127,9 @@ export const inspirationCategories: readonly { value: InspirationCategory; label
 ];
 export const isInspirationBrand = (design?: InspirationDesign): design is InspirationBrand =>
   Boolean(design?.parts?.length);
+/** A logo library entry: one logo image, liked only as a logo. */
+export const isLibraryLogo = (design?: InspirationDesign): design is InspirationBrand =>
+  isInspirationBrand(design) && design.kind === "logo";
 export const inspirationLabels: Record<ReferenceElement, string> = {
   logo: "Logo",
   typography: "Typography",
@@ -94,9 +151,9 @@ export const inspirationOverviewSchema = z
     projectScope: projectScopeSchema,
     projectRevision: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
     catalogVersion: z.literal(INSPIRATION_CATALOG_VERSION),
-    availableReferenceIds: z.array(z.uuid()).max(1000).optional(),
+    availableReferenceIds: z.array(z.uuid()).max(INSPIRATION_REFERENCE_LIMIT).optional(),
     selectionRevision: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
-    choices: z.array(referenceReactionSchema).max(1000),
+    choices: z.array(referenceReactionSchema).max(INSPIRATION_REFERENCE_LIMIT),
   })
   .superRefine((value, ctx) => {
     const seen = new Set<string>();

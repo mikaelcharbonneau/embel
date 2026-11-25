@@ -2,6 +2,7 @@ import { z } from "zod";
 import { logoBriefDraftSchema, logoReferenceSelectionSchema, type LogoType } from "./logo-workspace";
 import { logoCounterSchema, logoRevisionSchema, logoUuidSchema } from "./logo-vector";
 import { LIKED_LETTERING, LIKED_LOGO_STYLE } from "./logo-style-notes";
+import { INSPIRATION_REFERENCE_LIMIT } from "./inspiration";
 
 export const LOGO_SAVED_INPUTS_MAX_BYTES = 65_536;
 /** Liked uploads used as images: a logo refinement sends its base preview plus
@@ -29,7 +30,7 @@ export const logoSavedInputsSchema = z
     inspirationSelectionRevision: logoCounterSchema,
     draft: logoBriefDraftSchema.nullable(),
     nameConflict: z.boolean(),
-    inspirationCount: z.number().int().min(0).max(1000),
+    inspirationCount: z.number().int().min(0).max(INSPIRATION_REFERENCE_LIMIT),
     /** The owner's liked uploaded images, as logo references (whole image). */
     references: z
       .array(logoReferenceSelectionSchema)

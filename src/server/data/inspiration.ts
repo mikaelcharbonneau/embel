@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import {
+  INSPIRATION_REFERENCE_LIMIT,
   inspirationCatalog,
   inspirationMutationSchema,
   inspirationOverviewSchema,
@@ -52,7 +53,7 @@ async function withAvailableReferences(
     const available = await auth.client.rpc("get_inspiration_reference_ids");
     const ids = z
       .array(z.uuid())
-      .max(1000)
+      .max(INSPIRATION_REFERENCE_LIMIT)
       .safeParse(available.error ? null : available.data);
     return ids.success
       ? {

@@ -6,6 +6,7 @@ import {
   inspirationPartLabels,
   hasInspirationChoice,
   isInspirationBrand,
+  isLibraryLogo,
   type InspirationDesign,
   type InspirationOverview,
   type InspirationPreferences,
@@ -129,12 +130,15 @@ export function deriveSavedLogoInputs(
   // their style notes; the image prompt keeps only those lines (see
   // logoPromptPersonality). Brand descriptions stay for Creative direction,
   // which reads this brief: detailed when they fit, otherwise a short line each.
-  const notes = styleNoteLines(designs, uploads);
+  // Logo library likes are shown for inspiration only: they have no style
+  // notes, and their real brand names never reach a prompt.
+  const guided = designs.filter(({ design }) => !isLibraryLogo(design));
+  const notes = styleNoteLines(guided, uploads);
   const described = notes.length
-    ? designs.filter(
+    ? guided.filter(
         ({ choice, design }) => isInspirationBrand(design) || !(choice.ensemble || choice.elements.includes("logo")),
       )
-    : designs;
+    : guided;
   const describe = (detailed: boolean) =>
     described.map(({ choice, design }) => inspirationGuidance(design, choice, detailed));
   const compose = (guidance: string[]) =>
