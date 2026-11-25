@@ -158,6 +158,25 @@ test("a new brand goes from the first prompt to downloadable assets", async ({ p
     await expect(gallery).toBeVisible({ timeout: GENERATION });
     await gallery.getByRole("button", { name: "Like the whole Archi-Tex brand", exact: true }).click();
     await expect(replyBox(page).getByText("Inspiration: 1 liked", { exact: true })).toBeVisible();
+    // A logo library entry is liked from the Logos tab and saved like any other like.
+    await gallery
+      .getByRole("group", { name: "Categories" })
+      .getByRole("button", { name: "Logos", exact: true })
+      .click();
+    await gallery.getByRole("searchbox", { name: "Search brands" }).fill("mailchimp");
+    const libraryLike = gallery.getByRole("button", { name: "Like Mailchimp logo", exact: true });
+    await libraryLike.click();
+    await expect(replyBox(page).getByText("Inspiration: 2 liked", { exact: true })).toBeVisible();
+    await expect(libraryLike).toHaveAttribute("aria-pressed", "true");
+    await gallery.getByRole("button", { name: "Open Mailchimp: logo", exact: true }).click();
+    const overlay = page.getByRole("dialog", { name: "Mailchimp", exact: true });
+    await expect(overlay.getByRole("button", { name: "Like Mailchimp logo", exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(overlay.getByRole("button", { name: "Next image", exact: true })).toHaveCount(0);
+    await overlay.getByRole("button", { name: "Close brand", exact: true }).click();
+    await gallery.getByRole("searchbox", { name: "Search brands" }).fill("");
     await send(page, "Continue to Logo");
   });
 

@@ -51,5 +51,6 @@ the document.
 
 - [logo-style-notes.md](logo-style-notes.md): how liked logos shape logo concepts.
 - [inspiration-brand-boards.md](inspiration-brand-boards.md): the sourcing brief for the Inspiration boards.
+- [inspiration-logo-library.md](inspiration-logo-library.md): the 919-logo library in the Logos tab, its permission and release order.
 - [embel-branding.md](embel-branding.md): the Fluid to Embel rename and what kept its old name.
 - [references.md](references.md) and [references/](references/): provenance and licenses of outside references.
