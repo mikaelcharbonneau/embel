@@ -7,6 +7,7 @@
 }
 /* One centered column for Embel's message, the filters, the gallery and Continue. */
 .inspiration-browse {
+  container: inspiration / inline-size;
   box-sizing: border-box;
   flex: 1;
   min-width: 0;
@@ -21,7 +22,8 @@
 }
 .inspiration-toolbar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(150px, 430px) minmax(0, 1fr);
+  grid-template-columns: auto minmax(150px, 430px) auto;
+  justify-content: space-between;
   gap: var(--space-5);
   align-items: center;
   padding: var(--space-1) 0 var(--space-5);
@@ -157,10 +159,12 @@
 .inspiration-continue:hover {
   background: var(--color-accent-hover);
 }
+/* Pinterest-style masonry (placed by InspirationGrid with masonryColumns/masonryPlace): columns of at least 220px
+   fill the width. Before the first measurement the cards sit in a plain grid of the same columns. */
 .inspiration-columns {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(var(--inspiration-column-count, 1), minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
   gap: var(--space-5) var(--space-4);
   align-items: start;
 }
@@ -170,26 +174,6 @@
 .inspiration-columns[data-positioned="true"] > .inspiration-card {
   position: absolute;
   width: var(--inspiration-card-width);
-}
-@container (min-width: 350px) {
-  .inspiration-columns {
-    --inspiration-column-count: 2;
-  }
-}
-@container (min-width: 620px) {
-  .inspiration-columns {
-    --inspiration-column-count: 3;
-  }
-}
-@container (min-width: 900px) {
-  .inspiration-columns {
-    --inspiration-column-count: 4;
-  }
-}
-@container (min-width: 1200px) {
-  .inspiration-columns {
-    --inspiration-column-count: 5;
-  }
 }
 .inspiration-card {
   min-width: 0;
@@ -498,18 +482,20 @@
   outline: 2px solid var(--color-text);
   outline-offset: 3px;
 }
-@media (max-width: 1023px) {
+/* The toolbar follows the gallery's own width (the chat beside it takes part of the window): when the views, search
+   and categories no longer fit on one line, the search takes a line of its own. */
+@container inspiration (max-width: 860px) {
   .inspiration-toolbar {
-    grid-template-columns: auto minmax(150px, 1fr) auto;
+    grid-template-columns: 1fr auto;
     gap: var(--space-3);
+  }
+  .inspiration-search {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
   }
 }
 @media (max-width: 760px) {
-  .inspiration-toolbar {
-    grid-template-columns: 1fr auto;
-    padding: var(--space-1) 0 var(--space-5);
-    gap: var(--space-3) var(--space-3);
-  }
   .inspiration-views {
     padding-right: var(--space-4);
     gap: var(--space-3);
@@ -518,9 +504,6 @@
     padding: var(--space-3) var(--space-3);
   }
   .inspiration-search {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    width: 100%;
     height: 44px;
   }
   .inspiration-browse {
@@ -576,6 +559,11 @@
 .inspiration-in-conversation .inspiration-browse {
   max-width: none;
   margin: 0;
+  padding: 0;
+}
+/* In the workspace the gallery fills the work area's full width, as on Pinterest; the work area has its own padding. */
+.inspiration-in-workspace .inspiration-browse {
+  max-width: none;
   padding: 0;
 }
 .inspiration-in-conversation .inspiration-question {
@@ -799,22 +787,9 @@ button.inspiration-continue {
 .inspiration-workspace .inspiration-part-like[aria-pressed="true"] {
   opacity: 1;
 }
+/* The marker after the last card: more cards load as it nears the screen. */
 .inspiration-more {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 40px;
-  margin: var(--space-5) auto 0;
-  padding: 0 var(--space-5);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-paper);
-  color: var(--color-text);
-  font-size: var(--font-size-2);
-  cursor: pointer;
-}
-.inspiration-more:hover {
-  border-color: var(--color-border-strong);
+  height: 1px;
 }
 
 /* The brand overlay: the selected image large on the left; the brand, its

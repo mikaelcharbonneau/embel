@@ -13,10 +13,40 @@ export const BENTO = {
   /** Preferred card shape (width / height) and how strongly it is preferred. */
   cardRatio: 0.85,
   cardWeight: 0.6,
-  /** Narrowest card and most cards in one row. */
+  /** Narrowest card and most cards in one row: three, or more on a wide gallery (one per maxPerRowWidth px, up to
+   * maxPerRowCap) so brand cards keep a moderate size instead of growing with the window. */
   minCardWidth: 230,
   maxPerRow: 3,
+  maxPerRowWidth: 400,
+  maxPerRowCap: 6,
 } as const;
+/** Most brand cards one row may hold at a gallery width. */
+export const bentoMaxPerRow = (width: number) =>
+  Math.min(BENTO.maxPerRowCap, Math.max(BENTO.maxPerRow, Math.floor(width / BENTO.maxPerRowWidth)));
+
+/** Masonry for single images (Logos, Colors, …), as on Pinterest: as many columns of at least minColumn px as fit
+ * the width, and each card goes to the shortest column so the columns stay even. */
+export const MASONRY = { columnGap: 16, rowGap: 20, minColumn: 220, narrowColumn: 150 } as const;
+export function masonryColumns(width: number): { count: number; width: number } {
+  const { columnGap, minColumn, narrowColumn } = MASONRY;
+  const fit = Math.floor((width + columnGap) / (minColumn + columnGap)),
+    count = Math.max(width >= 2 * narrowColumn + columnGap ? 2 : 1, fit);
+  return { count, width: (width - (count - 1) * columnGap) / count };
+}
+/** Places cards of the given heights, in order, each at the top of the shortest column (the leftmost on a tie). */
+export function masonryPlace(
+  heights: readonly number[],
+  columns: { count: number; width: number },
+): { boxes: { x: number; y: number }[]; height: number } {
+  const tops = Array<number>(columns.count).fill(0);
+  const boxes = heights.map((height) => {
+    const column = tops.indexOf(Math.min(...tops));
+    const box = { x: column * (columns.width + MASONRY.columnGap), y: tops[column]! };
+    tops[column] = box.y + height + MASONRY.rowGap;
+    return box;
+  });
+  return { boxes, height: heights.length ? Math.max(...tops) - MASONRY.rowGap : 0 };
+}
 
 type Sized = { width: number; height: number };
 const ratio = (image: Sized) => image.width / image.height;
@@ -68,7 +98,8 @@ export function bentoLayout(
   target = bentoTarget(width),
 ): { boxes: BentoBox[]; height: number } {
   const gap = BENTO.cardGap,
-    count = shapes.length;
+    count = shapes.length,
+    perRow = bentoMaxPerRow(width);
   const height = (start: number, end: number) => {
     let inverse = 0,
       offsets = 0;
@@ -83,7 +114,7 @@ export function bentoLayout(
     from = Array<number>(count + 1).fill(0);
   cost[0] = 0;
   for (let end = 1; end <= count; end++) {
-    for (let start = Math.max(0, end - BENTO.maxPerRow); start < end; start++) {
+    for (let start = Math.max(0, end - perRow); start < end; start++) {
       const rowHeight = height(start, end);
       const fits =
         rowHeight > 0 &&

@@ -1643,6 +1643,7 @@ export function AccountGuidedInterview({
             work={work}
             workLabel={`${viewStep === "identity" ? "Identity" : viewStep === "voice" ? "Voice" : "Strategy"} work`}
             rows={view === "logo" || view === "directions" ? rows : undefined}
+            fill={view === "inspiration"}
             logKey={JSON.stringify([liveItems.length, Boolean(statusMessage), Boolean(problem), view])}
             overlayHost={setOverlayHost}
           />

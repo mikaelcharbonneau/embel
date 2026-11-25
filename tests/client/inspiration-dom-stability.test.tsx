@@ -202,15 +202,45 @@ describe("Inspiration brands", () => {
     expect(controller.save).not.toHaveBeenCalled();
   });
 
-  it("shows one part across brands in a category, more on request, and likes that part from its card", async () => {
+  it("shows one part across brands in a category, more as the end comes into view, and likes that part from its card", async () => {
+    const watched = new Set<{ callback: IntersectionObserverCallback; target?: Element }>();
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        readonly entry: { callback: IntersectionObserverCallback; target?: Element };
+        constructor(callback: IntersectionObserverCallback) {
+          this.entry = { callback };
+          watched.add(this.entry);
+        }
+        observe(target: Element) {
+          this.entry.target = target;
+        }
+        disconnect() {
+          watched.delete(this.entry);
+        }
+      },
+    );
+    const scrollToEnd = () =>
+      act(async () => {
+        for (const entry of [...watched])
+          entry.callback(
+            [{ isIntersecting: true, target: entry.target } as IntersectionObserverEntry],
+            {} as IntersectionObserver,
+          );
+      });
     await render();
     await click("Typefaces");
     expect(brandCards()).toHaveLength(0);
-    expect(partCards()).toHaveLength(Math.min(18, inspirationBrands.length));
+    expect(partCards()).toHaveLength(Math.min(24, inspirationBrands.length));
     expect(images()[0]!.getAttribute("src")).toBe(first!.parts.find((part) => part.part === "typefaces")!.thumbnail);
-    if (inspirationBrands.length > 18) {
-      await click("Show more typefaces");
-      expect(partCards()).toHaveLength(Math.min(36, inspirationBrands.length));
+    // No button to press: reaching the end of the gallery loads the next cards.
+    expect([...host.querySelectorAll("button")].some((item) => item.textContent?.startsWith("Show more"))).toBe(false);
+    if (inspirationBrands.length > 24) {
+      const shown = partCards();
+      await scrollToEnd();
+      expect(partCards()).toHaveLength(Math.min(48, inspirationBrands.length));
+      // The cards already on screen keep their DOM nodes.
+      expectSameNodes(partCards().slice(0, shown.length), shown);
     }
     await act(async () => button(`Like ${first!.brand} typefaces`).click());
     expect(controller.save).toHaveBeenLastCalledWith(first!.id, { ensemble: false, elements: ["typography"] });
@@ -382,7 +412,7 @@ describe("Brand overlay", () => {
 });
 
 describe("Part grid masonry", () => {
-  it("keeps every card, image and focused control mounted across width breakpoints", async () => {
+  it("keeps every card, image and focused control mounted while the number of columns follows the width", async () => {
     await render();
     await click("Logos");
     const grid = host.querySelector<HTMLElement>(".inspiration-columns")!,
@@ -396,7 +426,8 @@ describe("Part grid masonry", () => {
       [950, 4],
       [700, 3],
       [400, 2],
-      [320, 1],
+      [280, 1],
+      [2200, 9],
       [1250, 5],
     ]) {
       await resize(nextWidth!);
@@ -405,8 +436,9 @@ describe("Part grid masonry", () => {
       expect(document.activeElement).toBe(control);
       const cardWidth = (nextWidth! - (columns! - 1) * 16) / columns!;
       const heights = Array<number>(columns!).fill(0);
-      partCards().forEach((card, index) => {
-        const column = index % columns!;
+      // Each card goes to the top of the shortest column, the leftmost on a tie.
+      partCards().forEach((card) => {
+        const column = heights.indexOf(Math.min(...heights));
         expect(Number.parseFloat(card.style.left)).toBeCloseTo(column * (cardWidth + 16));
         expect(Number.parseFloat(card.style.top)).toBeCloseTo(heights[column]!);
         heights[column]! += card.getBoundingClientRect().height + 20;
