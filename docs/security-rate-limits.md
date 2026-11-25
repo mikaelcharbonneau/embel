@@ -154,14 +154,16 @@ with a Vercel access token; the Vercel connector can read the firewall but not c
 `POST /api/auth/oauth/{google,apple,chatgpt}` ([provider-sign-in.md](provider-sign-in.md)) is not in the
 BotID list: it is a plain form post, which cannot carry BotID's challenge. It starts no paid work, sends
 no email and creates no account, so a rate limit is not required for safety. To keep all account routes
-under the same two limits, the release lead can widen the path of both "Account forms" rules to
+under the same two limits, the path of both "Account forms" rules was widened to
 
 ```
 ^/api/auth/(sign-in|sign-up|password-reset|resend-confirmation|oauth/[^/]+)$
 ```
 
-_Status: not applied; the live rules still use the path above without `oauth`._ `/auth/callback` is a
-`GET` and is not counted by these rules.
+_Status: live since November 25, 2026 (firewall config version 4), with the same windows and limits
+as above. It was changed with `vercel firewall rules edit "<rule>" --condition ... --condition ...`
+and `vercel firewall publish`; the Vercel connector answered 403. Rollback: edit both rules back to
+the path without `oauth`, then publish._ `/auth/callback` is a `GET` and is not counted by these rules.
 
 ## Verification in this PR
 
