@@ -412,38 +412,72 @@ describe("Brand overlay", () => {
 });
 
 describe("Part grid masonry", () => {
-  it("keeps every card, image and focused control mounted while the number of columns follows the width", async () => {
+  for (const { tab, gap, rowGap, widths } of [
+    {
+      tab: "Colors",
+      gap: 16,
+      rowGap: 20,
+      widths: [
+        [1250, 5],
+        [950, 4],
+        [700, 3],
+        [400, 2],
+        [280, 1],
+        [2200, 9],
+        [1250, 5],
+      ],
+    },
+    // Logos follow logosystem.co: one, three or five large columns, 18px apart.
+    {
+      tab: "Logos",
+      gap: 18,
+      rowGap: 18,
+      widths: [
+        [1250, 5],
+        [950, 3],
+        [700, 3],
+        [400, 1],
+        [2200, 5],
+        [1250, 5],
+      ],
+    },
+  ])
+    it(`keeps every ${tab} card, image and focused control mounted while the number of columns follows the width`, async () => {
+      await render();
+      await click(tab);
+      const grid = host.querySelector<HTMLElement>(".inspiration-columns")!,
+        originalCards = partCards(),
+        originalImages = images();
+      expect(grid.dataset.layout).toBe(tab === "Logos" ? "logos" : undefined);
+      const control =
+        originalCards[Math.min(6, originalCards.length - 1)]!.querySelector<HTMLButtonElement>(".inspiration-caption")!;
+      control.focus();
+      for (const [nextWidth, columns] of widths) {
+        await resize(nextWidth!);
+        expectSameNodes(partCards(), originalCards);
+        expectSameNodes(images(), originalImages);
+        expect(document.activeElement).toBe(control);
+        const cardWidth = (nextWidth! - (columns! - 1) * gap) / columns!;
+        const heights = Array<number>(columns!).fill(0);
+        // Each card goes to the top of the shortest column, the leftmost on a tie.
+        partCards().forEach((card) => {
+          const column = heights.indexOf(Math.min(...heights));
+          expect(Number.parseFloat(card.style.left)).toBeCloseTo(column * (cardWidth + gap));
+          expect(Number.parseFloat(card.style.top)).toBeCloseTo(heights[column]!);
+          heights[column]! += card.getBoundingClientRect().height + rowGap;
+        });
+        expect(Number.parseFloat(grid.style.height)).toBeCloseTo(Math.max(...heights) - rowGap);
+      }
+    });
+
+  it("shows a logo's name over its artwork in the Logos tab and as a caption below elsewhere", async () => {
     await render();
     await click("Logos");
-    const grid = host.querySelector<HTMLElement>(".inspiration-columns")!,
-      originalCards = partCards(),
-      originalImages = images();
-    const control =
-      originalCards[Math.min(6, originalCards.length - 1)]!.querySelector<HTMLButtonElement>(".inspiration-caption")!;
-    control.focus();
-    for (const [nextWidth, columns] of [
-      [1250, 5],
-      [950, 4],
-      [700, 3],
-      [400, 2],
-      [280, 1],
-      [2200, 9],
-      [1250, 5],
-    ]) {
-      await resize(nextWidth!);
-      expectSameNodes(partCards(), originalCards);
-      expectSameNodes(images(), originalImages);
-      expect(document.activeElement).toBe(control);
-      const cardWidth = (nextWidth! - (columns! - 1) * 16) / columns!;
-      const heights = Array<number>(columns!).fill(0);
-      // Each card goes to the top of the shortest column, the leftmost on a tie.
-      partCards().forEach((card) => {
-        const column = heights.indexOf(Math.min(...heights));
-        expect(Number.parseFloat(card.style.left)).toBeCloseTo(column * (cardWidth + 16));
-        expect(Number.parseFloat(card.style.top)).toBeCloseTo(heights[column]!);
-        heights[column]! += card.getBoundingClientRect().height + 20;
-      });
-      expect(Number.parseFloat(grid.style.height)).toBeCloseTo(Math.max(...heights) - 20);
-    }
+    const logo = partCards()[0]!;
+    expect(logo.querySelector(".inspiration-card-art .inspiration-art-name")?.textContent).toBe(first!.brand);
+    await click("Colors");
+    const colors = partCards()[0]!;
+    expect(colors.querySelector(".inspiration-art-name")).toBeNull();
+    expect(colors.querySelector(":scope > .inspiration-caption")?.textContent).toBe(first!.brand);
   });
 });

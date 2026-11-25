@@ -6,6 +6,8 @@ import {
   bentoMaxPerRow,
   brandRows,
   cardShape,
+  LOGO_GRID,
+  logoColumns,
   MASONRY,
   masonryColumns,
   masonryPlace,
@@ -100,7 +102,7 @@ describe("single images in the masonry", () => {
   });
 
   it("puts each card at the top of the shortest column, so the columns end close together", () => {
-    const columns = { count: 3, width: 100 };
+    const columns = { count: 3, width: 100, columnGap: MASONRY.columnGap, rowGap: MASONRY.rowGap };
     const { boxes, height } = masonryPlace([300, 100, 100, 50, 80], columns);
     const step = 100 + MASONRY.columnGap,
       gap = MASONRY.rowGap;
@@ -114,7 +116,12 @@ describe("single images in the masonry", () => {
     expect(height).toBe(300);
     // Many cards of mixed heights: no column ends more than one card's height below another.
     const heights = Array.from({ length: 200 }, (_, index) => 120 + ((index * 73) % 260));
-    const placed = masonryPlace(heights, { count: 5, width: 200 });
+    const placed = masonryPlace(heights, {
+      count: 5,
+      width: 200,
+      columnGap: MASONRY.columnGap,
+      rowGap: MASONRY.rowGap,
+    });
     const ends = Array<number>(5).fill(0);
     placed.boxes.forEach((box, index) => {
       const column = Math.round(box.x / (200 + MASONRY.columnGap));
@@ -122,5 +129,22 @@ describe("single images in the masonry", () => {
     });
     expect(Math.max(...ends) - Math.min(...ends)).toBeLessThanOrEqual(Math.max(...heights) + MASONRY.rowGap);
     expect(masonryPlace([], columns)).toEqual({ boxes: [], height: 0 });
+  });
+});
+
+describe("the Logos tab, after logosystem.co", () => {
+  it("uses one, three or five large columns that grow with the gallery, 18px apart", () => {
+    expect([390, 599, 600, 989, 990, 1500, 2600].map((width) => logoColumns(width).count)).toEqual([
+      1, 1, 3, 3, 5, 5, 5,
+    ]);
+    for (const width of [390, 960, 1500, 2100]) {
+      const columns = logoColumns(width);
+      expect(columns.columnGap).toBe(LOGO_GRID.gap);
+      expect(columns.rowGap).toBe(LOGO_GRID.gap);
+      expect(columns.width * columns.count + LOGO_GRID.gap * (columns.count - 1)).toBeCloseTo(width, 6);
+    }
+    // A wide gallery keeps five columns and makes each logo larger instead of adding small ones.
+    expect(logoColumns(2100).width).toBeGreaterThan(400);
+    expect(logoColumns(2100).width).toBeGreaterThan(masonryColumns(2100).width * 1.5);
   });
 });
