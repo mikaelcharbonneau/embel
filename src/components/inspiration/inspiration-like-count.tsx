@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { inspirationBrands, inspirationLikeCount } from "@/domain/inspiration";
+import { inspirationGallery, inspirationLikeCount } from "@/domain/inspiration";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 import { useInspiration } from "./use-inspiration";
 
-const brandIds = new Set(inspirationBrands.map((brand) => brand.id));
+const brandIds = new Set(inspirationGallery.map((brand) => brand.id));
 
 /** Reads a project's saved Inspiration likes (whole brands and their parts) for the folded Inspiration entry in the
  * chat, while the gallery itself is not on screen. Renders nothing. Images of your own are counted by the gallery. */

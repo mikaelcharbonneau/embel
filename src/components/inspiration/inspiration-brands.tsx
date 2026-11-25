@@ -279,6 +279,8 @@ export function BrandOverlay({
     image = brand.parts[index]!;
   const step = (delta: number) => setPart(brand.parts[(index + delta + brand.parts.length) % brand.parts.length]!.part);
   const { choice } = likes;
+  // A logo library entry is one logo: no other parts to step through or like.
+  const single = brand.parts.length === 1;
   return (
     <dialog
       ref={dialog}
@@ -289,7 +291,7 @@ export function BrandOverlay({
         if (isDialogBackdropClick(event)) onClose();
       }}
       onKeyDown={(event) => {
-        if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        if (!single && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
           event.preventDefault();
           step(event.key === "ArrowLeft" ? -1 : 1);
         }
@@ -301,24 +303,28 @@ export function BrandOverlay({
           <figcaption aria-live="polite" aria-atomic="true">
             {inspirationPartLabels[image.part]}
           </figcaption>
-          <button
-            type="button"
-            className="inspiration-overlay-step"
-            data-direction="previous"
-            aria-label="Previous image"
-            onClick={() => step(-1)}
-          >
-            <Icon name="arrow" size={18} />
-          </button>
-          <button
-            type="button"
-            className="inspiration-overlay-step"
-            data-direction="next"
-            aria-label="Next image"
-            onClick={() => step(1)}
-          >
-            <Icon name="arrow" size={18} />
-          </button>
+          {!single && (
+            <>
+              <button
+                type="button"
+                className="inspiration-overlay-step"
+                data-direction="previous"
+                aria-label="Previous image"
+                onClick={() => step(-1)}
+              >
+                <Icon name="arrow" size={18} />
+              </button>
+              <button
+                type="button"
+                className="inspiration-overlay-step"
+                data-direction="next"
+                aria-label="Next image"
+                onClick={() => step(1)}
+              >
+                <Icon name="arrow" size={18} />
+              </button>
+            </>
+          )}
         </figure>
         <div className="inspiration-detail-body">
           <div className="inspiration-detail-top">
@@ -333,47 +339,67 @@ export function BrandOverlay({
             </button>
           </div>
           <h2 id={titleId}>{brand.brand}</h2>
-          <p>{brand.description}</p>
-          <button
-            className="inspiration-overall"
-            type="button"
-            aria-pressed={choice.ensemble}
-            aria-label={wholeLabel(brand)}
-            disabled={likes.disabled}
-            onClick={() => likes.onChange(toggleWhole(choice))}
-          >
-            <Heart liked={choice.ensemble} />
-            Whole brand
-          </button>
-          <hr />
-          <h3>Or like just a part</h3>
-          <ul className="inspiration-overlay-parts">
-            {brand.parts.map((item) => {
-              const liked = partLiked(choice, item.part);
-              return (
-                <li key={item.part}>
-                  <button
-                    type="button"
-                    className="inspiration-overlay-part"
-                    aria-current={item.part === part}
-                    onClick={() => setPart(item.part)}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={item.thumbnail} width={item.width} height={item.height} alt="" loading="lazy" />
-                    <span>{inspirationPartLabels[item.part]}</span>
-                  </button>
-                  <LikeButton
-                    className="inspiration-heart inspiration-overlay-like"
-                    liked={liked}
-                    label={partLikeLabel(brand, item.part)}
-                    disabled={likes.disabled}
-                    onToggle={() => likes.onChange(togglePart(choice, item.part))}
-                  />
-                </li>
-              );
-            })}
-          </ul>
-          {likes.status}
+          {single ? (
+            <>
+              <p>From the logo library.</p>
+              <button
+                className="inspiration-overall"
+                type="button"
+                aria-pressed={partLiked(choice, image.part)}
+                aria-label={partLikeLabel(brand, image.part)}
+                disabled={likes.disabled}
+                onClick={() => likes.onChange(togglePart(choice, image.part))}
+              >
+                <Heart liked={partLiked(choice, image.part)} />
+                Like this logo
+              </button>
+              {likes.status}
+            </>
+          ) : (
+            <>
+              <p>{brand.description}</p>
+              <button
+                className="inspiration-overall"
+                type="button"
+                aria-pressed={choice.ensemble}
+                aria-label={wholeLabel(brand)}
+                disabled={likes.disabled}
+                onClick={() => likes.onChange(toggleWhole(choice))}
+              >
+                <Heart liked={choice.ensemble} />
+                Whole brand
+              </button>
+              <hr />
+              <h3>Or like just a part</h3>
+              <ul className="inspiration-overlay-parts">
+                {brand.parts.map((item) => {
+                  const liked = partLiked(choice, item.part);
+                  return (
+                    <li key={item.part}>
+                      <button
+                        type="button"
+                        className="inspiration-overlay-part"
+                        aria-current={item.part === part}
+                        onClick={() => setPart(item.part)}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={item.thumbnail} width={item.width} height={item.height} alt="" loading="lazy" />
+                        <span>{inspirationPartLabels[item.part]}</span>
+                      </button>
+                      <LikeButton
+                        className="inspiration-heart inspiration-overlay-like"
+                        liked={liked}
+                        label={partLikeLabel(brand, item.part)}
+                        disabled={likes.disabled}
+                        onToggle={() => likes.onChange(togglePart(choice, item.part))}
+                      />
+                    </li>
+                  );
+                })}
+              </ul>
+              {likes.status}
+            </>
+          )}
         </div>
       </div>
     </dialog>

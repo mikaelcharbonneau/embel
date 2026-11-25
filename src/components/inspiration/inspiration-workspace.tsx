@@ -9,6 +9,7 @@ import {
   hasInspirationChoice,
   inspirationBrands,
   inspirationCategories,
+  inspirationGallery,
   inspirationLikeCount,
   partLiked,
   type InspirationBrand,
@@ -36,7 +37,7 @@ const brandLayouts = new Map(
     return [brand.id, { rows, shape: cardShape(rows) }];
   }),
 );
-const brandIds = new Set(inspirationBrands.map((brand) => brand.id));
+const brandIds = new Set(inspirationGallery.map((brand) => brand.id));
 function Recovery({ id, controller }: { id: string; controller: InspirationController }) {
   const intent = controller.intents.get(id);
   if (!intent) return null;
@@ -341,7 +342,7 @@ export function InspirationView({
   const parts =
     category === "brands"
       ? []
-      : filterInspirationParts(inspirationBrands, category, query).filter(
+      : filterInspirationParts(inspirationGallery, category, query).filter(
           (item) => !liked || partLiked(displayed.get(item.brand.id), category),
         );
   const total = category === "brands" ? brands.length : parts.length;
