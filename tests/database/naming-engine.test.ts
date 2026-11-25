@@ -187,8 +187,11 @@ describe("saving an engine run's names", () => {
       output([name("Brasa"), name("lantern"), name("Brasa"), name("Mesa Alta", "phrases")]),
     );
     expect(first).toEqual({ saved: true, inserted: ["brasa", "mesaalta"], savedCount: 2 });
-    // A replayed step changes nothing and reports the same names.
-    expect(await x.engine.save(run.id, "round.1.1", output([name("Other")]))).toEqual({
+    // A replayed step changes nothing and reports the same names. Names saved in
+    // one step share a creation time, so the replay lists them in no fixed order
+    // (callers use them as a set).
+    const replay = await x.engine.save(run.id, "round.1.1", output([name("Other")]));
+    expect({ ...replay, inserted: [...replay.inserted].sort() }).toEqual({
       saved: false,
       inserted: ["brasa", "mesaalta"],
       savedCount: 2,
@@ -222,16 +225,21 @@ describe("saving an engine run's names", () => {
     const view = await x.feed(p);
     expect(view.availability).toEqual({ status: "available" });
     expect(view.run).toMatchObject({ runId: run.id, jobId: run.id, kind: "initial", state: "running", savedCount: 2 });
-    expect(view.entries.map((row) => [row.entry.candidate.value, row.primaryApproach, row.runId === run.id])).toEqual([
-      ["Lantern", "real_words", false],
+    // The earlier run's names come first. Names saved together share a creation
+    // time, so their order within each group is not fixed.
+    const rows = view.entries.map((row) => [row.entry.candidate.value, row.primaryApproach, row.runId === run.id]);
+    expect(rows.slice(0, 2).sort()).toEqual([
       ["Hearth Row", "phrases", false],
+      ["Lantern", "real_words", false],
+    ]);
+    expect(rows.slice(2).sort()).toEqual([
       ["Brasa", "real_words", true],
       ["Mesa Alta", "phrases", true],
     ]);
     const page = await x.feed(p, OWNER_A, null, 3);
     expect(page.entries).toHaveLength(3);
     expect((await x.feed(p, OWNER_A, page.nextCursor)).entries.map((row) => row.entry.candidate.value)).toEqual([
-      "Mesa Alta",
+      view.entries[3]!.entry.candidate.value,
     ]);
 
     await x.engine.finish(run.id, "succeeded");
