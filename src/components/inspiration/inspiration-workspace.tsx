@@ -24,6 +24,7 @@ import {
   bentoLayout,
   brandRows,
   cardShape,
+  logoColumns,
   masonryColumns,
   masonryPlace,
   type BentoBox,
@@ -124,9 +125,10 @@ function BrandBento({
     </div>
   );
 }
-/** Pinterest-style masonry: as many columns as fit the width, each card at the top of the shortest column. Cards
- * keep their DOM identity (images and focus) while they move. */
-function InspirationGrid({ children }: { children: ReactNode }) {
+/** Pinterest-style masonry: as many columns as fit the width, each card at the top of the shortest column. The Logos
+ * tab (logos) uses logosystem.co's larger tiles in a fixed number of columns. Cards keep their DOM identity (images
+ * and focus) while they move. */
+function InspirationGrid({ children, logos = false }: { children: ReactNode; logos?: boolean }) {
   const grid = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const node = grid.current;
@@ -135,7 +137,7 @@ function InspirationGrid({ children }: { children: ReactNode }) {
     const layout = () => {
       const width = node.getBoundingClientRect().width;
       if (!width) return;
-      const columns = masonryColumns(width);
+      const columns = logos ? logoColumns(width) : masonryColumns(width);
       node.style.setProperty("--inspiration-card-width", `${columns.width}px`);
       node.dataset.positioned = "true";
       // Heights are read once the cards have their column width, then every card is placed.
@@ -154,9 +156,9 @@ function InspirationGrid({ children }: { children: ReactNode }) {
     observer.observe(node);
     cards.forEach((card) => observer.observe(card));
     return () => observer.disconnect();
-  }, [children]);
+  }, [children, logos]);
   return (
-    <div className="inspiration-columns" ref={grid}>
+    <div className="inspiration-columns" data-layout={logos ? "logos" : undefined} ref={grid}>
       {children}
     </div>
   );
@@ -501,12 +503,13 @@ export function InspirationView({
               )}
             </BrandBento>
           ) : (
-            <InspirationGrid>
+            <InspirationGrid logos={category === "logo"}>
               {parts.slice(0, limit).map(({ brand, image }) => (
                 <PartCard
                   key={`${brand.id}:${image.part}`}
                   brand={brand}
                   image={image}
+                  nameOnArt={category === "logo"}
                   likes={likesFor(brand, true)}
                   onOpen={() => setOpen({ brand, part: image.part })}
                 />

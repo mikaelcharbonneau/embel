@@ -27,25 +27,38 @@ export const bentoMaxPerRow = (width: number) =>
 /** Masonry for single images (Logos, Colors, …), as on Pinterest: as many columns of at least minColumn px as fit
  * the width, and each card goes to the shortest column so the columns stay even. */
 export const MASONRY = { columnGap: 16, rowGap: 20, minColumn: 220, narrowColumn: 150 } as const;
-export function masonryColumns(width: number): { count: number; width: number } {
-  const { columnGap, minColumn, narrowColumn } = MASONRY;
+/** A masonry's columns: how many, how wide, and the space between columns and between cards in a column. */
+export type MasonryColumns = { count: number; width: number; columnGap: number; rowGap: number };
+const columnsOf = (width: number, count: number, columnGap: number, rowGap: number): MasonryColumns => ({
+  count,
+  width: (width - (count - 1) * columnGap) / count,
+  columnGap,
+  rowGap,
+});
+export function masonryColumns(width: number): MasonryColumns {
+  const { columnGap, rowGap, minColumn, narrowColumn } = MASONRY;
   const fit = Math.floor((width + columnGap) / (minColumn + columnGap)),
     count = Math.max(width >= 2 * narrowColumn + columnGap ? 2 : 1, fit);
-  return { count, width: (width - (count - 1) * columnGap) / count };
+  return columnsOf(width, count, columnGap, rowGap);
 }
+/** The Logos tab follows logosystem.co: large tiles in a fixed number of columns that grow with the gallery (one
+ * on a phone, three from 600px, five from 990px), 18px apart. */
+export const LOGO_GRID = { gap: 18, three: 600, five: 990 } as const;
+export const logoColumns = (width: number): MasonryColumns =>
+  columnsOf(width, width >= LOGO_GRID.five ? 5 : width >= LOGO_GRID.three ? 3 : 1, LOGO_GRID.gap, LOGO_GRID.gap);
 /** Places cards of the given heights, in order, each at the top of the shortest column (the leftmost on a tie). */
 export function masonryPlace(
   heights: readonly number[],
-  columns: { count: number; width: number },
+  columns: MasonryColumns,
 ): { boxes: { x: number; y: number }[]; height: number } {
   const tops = Array<number>(columns.count).fill(0);
   const boxes = heights.map((height) => {
     const column = tops.indexOf(Math.min(...tops));
-    const box = { x: column * (columns.width + MASONRY.columnGap), y: tops[column]! };
-    tops[column] = box.y + height + MASONRY.rowGap;
+    const box = { x: column * (columns.width + columns.columnGap), y: tops[column]! };
+    tops[column] = box.y + height + columns.rowGap;
     return box;
   });
-  return { boxes, height: heights.length ? Math.max(...tops) - MASONRY.rowGap : 0 };
+  return { boxes, height: heights.length ? Math.max(...tops) - columns.rowGap : 0 };
 }
 
 type Sized = { width: number; height: number };

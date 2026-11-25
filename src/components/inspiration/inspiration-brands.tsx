@@ -208,22 +208,38 @@ export function BrandCard({
   );
 }
 
-/** One part of one brand, in a category such as Logos or Colors. */
+/** One part of one brand, in a category such as Logos or Colors. With nameOnArt (the Logos tab, after
+ * logosystem.co) the name sits in a pill over the artwork, shown on hover or focus, instead of a caption below. */
 export function PartCard({
   brand,
   image,
   likes,
+  nameOnArt = false,
   onOpen,
 }: {
   brand: InspirationBrand;
   image: InspirationPartImage;
   likes: BrandLikes;
+  nameOnArt?: boolean;
   onOpen: () => void;
 }) {
   const liked = partLiked(likes.choice, image.part);
+  const name = (
+    <button
+      className={nameOnArt ? "inspiration-caption inspiration-art-name" : "inspiration-caption"}
+      type="button"
+      onClick={onOpen}
+    >
+      <strong>{brand.brand}</strong>
+    </button>
+  );
   return (
-    <article className="inspiration-card" aria-label={`${brand.brand} ${partLabel(image.part)}`}>
-      <div className="inspiration-card-art">
+    <article
+      className="inspiration-card"
+      data-liked={liked ? "true" : undefined}
+      aria-label={`${brand.brand} ${partLabel(image.part)}`}
+    >
+      <div className="inspiration-card-art" style={nameOnArt ? { backgroundColor: image.fill } : undefined}>
         <button
           type="button"
           className="inspiration-open"
@@ -238,10 +254,9 @@ export function PartCard({
           disabled={likes.disabled}
           onToggle={() => likes.onChange(togglePart(likes.choice, image.part))}
         />
+        {nameOnArt && name}
       </div>
-      <button className="inspiration-caption" type="button" onClick={onOpen}>
-        <strong>{brand.brand}</strong>
-      </button>
+      {!nameOnArt && name}
       {likes.status}
     </article>
   );

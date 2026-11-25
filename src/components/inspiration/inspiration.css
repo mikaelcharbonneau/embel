@@ -178,6 +178,65 @@
 .inspiration-card {
   min-width: 0;
 }
+/* The Logos tab, after logosystem.co: large tiles in one, three or five columns (placed by InspirationGrid with
+   logoColumns), 18px apart, with no caption. The name shows in a pill over the artwork on hover or focus; the
+   heart shows on hover or focus, stays once liked, and is always shown on touch screens. */
+.inspiration-columns[data-layout="logos"] {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+}
+@container inspiration (min-width: 600px) {
+  .inspiration-columns[data-layout="logos"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@container inspiration (min-width: 990px) {
+  .inspiration-columns[data-layout="logos"] {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+.inspiration-columns[data-layout="logos"] .inspiration-card-art,
+.inspiration-columns[data-layout="logos"] :is(.inspiration-open, .inspiration-open img) {
+  overflow: hidden;
+  border-radius: var(--radius-control);
+}
+.inspiration-columns[data-layout="logos"] .inspiration-card-art > .inspiration-heart {
+  opacity: 0;
+}
+.inspiration-columns[data-layout="logos"]
+  .inspiration-card:is(:hover, :focus-within, [data-liked="true"])
+  .inspiration-heart {
+  opacity: 1;
+}
+@media (hover: none) {
+  .inspiration-columns[data-layout="logos"] .inspiration-card-art > .inspiration-heart {
+    opacity: 1;
+  }
+}
+.inspiration-caption.inspiration-art-name {
+  position: absolute;
+  left: var(--space-3);
+  bottom: var(--space-3);
+  width: auto;
+  max-width: calc(100% - 2 * var(--space-3));
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--chip-on-artwork-bg);
+  color: var(--color-text);
+  opacity: 0;
+  transition: opacity 120ms;
+  cursor: pointer;
+}
+.inspiration-art-name strong {
+  overflow: hidden;
+  font-size: var(--font-size-2);
+  line-height: 20px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.inspiration-card:is(:hover, :focus-within) .inspiration-art-name {
+  opacity: 1;
+}
 .inspiration-card-art {
   position: relative;
 }
@@ -493,6 +552,20 @@
     grid-column: 1 / -1;
     grid-row: 2;
     width: 100%;
+  }
+}
+/* On a phone the views, the categories (scrolling sideways when they do not fit) and the search each take a row. */
+@container inspiration (max-width: 600px) {
+  .inspiration-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .inspiration-categories {
+    justify-self: stretch;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .inspiration-toolbar .inspiration-search {
+    grid-row: 3;
   }
 }
 @media (max-width: 760px) {
