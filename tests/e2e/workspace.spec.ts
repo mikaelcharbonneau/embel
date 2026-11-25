@@ -18,7 +18,7 @@ test.beforeEach(async ({ page }) => {
 // D065 (96ef9f1): Home accepts a prompt before sign-in, but a conversation starts only in a
 // verified account. Signed out, Send keeps the prompt on this device and opens sign-in.
 async function expectSignInKeepsPrompt(page: Page) {
-  const signIn = page.getByRole("dialog", { name: "Sign in to Embel", exact: true });
+  const signIn = page.getByRole("dialog", { name: "Welcome back", exact: true });
   await expect(signIn).toBeVisible();
   await expect(
     signIn.getByText("Your idea is kept. It will be waiting when you’re signed in.", { exact: false }),
@@ -67,7 +67,7 @@ test("storage failure is visible and never claims the prompt was kept", async ({
   await expect(page.locator("main").getByRole("alert")).toContainText(
     "Your prompt could not be kept. Copy it before leaving to sign in.",
   );
-  await expect(page.getByRole("dialog", { name: "Sign in to Embel", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: "Welcome back", exact: true })).toHaveCount(0);
   await expect(prompt).toHaveValue(description);
 });
 

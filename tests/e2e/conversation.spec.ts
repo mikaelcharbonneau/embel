@@ -25,7 +25,7 @@ test("composer supports multiline text and IME composition without premature sub
   // The first prompt is written on Home; /brands/new leads there.
   await page.goto("/");
   const initial = page.getByRole("textbox", { name: "Your prompt", exact: true });
-  const signIn = page.getByRole("dialog", { name: "Sign in to Embel", exact: true });
+  const signIn = page.getByRole("dialog", { name: "Welcome back", exact: true });
   await initial.fill("First line");
   await initial.press("Shift+Enter");
   await initial.pressSequentially("Second line");

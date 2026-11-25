@@ -20,7 +20,7 @@ async function openOverlay(page: Page) {
   );
   await expect(accountMenuButton(page)).toHaveCount(0);
   await trigger.click();
-  const dialog = page.getByRole("dialog", { name: "Sign in to Embel", exact: true });
+  const dialog = page.getByRole("dialog", { name: "Welcome back", exact: true });
   await expect(dialog).toBeVisible();
   // Where focus starts is covered by its own test below.
   return { dialog, trigger };
@@ -70,7 +70,7 @@ test("auth overlay: closing returns focus to a visible Home opener without chang
   // Under the prompt box: "You’ll sign in before we start."
   const trigger = page.getByRole("main").getByRole("link", { name: "sign in", exact: true });
   await trigger.click();
-  const dialog = page.getByRole("dialog", { name: "Sign in to Embel", exact: true });
+  const dialog = page.getByRole("dialog", { name: "Welcome back", exact: true });
   await expect(dialog).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);

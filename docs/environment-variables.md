@@ -15,7 +15,7 @@ also be 24.x.
 | `NEXT_PUBLIC_SUPABASE_URL` | The Supabase project URL. Public. | Vercel, all environments |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | The Supabase publishable key (`sb_publishable_...`). Public. | Vercel, all environments |
 | `EMBEL_ENGINE_DATABASE_URL` | Server-only Postgres connection string used by the generation engine (durable jobs, usage records). | Vercel, Production (secret) |
-| `EMBEL_ENGINE_SUPABASE_SECRET_KEY` | Server-only Supabase secret key (`sb_secret_...`). Used by the engine for private file storage and by account deletion, export and the cleanup job. | Vercel, Production (secret) |
+| `EMBEL_ENGINE_SUPABASE_SECRET_KEY` | Server-only Supabase secret key (`sb_secret_...`). Used by the engine for private file storage and by account deletion, export and the cleanup job. Also read when checking whether the ChatGPT sign-in provider is switched on ([provider-sign-in.md](provider-sign-in.md)). | Vercel, Production (secret) |
 | `EMBEL_SHARED_ACCOUNT_HTTP_ENABLED` | `true` turns on the restricted Identity, Home attachment and Logo database lanes. Without it those lanes stay unavailable. | Vercel, Production |
 | `EMBEL_SHARED_ACCOUNT_HTTP_CONFIG` | Server-only JSON with the restricted database logins for the Identity and Home lanes (`identity`, `homeVerifier`). See `src/server/shared-account/README.md`. | Vercel, Production (secret) |
 | `EMBEL_SHARED_LOGO_HTTP_CONFIG` | Server-only JSON (`roleName`, `roleOid`, `databaseUrl`) for the Logo lane's restricted login. | Vercel, Production (secret) |

@@ -74,24 +74,195 @@
   margin-block: calc((var(--link-target-min) - 1lh) / -2);
 }
 
+/* "Continue with Google / Apple / ChatGPT": outlined buttons side by side, one column each, then a divider
+   before the email form. Drawn only for providers the server reports as enabled. */
+.auth-providers {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  container-type: inline-size;
+}
+.auth-providers__list {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+}
+.auth-providers__item {
+  display: grid;
+  min-width: 0;
+}
+.e-button.auth-provider {
+  min-width: 0;
+  padding: 0 var(--space-2);
+}
+.e-button.auth-provider:not(:disabled) {
+  border-color: var(--color-border-control);
+}
+@media (hover: hover) and (pointer: fine) {
+  .e-button.auth-provider:not(:disabled, [aria-busy="true"]):hover {
+    border-color: var(--color-border-selected);
+    background: var(--color-bg-canvas);
+  }
+}
+.auth-provider__mark {
+  flex: none;
+}
+.auth-provider:disabled > .auth-provider__mark {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+.auth-providers__divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font: var(--text-small);
+  color: var(--color-text-muted);
+}
+.auth-providers__divider::before,
+.auth-providers__divider::after {
+  content: "";
+  flex: 1 1 0;
+  height: 1px;
+  background: var(--color-border);
+}
+/* Three names don't fit side by side on the narrowest phones: there the buttons stack, full width. */
+@container (max-width: 303px) {
+  .auth-providers__list:has(> :nth-child(3)) {
+    grid-auto-flow: row;
+  }
+}
+
 /* Cloudflare Turnstile (shown only when a site key is configured). */
 .auth-captcha {
   min-height: calc(var(--space-16) + var(--space-0-5));
 }
 
-/* The overlay: a small Dialog over the page. The close button stays at the top right while the card scrolls. */
-.auth-overlay > .auth-card {
-  overflow: auto;
-  min-height: 0;
+/* The overlay: a Dialog over the page with the form on the left and a wall of brand images on the right.
+   The wall needs room beside the form; below that width the overlay is the form alone. Close sits at the
+   top left, clear of the centred mark and title, and stays put while the form scrolls. */
+.e-dialog.auth-overlay {
+  /* The overlay's own measures, from the sign-in design: a 1000 px dialog split evenly between form and wall. */
+  --auth-overlay-width: 1000px;
+  --auth-overlay-form-width: 380px;
+  --auth-overlay-form-height: 540px;
+  --auth-wall-tile-width: 180px;
+  --auth-wall-column-shift: -110px;
+  --dialog-width: var(--dialog-width-sm);
 }
-.auth-overlay > .auth-card .auth-card__header {
-  padding-right: var(--space-10);
+.auth-overlay__main {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-8);
+  overflow: auto;
+}
+.auth-overlay__main > .auth-card {
+  gap: var(--space-6);
+  width: 100%;
+  max-width: var(--auth-overlay-form-width);
+  margin: auto;
+  padding: 0;
+}
+.auth-overlay .auth-card__header {
+  justify-items: center;
+  gap: var(--space-5);
+  text-align: center;
+}
+.auth-overlay .auth-card__title {
+  padding-top: 0;
+  text-wrap: balance;
+}
+.auth-overlay .auth-card__intro {
+  font: var(--text-small);
+  color: var(--color-text-muted);
+}
+.auth-overlay .auth-card__switch {
+  color: var(--color-text-muted);
+  text-align: center;
+}
+.auth-overlay .auth-card__switch > .e-link {
+  font-weight: var(--font-weight-medium);
+}
+.auth-overlay .auth-card__terms {
+  text-align: center;
 }
 .auth-overlay__close {
   position: absolute;
-  top: var(--space-4);
-  right: var(--space-4);
+  top: var(--space-2);
+  left: var(--space-2);
   z-index: var(--z-raised);
+}
+.auth-wall {
+  display: none;
+}
+/* As a phone sheet the overlay is as tall as its form, not the full sheet height. */
+@media (max-width: 639px) {
+  .e-dialog.auth-overlay {
+    height: fit-content;
+  }
+}
+@media (min-width: 960px) {
+  .e-dialog.auth-overlay {
+    --dialog-width: var(--auth-overlay-width);
+    flex-direction: row;
+  }
+  .auth-overlay__main {
+    flex: 1 1 0;
+  }
+  .auth-overlay__main > .auth-card {
+    min-height: var(--auth-overlay-form-height);
+  }
+  .auth-wall {
+    position: relative;
+    display: block;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    background: var(--color-bg-canvas);
+    animation: e-fade var(--duration-slow) var(--ease-out) both;
+  }
+  .auth-wall__grid {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-4);
+    transform: translate(-50%, -50%) rotate(28deg) scale(0.72);
+  }
+  .auth-wall__column {
+    display: grid;
+    flex: none;
+    gap: var(--space-4);
+    width: var(--auth-wall-tile-width);
+  }
+  .auth-wall__column:nth-child(even) {
+    margin-top: var(--auth-wall-column-shift);
+  }
+  .auth-wall__image {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 5;
+    border-radius: var(--radius-card);
+    background: var(--color-bg-skeleton);
+    object-fit: cover;
+  }
+  .auth-wall__label {
+    position: absolute;
+    bottom: var(--space-4);
+    left: var(--space-4);
+    padding: var(--space-1-5) var(--space-3);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-bg-paper) 92%, transparent);
+    box-shadow: var(--shadow-raised);
+    font: var(--text-small);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text);
+  }
 }
 
 /* Direct visits to /sign-in, /sign-up and the password pages: the same card on the page. */

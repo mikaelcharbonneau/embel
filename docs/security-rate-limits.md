@@ -149,6 +149,20 @@ rules were added through the Vercel API (`PATCH /v1/security/firewall/config`, a
 with a Vercel access token; the Vercel connector can read the firewall but not change it. Rollback:
 `vercel firewall rules disable "<name>"`, then `vercel firewall publish --yes`.
 
+### Provider sign-in start (November 25, 2026)
+
+`POST /api/auth/oauth/{google,apple,chatgpt}` ([provider-sign-in.md](provider-sign-in.md)) is not in the
+BotID list: it is a plain form post, which cannot carry BotID's challenge. It starts no paid work, sends
+no email and creates no account, so a rate limit is not required for safety. To keep all account routes
+under the same two limits, the release lead can widen the path of both "Account forms" rules to
+
+```
+^/api/auth/(sign-in|sign-up|password-reset|resend-confirmation|oauth/[^/]+)$
+```
+
+_Status: not applied; the live rules still use the path above without `oauth`._ `/auth/callback` is a
+`GET` and is not counted by these rules.
+
 ## Verification in this PR
 
 `tests/server/bot-protection.test.ts`: bot verdict gives 403 and starts no generation; human verdict
